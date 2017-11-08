@@ -1,0 +1,1 @@
+integration/callwithevil/test.php:11 SecurityCheckTaintedOutput Calling Method \Foo::output in [no method] that outputs using tainted (680; 1360) argument $a. (Caused by: integration/callwithevil/test.php +4; integration/callwithevil/test.php +4) (Caused by: integration/callwithevil/test.php +8)

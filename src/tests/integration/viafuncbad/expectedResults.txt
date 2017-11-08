@@ -1,0 +1,1 @@
+integration/viafuncbad/test.php:6 SecurityCheckTaintedOutput Calling Method \OutputPage::addHTML in [no method] that outputs using tainted (8; 16) argument $html. (Caused by: integration/viafuncbad/test.php +4)

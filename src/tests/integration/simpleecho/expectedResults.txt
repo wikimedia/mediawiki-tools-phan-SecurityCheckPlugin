@@ -1,0 +1,1 @@
+integration/simpleecho/test.php:3 SecurityCheckTaintedOutput Echoing tainted expression (680)

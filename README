@@ -1,0 +1,9 @@
+This is a plugin to Phan to try and detect security issues
+(such as XSS)
+
+This is still experimental and very rough around the edges.
+
+If you want to use it add either GenericSecurityCheckPlugin.php
+or MediaWikiSecurityCheckPlugin.php to the plugins list in
+your phan config, depending on if you are checking a non-mediawiki
+project or a MediaWiki/MediaWiki extension respectively.

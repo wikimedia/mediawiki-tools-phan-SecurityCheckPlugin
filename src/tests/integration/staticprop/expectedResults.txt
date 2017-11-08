@@ -1,0 +1,1 @@
+integration/staticprop/test.php:12 SecurityCheckTaintedOutput Echoing tainted expression (680) (Caused by: integration/staticprop/test.php +11; integration/staticprop/test.php +10)
