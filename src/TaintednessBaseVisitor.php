@@ -940,12 +940,12 @@ return [];
 			}
 		}
 		$line = $method . "\33[1m" . $this->dbgInfo() . " \33[0m" . $msg .     "\n";
-		if ( $this->debugOutput ) {
+		if ( $this->debugOutput && $this->debugOutput !== '-' ) {
 			fwrite(
 				$this->debugOutput,
 				$line
 			);
-		} else {
+		} elseif ( $this->debugOutput === '-' ) {
 			echo $line;
 		}
 	}
