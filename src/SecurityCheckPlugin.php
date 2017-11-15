@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-require_once 'TaintednessBaseVisitor.php';
-require_once 'PreTaintednessVisitor.php';
-require_once 'TaintednessVisitor.php';
+require_once __DIR__ . '/TaintednessBaseVisitor.php';
+require_once __DIR__ . '/PreTaintednessVisitor.php';
+require_once __DIR__ . '/TaintednessVisitor.php';
 
 use Phan\CodeBase;
 use Phan\Language\Context;

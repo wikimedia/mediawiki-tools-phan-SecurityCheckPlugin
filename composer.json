@@ -11,8 +11,13 @@
     },
     "scripts": {
         "test": [
-            "phpcs -p -s"
+            "composer phpcs",
+            "composer integration-tests",
+            "composer phan-for-plugin"
         ],
+	"phpcs": "phpcs -p -s",
+	"integration-tests": "./tests/runtests.sh",
+	"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
         "fix": "phpcbf"
     },
     "license": "GPLv2",

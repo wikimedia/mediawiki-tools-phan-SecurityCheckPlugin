@@ -13,16 +13,16 @@
 
 	<!-- Stuff we are only excluding in tests" -->
 	<rule ref="MediaWiki.Usage.SuperGlobalsUsage.SuperGlobals">
-		<exclude-pattern>./src/tests</exclude-pattern>
+		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 	<rule ref="Generic.Classes.DuplicateClassName.Found">
-		<exclude-pattern>./src/tests</exclude-pattern>
+		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 
 	<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationPublic">
-		<exclude-pattern>./src/tests</exclude-pattern>
+		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 	<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">
-		<exclude-pattern>./src/tests</exclude-pattern>
+		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 	</ruleset>

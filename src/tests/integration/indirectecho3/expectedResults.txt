@@ -1,1 +1,0 @@
-integration/indirectecho2/test.php:5 SecurityCheckTaintedOutput Echoing tainted expression (680) (Caused by: integration/indirectecho2/test.php +3)

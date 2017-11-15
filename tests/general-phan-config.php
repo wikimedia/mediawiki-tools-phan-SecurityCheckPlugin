@@ -1,5 +1,6 @@
 <?php
 
+use \Phan\Config;
 
 // If xdebug is enabled, we need to increase the nesting level for phan
 ini_set( 'xdebug.max_nesting_level', 1000 );
@@ -45,6 +46,8 @@ return [
 	 * your application should be included in this list.
 	 */
 	'directory_list' => [
+		Config::projectPath( 'src' ),
+		Config::projectPath( 'vendor' )
 	],
 
 	/**
@@ -62,6 +65,7 @@ return [
 	 * files.
 	 */
 	"exclude_analysis_directory_list" => [
+		Config::projectPath( 'vendor' )
 	],
 
 	/**
@@ -144,7 +148,7 @@ return [
 	 * to a class property that wasn't explicitly
 	 * defined.
 	 */
-	'allow_missing_properties' => false,
+	'allow_missing_properties' => true,
 
 	/**
 	 * Allow null to be cast as any type and for any
@@ -179,7 +183,7 @@ return [
 	 * `$class->$method()`) in ways that we're unable
 	 * to make sense of.
 	 */
-	'dead_code_detection' => false,
+	'dead_code_detection' => true,
 
 	/**
 	 * If true, the dead code detection rig will
@@ -236,7 +240,7 @@ return [
 	'expand_file_list' => false,
 
 	// Include a progress bar in the output
-	'progress_bar' => false,
+	'progress_bar' => true,
 
 	/**
 	 * The probability of actually emitting any progress
@@ -258,7 +262,56 @@ return [
 	 * to this black-list to inhibit them from being reported.
 	 */
 	'suppress_issue_types' => [
+		// 'PhanDeprecatedProperty',
 	],
+	/*'suppress_issue_types' => [
+		// approximate error count: 8
+		"PhanDeprecatedClass",
+		// approximate error count: 415
+		"PhanDeprecatedFunction",
+		// approximate error count: 25
+		"PhanDeprecatedProperty",
+		// approximate error count: 11
+		"PhanParamReqAfterOpt",
+		// approximate error count: 888
+		"PhanParamSignatureMismatch",
+		// approximate error count: 7
+		"PhanParamSignatureMismatchInternal",
+		// approximate error count: 125
+		"PhanParamTooMany",
+		// approximate error count: 3
+		"PhanParamTooManyInternal",
+		// approximate error count: 1
+		"PhanRedefineFunctionInternal",
+		// approximate error count: 2
+		"PhanTraitParentReference",
+		// approximate error count: 3
+		"PhanTypeComparisonFromArray",
+		// approximate error count: 3
+		"PhanTypeInvalidRightOperand",
+		// approximate error count: 218
+		"PhanTypeMismatchArgument",
+		// approximate error count: 13
+		"PhanTypeMismatchArgumentInternal",
+		// approximate error count: 14
+		"PhanTypeMismatchForeach",
+		// approximate error count: 56
+		"PhanTypeMismatchProperty",
+		// approximate error count: 74
+		"PhanTypeMismatchReturn",
+		// approximate error count: 11
+		"PhanTypeMissingReturn",
+		// approximate error count: 5
+		"PhanTypeNonVarPassByRef",
+		// approximate error count: 32
+		"PhanUndeclaredConstant",
+		// approximate error count: 233
+		"PhanUndeclaredMethod",
+		// approximate error count: 1224
+		"PhanUndeclaredProperty",
+		// approximate error count: 3
+		"PhanUndeclaredStaticMethod",
+	],*/
 
 	/**
 	 * If empty, no filter against issues types will be applied.
@@ -266,6 +319,91 @@ return [
 	 * will be emitted by Phan.
 	 */
 	'whitelist_issue_types' => [
+		// 'PhanAccessMethodPrivate',
+		// 'PhanAccessMethodProtected',
+		// 'PhanAccessNonStaticToStatic',
+		// 'PhanAccessPropertyPrivate',
+		// 'PhanAccessPropertyProtected',
+		// 'PhanAccessSignatureMismatch',
+		// 'PhanAccessSignatureMismatchInternal',
+		// 'PhanAccessStaticToNonStatic',
+		// 'PhanCompatibleExpressionPHP7',
+		// 'PhanCompatiblePHP7',
+		// 'PhanContextNotObject',
+		// 'PhanDeprecatedClass',
+		// 'PhanDeprecatedFunction',
+		// 'PhanDeprecatedProperty',
+		// 'PhanEmptyFile',
+		// 'PhanNonClassMethodCall',
+		// 'PhanNoopArray',
+		// 'PhanNoopClosure',
+		// 'PhanNoopConstant',
+		// 'PhanNoopProperty',
+		// 'PhanNoopVariable',
+		// 'PhanParamRedefined',
+		// 'PhanParamReqAfterOpt',
+		// 'PhanParamSignatureMismatch',
+		// 'PhanParamSignatureMismatchInternal',
+		// 'PhanParamSpecial1',
+		// 'PhanParamSpecial2',
+		// 'PhanParamSpecial3',
+		// 'PhanParamSpecial4',
+		// 'PhanParamTooFew',
+		// 'PhanParamTooFewInternal',
+		// 'PhanParamTooMany',
+		// 'PhanParamTooManyInternal',
+		// 'PhanParamTypeMismatch',
+		// 'PhanParentlessClass',
+		// 'PhanRedefineClass',
+		// 'PhanRedefineClassInternal',
+		// 'PhanRedefineFunction',
+		// 'PhanRedefineFunctionInternal',
+		// 'PhanStaticCallToNonStatic',
+		// 'PhanSyntaxError',
+		// 'PhanTraitParentReference',
+		// 'PhanTypeArrayOperator',
+		// 'PhanTypeArraySuspicious',
+		// 'PhanTypeComparisonFromArray',
+		// 'PhanTypeComparisonToArray',
+		// 'PhanTypeConversionFromArray',
+		// 'PhanTypeInstantiateAbstract',
+		// 'PhanTypeInstantiateInterface',
+		// 'PhanTypeInvalidLeftOperand',
+		// 'PhanTypeInvalidRightOperand',
+		// 'PhanTypeMismatchArgument',
+		// 'PhanTypeMismatchArgumentInternal',
+		// 'PhanTypeMismatchDefault',
+		// 'PhanTypeMismatchForeach',
+		// 'PhanTypeMismatchProperty',
+		// 'PhanTypeMismatchReturn',
+		// 'PhanTypeMissingReturn',
+		// 'PhanTypeNonVarPassByRef',
+		// 'PhanTypeParentConstructorCalled',
+		// 'PhanTypeVoidAssignment',
+		// 'PhanUnanalyzable',
+		// 'PhanUndeclaredClass',
+		// 'PhanUndeclaredClassCatch',
+		// 'PhanUndeclaredClassConstant',
+		// 'PhanUndeclaredClassInstanceof',
+		// 'PhanUndeclaredClassMethod',
+		// 'PhanUndeclaredClassReference',
+		// 'PhanUndeclaredConstant',
+		// 'PhanUndeclaredExtendedClass',
+		// 'PhanUndeclaredFunction',
+		// 'PhanUndeclaredInterface',
+		// 'PhanUndeclaredMethod',
+		// 'PhanUndeclaredProperty',
+		// 'PhanUndeclaredStaticMethod',
+		// 'PhanUndeclaredStaticProperty',
+		// 'PhanUndeclaredTrait',
+		// 'PhanUndeclaredTypeParameter',
+		// 'PhanUndeclaredTypeProperty',
+		// 'PhanUndeclaredVariable',
+		// 'PhanUnreferencedClass',
+		// 'PhanUnreferencedConstant',
+		// 'PhanUnreferencedMethod',
+		// 'PhanUnreferencedProperty',
+		// 'PhanVariableUseClause',
 	],
 
 	/**
@@ -274,6 +412,7 @@ return [
 	 * (E.g. ['_FOO' => '\\FooClass', 'page' => '\\PageClass', 'userId' => 'int'])
 	 */
 	'globals_type_map' => [
+		// 'IP' => 'string',
 	],
 
 	// Emit issue messages with markdown formatting
@@ -287,7 +426,5 @@ return [
 
 	// A list of plugin files to execute
 	'plugins' => [
-		# '.phan/plugins/InlineTypePlugin.php',
-		'../..//plugins/MediaWikiSecurityCheckPlugin.php',
 	],
 ];
