@@ -1,25 +1,14 @@
-<?php declare(strict_types=1);
+<?php declare( strict_types=1 );
 
-use Phan\AST\AnalysisVisitor;
 use Phan\AST\ContextNode;
-use Phan\CodeBase;
 use Phan\Language\Context;
-use Phan\Language\Element\Clazz;
-use Phan\Language\Element\Func;
-use Phan\Language\Element\FunctionInterface;
-use Phan\Language\Element\Method;
 use Phan\Language\Element\Variable;
-use Phan\Language\UnionType;
-use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Plugin;
-use Phan\Plugin\PluginImplementation;
 use ast\Node;
 use ast\Node\Decl;
 use Phan\Exception\IssueException;
 use Phan\Debug;
-use Phan\Language\Scope\FunctionLikeScope;
-use Phan\Language\Scope\BranchScope;
 use Phan\Library\Set;
 
 /**
@@ -45,8 +34,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return int The taintedness of the node.
 	 */
-	public function visit (Node $node) : int
-	{
+	public function visit( Node $node ) : int {
 		// This method will be called on all nodes for which
 		// there is no implementation of it's kind visitor.
 		//
@@ -56,12 +44,11 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		//var_dump( $this->context );
 		echo ' ';
 		 Debug::printNode($node); */
-		#echo __METHOD__  . $this->dbgInfo() . " setting unknown taint for " . \ast\get_kind_name( $node->kind ) . "\n";
-		#Debug::printNode( $node );
+		# echo __METHOD__  . $this->dbgInfo() . " setting unknown taint for " . \ast\get_kind_name( $node->kind ) . "\n";
+		# Debug::printNode( $node );
 		$this->debug( __METHOD__, "unhandled case " . \ast\get_kind_name( $node->kind ) );
 		return SecurityCheckPlugin::UNKNOWN_TAINT;
 	}
-
 
 	public function visitFuncDecl( Decl $node ) : int {
 		return $this->visitMethod( $node );
@@ -197,7 +184,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * Also handles visitAssignOp
 	 */
 	public function visitAssign( Node $node ) : int {
-		//echo __METHOD__ . $this->dbgInfo() . ' ';
+		// echo __METHOD__ . $this->dbgInfo() . ' ';
 		// Debug::printNode($node);
 
 		// FIXME This is wrong for non-local vars (including class props)
@@ -208,8 +195,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		try {
 			$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
 		} catch ( Exception $e ) {
-			echo __METHOD__ . " FIXME Cannot understand RHS. " . get_class($e) . " - {$e->getMessage()}\n";
-			//Debug::printNode( $node );
+			echo __METHOD__ . " FIXME Cannot understand RHS. " . get_class( $e ) . " - {$e->getMessage()}\n";
+			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		$lhsTaintedness = $this->getTaintedness( $node->children['var'] );
@@ -238,7 +225,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					. $this->getOriginalTaintLine( $node->children['var'] )
 			);
 		}
-		foreach( $variableObjs as $variableObj ) {
+		foreach ( $variableObjs as $variableObj ) {
 			// echo $this->dbgInfo() . " " . $variableObj . " now merging in taintedness " . $rhsTaintedness . " (previously $lhsTaintedness)\n";
 			$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
 			try {
@@ -252,13 +239,12 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			}
 			foreach ( $rhsObjs as $rhsObj ) {
 				$this->mergeTaintDependencies( $variableObj, $rhsObj );
-			} 
+			}
 		}
 		return $rhsTaintedness;
 	}
 
 	public function visitBinaryOp( Node $node ) : int {
-
 		$safeBinOps =
 			// Unsure about BITWISE ops, since
 			// "A" | "B" still is a string
@@ -322,9 +308,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				"Echoing tainted expression ($taintedness)"
 					. $this->getOriginalTaintLine( $node->children['expr'] )
 			);
-		} elseif ( is_object( $node->children['expr'] )||$taintedness & SecurityCheckPlugin::PRESERVE_TAINT ) {
+		} elseif ( is_object( $node->children['expr'] ) || $taintedness & SecurityCheckPlugin::PRESERVE_TAINT ) {
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
-			foreach( $phanObjs as $phanObj ) {
+			foreach ( $phanObjs as $phanObj ) {
 				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
 				// FIXME, maybe not do this for local variables
 				// since they don't have other code paths that can set them.
@@ -366,8 +352,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			$this->context,
 			$node
 		);
-		$isStatic = ($node->kind === \ast\AST_STATIC_CALL);
-		$isFunc = ($node->kind === \ast\AST_CALL);
+		$isStatic = ( $node->kind === \ast\AST_STATIC_CALL );
+		$isFunc = ( $node->kind === \ast\AST_CALL );
 
 		// First we need to get the taintedness of the method
 		// in question.
@@ -391,7 +377,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			}
 			$funcName = $func->getFQSEN();
 			$taint = $this->getTaintOfFunction( $func );
-		} catch( IssueException $e ) {
+		} catch ( IssueException $e ) {
 			$this->debug( __METHOD__, "FIXME complicated case not handled. Maybe func not defined." . $e->getIssueInstance() );
 			$func = null;
 			$funcName = '[UNKNOWN FUNC]';
@@ -408,7 +394,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		$overallArgTaint = SecurityCheckPlugin::NO_TAINT;
 		$overallTaintHist = '';
 		$args = $node->children['args']->children;
-		foreach( $args as $i => $argument ) {
+		foreach ( $args as $i => $argument ) {
 			if ( !is_object( $argument ) ) {
 				// Literal value
 				continue;
@@ -416,7 +402,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 
 			$curArgTaintedness = $this->getTaintednessNode( $argument );
 			if ( isset( $taint[$i] ) ) {
-				$effectiveArgTaintedness = $curArgTaintedness & 
+				$effectiveArgTaintedness = $curArgTaintedness &
 					( $taint[$i] | $this->execToYesTaint( $taint[$i] ) );
 				# $this->debug( __METHOD__, "effective $effectiveArgTaintedness via arg $i $funcName" );
 			} elseif ( ( $taint['overall'] &
@@ -454,15 +440,15 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				// Iffy if this will work, because phan replaces
 				// the Parameter objects with ParameterPassByReference,
 				// and then unreplaces them
-				//echo __METHOD__ . $this->dbgInfo() . (string)$param. "\n";
+				// echo __METHOD__ . $this->dbgInfo() . (string)$param. "\n";
 
 				$pobjs = $this->getPhanObjsForNode( $argument );
 				if ( count( $pobjs ) !== 1 ) {
 					echo __METHOD__ . $this->dbgInfo() . "Expected only one " . (string)$param . "\n";
 				}
-				foreach( $pobjs as $pobj ) {
+				foreach ( $pobjs as $pobj ) {
 					// FIXME, is unknown right here.
-					$combinedTaint = $this->mergeAddTaint( 
+					$combinedTaint = $this->mergeAddTaint(
 						$methodVar->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT,
 						$pobj->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT
 					);
@@ -472,7 +458,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					$pobjLinks = $pobj->taintedMethodLinks ?? new Set;
 					$pobj->taintedMethodLinks = $methodLinks->union( $pobjLinks );
 					$methodVar->taintedMethodLinks =& $pobj->taintedMethodLinks;
-					$combinedOrig = ($pobj->taintedOriginalError ?? '' ) . ( $methodVar->taintedOriginalError ?? '' );
+					$combinedOrig = ( $pobj->taintedOriginalError ?? '' ) . ( $methodVar->taintedOriginalError ?? '' );
 					if ( strlen( $combinedOrig ) > 255 ) {
 						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '...';
 					}
@@ -499,7 +485,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( $this->isExecTaint( $taint[$i] ?? 0 ) ) {
 				# $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
-				try { 
+				try {
 					$phanObjs = $this->getPhanObjsForNode( $argument );
 					foreach ( $phanObjs as $phanObj ) {
 						$this->markAllDependentMethodsExec( $phanObj );
@@ -508,10 +494,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					$this->debug( __METHOD__, "FIXME " . get_class( $e ) . " " . $e->getMessage() );
 				}
 			}
-			$taintedArg = $argument->children['name'] ?? '[arg #' . ($i+1) . ']';
+			$taintedArg = $argument->children['name'] ?? '[arg #' . ( $i + 1 ) . ']';
 			// We use curArgTaintedness here, as we aren't checking what taint
 			// gets passed to return value, but which taint is EXECed.
-			//$this->debug( __METHOD__, "Checking safe assing $funcName arg=$i paramTaint= " .( $taint[$i] ?? "MISSING" ). " vs argTaint= $curArgTaintedness"  );
+			// $this->debug( __METHOD__, "Checking safe assing $funcName arg=$i paramTaint= " .( $taint[$i] ?? "MISSING" ). " vs argTaint= $curArgTaintedness"  );
 			if ( !$this->isSafeAssignment( $taint[$i] ?? 0, $curArgTaintedness ) ) {
 				$containingMethod = $this->getCurrentMethod();
 				$this->plugin->emitIssue(
@@ -524,7 +510,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					" that outputs using tainted ($curArgTaintedness; " .
 					( $taint[$i] ?? 0 ) . ") argument \$$taintedArg." .
 					( $func ? $this->getOriginalTaintLine( $func ) : '' ).
-					$this->getOriginalTaintLine( $argument ) 
+					$this->getOriginalTaintLine( $argument )
 				);
 			}
 
@@ -549,7 +535,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		}
 
 		$newMem = memory_get_peak_usage();
-		$diffMem = round( ($newMem - $oldMem ) / (1024*1024) );
+		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem $funcName" );
 		}
@@ -582,11 +568,11 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
 			if ( Variable::isSuperglobalVariableWithName( $varName ) ) {
 				// Super globals are tainted.
-				//echo "$varName is superglobal. Marking tainted\n";
+				// echo "$varName is superglobal. Marking tainted\n";
 				return SecurityCheckPlugin::YES_TAINT;
 			}
 			// Probably the var just isn't in scope yet.
-			//$this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
+			// $this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
@@ -604,7 +590,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			$localVar = $scope->getVariableByName( $varName );
 			$globalVar = $scope->getGlobalVariableByName( $varName );
 			if ( !property_exists( $globalVar, 'taintedness' ) ) {
-				//echo "Setting initial taintedness for global $varName of NO\n";
+				// echo "Setting initial taintedness for global $varName of NO\n";
 				$globalVar->taintedness = SecurityCheckPlugin::NO_TAINT;
 			}
 			if ( property_exists( $localVar, 'taintedness' ) ) {
@@ -622,7 +608,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	public function visitReturn( Node $node ) : int {
 		if ( !$this->context->isInFunctionLikeScope() ) {
 			$this->debug( __METHOD__, "return outside func?" );
-			//Debug::printNode( $node );
+			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 
@@ -641,7 +627,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		if ( $funcTaint['overall'] & SecurityCheckPlugin::YES_EXEC_TAINT ) {
 			$taintSource = '';
 			$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
-			foreach( $pobjs as $pobj ) {
+			foreach ( $pobjs as $pobj ) {
 				$taintSource .= $pobj->taintedOriginalError ?? '';
 			}
 			if ( strlen( $taintSource ) < 200 ) {
@@ -663,7 +649,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 */
 	public function visitArray( Node $node ) : int {
 		$curTaint = SecurityCheckPlugin::NO_TAINT;
-		foreach( $node->children as $child ) {
+		foreach ( $node->children as $child ) {
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$curTaint = $this->mergeAddTaint( $curTaint, $this->getTaintedness( $child ) );
 		}
@@ -696,8 +682,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		try {
 			$props = $this->getPhanObjsForNode( $node );
 		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Cannot understand static class prop. " . get_class($e) . " - {$e->getMessage()}" );
-			//Debug::printNode( $node );
+			$this->debug( __METHOD__, "Cannot understand static class prop. " . get_class( $e ) . " - {$e->getMessage()}" );
+			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 
@@ -706,19 +692,18 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			$this->debug( __METHOD__, "static prop has many objects" );
 		}
 		$taint = 0;
-		foreach( $props as $prop ) {
+		foreach ( $props as $prop ) {
 			$taint |= $this->getTaintednessPhanObj( $prop );
 		}
 		return $taint;
 	}
 
-
 	public function visitProp( Node $node ) : int {
 		try {
 			$props = $this->getPhanObjsForNode( $node );
 		} catch ( Exception $e ) {
-			//$this->debug( __METHOD__, "Cannot understand class prop. " . get_class($e) . " - {$e->getMessage()}" );
-			//Debug::printNode( $node );
+			// $this->debug( __METHOD__, "Cannot understand class prop. " . get_class($e) . " - {$e->getMessage()}" );
+			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		if ( count( $props ) !== 1 ) {
@@ -764,8 +749,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
 		$prop = $clazz->getPropertyByNameInContext( $this->code_base, $node->children['name'], $this->context );
-		// FIXME should this be NO? 
-		//$this->debug( __METHOD__, "Setting taint preserve if not set yet for \$" . $node->children['name'] . "" );
+		// FIXME should this be NO?
+		// $this->debug( __METHOD__, "Setting taint preserve if not set yet for \$" . $node->children['name'] . "" );
 		$this->setTaintedness( $prop, SecurityCheckPlugin::NO_TAINT, false );
 		return SecurityCheckPlugin::INAPLICABLE_TAINT;
 	}
@@ -824,7 +809,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 */
 	public function visitEncapsList( Node $node ) : int {
 		$taint = SecurityCheckPlugin::NO_TAINT;
-		foreach( $node->children as $child ) {
+		foreach ( $node->children as $child ) {
 			$taint = $this->mergeAddTaint( $taint, $this->getTaintedness( $child ) );
 		}
 		return $taint;
@@ -842,4 +827,3 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		return SecurityCheckPlugin::NO_TAINT;
 	}
 }
-

@@ -4,19 +4,13 @@ use Phan\AST\AnalysisVisitor;
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Language\Context;
-use Phan\Language\Element\Clazz;
-use Phan\Language\Element\Func;
 use Phan\Language\Element\FunctionInterface;
-use Phan\Language\Element\Method;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
-use Phan\Language\Element\Parameter;
 use Phan\Language\UnionType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Plugin;
-use Phan\Plugin\PluginImplementation;
 use ast\Node;
-use ast\Node\Decl;
 use Phan\Debug;
 use Phan\Language\Scope\FunctionLikeScope;
 use Phan\Language\Scope\BranchScope;
@@ -35,7 +29,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		Context $context,
 		SecurityCheckPlugin $plugin
 	) {
-		parent::__construct($code_base, $context);
+		parent::__construct( $code_base, $context );
 		$this->plugin = $plugin;
 	}
 
@@ -73,7 +67,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		$this->checkFuncTaint( $newTaint );
 		$func->funcTaint = $newTaint;
 
-
 		if ( $mergedTaint & SecurityCheckPlugin::YES_EXEC_TAINT ) {
 			if ( !property_exists( $func, 'taintedOriginalError' ) ) {
 				$func->taintedOriginalError = '';
@@ -102,7 +95,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 	}
 
-
 	/**
 	 * Change the taintedness of a variable
 	 *
@@ -111,7 +103,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @param bool $override Override taintedness or just take max.
 	 */
 	protected function setTaintedness( TypedElementInterface $variableObj, int $taintedness, $override = true ) {
-		//$this->debug( __METHOD__, "begin for \$" . $variableObj->getName() . " <- $taintedness (override=$override)" );
+		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName() . " <- $taintedness (override=$override)" );
 
 		assert( $taintedness >= 0, $taintedness );
 
@@ -121,9 +113,9 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 
 		if ( property_exists( $variableObj, 'taintednessHasOuterScope' )
-			|| !($this->context->getScope() instanceof FunctionLikeScope)
+			|| !( $this->context->getScope() instanceof FunctionLikeScope )
 		) {
-//$this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - " . get_class( $this->context->getScope()) . "" );
+// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - " . get_class( $this->context->getScope()) . "" );
 			// If the current context is not a FunctionLikeScope, then
 			// it might be a class, or an if branch, or global. In any case
 			// its probably a non-local variable (or in the if case, code
@@ -131,19 +123,19 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			//
 
 			if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
-				&& ($this->context->getScope() instanceof BranchScope)
+				&& ( $this->context->getScope() instanceof BranchScope )
 			) {
-//echo __METHOD__ . "in a branch\n";
+// echo __METHOD__ . "in a branch\n";
 				$scope = $this->context->getScope();
 				do {
-					//echo __METHOD__ . " getting parent scope\n";
+					// echo __METHOD__ . " getting parent scope\n";
 					$scope = $scope->getParentScope();
-				} while( $scope instanceof BranchScope );
+				} while ( $scope instanceof BranchScope );
 				if ( $scope->hasVariableWithName( $variableObj->getName() ) ) {
 					$parentVarObj = $scope->getVariableByName( $variableObj->getName() );
 
 					if ( !property_exists( $parentVarObj, 'taintedness' ) ) {
-						//echo __METHOD__ . " parent scope for {$variableObj->getName()} has no taint\n";
+						// echo __METHOD__ . " parent scope for {$variableObj->getName()} has no taint\n";
 						$parentVarObj->taintedness = $taintedness;
 					} else {
 						$parentVarObj->taintedness = $this->mergeAddTaint( $parentVarObj->taintedness, $taintedness );
@@ -176,7 +168,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				$variableObj->taintedness = $taintedness;
 			}
 		} else {
-//echo __METHOD__ . " \${$variableObj->getName()} is local variable\n";
+// echo __METHOD__ . " \${$variableObj->getName()} is local variable\n";
 			// This must be executed, so it can overwrite taintedness.
 			$variableObj->taintedness = $override ?
 				$taintedness :
@@ -251,7 +243,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				// $this->debug( __METHOD__, "no taint info for func $func" );
 				try {
 					$func->analyze( $func->getContext(), $this->code_base );
-				} catch( Exception $e ) {
+				} catch ( Exception $e ) {
 					$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
 				}
 				// $this->debug( __METHOD__, "updated taint info for $func" );
@@ -275,7 +267,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			*	// assume its safe until). Except we don't.
 			*	$taint = SecurityCheckPlugin::PRESERVE_TAINT;
 			}*/
-			//echo "No taint for method $funcName - now $taint\n";
+			// echo "No taint for method $funcName - now $taint\n";
 		}
 		$this->checkFuncTaint( $taint );
 		return $taint;
@@ -289,11 +281,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 
 		$typelist = $types->getTypeSet();
 		if ( count( $typelist ) === 0 ) {
-			//$this->debug( __METHOD__, "Setting type unknown due to no type info." );
+			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
-		foreach( $types->getTypeSet() as $type ) {
-			switch( $type->getName() ) {
+		foreach ( $types->getTypeSet() as $type ) {
+			switch ( $type->getName() ) {
 			case 'int':
 			case 'float':
 			case 'bool':
@@ -313,7 +305,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			case 'resource':
 			case 'mixed':
 				// TODO If we have a specific class, maybe look at __toString()
-				//$this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
+				// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::UNKNOWN_TAINT );
 				break;
 			}
@@ -357,11 +349,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		case "double":
 		case "NULL":
 			// simple literal
-			return SecurityCheckPlugin::NO_TAINT; 
+			return SecurityCheckPlugin::NO_TAINT;
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
-			} elseif( $expr instanceof TypedElementInterface ) {
+			} elseif ( $expr instanceof TypedElementInterface ) {
 				// echo __METHOD__ . "FIXME, do we want this interface here?\n";
 				return $this->getTaintednessPhanObj( $expr );
 			}
@@ -376,8 +368,8 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	}
 
 	protected function getTaintednessNode( Node $node ) : int {
-		//Debug::printNode( $node );
-		$r = (new TaintednessVisitor($this->code_base, $this->context, $this->plugin))(
+		// Debug::printNode( $node );
+		$r = ( new TaintednessVisitor( $this->code_base, $this->context, $this->plugin ) )(
 			$node
 		);
 		assert( $r >= 0, $r );
@@ -391,11 +383,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 		if ( property_exists( $variableObj, 'taintedness' ) ) {
 			$taintedness = $variableObj->taintedness;
-			//echo "$varName has taintedness $taintedness due to last time\n";
+			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
-			$type = $variableObj->getUnionType(); 
+			$type = $variableObj->getUnionType();
 			$taintedness = $this->getTaintByReturnType( $type );
-			//echo $this->dbgInfo() . " \$" . $variableObj->getName() . " first sight. taintedness set to $taintedness due to type $type\n";
+			// echo $this->dbgInfo() . " \$" . $variableObj->getName() . " first sight. taintedness set to $taintedness due to type $type\n";
 		}
 		assert( is_int( $taintedness ) && $taintedness >= 0 );
 		return $taintedness;
@@ -430,12 +422,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	protected function getPhanObjsForNode( Node $node, $all = false ) {
 		$cn = $this->getCtxN( $node );
 
-		switch( $node->kind ) {
+		switch ( $node->kind ) {
 			case \ast\AST_PROP:
 			case \ast\AST_STATIC_PROP:
 				try {
 					return [ $cn->getProperty( $node->children['prop'] ) ];
-				} catch( Exception $e ) {
+				} catch ( Exception $e ) {
 					try {
 						// There won't be an expr for static prop.
 						if ( isset( $node->children['expr'] ) ) {
@@ -447,10 +439,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 								return [];
 							}
 						}
-					} catch( IssueException $e ) {
+					} catch ( IssueException $e ) {
 						$this->debug( __METHOD__, "Cannot determine property or var name [1] (Maybe don't know what class) - " . $e->getIssueInstance() );
 						return [];
-					} catch( Exception $e ) {
+					} catch ( Exception $e ) {
 						$this->debug( __METHOD__, "Cannot determine property or var name [2] (Maybe don't know what class) - " . get_class( $e ) . $e->getMessage() );
 						return [];
 					}
@@ -460,7 +452,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			case \ast\AST_VAR:
 				try {
 					if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
-
 						return [];
 					} else {
 						return [ $cn->getVariable() ];
@@ -477,7 +468,7 @@ return [];
 			case \ast\AST_ENCAPS_LIST:
 			case \ast\AST_ARRAY:
 				$results = [];
-				foreach( $node->children as $child ) {
+				foreach ( $node->children as $child ) {
 					if ( !is_object( $child ) ) {
 						continue;
 					}
@@ -557,7 +548,7 @@ return [];
 					}
 					$args = $node->children['args']->children;
 					$pObjs = [ $func ];
-					foreach( $args as $arg ) {
+					foreach ( $args as $arg ) {
 						if ( !( $arg instanceof Node ) ) {
 							continue;
 						}
@@ -574,10 +565,10 @@ return [];
 					return [];
 				}
 			default:
-				//Debug::printNode( $node );
+				// Debug::printNode( $node );
 				// This should really be a visitor that recurses into
 				// things.
-				echo  __METHOD__ . $this->dbgInfo() . " FIXME unhandled case" . \ast\get_kind_name( $node->kind ) . "\n";
+				echo __METHOD__ . $this->dbgInfo() . " FIXME unhandled case" . \ast\get_kind_name( $node->kind ) . "\n";
 				return [];
 		}
 	}
@@ -660,7 +651,7 @@ return [];
 		// Last we add these methods to $a's list of all methods that can set it.
 		foreach ( $rhs->taintedMethodLinks as $method ) {
 			$paramInfo = $rhs->taintedMethodLinks[$method];
-			foreach( $paramInfo as $index => $_ ) {
+			foreach ( $paramInfo as $index => $_ ) {
 				assert( property_exists( $method, 'taintedVarLinks' ) );
 				assert( isset( $method->taintedVarLinks[$index] ) );
 
@@ -687,20 +678,20 @@ return [];
 		// FIXME. Does this check make sense?
 		// should it also check if it has any of the YES_TAINT flags?
 
-		//echo __METHOD__ . $this->dbgInfo() . "Setting all methods dependent on $var as exec\n";
+		// echo __METHOD__ . $this->dbgInfo() . "Setting all methods dependent on $var as exec\n";
 		if ( !property_exists( $var, 'taintedMethodLinks' ) ) {
-			//$this->debug( __METHOD__, "no backlinks on $var" );
+			// $this->debug( __METHOD__, "no backlinks on $var" );
 			return;
 		}
 
 		$oldMem = memory_get_peak_usage();
 
-		foreach( $var->taintedMethodLinks as $method ) {
+		foreach ( $var->taintedMethodLinks as $method ) {
 			$paramInfo = $var->taintedMethodLinks[$method];
 			$paramTaint = [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
-			foreach( $paramInfo as $i => $_ ) {
+			foreach ( $paramInfo as $i => $_ ) {
 				$paramTaint[$i] = $taint;
-				//$this->debug( __METHOD__ , "Setting method $method arg $i as $taint due to depenency on $var" );
+				// $this->debug( __METHOD__ , "Setting method $method arg $i as $taint due to depenency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 		}
@@ -709,7 +700,7 @@ return [];
 		$this->setTaintedness( $var, $newTaint );
 
 		$newMem = memory_get_peak_usage();
-		$diffMem = round( ($newMem - $oldMem ) / (1024*1024) );
+		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for $var" );
 		}
@@ -733,16 +724,16 @@ return [];
 			return;
 		}
 		$oldMem = memory_get_peak_usage();
-		//echo __METHOD__ . $this->dbgInfo() . "Setting all vars depending on $method as tainted\n";
+		// echo __METHOD__ . $this->dbgInfo() . "Setting all vars depending on $method as tainted\n";
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
 			$curVarTaint = $this->getTaintedness( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, SecurityCheckPlugin::YES_TAINT );
-			//echo __METHOD__ . $this->dbgInfo() . "Setting $var as $newTaint due to dependency on $method\n";
+			// echo __METHOD__ . $this->dbgInfo() . "Setting $var as $newTaint due to dependency on $method\n";
 			$this->setTaintedness( $var, $newTaint );
 		}
 		// Maybe delete links??
 		$newMem = memory_get_peak_usage();
-		$diffMem = round( ($newMem - $oldMem ) / (1024*1024) );
+		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for $var" );
 		}
@@ -794,7 +785,7 @@ return [];
 	 */
 	protected function isSafeAssignment( $lhs, $rhs ) {
 		$adjustRHS = $this->yesToExecTaint( $rhs );
-		//$this->debug( __METHOD__, "lhs=$lhs; rhs=$rhs, adjustRhs=$adjustRHS" ); 
+		// $this->debug( __METHOD__, "lhs=$lhs; rhs=$rhs, adjustRhs=$adjustRHS" );
 		return ( $adjustRHS & $lhs ) === 0 &&
 			!(
 				( $lhs & SecurityCheckPlugin::EXEC_TAINT ) &&
@@ -828,7 +819,7 @@ return [];
 			}
 		} elseif ( $element instanceof Node ) {
 			$pobjs = $this->getPhanObjsForNode( $element );
-			foreach( $pobjs as $elem ) {
+			foreach ( $pobjs as $elem ) {
 				if ( property_exists( $elem, 'taintedOriginalError' ) ) {
 					$line .= $elem->taintedOriginalError;
 				}
@@ -838,7 +829,7 @@ return [];
 				// This will also include method calls and whatnot.
 				// FIXME should we always do this? Is it too spammy.
 				$pobjs = $this->getPhanObjsForNode( $element, true );
-				foreach( $pobjs as $elem ) {
+				foreach ( $pobjs as $elem ) {
 					if ( property_exists( $elem, 'taintedOriginalError' ) ) {
 						$line .= $elem->taintedOriginalError;
 					}
@@ -906,7 +897,7 @@ return [];
 			foreach ( $links as $func ) {
 				/** @var $paramInfo array Array of int -> true */
 				$paramInfo = $links[$func];
-				if ( (string)($func->getFQSEN()) === (string)($curFunc->getFQSEN()) ) {
+				if ( (string)( $func->getFQSEN() ) === (string)( $curFunc->getFQSEN() ) ) {
 					foreach ( $paramInfo as $i => $_ ) {
 						if ( !isset( $paramTaint[$i] ) ) {
 							$paramTaint[$i] = 0;
@@ -960,10 +951,10 @@ return [];
 			isset( $taint['overall'] )
 			&& is_int( $taint['overall'] )
 			&& $taint >= 0,
-			"Overall taint is wrong " . $this->dbgInfo() . ($taint['overall'] ?? 'unset' )
+			"Overall taint is wrong " . $this->dbgInfo() . ( $taint['overall'] ?? 'unset' )
 		);
 
-		foreach( $taint as $i => $t ) {
+		foreach ( $taint as $i => $t ) {
 			assert( is_int( $t ) && $t >= 0, "Taint index $i wrong $t" . $this->dbgInfo() );
 		}
 	}

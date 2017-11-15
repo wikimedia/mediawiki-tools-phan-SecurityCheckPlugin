@@ -4,7 +4,6 @@
 
 class Html {
 
-
 	public static function element( $element, $attribs = [], $contents = '' ) {
 		return self::rawElement( $element, $attribs, strtr( $contents, [
 			// There's no point in escaping quotes, >, etc. in the contents of
@@ -18,9 +17,9 @@ class Html {
 		return 'placeholder';
 	}
 
- 	public static function hidden( $name, $value, array $attribs = [] ) {
+	 public static function hidden( $name, $value, array $attribs = [] ) {
 		return self::input( $name, $value, 'hidden', $attribs );
- 	}
+	 }
 
 	/**
 	 * Convenience function to produce an "<input>" element.  This supports the
@@ -31,8 +30,8 @@ class Html {
 	 * @param string $type Type attribute
 	 * @param array $attribs Associative array of miscellaneous extra
 	 *   attributes, passed to Html::element()
-	 * @return string Raw HTML 
-	 */   
+	 * @return string Raw HTML
+	 */
 	public static function input( $name, $value = '', $type = 'text', array $attribs = [] ) {
 		$attribs['type'] = $type;
 		$attribs['value'] = $value;

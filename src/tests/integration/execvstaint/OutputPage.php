@@ -7,7 +7,6 @@
 class OutputPage {
 
 	public static function addHTML( $html ) {
-
 	}
 
 }

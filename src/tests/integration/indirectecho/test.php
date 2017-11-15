@@ -11,4 +11,3 @@ class Foo {
 		echo $this->hold;
 	}
 }
-

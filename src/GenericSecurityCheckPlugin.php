@@ -1,5 +1,5 @@
 <?php
-require_once( "SecurityCheckPlugin.php" );
+require_once "SecurityCheckPlugin.php";
 
 /**
  * Copyright Brian Wolff 2017. Released under the GPL version 2 or later.

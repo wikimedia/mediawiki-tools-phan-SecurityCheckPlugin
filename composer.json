@@ -1,0 +1,26 @@
+{
+    "name": "wikimedia/security-check-plugin",
+    "description": "A Phan plugin to do security checking",
+    "type": "library",
+    "require": {
+        "etsy/phan": "0.8.0"
+    },
+    "require-dev": {
+        "mediawiki/mediawiki-codesniffer": "14.1.0",
+        "jakub-onderka/php-parallel-lint": "^0.9.2"
+    },
+    "scripts": {
+        "test": [
+            "phpcs -p -s"
+        ],
+        "fix": "phpcbf"
+    },
+    "license": "GPLv2",
+    "authors": [
+        {
+            "name": "Brian Wolff",
+            "email": "bawolff+wn@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}

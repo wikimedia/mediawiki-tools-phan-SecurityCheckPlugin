@@ -9,4 +9,3 @@ $a = $_GET['foo'];
 $c = "Some safe string";
 
 Foo::output( $c, $a );
-

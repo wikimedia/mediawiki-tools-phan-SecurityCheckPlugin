@@ -2,14 +2,14 @@
 /*
  * Copyright Brian Wolff 2017. Released under the GPL version 2 or later.
  */
-require_once( "SecurityCheckPlugin.php" );
+require_once "SecurityCheckPlugin.php";
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 
 	protected function getCustomFuncTaints() : array {
 		return [
-			//'\Message::__construct' => SecurityCheckPlugin::YES_TAINT,
-			//'\wfMessage' => SecurityCheckPlugin::YES_TAINT,
+			// '\Message::__construct' => SecurityCheckPlugin::YES_TAINT,
+			// '\wfMessage' => SecurityCheckPlugin::YES_TAINT,
 			'\Message::plain' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
 			'\Message::text' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
 			'\Message::parseAsBlock' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
@@ -32,11 +32,11 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			// FIXME Doesn't handle array args right.
 			'\wfShellExec' => [
 				SecurityCheckPlugin::SHELL_EXEC_TAINT,
-				'overall' => Self::YES_TAINT
+				'overall' => self::YES_TAINT
 			],
 			'\wfShellExecWithStderr' => [
 				SecurityCheckPlugin::SHELL_EXEC_TAINT,
-				'overall' => Self::YES_TAINT
+				'overall' => self::YES_TAINT
 			],
 			'\wfEscapeShellArg' => [
 				self::YES_TAINT & ~self::SHELL_TAINT,
@@ -139,7 +139,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 		];
 	}
-
 
 }
 

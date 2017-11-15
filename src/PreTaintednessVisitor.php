@@ -1,24 +1,9 @@
 <?php
 
-use Phan\AST\AnalysisVisitor;
-use Phan\AST\ContextNode;
-use Phan\CodeBase;
 use Phan\Language\Context;
-use Phan\Language\Element\Clazz;
-use Phan\Language\Element\Func;
-use Phan\Language\Element\FunctionInterface;
-use Phan\Language\Element\Method;
-use Phan\Language\Element\Variable;
-use Phan\Language\Element\Parameter;
-use Phan\Language\UnionType;
-use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Plugin;
-use Phan\Plugin\PluginImplementation;
 use ast\Node;
 use ast\Node\Decl;
 use Phan\Debug;
-use Phan\Language\Scope\FunctionLikeScope;
-use Phan\Language\Scope\BranchScope;
 
 class PreTaintednessVisitor extends TaintednessBaseVisitor {
 
@@ -55,7 +40,7 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 				$variableObj = $this->getCtxN( $node->children['key'] )->getVariable();
 				$this->setTaintedness( $variableObj, $lhsTaintedness );
 			}
-		} catch( Exception $e ) {
+		} catch ( Exception $e ) {
 			// getVariable can throw an IssueException if var doesn't exist.
 			$this->debug( __METHOD__, "Exception " . get_class( $e ) . $e->getMessage() . "" );
 		}
@@ -72,12 +57,12 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 	 * Also handles FuncDecl
 	 */
 	public function visitMethod( Decl $node ) {
-		//var_dump( __METHOD__ ); Debug::printNode( $node );
+		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 
 		$params = $node->children['params']->children;
 		$varObjs = [];
-		foreach( $params as $i => $param ) {
+		foreach ( $params as $i => $param ) {
 			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
 				// Well uh-oh.

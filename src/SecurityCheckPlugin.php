@@ -1,30 +1,16 @@
-<?php declare(strict_types=1);
+<?php declare( strict_types=1 );
 
-require_once( 'TaintednessBaseVisitor.php' );
-require_once( 'PreTaintednessVisitor.php' );
-require_once( 'TaintednessVisitor.php' );
+require_once 'TaintednessBaseVisitor.php';
+require_once 'PreTaintednessVisitor.php';
+require_once 'TaintednessVisitor.php';
 
-use Phan\AST\AnalysisVisitor;
-use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Language\Context;
-use Phan\Language\Element\Clazz;
-use Phan\Language\Element\Func;
-use Phan\Language\Element\FunctionInterface;
-use Phan\Language\Element\Method;
-use Phan\Language\Element\Variable;
-use Phan\Language\UnionType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Plugin;
 use Phan\Plugin\PluginImplementation;
 use ast\Node;
-use ast\Node\Decl;
-use Phan\Debug;
-use Phan\Language\Scope\FunctionLikeScope;
-use Phan\Language\Scope\BranchScope;
 
 abstract class SecurityCheckPlugin extends PluginImplementation {
-
 
 	// Various taint flags. The _EXEC_ varieties mean
 	// that it is unsafe to assign that type of taint
@@ -80,23 +66,22 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 		Node $node,
 		Node $parent_node = null
 	) {
-	//echo __METHOD__ . ' ' .\ast\get_kind_name($node->kind) . " (Parent: " . ($parent_node ? \ast\get_kind_name($parent_node->kind) : "N/A") . ")\n";
+	// echo __METHOD__ . ' ' .\ast\get_kind_name($node->kind) . " (Parent: " . ($parent_node ? \ast\get_kind_name($parent_node->kind) : "N/A") . ")\n";
 		$oldMem = memory_get_peak_usage();
-		(new TaintednessVisitor($code_base, $context, $this))(
+		( new TaintednessVisitor( $code_base, $context, $this ) )(
 			$node
 		);
 		$newMem = memory_get_peak_usage();
-		$diff = floor(($newMem - $oldMem )/(1024*1024));
+		$diff = floor( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diff > 10 ) {
-			echo "Memory Spike! " . $context . " " .\ast\get_kind_name($node->kind) .
-			" diff=$diff MB; cur=" . floor((memory_get_usage()/(1024*1024))) . " MB\n";
+			echo "Memory Spike! " . $context . " " .\ast\get_kind_name( $node->kind ) .
+			" diff=$diff MB; cur=" . floor( ( memory_get_usage() / ( 1024 * 1024 ) ) ) . " MB\n";
 		}
 	}
 
 	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
-		(new PreTaintednessVisitor( $code_base, $context, $this ))( $node );
+		( new PreTaintednessVisitor( $code_base, $context, $this ) )( $node );
 	}
-
 
 	/**
 	 * Get the taintedness of a function
@@ -147,22 +132,21 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	protected function getPHPFuncTaints() : array {
 		return [
 			'\htmlspecialchars' => [
-				~SecurityCheckPlugin::HTML_TAINT & SecurityCheckPlugin::YES_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				~self::HTML_TAINT & self::YES_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\escapeshellarg' => [
-				~SecurityCheckPlugin::SHELL_TAINT & SecurityCheckPlugin::YES_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				~self::SHELL_TAINT & self::YES_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			// Or any time the serialized data comes from a trusted source.
 			'\serialize' => [
-				'overall'=> self::YES_TAINT & ~self::SERIALIZE_TAINT,
+				'overall' => self::YES_TAINT & ~self::SERIALIZE_TAINT,
 			],
 			'\unserialize' => [
-				SecurityCheckPlugin::SERIALIZE_EXEC_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				self::SERIALIZE_EXEC_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 		];
 	}
 }
-

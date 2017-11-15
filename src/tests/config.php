@@ -1,6 +1,5 @@
 <?php
 
-use \Phan\Config;
 
 // If xdebug is enabled, we need to increase the nesting level for phan
 ini_set( 'xdebug.max_nesting_level', 1000 );
@@ -288,7 +287,7 @@ return [
 
 	// A list of plugin files to execute
 	'plugins' => [
-		#'.phan/plugins/InlineTypePlugin.php',
+		# '.phan/plugins/InlineTypePlugin.php',
 		'../..//plugins/MediaWikiSecurityCheckPlugin.php',
 	],
 ];
