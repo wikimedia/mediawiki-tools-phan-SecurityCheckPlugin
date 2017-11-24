@@ -7,3 +7,5 @@ If you want to use it add either GenericSecurityCheckPlugin.php
 or MediaWikiSecurityCheckPlugin.php to the plugins list in
 your phan config, depending on if you are checking a non-mediawiki
 project or a MediaWiki/MediaWiki extension respectively.
+
+This is only tested with Phan 0.8.0
