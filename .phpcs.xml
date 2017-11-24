@@ -26,4 +26,7 @@
 	<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">
 		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
+	<rule ref="MediaWiki.Files.OneClassPerFile.MultipleFound">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
 	</ruleset>

@@ -11,6 +11,51 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 */
 	protected function getCustomFuncTaints() : array {
 		return [
+			// Note, at the moment, this checks where the function
+			// is implemented, so you can't use IDatabase.
+			'\Wikimedia\Rdbms\Database::query' => [
+				self::SQL_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
+			'\Wikimedia\Rdbms\IDatabase::query' => [
+				self::SQL_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
+			'\Wikimedia\Rdbms\DBConnRef::query' => [
+				self::SQL_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
+			'\Wikimedia\Rdbms\Database::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DBConnRef::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DatabaseMysqlBase::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DatabaseMssql::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\IDatabase::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DatabasePostgres::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DatabaseSqlite::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
 			// '\Message::__construct' => SecurityCheckPlugin::YES_TAINT,
 			// '\wfMessage' => SecurityCheckPlugin::YES_TAINT,
 			'\Message::plain' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],

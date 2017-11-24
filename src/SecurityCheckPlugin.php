@@ -152,6 +152,46 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 				self::SERIALIZE_EXEC_TAINT,
 				'overall' => self::NO_TAINT,
 			],
+			'\mysql_query' => [
+				self::SQL_EXEC_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\mysqli_query' => [
+				self::NO_TAINT,
+				self::SQL_EXEC_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\mysqli::query' => [
+				self::SQL_EXEC_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\mysqli_real_query' => [
+				self::NO_TAINT,
+				self::SQL_EXEC_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\mysqli::real_query' => [
+				self::SQL_EXEC_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\mysqli_escape_string' => [
+				self::NO_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\mysqli_real_escape_string' => [
+				self::NO_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\mysqli::escape_string' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\mysqli::real_escape_string' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
 		];
 	}
 }

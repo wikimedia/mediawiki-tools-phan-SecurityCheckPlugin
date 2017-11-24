@@ -12,6 +12,7 @@ totalTests=0
 failedTests=0
 php=`which php7.0`
 php=${php:-`which php`}
+SECCHECK_DEBUG=${SECCHECK_DEBUG:-/dev/null}
 
 for i in $testList
 do
@@ -21,7 +22,7 @@ do
         	--project-root-directory "." \
         	--config-file "integration-test-config.php" \
         	--output "php://stdout" \
-        	-l "integration/$i" | grep SecurityCheckTaintedOutput  > $tmpFile
+		-l "integration/$i" | tee "$SECCHECK_DEBUG" | grep SecurityCheckTaintedOutput  > $tmpFile
 	diff -u "integration/$i/expectedResults.txt" "$tmpFile"
 	if [ $? -gt 0 ]
 		then failedTests=$((failedTests+1))

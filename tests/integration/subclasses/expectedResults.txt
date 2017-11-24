@@ -1,0 +1,1 @@
+integration/subclasses/test.php:10 SecurityCheckTaintedOutput Calling Method \Wikimedia\Rdbms\MysqlDatabase::query in [no method] that outputs using tainted (680; 64) argument $myQuery. (Caused by: integration/subclasses/test.php +8; integration/subclasses/test.php +7)

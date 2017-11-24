@@ -7,6 +7,7 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
+use Phan\Language\Element\ClassElement;
 use Phan\Language\UnionType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Plugin;
@@ -49,11 +50,22 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @param FunctionInterface $func
 	 * @param int[] $taint Numeric keys for each arg and an 'overall' key.
 	 * @param bool $override Whether to merge taint or override
+	 * @suppress PhanUndeclaredMethod
 	 */
 	protected function setFuncTaint( FunctionInterface $func, array $taint, bool $override = false ) {
+		if (
+			$func instanceof ClassElement &&
+			(string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
+		) {
+			$this->debug( __METHOD__, "Setting taint on function " . $func->getFQSEN() . " other than"
+				. " its implementation " . $func->getDefiningFQSEN()
+			);
+			// FIXME we should maybe do something here.
+			// As it stands, this case probably can't be reached.
+		}
 		$curTaint = [];
 		$newTaint = [];
-		// What taint we're setting, to do bookkeeping about whenever
+		// What taint we're setting, to do book-keeping about whenever
 		// we add a dangerous taint.
 		$mergedTaint = SecurityCheckPlugin::NO_TAINT;
 		if ( property_exists( $func, 'funcTaint' ) ) {
@@ -245,6 +257,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 *                     TAINT flags for what taint gets passed through func.
 	 *   If func has an arg that is mssing from array, then it should be
 	 *   treated as TAINT_NO if its a number or bool. TAINT_YES otherwise.
+	 * @suppress PhanUndeclaredMethod
 	 */
 	protected function getTaintOfFunction( FunctionInterface $func ) {
 		$funcName = $func->getFQSEN();
@@ -261,6 +274,20 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 		if ( property_exists( $func, 'funcTaint' ) ) {
 			$taint = $func->funcTaint;
+		} elseif (
+			$func instanceof ClassElement
+			&& $func->hasDefiningFQSEN()
+			&& (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
+		) {
+			// @todo Should we check this earlier. Should we skip right to
+			// the taint of the defining method, and not even look at
+			// whatever the method is called as?
+			// In the case of builtin taints, perhaps it should still look
+			// at base classes even if the base class got overriden(?)
+			$definingFqsen = $func->getDefiningFQSEN();
+			$definingFunc = $this->code_base->getMethodByFQSEN( $definingFqsen );
+			$this->debug( __METHOD__, "Checking base implemntation $definingFqsen of $funcName" );
+			return $this->getTaintOfFunction( $definingFunc );
 		} else {
 			// Ensure we don't indef loop.
 			if (
