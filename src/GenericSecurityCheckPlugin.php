@@ -15,6 +15,9 @@ require_once __DIR__ . "/SecurityCheckPlugin.php";
  */
 class GenericSecurityCheckPlugin extends SecurityCheckPlugin {
 
+	/**
+	 * @inheritDoc
+	 */
 	protected function getCustomFuncTaints() : array {
 		return [];
 	}

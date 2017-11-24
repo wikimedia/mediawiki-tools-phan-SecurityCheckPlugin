@@ -17,13 +17,23 @@ use Phan\Language\Scope\BranchScope;
 use Phan\Library\Set;
 use Phan\Exception\IssueException;
 
+/**
+ * Base class for the Tainedness visitor subclass. Mostly contains
+ * utility methods.
+ */
 abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 
 	/** @var SecurityCheckPlugin */
 	protected $plugin;
 
+	/** @var null|string|bool|resource filehandle to output debug messages */
 	private $debugOutput = null;
 
+	/**
+	 * @param CodeBase $code_base
+	 * @param Context $context
+	 * @param SecurityCheckPlugin $plugin The instance of the plugin we're using
+	 */
 	public function __construct(
 		CodeBase $code_base,
 		Context $context,
@@ -81,7 +91,16 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	}
 
 	/**
-	 * It is assumed you already checked that right is tainted in some way.
+	 * Merge the info on original cause of taint to left variable
+	 *
+	 * If you have something like $left = $right, merge any information
+	 * about what tainted $right into $left as $right's taint may now
+	 * have tainted $left (Or may not if the assingment is in a branch
+	 * or its not a local variable).
+	 *
+	 * @note It is assumed you already checked that right is tainted in some way.
+	 * @param TypedElementInterface $left (LHS-ish variable)
+	 * @param TypedElementInterface $right (RHS-ish variable)
 	 */
 	protected function mergeTaintError( TypedElementInterface $left, TypedElementInterface $right ) {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
@@ -102,8 +121,13 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @param int $taintedness One of the class constants
 	 * @param bool $override Override taintedness or just take max.
 	 */
-	protected function setTaintedness( TypedElementInterface $variableObj, int $taintedness, $override = true ) {
-		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName() . " <- $taintedness (override=$override)" );
+	protected function setTaintedness(
+		TypedElementInterface $variableObj,
+		int $taintedness,
+		$override = true
+	) {
+		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
+			// . " <- $taintedness (override=$override)" );
 
 		assert( $taintedness >= 0, $taintedness );
 
@@ -115,12 +139,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		if ( property_exists( $variableObj, 'taintednessHasOuterScope' )
 			|| !( $this->context->getScope() instanceof FunctionLikeScope )
 		) {
-// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - " . get_class( $this->context->getScope()) . "" );
+// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
+// . get_class( $this->context->getScope()) . "" );
 			// If the current context is not a FunctionLikeScope, then
 			// it might be a class, or an if branch, or global. In any case
 			// its probably a non-local variable (or in the if case, code
 			// that may not be executed).
-			//
 
 			if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
 				&& ( $this->context->getScope() instanceof BranchScope )
@@ -146,7 +170,8 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 					$variableObjLinks = $variableObj->taintedMethodLinks ?? new Set;
 					$variableObj->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
 					$parentVarObj->taintedMethodLinks =& $variableObj->taintedMethodLinks;
-					$combinedOrig = ( $variableObj->taintedOriginalError ?? '' ) . ( $parentVarObj->taintedOriginalError ?? '' );
+					$combinedOrig = ( $variableObj->taintedOriginalError ?? '' )
+						. ( $parentVarObj->taintedOriginalError ?? '' );
 					if ( strlen( $combinedOrig ) > 254 ) {
 						$this->debug( __METHOD__, "Too long original error! $variableObj" );
 						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '...';
@@ -185,7 +210,9 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 
 			if ( strlen( $variableObj->taintedOriginalError ) > 254 ) {
 				$this->debug( __METHOD__, "Too long original error! $variableObj" );
-				$variableObj->taintedOriginalError = substr( $variableObj->taintedOriginalError, 0, 250 ) . '...';
+				$variableObj->taintedOriginalError = substr(
+					$variableObj->taintedOriginalError, 0, 250
+				) . '...';
 			}
 		}
 	}
@@ -206,6 +233,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * This is also for methods and other function like things
 	 *
+	 * @param FunctionInterface $func What function/method to look up
 	 * @return int[] Array with "overall" key, and numeric keys.
 	 *   The overall key specifies what taint the function returns
 	 *   irrespective of its arguments. The numeric keys are how
@@ -274,7 +302,14 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	}
 
 	/**
+	 * Given a type, determine what type of taint
+	 *
+	 * e.g. Integers are probably untainted since its hard to do evil
+	 * with them, but mark strings as unknown since we don't know.
+	 *
 	 * Only use as a fallback
+	 * @param UnionType $types The types
+	 * @return int The taint in question
 	 */
 	protected function getTaintByReturnType( UnionType $types ) : int {
 		$taint = SecurityCheckPlugin::NO_TAINT;
@@ -314,6 +349,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	}
 
 	/**
+	 * Get the built in taint of a function/method
+	 *
+	 * This is used for when people special case if a function is tainted.
+	 *
 	 * @param FullyQualifiedFunctionLikeName $fqsen Function to check
 	 * @return null|array Null if no info, otherwise the taint for the function
 	 */
@@ -325,9 +364,14 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		return $taint;
 	}
 
+	/**
+	 * Get name of current method (for debugging purposes)
+	 *
+	 * @return string Name of method or "[no method]"
+	 */
 	protected function getCurrentMethod() {
 		return $this->context->isInFunctionLikeScope() ?
-			$this->context->getFunctionLikeFQSEN() : '[no method]';
+			(string)$this->context->getFunctionLikeFQSEN() : '[no method]';
 	}
 
 	/**
@@ -338,7 +382,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 *
 	 * FIXME maybe it should try and turn into phan object.
 	 * @param Mixed $expr An expression from the AST tree.
-	 * @return int
+	 * @return int The taint
 	 */
 	protected function getTaintedness( $expr ) : int {
 		$type = gettype( $expr );
@@ -367,6 +411,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 	}
 
+	/**
+	 * Give an AST node, find its taint
+	 *
+	 * @param Node $node
+	 * @return int The taint
+	 */
 	protected function getTaintednessNode( Node $node ) : int {
 		// Debug::printNode( $node );
 		$r = ( new TaintednessVisitor( $this->code_base, $this->context, $this->plugin ) )(
@@ -376,6 +426,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		return $r;
 	}
 
+	/**
+	 * Given a phan object (not method/function) find its taint
+	 *
+	 * @param TypedElementInterface $variableObj
+	 * @return int The taint
+	 */
 	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : int {
 		$taintedness = SecurityCheckPlugin::UNKNOWN_TAINT;
 		if ( $variableObj instanceof FunctionInterface ) {
@@ -387,12 +443,19 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		} else {
 			$type = $variableObj->getUnionType();
 			$taintedness = $this->getTaintByReturnType( $type );
-			// echo $this->dbgInfo() . " \$" . $variableObj->getName() . " first sight. taintedness set to $taintedness due to type $type\n";
+			// $this->debug( " \$" . $variableObj->getName() . " first sight."
+			// . " taintedness set to $taintedness due to type $type\n";
 		}
 		assert( is_int( $taintedness ) && $taintedness >= 0 );
 		return $taintedness;
 	}
 
+	/**
+	 * Quick wrapper to get the ContextNode for a node
+	 *
+	 * @param Node $node
+	 * @return ContextNode
+	 */
 	protected function getCtxN( Node $node ) {
 		return new ContextNode(
 			$this->code_base,
@@ -418,6 +481,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 *
 	 * @suppress PhanTypeMismatchForeach No idea why its confused
 	 * @suppress PhanUndeclaredMethod it checks method_exists()
+	 * @param Node $node AST node in question
+	 * @param bool $all Whether or not to only include objects that directly correspond
+	 *   In particular, whether or not to include Method objects for method calls.
+	 * @return Array Array of various phan objects corresponding to $node
 	 */
 	protected function getPhanObjsForNode( Node $node, $all = false ) {
 		$cn = $this->getCtxN( $node );
@@ -440,13 +507,25 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 							}
 						}
 					} catch ( IssueException $e ) {
-						$this->debug( __METHOD__, "Cannot determine property or var name [1] (Maybe don't know what class) - " . $e->getIssueInstance() );
+						$this->debug( __METHOD__,
+							"Cannot determine property or var " .
+							"name [1] (Maybe don't know what class) - "
+							. $e->getIssueInstance()
+						);
 						return [];
 					} catch ( Exception $e ) {
-						$this->debug( __METHOD__, "Cannot determine property or var name [2] (Maybe don't know what class) - " . get_class( $e ) . $e->getMessage() );
+						$this->debug( __METHOD__,
+							"Cannot determine property or var " .
+							"name [2] (Maybe don't know what class) - "
+							. get_class( $e ) . $e->getMessage() );
 						return [];
 					}
-					$this->debug( __METHOD__, "Cannot determine property [3] (Maybe don't know what class) - " . ( method_exists( $e, 'getIssueInstance' ) ? $e->getIssueInstance() : get_class( $e ) . $e->getMessage() ) );
+					$this->debug( __METHOD__, "Cannot determine " .
+						"property [3] (Maybe don't know what class) - " .
+						( method_exists( $e, 'getIssueInstance' )
+						? $e->getIssueInstance()
+						: get_class( $e ) . $e->getMessage() )
+					);
 					return [];
 				}
 			case \ast\AST_VAR:
@@ -568,7 +647,9 @@ return [];
 				// Debug::printNode( $node );
 				// This should really be a visitor that recurses into
 				// things.
-				echo __METHOD__ . $this->dbgInfo() . " FIXME unhandled case" . \ast\get_kind_name( $node->kind ) . "\n";
+				$this->debug( __METHOD__, "FIXME unhandled case"
+					. \ast\get_kind_name( $node->kind ) . "\n"
+				);
 				return [];
 		}
 	}
@@ -591,12 +672,18 @@ return [];
 	 * later, we can traceback anything it might affect
 	 *
 	 * @suppress PhanTypeMismatchProperty
+	 * @param Variable $param The variable object for the parameter
+	 * @param FunctionInterface $func The function/method in question
+	 * @param int $i Which argument number is $param
 	 */
 	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) {
 		if ( !( $param instanceof Variable ) ) {
 			// Probably a PassByReferenceVariable.
 			// TODO, handling of PassByReferenceVariable probably wrong here.
-			$this->debug( __METHOD__, "Called on a non-variable \$" . $param->getName() . " of type " . get_class( $param ) . ". May be handled wrong." );
+			$this->debug( __METHOD__, "Called on a non-variable \$"
+				. $param->getName() . " of type " . get_class( $param )
+				. ". May be handled wrong."
+			);
 		}
 		if ( !property_exists( $func, 'taintedVarLinks' ) ) {
 			$func->taintedVarLinks = [];
@@ -618,7 +705,22 @@ return [];
 		}
 	}
 
-	protected function mergeTaintDependencies( TypedElementInterface $lhs, TypedElementInterface $rhs ) {
+	/**
+	 * Given a LHS and RHS make all the methods that can set RHS also for LHS
+	 *
+	 * Given 2 variables (e.g. $lhs = $rhs ), see to it that any function/method
+	 * which we marked as being able to set the value of rhs, is also marked
+	 * as being able to set the value of lhs.
+	 *
+	 * This also merges the information on what line caused the taint.
+	 *
+	 * @param TypedElementInterface $lhs Source of method list
+	 * @param TypedElementInterface $rhs Destination of merged method list
+	 */
+	protected function mergeTaintDependencies(
+		TypedElementInterface $lhs,
+		TypedElementInterface $rhs
+	) {
 		$taintLHS = $this->getTaintedness( $lhs );
 		$taintRHS = $this->getTaintedness( $rhs );
 		/********************
@@ -629,7 +731,8 @@ return [];
 			$taintLHS < SecurityCheckPlugin::PRESERVE_TAINT ||
 			$taintRHS !== SecurityCheckPlugin::PRESERVE_TAINT
 		) {
-			$this->debug( __METHOD__, "FIXME merging dependencies where LHS and RHS are not both preserved taint. lhs=$taintLHS; rhs=$taintRHS" );
+			$this->debug( __METHOD__, "FIXME merging dependencies where" .
+				" LHS and RHS are not both preserved taint. lhs=$taintLHS; rhs=$taintRHS" );
 		} */
 
 		if ( $taintRHS & SecurityCheckPlugin::YES_EXEC_TAINT ) {
@@ -665,11 +768,15 @@ return [];
 	}
 
 	/**
+	 * Mark any function setting a specific variable as EXEC taint
+	 *
 	 * If you do something like echo $this->foo;
 	 * This method is called to make all things that set $this->foo
 	 * as TAINT_EXEC.
 	 *
-	 * TODO delete all dependencies as no longer needed.
+	 * @todo delete all dependencies as no longer needed (or are they?)
+	 * @param TypedElementInterface $var The variable in question
+	 * @param int $taint What taint to mark them as.
 	 */
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
@@ -691,7 +798,8 @@ return [];
 			$paramTaint = [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
 			foreach ( $paramInfo as $i => $_ ) {
 				$paramTaint[$i] = $taint;
-				// $this->debug( __METHOD__ , "Setting method $method arg $i as $taint due to depenency on $var" );
+				// $this->debug( __METHOD__ , "Setting method $method" .
+					// " arg $i as $taint due to depenency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 		}
@@ -710,7 +818,13 @@ return [];
 	/**
 	 * This happens when someone call foo( $evilTaintedVar );
 	 *
-	 * It makes sure that anything that foo sets will become tainted.
+	 * It makes sure that any variable that the function foo() sets takes on
+	 * the taint of the supplied argument.
+	 *
+	 * @todo FIXME this needs to handle different types of taint.
+	 *
+	 * @param FunctionInterface $method The function or method in question
+	 * @param int $i The number of the argument in question.
 	 */
 	protected function markAllDependentVarsYes( FunctionInterface $method, int $i ) {
 		if ( $method->isInternal() ) {
@@ -724,11 +838,9 @@ return [];
 			return;
 		}
 		$oldMem = memory_get_peak_usage();
-		// echo __METHOD__ . $this->dbgInfo() . "Setting all vars depending on $method as tainted\n";
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
 			$curVarTaint = $this->getTaintedness( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, SecurityCheckPlugin::YES_TAINT );
-			// echo __METHOD__ . $this->dbgInfo() . "Setting $var as $newTaint due to dependency on $method\n";
 			$this->setTaintedness( $var, $newTaint );
 		}
 		// Maybe delete links??
@@ -740,7 +852,9 @@ return [];
 	}
 
 	/**
-	 * @param int taint
+	 * Are any of the YES (i.e HTML_TAINT) taint flags set
+	 *
+	 * @param int $taint
 	 * @return bool If the variable has known (non-execute taint)
 	 */
 	protected function isYesTaint( $taint ) {
@@ -748,7 +862,9 @@ return [];
 	}
 
 	/**
-	 * @param int taint
+	 * Does the taint have one of EXEC flags set
+	 *
+	 * @param int $taint
 	 * @return bool If the variable has any exec taint
 	 */
 	protected function isExecTaint( $taint ) {
@@ -771,6 +887,10 @@ return [];
 	 * Convert exec to yes taint
 	 *
 	 * Special flags like UNKNOWN or INAPLICABLE are discarded.
+	 * Any YES flags are also discarded
+	 *
+	 * @param int $taint The taint in question
+	 * @return int The taint with all the EXEC to yes, and all other flags off
 	 */
 	protected function execToYesTaint( int $taint ) : int {
 		return ( $taint & SecurityCheckPlugin::EXEC_TAINT ) >> 1;
@@ -795,12 +915,14 @@ return [];
 
 	/**
 	 * Is taint likely a false positive
-	 * @param $taint
 	 *
 	 * Taint is a false positive if it has the unknown flag but
 	 * none of the yes flags.
+	 *
+	 * @param int $taint
+	 * @return bool
 	 */
-	protected function isLikelyFalsePositive( $taint ) {
+	protected function isLikelyFalsePositive( int $taint ) : bool {
 		return ( $taint & SecurityCheckPlugin::UNKNOWN_TAINT ) !== 0
 			&& ( $taint & SecurityCheckPlugin::YES_TAINT ) === 0;
 	}
@@ -856,8 +978,9 @@ return [];
 	 *
 	 * @param Mixed $node Either a Node or a string, int, etc. The expression
 	 * @param int $taintedness The taintedness in question
-	 * @param FunctionInterface $func The function/method we are in.
+	 * @param FunctionInterface $curFunc The function/method we are in.
 	 * @return Array numeric keys for each parameter taint and 'overall' key
+	 * @suppress PhanTypeMismatchForeach
 	 */
 	protected function matchTaintToParam(
 		$node,
@@ -913,7 +1036,6 @@ return [];
 		}
 		$paramTaint['overall'] = ( $otherTaint | $taintRemaining ) &
 			$taintedness;
-		// $this->debug( __METHOD__, " otherTaint $otherTaint, taintRemaining $taintRemaining, taintedness = $taintedness, overall " . $paramTaint['overall'] );
 		return $paramTaint;
 	}
 
@@ -923,11 +1045,15 @@ return [];
 	 * @param string $method __METHOD__ in question
 	 * @param string $msg debug message
 	 */
-	protected function debug( $method, $msg ) {
-		if ( !$this->debugOutput ) {
+	public function debug( $method, $msg ) {
+		if ( $this->debugOutput === null ) {
 			$errorOutput = getenv( "SECCHECK_DEBUG" );
-			if ( $errorOutput ) {
+			if ( $errorOutput && $errorOutput !== '-' ) {
 				$this->debugOutput = fopen( $errorOutput, "w" );
+			} elseif ( $errorOutput === '-' ) {
+				$this->debugOutput = '-';
+			} else {
+				$this->debugOutput = false;
 			}
 		}
 		$line = $method . "\33[1m" . $this->dbgInfo() . " \33[0m" . $msg .     "\n";
@@ -942,9 +1068,12 @@ return [];
 	}
 
 	/**
-	 * Make sure func taint is well formed
+	 * Make sure func taint array is well formed
 	 *
-	 * @param array the taint of a function
+	 * @warning Will cause an assertion failure if not well formed.
+	 *
+	 * @param array $taint the taint of a function
+	 * @return void
 	 */
 	protected function checkFuncTaint( array $taint ) {
 		assert(

@@ -6,6 +6,9 @@ require_once __DIR__ . "/SecurityCheckPlugin.php";
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 
+	/**
+	 * @inheritDoc
+	 */
 	protected function getCustomFuncTaints() : array {
 		return [
 			// '\Message::__construct' => SecurityCheckPlugin::YES_TAINT,

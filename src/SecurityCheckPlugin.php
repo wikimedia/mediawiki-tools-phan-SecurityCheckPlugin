@@ -44,20 +44,12 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	const YES_EXEC_TAINT = 2040;
 
 	/**
-	 * @param CodeBase $code_base
-	 * The code base in which the node exists
+	 * Called on every node in the AST in post-order
 	 *
-	 * @param Context $context
-	 * The context in which the node exits. This is
-	 * the context inside the given node rather than
-	 * the context outside of the given node
-	 *
-	 * @param Node $node
-	 * The php-ast Node being analyzed.
-	 *
-	 * @param Node $node
-	 * The parent node of the given node (if one exists).
-	 *
+	 * @param CodeBase $code_base The code base in which the node exists
+	 * @param Context $context The context in which the node exits.
+	 * @param Node $node The php-ast Node being analyzed.
+	 * @param Node $parent_node The parent node of the given node (if one exists).
 	 * @return void
 	 */
 	public function analyzeNode(
@@ -66,19 +58,32 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 		Node $node,
 		Node $parent_node = null
 	) {
-	// echo __METHOD__ . ' ' .\ast\get_kind_name($node->kind) . " (Parent: " . ($parent_node ? \ast\get_kind_name($parent_node->kind) : "N/A") . ")\n";
 		$oldMem = memory_get_peak_usage();
-		( new TaintednessVisitor( $code_base, $context, $this ) )(
-			$node
-		);
+		// This would also return the taint of the current node,
+		// but we don't need that here so we discard the return value.
+		$visitor = new TaintednessVisitor( $code_base, $context, $this );
+		$visitor( $node );
 		$newMem = memory_get_peak_usage();
 		$diff = floor( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diff > 10 ) {
-			echo "Memory Spike! " . $context . " " .\ast\get_kind_name( $node->kind ) .
-			" diff=$diff MB; cur=" . floor( ( memory_get_usage() / ( 1024 * 1024 ) ) ) . " MB\n";
+			$cur = floor( ( memory_get_usage() / ( 1024 * 1024 ) ) );
+			$visitor->debug( __METHOD__, "Memory Spike! " . \ast\get_kind_name( $node->kind ) .
+				" diff=$diff MB; cur=$cur MB\n"
+			);
 		}
 	}
 
+	/**
+	 * Called on every node in the ast, but in pre-order
+	 *
+	 * We only need this for a couple things, namely
+	 * structural elements that cause a new variable to be
+	 * declared (e.g. method declarations, foreach loops)
+	 *
+	 * @param CodeBase $code_base
+	 * @param Context $context
+	 * @param Node $node
+	 */
 	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
 		( new PreTaintednessVisitor( $code_base, $context, $this ) )( $node );
 	}

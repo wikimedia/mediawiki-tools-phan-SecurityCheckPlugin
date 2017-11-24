@@ -5,12 +5,35 @@ use ast\Node;
 use ast\Node\Decl;
 use Phan\Debug;
 
+/**
+ * Class for visiting any nodes we want to handle in pre-order.
+ *
+ * Unlike TaintednessVisitor, this is solely used to set taint
+ * on variable objects, and not to determine the taint of the
+ * current node, so this class does not return anything.
+ */
 class PreTaintednessVisitor extends TaintednessBaseVisitor {
 
+	/**
+	 * Handle any node not otherwise handled.
+	 *
+	 * Currently a no-op.
+	 *
+	 * @param Node $node
+	 */
 	public function visit( Node $node ) {
-		// no-op
 	}
 
+	/**
+	 * Visit a foreach loop
+	 *
+	 * This is done in pre-order so that we can handle
+	 * the loop condition prior to determine the taint
+	 * of the loop variable, prior to evaluating the
+	 * loop body.
+	 *
+	 * @param Node $node
+	 */
 	public function visitForeach( Node $node ) {
 		// TODO: Could we do something better here detecting the array
 		// type
@@ -44,17 +67,29 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 			// getVariable can throw an IssueException if var doesn't exist.
 			$this->debug( __METHOD__, "Exception " . get_class( $e ) . $e->getMessage() . "" );
 		}
-
-		// The foreach as a block cannot be tainted.
-		return SecurityCheckPlugin::NO_TAINT;
 	}
 
+	/**
+	 * @see visitMethod
+	 * @param Decl $node
+	 * @return void Just has a return statement in case visitMethod changes
+	 */
 	public function visitFuncDecl( Decl $node ) {
 		return $this->visitMethod( $node );
 	}
 
 	/**
+	 * Set the taintedness of parameters to method/function.
+	 *
+	 * Parameters that are ints (etc) are clearly safe so
+	 * this marks them as such. For other parameters, it
+	 * creates a map between the function object and the
+	 * parameter object so if anyone later calls the method
+	 * with a dangerous argument we can determine if we need
+	 * to output a warning.
+	 *
 	 * Also handles FuncDecl
+	 * @param Decl $node
 	 */
 	public function visitMethod( Decl $node ) {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
