@@ -9,7 +9,10 @@ use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\UnionType;
+use Phan\Language\Type\CallableType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionName;
+use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Plugin;
 use ast\Node;
 use Phan\Debug;
@@ -74,7 +77,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		if ( $override ) {
 			$newTaint = $taint;
 		}
-		foreach ( $taint as $index => $t ) {
+
+		$bothTaint = $taint + $curTaint;
+		foreach ( $bothTaint as $index => $_ ) {
+			$t = $taint[$index] ?? 0;
 			assert( is_int( $t ) );
 			if ( !$override ) {
 				$newTaint[$index] = ( $curTaint[$index] ?? 0 ) | $t;
@@ -192,7 +198,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 					$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
 
 				} else {
-					$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
+					// $this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
 				}
 			}
 			// This may not be executed, so it can only increase
@@ -825,7 +831,7 @@ return [];
 			$paramTaint = [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
 			foreach ( $paramInfo as $i => $_ ) {
 				$paramTaint[$i] = $taint;
-				// $this->debug( __METHOD__ , "Setting method $method" .
+				// $this->debug( __METHOD__, "Setting method $method" .
 					// " arg $i as $taint due to depenency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
@@ -1113,5 +1119,162 @@ return [];
 		foreach ( $taint as $i => $t ) {
 			assert( is_int( $t ) && $t >= 0, "Taint index $i wrong $t" . $this->dbgInfo() );
 		}
+	}
+
+	/**
+	 * Given an AST node that's a callable, try and determine what it is
+	 *
+	 * This is intended for functions that register callbacks. It will
+	 * only really work for callbacks that are basically literals.
+	 *
+	 * @note $node may not be the current node in $this->context.
+	 *
+	 * @param Node|string $node The thingy from AST expected to be a Callable
+	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
+	 */
+	protected function getFQSENFromCallable( $node ) {
+		$callback = null;
+		if ( is_string( $node ) ) {
+			// Easy case, 'Foo::Bar'
+			if ( strpos( '::', $callback ) === false ) {
+				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString(
+					$node
+				);
+			} else {
+				$callback = FullyQualifiedMethodName::fromFullyQualifiedString(
+					$node
+				);
+			}
+		} elseif ( $node instanceof Node && $node->kind === \ast\AST_CLOSURE ) {
+			$method = (
+				new ContextNode(
+					$this->code_base,
+					$this->context->withLineNumberStart(
+						$node->lineno ?? 0
+					),
+					$node
+				)
+			)->getClosure();
+			$callback = $method->getFQSEN();
+		} elseif (
+			$node instanceof Node
+			&& $node->kind === \ast\AST_VAR
+			&& is_string( $node->children['name'] )
+		) {
+			$cnode = $this->getCtxN( $node );
+			$var = $cnode->getVariable();
+			$types = $var->getUnionType()->getTypeSet();
+			foreach ( $types as $type ) {
+				if (
+					$type instanceof CallableType &&
+					$type->asFQSEN() instanceof FullyQualifiedFunctionLikeName
+				) {
+					// @todo FIXME This doesn't work if the closure
+					// is defined in a different function scope
+					// then the one we are currently in. Perhaps
+					// we could look up the closure in
+					// $this->code_base to figure out what func
+					// its defined on via its parent scope. Or
+					// something.
+					$callback = $type->asFQSEN();
+					break;
+				}
+			}
+		} elseif ( $node instanceof Node && $node->kind === \ast\AST_ARRAY ) {
+			if ( count( $node->children ) !== 2 ) {
+				return null;
+			}
+			if (
+				$node->children[0]->children['key'] !== null ||
+				$node->children[1]->children['key'] !== null ||
+				!is_string( $node->children[1]->children['value'] )
+			) {
+				return null;
+			}
+			$methodName = $node->children[1]->children['value'];
+			$classNode = $node->children[0]->children['value'];
+			if ( is_string( $node->children[0]->children['value'] ) ) {
+				$className = $classNode;
+			} elseif ( $classNode instanceof Node ) {
+				switch ( $classNode->kind ) {
+				case \ast\AST_MAGIC_CONST:
+					// Mostly a special case for MediaWiki
+					// CoreParserFunctions.php
+					if (
+						$classNode->flags & \ast\flags\MAGIC_CLASS !== 0
+						&& $this->context->isInClassScope()
+					) {
+						$className = (string)$this->context->getClassFQSEN();
+					} else {
+						return null;
+					}
+					break;
+				case \ast\AST_CLASS_CONST:
+					if (
+						$classNode->children['const'] === 'class' &&
+						$classNode->children['class']->kind === \ast\AST_NAME &&
+						is_string( $classNode->children['class']->children['name'] )
+					) {
+						$className = $classNode->children['class']->children['name'];
+					} else {
+						return null;
+					}
+					break;
+				case \ast\AST_VAR:
+					$var = $this->getCtxN( $classNode )->getVariable();
+					$type = $var->getUnionType();
+					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
+						return null;
+					}
+					$cl = $type->asClassList(
+						$this->code_base,
+						$this->context
+					);
+					$clazz = false;
+					foreach ( $cl as $item ) {
+						$clazz = $item;
+						break;
+					}
+					if ( !$clazz ) {
+						return null;
+					}
+					$className = (string)$clazz->getFQSEN();
+					break;
+				case \ast\AST_PROP:
+					$var = $this->getCtxN( $classNode )
+						->getProperty( $classNode->children['prop'] );
+					$type = $var->getUnionType();
+					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
+						return null;
+					}
+					$cl = $type->asClassList(
+						$this->code_base,
+						$this->context
+					);
+					$clazz = false;
+					foreach ( $cl as $item ) {
+						$clazz = $item;
+						break;
+					}
+					if ( !$clazz ) {
+						return null;
+					}
+					$className = (string)$clazz->getFQSEN();
+					break;
+				default:
+					return null;
+				}
+
+			} else {
+				return null;
+			}
+			// Note, not from in context, since this goes to call_user_func.
+			$callback = FullyQualifiedMethodName::fromFullyQualifiedString(
+				$className . '::' . $methodName
+			);
+		} else {
+			return null;
+		}
+		return $callback;
 	}
 }

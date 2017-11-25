@@ -4,6 +4,7 @@
 		<exclude name="MediaWiki.NamingConventions.PrefixedGlobalFunctions.wfPrefix"/>
 		<exclude name="MediaWiki.Usage.ScalarTypeHintUsage.Found"/>
 		<exclude name="MediaWiki.Commenting.FunctionComment.MissingParamComment"/>
+		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment"/>
 	</rule>
 		<file>.</file>
 		<arg name="bootstrap" value="./vendor/mediawiki/mediawiki-codesniffer/utils/bootstrap-ci.php"/>
@@ -21,6 +22,12 @@
 	</rule>
 
 	<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationPublic">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationProtected">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationPrivate">
 		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 	<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">

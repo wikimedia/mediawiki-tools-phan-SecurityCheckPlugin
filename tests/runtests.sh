@@ -1,18 +1,25 @@
 #!/bin/bash
-# If you want to see debug output
-# call with SECCHECK_DEBUG=/dev/stderr
-# environment variable.
 #
-# If you want to run a specific test
-# then give it as first arg.
+# Run the tests in integration.
+# Usage: ./runtests.sh [-v] [testname]
+#
+# -v will add debug output. testname will run only that test
+#
+
 cd `dirname $0`/
-testList=${1:-`ls integration`}
 tmpFile=`mktemp testtmp.XXXXXXXX`
+trap "rm $tmpFile" exit
 totalTests=0
 failedTests=0
 php=`which php7.0`
 php=${php:-`which php`}
-SECCHECK_DEBUG=${SECCHECK_DEBUG:-/dev/null}
+if [ "$1" = '-v' ]
+	then SECCHECK_DEBUG=/dev/stderr
+		shift
+		export SECCHECK_DEBUG
+	else SECCHECK_DEBUG=${SECCHECK_DEBUG:-/dev/null}
+fi
+testList=${1:-`ls integration`}
 
 for i in $testList
 do
@@ -28,7 +35,6 @@ do
 		then failedTests=$((failedTests+1))
 	fi
 done
-rm $tmpFile
 if [ $failedTests -gt 0 ]
 	then echo $failedTests out of $totalTests failed.
 		exit 1

@@ -3,8 +3,52 @@
  * Copyright Brian Wolff 2017. Released under the GPL version 2 or later.
  */
 require_once __DIR__ . "/SecurityCheckPlugin.php";
+require_once __DIR__ . "/MWVisitor.php";
+require_once __DIR__ . "/MWPreVisitor.php";
+
+use Phan\CodeBase;
+use Phan\Language\Context;
+use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use ast\Node;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
+
+	/**
+	 * @var Array A mapping from hook names to FQSEN that implement it
+	 */
+	protected $hookSubscribers = [];
+
+	/**
+	 * Override so we can check for hook registration
+	 *
+	 * @param CodeBase $code_base
+	 * @param Context $context
+	 * @param Node $node
+	 * @param Node $parentNode
+	 */
+	public function analyzeNode(
+		CodeBase $code_base,
+		Context $context,
+		Node $node,
+		Node $parentNode = null
+	) {
+		parent::analyzeNode( $code_base, $context, $node, $parentNode );
+
+		$visitor = new MWVisitor( $code_base, $context, $this );
+		$visitor( $node );
+	}
+
+	/**
+	 * Called on every node in the ast, but in pre-order
+	 *
+	 * @param CodeBase $code_base
+	 * @param Context $context
+	 * @param Node $node
+	 */
+	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
+		parent::preAnalyzeNode( $code_base, $context, $node );
+		( new MWPreVisitor( $code_base, $context, $this ) )( $node );
+	}
 
 	/**
 	 * @inheritDoc
@@ -76,6 +120,13 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
 				// meh, not sure how right the overall is.
 				'overall' => SecurityCheckPlugin::HTML_TAINT
+			],
+			// AddItem should also take care of addGeneral and friends.
+			'\StripState::addItem' => [
+				self::NO_TAINT, // type
+				self::NO_TAINT, // marker
+				self::HTML_EXEC_TAINT, // contents
+				'overall' => self::NO_TAINT
 			],
 			// FIXME Doesn't handle array args right.
 			'\wfShellExec' => [
@@ -188,6 +239,68 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		];
 	}
 
+	/**
+	 * Add a hook implementation to our list.
+	 *
+	 * This also handles parser hooks which aren't normal hooks.
+	 * Non-normal hooks start their name with a "!"
+	 *
+	 * @param string $hookName Name of hook
+	 * @param FullyQualifiedFunctionLikeName $fqsen The implementing method
+	 * @return bool true if already registered, false otherwise
+	 */
+	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ) {
+		if ( !isset( $this->hookSubscribers[$hookName] ) ) {
+			$this->hookSubscribers[$hookName] = [];
+		}
+		foreach ( $this->hookSubscribers[$hookName] as $subscribe ) {
+			if ( (string)$subscribe === (string)$fqsen ) {
+				// dupe
+				return true;
+			}
+		}
+		$this->hookSubscribers[$hookName][] = $fqsen;
+		return false;
+	}
+
+	/**
+	 * Get a list of subscribers for hook
+	 *
+	 * @param string $hookName Hook in question. Hooks starting with ! are special.
+	 * @return FullyQualifiedFunctionLikeName[]
+	 */
+	public function getHookSubscribers( string $hookName ) : array {
+		if ( isset( $this->hookSubscribers[$hookName] ) ) {
+			return $this->hookSubscribers[$hookName];
+		}
+		return [];
+	}
+
+	/**
+	 * Is a particular function implementing a special hook.
+	 *
+	 * @note This assumes that any given func will only implement
+	 *   one hook
+	 * @param FullyQualifiedFunctionLikeName $fqsen The function to check
+	 * @return string The hook it is implementing
+	 */
+	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) {
+		$specialHooks = [
+			'!ParserFunctionHook'
+		];
+
+		// @todo This is probably not the most efficient thing.
+		foreach ( $specialHooks as $hook ) {
+			if ( !isset( $this->hookSubscribers[$hook] ) ) {
+				continue;
+			}
+			foreach ( $this->hookSubscribers[$hook] as $implFQSEN ) {
+				if ( (string)$implFQSEN === (string)$fqsen ) {
+					return $hook;
+				}
+			}
+		}
+	}
 }
 
 return new MediaWikiSecurityCheckPlugin;

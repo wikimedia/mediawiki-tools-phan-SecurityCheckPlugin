@@ -104,6 +104,22 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return int Taint
 	 */
+	public function visitUseElem( Node $node ) : int {
+		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitType( Node $node ) : int {
+		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
 	public function visitArgList( Node $node ) : int {
 		return SecurityCheckPlugin::INAPLICABLE_TAINT;
 	}
@@ -546,8 +562,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			if ( isset( $taint[$i] ) ) {
 				$effectiveArgTaintedness = $curArgTaintedness &
 					( $taint[$i] | $this->execToYesTaint( $taint[$i] ) );
-				# $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					# . " via arg $i $funcName" );
+				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
+					// . " via arg $i $funcName" );
 			} elseif ( ( $taint['overall'] &
 				( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
 			) ) {
@@ -621,8 +637,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
 			if ( $func && $this->isYesTaint( $curArgTaintedness ) ) {
-				# $this->debug( __METHOD__, "cur arg $i is YES taint " .
-				# "($curArgTaintedness). Marking dependent $funcName" );
+				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
+				// "($curArgTaintedness). Marking dependent $funcName" );
 				// Mark all dependent vars as tainted.
 				$this->markAllDependentVarsYes( $func, $i );
 			}
@@ -631,7 +647,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( $this->isExecTaint( $taint[$i] ?? 0 ) ) {
-				# $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
+				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
 				try {
 					$phanObjs = $this->getPhanObjsForNode( $argument );
 					foreach ( $phanObjs as $phanObj ) {
@@ -646,7 +662,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// gets passed to return value, but which taint is EXECed.
 			// $this->debug( __METHOD__, "Checking safe assing $funcName" .
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
-				// " vs argTaint= $curArgTaintedness"  );
+				// " vs argTaint= $curArgTaintedness" );
 			if ( !$this->isSafeAssignment( $taint[$i] ?? 0, $curArgTaintedness ) ) {
 				$containingMethod = $this->getCurrentMethod();
 				$this->plugin->emitIssue(
