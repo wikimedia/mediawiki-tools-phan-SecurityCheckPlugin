@@ -13,13 +13,12 @@ use Phan\Language\Element\FunctionInterface;
  */
 class MWPreVisitor extends TaintednessBaseVisitor {
 
-
 	/**
 	 * Ensure type of plugin is instance of MediaWikiSecurityCheckPlugin
 	 *
 	 * @param CodeBase $code_base
 	 * @param Context $context
-	 * @param MediaWikiSecurityCheckPlugin
+	 * @param MediaWikiSecurityCheckPlugin $plugin
 	 */
 	public function __construct(
 		CodeBase $code_base,
@@ -68,6 +67,37 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 		case '!ParserFunctionHook':
 			$this->setFuncHookParamTaint( $params, $method );
 			break;
+		case '!ParserHook':
+			$this->setTagHookParamTaint( $params, $method );
+			break;
+		}
+	}
+
+	/**
+	 * Set taint for a tag hook.
+	 *
+	 * The parameters are:
+	 *  string contents (Tainted from wikitext)
+	 *  array attribs (Tainted from wikitext)
+	 *  Parser object
+	 *  PPFrame object
+	 *
+	 * @param array $params formal parameters of tag hook
+	 * @param FunctionInterface $method
+	 */
+	private function setTagHookParamTaint( array $params, FunctionInterface $method ) {
+		// Only care about first 2 parameters.
+		for ( $i = 0; $i < 2 && $i < count( $params ); $i++ ) {
+			$param = $params[$i];
+			$scope = $this->context->getScope();
+			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
+				// Well uh-oh.
+				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+				continue;
+			}
+			$varObj = $scope->getVariableByName( $param->children['name'] );
+			$this->setTaintedness( $varObj, SecurityCheckPlugin::YES_TAINT );
+			// $this->debug( __METHOD__, "In $method setting param $varObj as tainted" );
 		}
 	}
 
@@ -82,7 +112,6 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	 * @param FunctionInterface $method
 	 */
 	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) {
-		$this->debug( __METHOD__, "Setting taint for hook $method" );
 		$funcTaint = $this->getTaintOfFunction( $method );
 		$varObjs = [];
 		foreach ( $params as $i => $param ) {

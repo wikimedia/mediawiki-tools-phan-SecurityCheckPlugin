@@ -194,6 +194,25 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::HTML_TAINT,
 				'overall' => SecurityCheckPlugin::NO_TAINT,
 			],
+			'\Parser::recursiveTagParse' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
+				self::NO_TAINT,
+				'overall' => SecurityCheckPlugin::NO_TAINT,
+			],
+			'\Parser::recursiveTagParseFully' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
+				self::NO_TAINT,
+				'overall' => SecurityCheckPlugin::NO_TAINT,
+			],
+			'\Sanitizer::removeHTMLtags' => [
+				self::YES_TAINT & ~self::HTML_TAINT, /* text */
+				self::SHELL_EXEC_TAINT, /* attribute callback */
+				self::NO_TAINT, /* callback args */
+				self::YES_TAINT, /* extra tags */
+				self::NO_TAINT, /* remove tags */
+				'overall' => SecurityCheckPlugin::NO_TAINT
+			],
+			'\WebRequest::getGPCVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
 			'\WebRequest::getGPCVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
 			'\WebRequest::getRawVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
 			'\WebRequest::getVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
@@ -286,7 +305,8 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 */
 	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) {
 		$specialHooks = [
-			'!ParserFunctionHook'
+			'!ParserFunctionHook',
+			'!ParserHook'
 		];
 
 		// @todo This is probably not the most efficient thing.

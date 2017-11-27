@@ -5,6 +5,7 @@
 		<exclude name="MediaWiki.Usage.ScalarTypeHintUsage.Found"/>
 		<exclude name="MediaWiki.Commenting.FunctionComment.MissingParamComment"/>
 		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment"/>
+		<exclude name="Generic.CodeAnalysis.ForLoopWithTestFunctionCall.NotAllowed"/>
 	</rule>
 		<file>.</file>
 		<arg name="bootstrap" value="./vendor/mediawiki/mediawiki-codesniffer/utils/bootstrap-ci.php"/>

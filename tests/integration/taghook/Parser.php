@@ -1,7 +1,9 @@
 <?php
 
-class Parser {
+interface PPFrame {
+}
 
+class Parser {
 	const MARKER_SUFFIX = "-QINU`\"'\x7f";
 	const MARKER_PREFIX = "\x7f'\"`UNIQ-";
 	/** @var int */
@@ -11,7 +13,13 @@ class Parser {
 	public function setFunctionHook( $id, callable $cb, $opts = 0 ) {
 	}
 
-	// extra newline to make line numbers line up with test
+	public function setHook( $id, callable $cb ) {
+	}
+
+	public function recursiveTagParse( $text, $frame = false ) {
+		return 'foo';
+	}
+
 	public function __construct() {
 		$this->mStripState = new StripState;
 	}
@@ -36,6 +44,7 @@ class StripState {
 
 	const UNSTRIP_RECURSION_LIMIT = 20;
 	protected function addItem( $type, $marker, $value ) {
+		$m = [];
 		if ( !preg_match( $this->regex, $marker, $m ) ) {
 			throw new Exception( "Invalid marker: $marker" );
 		}

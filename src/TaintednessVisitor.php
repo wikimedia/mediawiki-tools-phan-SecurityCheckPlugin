@@ -590,9 +590,13 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// If this is a call by reference parameter,
 			// link the taintedness variables.
 			$param = $func ? $func->getParameterForCaller( $i ) : null;
-			if ( $param && $param->isPassByReference() ) {
+			// @todo Internal funcs that pass by reference. Should we
+			// assume that their variables are tainted? Most common
+			// example is probably preg_match, which may very well be
+			// tainted much of the time.
+			if ( $param && $param->isPassByReference() && !$func->isInternal() ) {
 				if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
-					$this->debug( __METHOD__, "Missing variable in scope \$" . $param->getName() );
+					$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
 					continue;
 				}
 				$methodVar = $func->getInternalScope()->getVariableByName( $param->getName() );

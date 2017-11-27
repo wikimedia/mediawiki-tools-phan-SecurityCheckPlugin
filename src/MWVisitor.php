@@ -49,9 +49,15 @@ class MWVisitor extends TaintednessBaseVisitor {
 				false /* not a static call */
 			);
 			// Should this be getDefiningFQSEN() instead?
-			switch ( (string)$method->getFQSEN() ) {
+			$methodName = (string)$method->getFQSEN();
+			// $this->debug( __METHOD__, "Checking to see if we should register $methodName" );
+			switch ( $methodName ) {
 				case '\Parser::setFunctionHook':
-					$this->handleFuncRegistration( $node );
+				case '\Parser::setHook':
+				case '\Parser::setTransparentTagHook':
+					$type = $this->getHookTypeForRegistrationMethod( $methodName );
+					// $this->debug( __METHOD__, "registering $methodName as $type" );
+					$this->handleHookRegistration( $node, $type );
 					break;
 			}
 		} catch ( Exception $e ) {
@@ -60,19 +66,36 @@ class MWVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
+	 * @param string $method The method name of the registration function
+	 * @return string The name of the hook that gets registered
+	 */
+	private function getHookTypeForRegistrationMethod( string $method ) {
+		switch ( $method ) {
+		case '\Parser::setFunctionHook':
+			return '!ParserFunctionHook';
+		case '\Parser::setHook':
+		case '\Parser::setTransparentTagHook':
+			return '!ParserHook';
+		default:
+			throw new Exception( "$method not a hook registerer" );
+		}
+	}
+
+	/**
 	 * When someone calls $parser->setFunctionHook()
 	 *
 	 * @note Causes phan to error out if given non-existent class
 	 * @param Node $node
+	 * @param string $hookType The name of the hook
 	 */
-	private function handleFuncRegistration( Node $node ) {
+	private function handleHookRegistration( Node $node, string $hookType ) {
 		$args = $node->children['args']->children;
 		if ( count( $args ) < 2 ) {
 			return;
 		}
 		$callback = $this->getFQSENFromCallable( $args[1] );
 		if ( $callback ) {
-			$alreadyRegistered = $this->plugin->registerHook( '!ParserFunctionHook', $callback );
+			$alreadyRegistered = $this->plugin->registerHook( $hookType, $callback );
 			if ( !$alreadyRegistered ) {
 				// If this is the first time seeing this, re-analyze the
 				// node, just in case we had already passed it by.
@@ -89,6 +112,9 @@ class MWVisitor extends TaintednessBaseVisitor {
 					assert( $callback instanceof FullyQualifiedFunctionName );
 					$func = $this->code_base->getFunctionByFQSEN( $callback );
 				}
+				// Make sure we reanalyze the hook function now that
+				// we know what it is, in case its already been
+				// analyzed.
 				$func->analyze(
 					$func->getContext(),
 					$this->code_base
@@ -116,7 +142,22 @@ class MWVisitor extends TaintednessBaseVisitor {
 		case '!ParserFunctionHook':
 			$this->visitReturnOfFunctionHook( $node->children['expr'], $funcFQSEN );
 			break;
-
+		case '!ParserHook':
+			$ret = $node->children['expr'];
+			$taintedness = $this->getTaintedness( $ret );
+			if ( !$this->isSafeAssignment(
+				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				$taintedness
+			) ) {
+				$this->plugin->emitIssue(
+					$this->code_base,
+					$this->context,
+					'SecurityCheckTaintedOutput',
+					"Outputting evil HTML from Parser tag hook $funcFQSEN"
+						. $this->getOriginalTaintLine( $ret )
+				);
+			}
+			break;
 		}
 	}
 
