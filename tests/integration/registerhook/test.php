@@ -23,26 +23,49 @@ class SomeClass {
 
 }
 
+$output = '';
+$out2 = '';
+Hooks::run( 'Something', [ $_GET['user'], &$output, &$out2 ] );
+echo $out2;
+echo $output;
+
 function wfSomeGlobal( $arg1, &$arg2, $extraArg = '' ) {
 }
 
 class SecondClass {
 	public static function hook1( $arg1, &$arg2, $extraArg = '' ) {
+		// safe
+		$arg2 = htmlspecialchars( $arg1 );
 	}
 	public static function hook2( $arg1, &$arg2, $extraArg = '' ) {
 	}
 	public static function hook3( $arg1, &$arg2, $extraArg = '' ) {
+		// unsafe
+		$arg2 = $arg1;
 	}
-	public static function hook4( $arg1, &$arg2, $extraArg = '' ) {
+	public static function hook4( $arg1, &$arg2, &$extraArg ) {
+		// safe
+		$extraArg = 'Foo';
 	}
 	public static function hook5( $arg1, &$arg2, $extraArg = '' ) {
+		// unsafe
+		echo $_GET['evil'];
 	}
-	public static function hook6( $arg1, &$arg2, $extraArg = '' ) {
+	public static function hook6( $arg1, &$arg2, &$extraArg ) {
+		// safe
+		$arg1 = $arg2;
+		$arg1 .= $extraArg;
 	}
 	public static function hook7( $arg1, &$arg2, $extraArg = '' ) {
+		// unsafe
+		print $_GET['evil'];
 	}
 	public static function hook8( $arg1, &$arg2, $extraArg = '' ) {
+		// unsafe
+		require $_GET['evil'];
 	}
 	public function onSomething( $arg1, &$arg2, $extraArg = '' ) {
+		// unsafe
+		eval( $_GET['evil'] );
 	}
 }

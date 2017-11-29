@@ -76,9 +76,65 @@ class MWVisitor extends TaintednessBaseVisitor {
 				case '\Hooks::register':
 					$this->handleNormalHookRegistration( $node );
 					break;
+				case '\Hooks::run':
+					$this->triggerHook( $node );
+					break;
 			}
 		} catch ( Exception $e ) {
 			// ignore
+		}
+	}
+
+	/**
+	 * Dispatch a hook (i.e. Handle Hooks::run)
+	 *
+	 * @param Node $node The Hooks::run AST_STATIC_CALL
+	 */
+	private function triggerHook( Node $node ) {
+		$args = [];
+		$argList = $node->children['args']->children;
+		if ( count( $argList ) === 0 ) {
+			$this->debug( __METHOD__, "Too few args to Hooks::run" );
+			return;
+		}
+		if ( !is_string( $argList[0] ) ) {
+			$this->debug( __METHOD__, "Cannot determine hook name" );
+			return;
+		}
+		$hookName = $argList[0];
+		if (
+			count( $argList ) < 2
+			|| !$argList[1]->kind === \ast\AST_ARRAY
+		) {
+			// @todo There are definitely cases where this
+			// will prevent us from running hooks
+			// e.g. EditPageGetPreviewContent
+			$this->debug( __METHOD__, "Could not run hook $hookName due to complex args" );
+			return;
+		}
+		foreach ( $argList[1]->children as $arg ) {
+			if ( $arg->children['key'] !== null ) {
+				$this->debug( __METHOD__, "named arg in hook $hookName?" );
+				continue;
+			}
+			$args[] = $arg;
+		}
+
+		$subscribers = $this->plugin->getHookSubscribers( $hookName );
+		foreach ( $subscribers as $subscriber ) {
+			if ( $subscriber instanceof FullyQualifiedMethodName ) {
+				$func = $this->code_base->getMethodByFQSEN( $subscriber );
+			} else {
+				assert( $subscriber instanceof FullyQualifiedFunctionName );
+				$func = $this->code_base->getFunctionByFQSEN( $subscriber );
+			}
+			$taint = $this->getTaintOfFunction( $func );
+			// $this->debug( __METHOD__, "Dispatching $hookName to $subscriber" );
+			// FIXME There is a slight flaw here, in that this will often mark
+			// the offending line as being the Hooks::run call, which means
+			// people only looking at the issues in an extension would
+			// not see it.
+			$this->handleMethodCall( $func, $subscriber, $taint, $args );
 		}
 	}
 

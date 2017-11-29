@@ -8,7 +8,6 @@ use ast\Node;
 use ast\Node\Decl;
 use Phan\Exception\IssueException;
 use Phan\Debug;
-use Phan\Library\Set;
 
 /**
  * This class visits all the nodes in the ast. It has two jobs:
@@ -551,7 +550,6 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitMethodCall( Node $node ) : int {
-		$oldMem = memory_get_peak_usage();
 		$ctxNode = new ContextNode(
 			$this->code_base,
 			$this->context,
@@ -599,163 +597,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			$taint = [ 'overall' => SecurityCheckPlugin::UNKNOWN_TAINT ];
 		}
 
-		// Now we need to look at the taintedness of the arguments
-		// we are passing to the method.
-		$overallArgTaint = SecurityCheckPlugin::NO_TAINT;
-		$args = $node->children['args']->children;
-		foreach ( $args as $i => $argument ) {
-			if ( !is_object( $argument ) ) {
-				// Literal value
-				continue;
-			}
-
-			$curArgTaintedness = $this->getTaintednessNode( $argument );
-			if ( isset( $taint[$i] ) ) {
-				$effectiveArgTaintedness = $curArgTaintedness &
-					( $taint[$i] | $this->execToYesTaint( $taint[$i] ) );
-				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					// . " via arg $i $funcName" );
-			} elseif ( ( $taint['overall'] &
-				( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
-			) ) {
-				// No info for this specific parameter, but
-				// the overall function either preserves taint
-				// when unspecified or is unknown. So just
-				// pass the taint through.
-				// FIXME, could maybe check if type is safe like int.
-				$effectiveArgTaintedness = $curArgTaintedness;
-				# $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					# . " via preserve or unkown $funcName" );
-			} else {
-				// This parameter has no taint info.
-				// And overall this function doesn't depend on param
-				// for taint and isn't unknown.
-				// So we consider this argument untainted.
-				$effectiveArgTaintedness = SecurityCheckPlugin::NO_TAINT;
-				# $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					# . " via no taint info $funcName" );
-			}
-
-			// -------Start complex reference parameter bit--------/
-			// FIXME This is ugly and hacky and needs to be refactored.
-			// If this is a call by reference parameter,
-			// link the taintedness variables.
-			$param = $func ? $func->getParameterForCaller( $i ) : null;
-			// @todo Internal funcs that pass by reference. Should we
-			// assume that their variables are tainted? Most common
-			// example is probably preg_match, which may very well be
-			// tainted much of the time.
-			if ( $param && $param->isPassByReference() && !$func->isInternal() ) {
-				if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
-					$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
-					continue;
-				}
-				$methodVar = $func->getInternalScope()->getVariableByName( $param->getName() );
-				// FIXME: Better to keep a list of dependencies
-				// like what we do for methods?
-				// Iffy if this will work, because phan replaces
-				// the Parameter objects with ParameterPassByReference,
-				// and then unreplaces them
-				// echo __METHOD__ . $this->dbgInfo() . (string)$param. "\n";
-
-				$pobjs = $this->getPhanObjsForNode( $argument );
-				if ( count( $pobjs ) !== 1 ) {
-					echo __METHOD__ . $this->dbgInfo() . "Expected only one " . (string)$param . "\n";
-				}
-				foreach ( $pobjs as $pobj ) {
-					// FIXME, is unknown right here.
-					$combinedTaint = $this->mergeAddTaint(
-						$methodVar->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT,
-						$pobj->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT
-					);
-					$pobj->taintedness = $combinedTaint;
-					$methodVar->taintedness =& $pobj->taintedness;
-					$methodLinks = $methodVar->taintedMethodLinks ?? new Set;
-					$pobjLinks = $pobj->taintedMethodLinks ?? new Set;
-					$pobj->taintedMethodLinks = $methodLinks->union( $pobjLinks );
-					$methodVar->taintedMethodLinks =& $pobj->taintedMethodLinks;
-					$combinedOrig = ( $pobj->taintedOriginalError ?? '' )
-						. ( $methodVar->taintedOriginalError ?? '' );
-					if ( strlen( $combinedOrig ) > 255 ) {
-						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '...';
-					}
-					$pobj->taintedOriginalError = $combinedOrig;
-					$methodVar->taintedOriginalError =& $pobj->taintedOriginalError;
-				}
-			}
-			// ------------END complex by reference parameter bit------
-
-			// We are doing something like someFunc( $evilArg );
-			// Propogate that any vars set by someFunc should now be
-			// marked tainted.
-			// FIXME: We also need to handle the case where
-			// someFunc( $execArg ) for pass by reference where
-			// the parameter is later executed outside the func.
-			if ( $func && $this->isYesTaint( $curArgTaintedness ) ) {
-				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
-				// "($curArgTaintedness). Marking dependent $funcName" );
-				// Mark all dependent vars as tainted.
-				$this->markAllDependentVarsYes( $func, $i );
-			}
-
-			// We are doing something like evilMethod( $arg );
-			// where $arg is a parameter to the current function.
-			// So backpropagate that assigning to $arg can cause evilness.
-			if ( $this->isExecTaint( $taint[$i] ?? 0 ) ) {
-				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
-				try {
-					$phanObjs = $this->getPhanObjsForNode( $argument );
-					foreach ( $phanObjs as $phanObj ) {
-						$this->markAllDependentMethodsExec(
-							$phanObj,
-							$taint[$i]
-						);
-					}
-				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "FIXME " . get_class( $e ) . " " . $e->getMessage() );
-				}
-			}
-			$taintedArg = $argument->children['name'] ?? '[arg #' . ( $i + 1 ) . ']';
-			// We use curArgTaintedness here, as we aren't checking what taint
-			// gets passed to return value, but which taint is EXECed.
-			// $this->debug( __METHOD__, "Checking safe assing $funcName" .
-				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
-				// " vs argTaint= $curArgTaintedness" );
-			$containingMethod = $this->getCurrentMethod();
-			$this->maybeEmitIssue(
-				$taint[$i] ?? 0,
-				$curArgTaintedness,
-				"Calling method $funcName() in $containingMethod" .
-				" that outputs using tainted argument \$$taintedArg." .
-				( $func ? $this->getOriginalTaintLine( $func ) : '' ) .
-				$this->getOriginalTaintLine( $argument )
-			);
-
-			$overallArgTaint |= $effectiveArgTaintedness;
-		}
-
-		$containingMethod = $this->getCurrentMethod();
-		$this->maybeEmitIssue(
-			$taint['overall'],
-			$this->execToYesTaint( $taint['overall'] ),
-			"Calling Method $funcName in $containingMethod that "
-			. "is always unsafe " .
-			( $func ? $this->getOriginalTaintLine( $func ) : '' )
-		);
-
-		$newMem = memory_get_peak_usage();
-		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
-		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem $funcName" );
-		}
-		// The taint of the method call expression is the overall taint
-		// of the method not counting the preserve flag plus any of the
-		// taint from arguments of the right type.
-		// With all the exec bits removed from args.
-		$neitherPreserveOrExec = ~( SecurityCheckPlugin::PRESERVE_TAINT |
-			SecurityCheckPlugin::EXEC_TAINT );
-		return ( $taint['overall'] & $neitherPreserveOrExec )
-			| ( $overallArgTaint & ~SecurityCheckPlugin::EXEC_TAINT );
+		return $this->handleMethodCall( $func, $funcName, $taint, $node->children['args']->children );
 	}
 
 	/**
