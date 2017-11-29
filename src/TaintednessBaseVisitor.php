@@ -1522,6 +1522,7 @@ return [];
 				}
 			}
 			$taintedArg = $argument->children['name'] ?? '[arg #' . ( $i + 1 ) . ']';
+			$taintedArg = is_string( $taintedArg ) ? $taintedArg : '[arg #' . ( $i + 1 ) . ']';
 			// We use curArgTaintedness here, as we aren't checking what taint
 			// gets passed to return value, but which taint is EXECed.
 			// $this->debug( __METHOD__, "Checking safe assing $funcName" .

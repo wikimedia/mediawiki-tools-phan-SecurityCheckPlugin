@@ -104,7 +104,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 		$hookName = $argList[0];
 		if (
 			count( $argList ) < 2
-			|| !$argList[1]->kind === \ast\AST_ARRAY
+			|| $argList[1]->kind !== \ast\AST_ARRAY
 		) {
 			// @todo There are definitely cases where this
 			// will prevent us from running hooks

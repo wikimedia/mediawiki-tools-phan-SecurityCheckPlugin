@@ -76,6 +76,26 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				// What should DB results be considered?
 				'overall' => self::YES_TAINT
 			],
+			'\Wikimedia\Rdbms\Database::addIdentifierQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DatabaseMysqlBase::addIdentifierQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DatabaseMssql::addIdentifierQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\IDatabase::addIdentifierQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\DBConnRef::addIdentifierQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
 			'\Wikimedia\Rdbms\Database::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT,
