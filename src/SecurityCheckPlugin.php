@@ -38,10 +38,20 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	const SHELL_EXEC_TAINT = 256;
 	const SERIALIZE_TAINT = 512;
 	const SERIALIZE_EXEC_TAINT = 1024;
+	// To allow people to add other application specific
+	// taints.
+	const CUSTOM1_TAINT = 2048;
+	const CUSTOM1_EXEC_TAINT = 4096;
+	const CUSTOM2_TAINT = 8192;
+	const CUSTOM2_EXEC_TAINT = 16384;
+	// For stuff that doesn't fit another
+	// category (For the moment, this is stuff like `require $foo`)
+	const MISC_TAINT = 32768;
+	const MISC_EXEC_TAINT = 65536;
 
-	const YES_TAINT = 680;
-	const EXEC_TAINT = 1360;
-	const YES_EXEC_TAINT = 2040;
+	const YES_TAINT = 43688;
+	const EXEC_TAINT = 87376;
+	const YES_EXEC_TAINT = 131064;
 
 	/**
 	 * Called on every node in the AST in post-order
@@ -128,6 +138,31 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 * @return array Array of function taints (See getBuiltinFuncTaint())
 	 */
 	abstract protected function getCustomFuncTaints() : array;
+
+	/**
+	 * Can be used to force specific issues to be marked false positives
+	 *
+	 * For example, a specific application might be able to recognize
+	 * that we are in a CLI context, and thus the XSS is really a false positive.
+	 *
+	 * @note The $lhsTaint parameter uses the self::*_TAINT constants,
+	 *   NOT the *_EXEC_TAINT constants.
+	 * @param int $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
+	 * @param int $rhsTaint The taint of the expression
+	 * @param string &$msg Issue description (so plugin can modify to state why false)
+	 * @param Context $context
+	 * @param CodeBase $code_base
+	 * @return bool Is this a false positive?
+	 */
+	public function isFalsePositive(
+		int $lhsTaint,
+		int $rhsTaint,
+		string &$msg,
+		Context $context,
+		CodeBase $code_base
+	) : bool {
+		return false;
+	}
 
 	/**
 	 * Tains for builtin php functions

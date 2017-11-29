@@ -1,1 +1,1 @@
-integration/echoevil/test.php:3 SecurityCheckTaintedOutput Echoing tainted expression (680)
+integration/echoevil/test.php:3 SecurityCheck-XSS Echoing expression that was not html escaped

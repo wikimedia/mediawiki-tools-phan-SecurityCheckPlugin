@@ -43,6 +43,15 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	/**
 	 * @see visitMethod
 	 * @param Decl $node
+	 * @return void
+	 */
+	public function visitClosure( Decl $node ) {
+		return $this->visitMethod( $node );
+	}
+
+	/**
+	 * @see visitMethod
+	 * @param Decl $node
 	 * @return void Just has a return statement in case visitMethod changes
 	 */
 	public function visitFuncDecl( Decl $node ) {

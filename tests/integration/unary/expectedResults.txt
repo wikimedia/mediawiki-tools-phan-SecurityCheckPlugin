@@ -1,0 +1,2 @@
+integration/unary/test.php:3 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/unary/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped

@@ -1,0 +1,1 @@
+integration/cast/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped

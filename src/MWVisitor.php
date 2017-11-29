@@ -192,18 +192,12 @@ class MWVisitor extends TaintednessBaseVisitor {
 		case '!ParserHook':
 			$ret = $node->children['expr'];
 			$taintedness = $this->getTaintedness( $ret );
-			if ( !$this->isSafeAssignment(
+			$this->maybeEmitIssue(
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				$taintedness
-			) ) {
-				$this->plugin->emitIssue(
-					$this->code_base,
-					$this->context,
-					'SecurityCheckTaintedOutput',
-					"Outputting evil HTML from Parser tag hook $funcFQSEN"
-						. $this->getOriginalTaintLine( $ret )
-				);
-			}
+				$taintedness,
+				"Outputting user controlled HTML from Parser tag hook $funcFQSEN"
+					. $this->getOriginalTaintLine( $ret )
+			);
 			break;
 		}
 	}
@@ -244,15 +238,12 @@ class MWVisitor extends TaintednessBaseVisitor {
 			return;
 		}
 		$taintedness = $this->getTaintedness( $node->children[0] );
-		if ( !$this->isSafeAssignment( SecurityCheckPlugin::HTML_EXEC_TAINT, $taintedness ) ) {
-			$this->plugin->emitIssue(
-				$this->code_base,
-				$this->context,
-				'SecurityCheckTaintedOutput',
-				"Outputting evil HTML from Parser function hook $funcName"
-					. $this->getOriginalTaintLine( $node->children[0] )
-			);
-		}
+		$this->maybeEmitIssue(
+			SecurityCheckPlugin::HTML_EXEC_TAINT,
+			$taintedness,
+			"Outputting user controlled HTML from Parser function hook $funcName"
+				. $this->getOriginalTaintLine( $node->children[0] )
+		);
 	}
 
 	/**

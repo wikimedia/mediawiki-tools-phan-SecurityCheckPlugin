@@ -9,6 +9,7 @@ require_once __DIR__ . "/MWPreVisitor.php";
 use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 use ast\Node;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
@@ -321,6 +322,46 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			}
 		}
 	}
+
+	/**
+	 * Mark XSS's that happen in a Maintinance subclass as false a positive
+	 *
+	 * @param int $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
+	 * @param int $rhsTaint The taint of the expression
+	 * @param string &$msg The issue description
+	 * @param Context $context
+	 * @param CodeBase $code_base
+	 * @return bool Is this a false positive?
+	 */
+	public function isFalsePositive(
+		int $lhsTaint,
+		int $rhsTaint,
+		string &$msg,
+		Context $context,
+		CodeBase $code_base
+	) : bool {
+		if (
+			( $lhsTaint & $rhsTaint ) === self::HTML_TAINT &&
+			$context->isInClassScope()
+		) {
+			$class = $context->getClassInScope( $code_base );
+			$maintFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
+				'\\Maintenance'
+			);
+			if ( !$code_base->hasClassWithFQSEN( $maintFQSEN ) ) {
+				return false;
+			}
+			$maint = $code_base->getClassByFQSEN( $maintFQSEN );
+			$isMaint = $class->isSubclassOf( $code_base, $maint );
+			if ( $isMaint ) {
+				$msg .= ' [Likely false positive because in a subclass ' .
+					'of Maintenance, thus probably CLI]';
+				return true;
+			}
+		}
+		return false;
+	}
+
 }
 
 return new MediaWikiSecurityCheckPlugin;

@@ -79,6 +79,15 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
+	 * @see visitMethod
+	 * @param Decl $node
+	 * @return void Just has a return statement in case visitMethod changes
+	 */
+	public function visitClosure( Decl $node ) {
+		return $this->visitMethod( $node );
+	}
+
+	/**
 	 * Set the taintedness of parameters to method/function.
 	 *
 	 * Parameters that are ints (etc) are clearly safe so
@@ -88,7 +97,7 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 	 * with a dangerous argument we can determine if we need
 	 * to output a warning.
 	 *
-	 * Also handles FuncDecl
+	 * Also handles FuncDecl and Closure
 	 * @param Decl $node
 	 */
 	public function visitMethod( Decl $node ) {

@@ -1,0 +1,2 @@
+integration/backtick/test.php:4 SecurityCheck-ShellInjection Backtick shell execution operator contains user controlled arg (Caused by: integration/backtick/test.php +3)
+integration/backtick/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped

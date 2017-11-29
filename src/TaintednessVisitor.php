@@ -4,7 +4,6 @@ use Phan\AST\ContextNode;
 use Phan\Language\Context;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
-use Phan\Plugin;
 use ast\Node;
 use ast\Node\Decl;
 use Phan\Exception\IssueException;
@@ -321,15 +320,12 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 
 		// If we're assigning to a variable we know will be output later
 		// raise an issue now.
-		if ( !$this->isSafeAssignment( $lhsTaintedness, $rhsTaintedness ) ) {
-			$this->plugin->emitIssue(
-				$this->code_base,
-				$this->context,
-				'SecurityCheckTaintedOutput',
-				"Assigning to a variable that is later output (lhs=$lhsTaintedness; rhs=$rhsTaintedness)"
-					. $this->getOriginalTaintLine( $node->children['var'] )
-			);
-		}
+		$this->maybeEmitIssue(
+			$lhsTaintedness,
+			$rhsTaintedness,
+			"Assigning a tainted value to a variable that later does something unsafe with it"
+				. $this->getOriginalTaintLine( $node->children['var'] )
+		);
 		foreach ( $variableObjs as $variableObj ) {
 			// echo $this->dbgInfo() . " " . $variableObj .
 			// " now merging in taintedness " . $rhsTaintedness
@@ -357,29 +353,30 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitBinaryOp( Node $node ) : int {
-		$safeBinOps =
+		$safeBinOps = [
 			// Unsure about BITWISE ops, since
 			// "A" | "B" still is a string
 			// so skipping.
 			// Add is not included due to array addition.
-			\ast\flags\BINARY_BOOL_XOR |
-			\ast\flags\BINARY_DIV |
-			\ast\flags\BINARY_IS_EQUAL |
-			\ast\flags\BINARY_IS_IDENTICAL |
-			\ast\flags\BINARY_IS_NOT_EQUAL |
-			\ast\flags\BINARY_IS_NOT_IDENTICAL |
-			\ast\flags\BINARY_IS_SMALLER |
-			\ast\flags\BINARY_IS_SMALLER_OR_EQUAL |
-			\ast\flags\BINARY_MOD |
-			\ast\flags\BINARY_MUL |
-			\ast\flags\BINARY_POW |
-			\ast\flags\BINARY_SUB |
-			\ast\flags\BINARY_BOOL_AND |
-			\ast\flags\BINARY_BOOL_OR |
-			\ast\flags\BINARY_IS_GREATER |
-			\ast\flags\BINARY_IS_GREATER_OR_EQUAL;
+			\ast\flags\BINARY_BOOL_XOR,
+			\ast\flags\BINARY_DIV,
+			\ast\flags\BINARY_IS_EQUAL,
+			\ast\flags\BINARY_IS_IDENTICAL,
+			\ast\flags\BINARY_IS_NOT_EQUAL,
+			\ast\flags\BINARY_IS_NOT_IDENTICAL,
+			\ast\flags\BINARY_IS_SMALLER,
+			\ast\flags\BINARY_IS_SMALLER_OR_EQUAL,
+			\ast\flags\BINARY_MOD,
+			\ast\flags\BINARY_MUL,
+			\ast\flags\BINARY_POW,
+			\ast\flags\BINARY_SUB,
+			\ast\flags\BINARY_BOOL_AND,
+			\ast\flags\BINARY_BOOL_OR,
+			\ast\flags\BINARY_IS_GREATER,
+			\ast\flags\BINARY_IS_GREATER_OR_EQUAL
+		];
 
-		if ( $node->flags & $safeBinOps !== 0 ) {
+		if ( in_array( $node->flags, $safeBinOps ) ) {
 			return SecurityCheckPlugin::NO_TAINT;
 		}
 
@@ -412,10 +409,69 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return int Taint
 	 */
+	public function visitShellExec( Node $node ) : int {
+		$taintedness = $this->getTaintedness( $node->children['expr'] );
+
+		$this->maybeEmitIssue(
+			SecurityCheckPlugin::SHELL_EXEC_TAINT,
+			$taintedness,
+			"Backtick shell execution operator contains user controlled arg"
+				. $this->getOriginalTaintLine( $node->children['expr'] )
+		);
+
+		if (
+			$this->isSafeAssignment( SecurityCheckPlugin::SHELL_EXEC_TAINT, $taintedness ) &&
+			is_object( $node->children['expr'] )
+		) {
+			// In the event the assignment looks safe, keep track of it,
+			// in case it later turns out not to be safe.
+			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			foreach ( $phanObjs as $phanObj ) {
+				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
+				$this->markAllDependentMethodsExec(
+					$phanObj,
+					SecurityCheckPlugin::SHELL_EXEC_TAINT
+				);
+			}
+		}
+		// Its unclear if we should consider this tainted or not
+		return SecurityCheckPlugin::YES_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
 	public function visitIncludeOrEval( Node $node ) : int {
-		// FIXME this should be handled differently,
-		// since any taint is bad for this case unlike echo
-		return $this->visitEcho( $node );
+		$taintedness = $this->getTaintedness( $node->children['expr'] );
+
+		$this->maybeEmitIssue(
+			SecurityCheckPlugin::MISC_EXEC_TAINT,
+			$taintedness,
+			"Argument to require, include or eval is user controlled"
+				. $this->getOriginalTaintLine( $node->children['expr'] )
+		);
+
+		if (
+			$this->isSafeAssignment( SecurityCheckPlugin::HTML_EXEC_TAINT, $taintedness ) &&
+			is_object( $node->children['expr'] )
+		) {
+			// In the event the assignment looks safe, keep track of it,
+			// in case it later turns out not to be safe.
+			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			foreach ( $phanObjs as $phanObj ) {
+				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
+				$this->markAllDependentMethodsExec(
+					$phanObj,
+					SecurityCheckPlugin::MISC_EXEC_TAINT
+				);
+			}
+		}
+		// Strictly speaking we have no idea if the result
+		// of an eval() or require() is safe. But given that we
+		// don't know, and at least in the require() case its
+		// fairly likely to be safe, no point in complaining.
+		return SecurityCheckPlugin::NO_TAINT;
 	}
 
 	/**
@@ -430,36 +486,32 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	public function visitEcho( Node $node ) : int {
 		$taintedness = $this->getTaintedness( $node->children['expr'] );
 		# $this->debug( __METHOD__, "Echoing with taint $taintedness" );
-		if ( $taintedness & SecurityCheckPlugin::HTML_TAINT ) {
-			$this->plugin->emitIssue(
-				$this->code_base,
-				$this->context,
-				$this->isLikelyFalsePositive( $taintedness ) ?
-					'SecurityCheckTaintedOutputLikelyFalsePositive' :
-					'SecurityCheckTaintedOutput',
-				"Echoing tainted expression ($taintedness)"
-					. $this->getOriginalTaintLine( $node->children['expr'] )
-			);
-		} elseif (
-			is_object( $node->children['expr'] ) ||
-			$taintedness & SecurityCheckPlugin::PRESERVE_TAINT
+
+		$this->maybeEmitIssue(
+			SecurityCheckPlugin::HTML_EXEC_TAINT,
+			$taintedness,
+			"Echoing expression that was not html escaped"
+				. $this->getOriginalTaintLine( $node->children['expr'] )
+		);
+
+		// FIXME what is the PRESERVE_TAINT doing in the condition??
+		if (
+			$this->isSafeAssignment( SecurityCheckPlugin::HTML_EXEC_TAINT, $taintedness ) &&
+			( is_object( $node->children['expr'] ) ||
+			$taintedness & SecurityCheckPlugin::PRESERVE_TAINT )
 		) {
+			// In the event the assignment looks safe, keep track of it,
+			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
 			foreach ( $phanObjs as $phanObj ) {
 				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
 				// FIXME, maybe not do this for local variables
 				// since they don't have other code paths that can set them.
-				$this->markAllDependentMethodsExec( $phanObj );
+				$this->markAllDependentMethodsExec(
+					$phanObj,
+					SecurityCheckPlugin::HTML_EXEC_TAINT
+				);
 			}
-			/*if ( $this->context->isInFunctionLikeScope() ) {
-				$func = $this->context->getFunctionLikeInScope( $this->code_base );
-				$this->setTaintedness( $func, SecurityCheckPlugin::EXEC_TAINT );
-				// A future TODO would be to make this more specific so
-				// its per parameter.
-			} else {
-				echo __METHOD__ . $this->dbgInfo() . " in global context (FIXME)";
-			}
-			*/
 		}
 		return SecurityCheckPlugin::NO_TAINT;
 	}
@@ -550,7 +602,6 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		// Now we need to look at the taintedness of the arguments
 		// we are passing to the method.
 		$overallArgTaint = SecurityCheckPlugin::NO_TAINT;
-		$overallTaintHist = '';
 		$args = $node->children['args']->children;
 		foreach ( $args as $i => $argument ) {
 			if ( !is_object( $argument ) ) {
@@ -655,7 +706,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				try {
 					$phanObjs = $this->getPhanObjsForNode( $argument );
 					foreach ( $phanObjs as $phanObj ) {
-						$this->markAllDependentMethodsExec( $phanObj );
+						$this->markAllDependentMethodsExec(
+							$phanObj,
+							$taint[$i]
+						);
 					}
 				} catch ( Exception $e ) {
 					$this->debug( __METHOD__, "FIXME " . get_class( $e ) . " " . $e->getMessage() );
@@ -667,41 +721,27 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "Checking safe assing $funcName" .
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
-			if ( !$this->isSafeAssignment( $taint[$i] ?? 0, $curArgTaintedness ) ) {
-				$containingMethod = $this->getCurrentMethod();
-				$this->plugin->emitIssue(
-					$this->code_base,
-					$this->context,
-					$this->isLikelyFalsePositive( $curArgTaintedness ) ?
-						'SecurityCheckTaintedOutputLikelyFalsePositive' :
-						'SecurityCheckTaintedOutput',
-					"Calling Method $funcName in $containingMethod" .
-					" that outputs using tainted ($curArgTaintedness; " .
-					( $taint[$i] ?? 0 ) . ") argument \$$taintedArg." .
-					( $func ? $this->getOriginalTaintLine( $func ) : '' ).
-					$this->getOriginalTaintLine( $argument )
-				);
-			}
+			$containingMethod = $this->getCurrentMethod();
+			$this->maybeEmitIssue(
+				$taint[$i] ?? 0,
+				$curArgTaintedness,
+				"Calling method $funcName() in $containingMethod" .
+				" that outputs using tainted argument \$$taintedArg." .
+				( $func ? $this->getOriginalTaintLine( $func ) : '' ) .
+				$this->getOriginalTaintLine( $argument )
+			);
 
-			$overallTaintHist .= $this->getOriginalTaintLine( $argument );
 			$overallArgTaint |= $effectiveArgTaintedness;
 		}
 
-		if ( $this->isExecTaint( $taint['overall'] ) ) {
-			$containingMethod = $this->getCurrentMethod();
-			$this->plugin->emitIssue(
-				$this->code_base,
-				$this->context,
-				$this->isLikelyFalsePositive( $taint['overall'] ) ?
-					'SecurityCheckTaintedOutputLikelyFalsePositive' :
-					'SecurityCheckTaintedOutput',
-				"Calling Method $funcName in $containingMethod that "
-				. "is always unsafe (func: " . $taint['overall'] .
-				" arg: $overallArgTaint) " .
-				( $func ? $this->getOriginalTaintLine( $func ) : '' )
-				. $overallTaintHist
-			);
-		}
+		$containingMethod = $this->getCurrentMethod();
+		$this->maybeEmitIssue(
+			$taint['overall'],
+			$this->execToYesTaint( $taint['overall'] ),
+			"Calling Method $funcName in $containingMethod that "
+			. "is always unsafe " .
+			( $func ? $this->getOriginalTaintLine( $func ) : '' )
+		);
 
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
@@ -1048,11 +1088,14 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	public function visitUnaryOp( Node $node ) : int {
 		// ~ and @ are the only two unary ops
 		// that can preserve taint (others cast bool or int)
-		if ( $node->flags & ( ast\flags\UNARY_BITWISE_NOT | ast\flags\UNARY_SILENCE ) === 0 ) {
-			return SecurityCheckPlugin::NO_TAINT;
+		$unsafe = [
+			\ast\flags\UNARY_BITWISE_NOT,
+			\ast\flags\UNARY_SILENCE
+		];
+		if ( in_array( $node->flags, $unsafe ) ) {
+			return $this->getTaintedness( $node->children['expr'] );
 		}
-
-		return $this->getTaintedness( $node->children['expr'] );
+		return SecurityCheckPlugin::NO_TAINT;
 	}
 
 	/**
@@ -1063,11 +1106,13 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		// Casting between an array and object maintains
 		// taint. Casting an object to a string calls __toString().
 		// Future TODO: handle the string case properly.
-		$dangerousCasts = ast\flags\TYPE_STRING |
-			ast\flags\TYPE_ARRAY |
-			ast\flags\TYPE_OBJECT;
+		$dangerousCasts = [
+			ast\flags\TYPE_STRING,
+			ast\flags\TYPE_ARRAY,
+			ast\flags\TYPE_OBJECT
+		];
 
-		if ( $node->flags & $dangerousCasts === 0 ) {
+		if ( in_array( $node->flags, $dangerousCasts ) ) {
 			return SecurityCheckPlugin::NO_TAINT;
 		}
 		return $this->getTaintedness( $node->children['expr'] );

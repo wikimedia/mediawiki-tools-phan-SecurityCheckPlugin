@@ -1,1 +1,1 @@
-integration/echoevilfunc/test.php:8 SecurityCheckTaintedOutput Echoing tainted expression (680) (Caused by: integration/echoevilfunc/test.php +4)
+integration/echoevilfunc/test.php:8 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/echoevilfunc/test.php +4)

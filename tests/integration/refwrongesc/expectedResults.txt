@@ -1,1 +1,1 @@
-integration/refwrongesc/reftest.php:7 SecurityCheckTaintedOutput Echoing tainted expression (552) (Caused by: integration/refwrongesc/reftest.php +10)
+integration/refwrongesc/reftest.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/refwrongesc/reftest.php +10)

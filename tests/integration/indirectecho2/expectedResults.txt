@@ -1,1 +1,1 @@
-integration/indirectecho2/test.php:5 SecurityCheckTaintedOutput Echoing tainted expression (680) (Caused by: integration/indirectecho2/test.php +3)
+integration/indirectecho2/test.php:5 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/indirectecho2/test.php +3)

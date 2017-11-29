@@ -37,4 +37,10 @@
 	<rule ref="MediaWiki.Files.OneClassPerFile.MultipleFound">
 		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
+	<rule ref="Generic.PHP.BacktickOperator.Found">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.PHP.NoSilencedErrors.Discouraged">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
 	</ruleset>

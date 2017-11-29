@@ -1,0 +1,1 @@
+integration/multi/test.php:9 SecurityCheckMulti Calling method \doEvil() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/multi/test.php +3; integration/multi/test.php +4; integration/multi/test.php +6; integration/multi/test.php +3; integration/multi/test.php +4; integration/multi/test.php +6) (65616 <- 43688)

@@ -16,6 +16,7 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Plugin;
 use ast\Node;
 use Phan\Debug;
+use Phan\Issue;
 use Phan\Language\Scope\FunctionLikeScope;
 use Phan\Language\Scope\BranchScope;
 use Phan\Library\Set;
@@ -968,7 +969,9 @@ return [];
 	 */
 	protected function getOriginalTaintLine( $element ) {
 		$line = '';
-		if ( $element instanceof TypedElementInterface ) {
+		if ( !is_object( $element ) ) {
+			return '';
+		} elseif ( $element instanceof TypedElementInterface ) {
 			if ( property_exists( $element, 'taintedOriginalError' ) ) {
 				$line = $element->taintedOriginalError;
 			}
@@ -991,7 +994,10 @@ return [];
 				}
 			}
 		} else {
-			throw new Exception( $this->dbgInfo() . "invalid parameter" );
+			throw new Exception(
+				$this->dbgInfo() . "invalid parameter "
+				. get_class( $element )
+			);
 		}
 		assert( strlen( $line ) < 8096, " taint error too long $line" );
 		if ( $line ) {
@@ -1202,7 +1208,7 @@ return [];
 					// Mostly a special case for MediaWiki
 					// CoreParserFunctions.php
 					if (
-						$classNode->flags & \ast\flags\MAGIC_CLASS !== 0
+						( $classNode->flags & \ast\flags\MAGIC_CLASS ) !== 0
 						&& $this->context->isInClassScope()
 					) {
 						$className = (string)$this->context->getClassFQSEN();
@@ -1289,5 +1295,92 @@ return [];
 			$this->debug( __METHOD__, "Missing Callable $callback" );
 			return null;
 		}
+	}
+
+	/**
+	 * Emit an issue using the appropriate issue type
+	 *
+	 * @param int $lhsTaint Taint of left hand side (or equivalent)
+	 * @param int $rhsTaint Taint of right hand side (or equivalent)
+	 * @param string $msg Issue description
+	 */
+	public function maybeEmitIssue( int $lhsTaint, int $rhsTaint, string $msg ) {
+		if ( $this->isSafeAssignment( $lhsTaint, $rhsTaint ) ) {
+			return;
+		}
+
+		$adjustLHS = $this->execToYesTaint( $lhsTaint );
+		$combinedTaint = $rhsTaint & $adjustLHS;
+		$issueType = 'SecurityCheckMulti';
+		$severity = Issue::SEVERITY_NORMAL;
+		if (
+			( $combinedTaint === 0 &&
+			$rhsTaint & SecurityCheckPlugin::UNKNOWN_TAINT ) ||
+			$this->plugin->isFalsePositive(
+				$adjustLHS,
+				$rhsTaint,
+				$msg,
+				$this->context,
+				$this->code_base
+			)
+		) {
+			$issueType = 'SecurityCheck-LikelyFalsePositive';
+			$severity = Issue::SEVERITY_LOW;
+
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::HTML_TAINT
+		) {
+			$issueType = 'SecurityCheck-XSS';
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::SQL_TAINT
+		) {
+			$issueType = 'SecurityCheck-SQLInjection';
+			$severity = Issue::SEVERITY_CRITICAL;
+
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::SHELL_TAINT
+		) {
+			$issueType = 'SecurityCheck-ShellInjection';
+			$severity = Issue::SEVERITY_CRITICAL;
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::SERIALIZE_TAINT
+		) {
+			$issueType = 'SecurityCheck-PHPSerializeInjection';
+			// For now this is low because it seems to have a lot
+			// of false positives.
+			$severity = Issue::SEVERITY_LOW;
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::CUSTOM1_TAINT
+		) {
+			$issueType = 'SecurityCheck-CUSTOM1';
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::CUSTOM2_TAINT
+		) {
+			$issueType = 'SecurityCheck-CUSTOM2';
+		} elseif (
+			$combinedTaint === SecurityCheckPlugin::MISC_TAINT
+		) {
+			$issueType = 'SecurityCheck-OTHER';
+		} else {
+			// Multiple taints?
+			// Include the taint constants for debugging purposes.
+			$msg .= " ($lhsTaint <- $rhsTaint)";
+			if (
+				$combinedTaint & (
+					SecurityCheckPlugin::SHELL_TAINT |
+					SecurityCheckPlugin::SQL_TAINT
+				)
+			) {
+				$severity = Issue::SEVERITY_CRITICAL;
+			}
+		}
+
+		$this->plugin->emitIssue(
+			$this->code_base,
+			$this->context,
+			$issueType,
+			$msg,
+			$severity
+		);
 	}
 }

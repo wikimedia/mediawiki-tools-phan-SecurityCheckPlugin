@@ -1,1 +1,1 @@
-integration/refecho/reftest.php:7 SecurityCheckTaintedOutput Echoing tainted expression (684) (Caused by: integration/refecho/reftest.php +10)
+integration/refecho/reftest.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/refecho/reftest.php +10)
