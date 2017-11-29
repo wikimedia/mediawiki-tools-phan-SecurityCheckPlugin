@@ -117,7 +117,6 @@ class MWVisitor extends TaintednessBaseVisitor {
 		}
 		$cb = $this->getCallableFromHookRegistration( $params[1], $hookName );
 		if ( $cb ) {
-			$this->debug( __METHOD__, "registering $cb as handling $hookName" );
 			$this->registerHook( $hookName, $cb );
 		} else {
 			$this->debug( __METHOD__, "Could not register $hookName hook due to complex callback" );
@@ -285,9 +284,6 @@ class MWVisitor extends TaintednessBaseVisitor {
 			return $this->getFQSENFromCallable( $node );
 		}
 
-		// FIXME: This doesn't support syntax like:
-		// $wgHooks['foo'][] = new HookHandler;
-		// which is valid.
 		if ( $node->kind === \ast\AST_VAR && is_string( $node->children['name'] ) ) {
 			return $this->getCallbackForVar( $node, 'on' . $hookName );
 		} elseif (
@@ -295,17 +291,23 @@ class MWVisitor extends TaintednessBaseVisitor {
 			is_string( $node->children['class']->children['name'] )
 		) {
 			$className = $node->children['class']->children['name'];
-			return FullyQualifiedMethodName::fromStringInContext(
+			$cb = FullyQualifiedMethodName::fromStringInContext(
 				$className . '::' . 'on' . $hookName,
 				$this->context
 			);
+			if ( $this->code_base->hasMethodWithFQSEN( $cb ) ) {
+				return $cb;
+			} else {
+				// @todo Should almost emit a non-security issue for this
+				$this->debug( __METHOD__, "Missing hook handle $cb" );
+			}
 		}
 
 		if ( $node->kind === \ast\AST_ARRAY ) {
 			if ( count( $node->children ) === 0 ) {
 				return null;
 			}
-			$firstChild = $node->children[0];
+			$firstChild = $node->children[0]->children['value'];
 			if (
 				( $firstChild instanceof Node
 				&& $firstChild->kind === \ast\AST_ARRAY ) ||
@@ -322,10 +324,10 @@ class MWVisitor extends TaintednessBaseVisitor {
 				return $this->getCallableFromHookRegistration( $firstChild, $hookName );
 			}
 			// Remaining case is: [ $someObject, 'methodToCall', 'arg', ... ]
-			if ( !is_string( $node->children[1] ) ) {
+			$methodName = $node->children[1]->children['value'];
+			if ( !is_string( $methodName ) ) {
 				return null;
 			}
-			$methodName = $node->children[1];
 			if ( $firstChild->kind === \ast\AST_VAR && is_string( $firstChild->children['name'] ) ) {
 				return $this->getCallbackForVar( $node, $methodName );
 
@@ -335,9 +337,16 @@ class MWVisitor extends TaintednessBaseVisitor {
 			) {
 				// FIXME does this work right with namespaces
 				$className = $firstChild->children['class']->children['name'];
-				return FullyQualifiedMethodName::fromFullyQualifiedString(
-					$className . '::' . $methodName
+				$cb = FullyQualifiedMethodName::fromStringInContext(
+					$className . '::' . $methodName,
+					$this->context
 				);
+				if ( $this->code_base->hasMethodWithFQSEN( $cb ) ) {
+					return $cb;
+				} else {
+					// @todo Should almost emit a non-security issue for this
+					$this->debug( __METHOD__, "Missing hook handle $cb" );
+				}
 			}
 		}
 		return null;
@@ -370,5 +379,50 @@ class MWVisitor extends TaintednessBaseVisitor {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Check for $wgHooks registration
+	 *
+	 * @param Node $node
+	 * @note This assumes $wgHooks is always the global
+	 *   even if there is no globals decleration.
+	 */
+	public function visitAssign( Node $node ) {
+		$var = $node->children['var'];
+		assert( $var instanceof Node );
+		$cb = null;
+		$hookName = null;
+		$cbExpr = $node->children['expr'];
+		// The $wgHooks['foo'][] case
+		if (
+			$var->kind === \ast\AST_DIM &&
+			$var->children['dim'] === null &&
+			$var->children['expr'] instanceof Node &&
+			$var->children['expr']->kind === \ast\AST_DIM &&
+			$var->children['expr']->children['expr'] instanceof Node &&
+			is_string( $var->children['expr']->children['dim'] ) &&
+			/* The $wgHooks['SomeHook'][] case */
+			( ( $var->children['expr']->children['expr']->kind === \ast\AST_VAR &&
+			$var->children['expr']->children['expr']->children['name'] === 'wgHooks' ) ||
+			/* The $_GLOBALS['wgHooks']['SomeHook'][] case */
+			( $var->children['expr']->children['expr']->kind === \ast\AST_DIM &&
+			$var->children['expr']->children['expr']->children['expr'] instanceof Node &&
+			$var->children['expr']->children['expr']->children['expr']->kind === \ast\AST_VAR &&
+			$var->children['expr']->children['expr']->children['expr']->children['name'] === '_GLOBALS' ) )
+		) {
+			$hookName = $var->children['expr']->children['dim'];
+		}
+
+		if ( $hookName !== null ) {
+			$cb = $this->getCallableFromHookRegistration( $cbExpr, $hookName );
+			if ( $cb ) {
+				$this->registerHook( $hookName, $cb );
+			} else {
+				$this->debug( __METHOD__, "Could not register hook " .
+					"$hookName due to complex callback"
+				);
+			}
+		}
 	}
 }

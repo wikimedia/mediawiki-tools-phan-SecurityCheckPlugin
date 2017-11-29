@@ -1128,15 +1128,16 @@ return [];
 	 * only really work for callbacks that are basically literals.
 	 *
 	 * @note $node may not be the current node in $this->context.
+	 * @suppress PhanTypeMismatchArgument
 	 *
 	 * @param Node|string $node The thingy from AST expected to be a Callable
-	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
+	 * @return FullyQualifiedMethodName|FullyQualifiedFunctionName|null The corresponding FQSEN
 	 */
 	protected function getFQSENFromCallable( $node ) {
 		$callback = null;
 		if ( is_string( $node ) ) {
 			// Easy case, 'Foo::Bar'
-			if ( strpos( '::', $callback ) === false ) {
+			if ( strpos( $node, '::' ) === false ) {
 				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString(
 					$node
 				);
@@ -1275,6 +1276,18 @@ return [];
 		} else {
 			return null;
 		}
-		return $callback;
+
+		if (
+			( $callback instanceof FullyQualifiedMethodName &&
+			$this->code_base->hasMethodWithFQSEN( $callback ) )
+			|| ( $callback instanceof FullyQualifiedFunctionName &&
+			 $this->code_base->hasFunctionWithFQSEN( $callback ) )
+		) {
+			return $callback;
+		} else {
+			// @todo Should almost emit a non-security issue for this
+			$this->debug( __METHOD__, "Missing Callable $callback" );
+			return null;
+		}
 	}
 }
