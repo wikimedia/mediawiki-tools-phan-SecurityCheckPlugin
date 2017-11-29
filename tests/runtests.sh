@@ -6,7 +6,7 @@
 # -v will add debug output. testname will run only that test
 #
 
-cd `dirname $0`/
+cd `dirname "$0"`/
 tmpFile=`mktemp testtmp.XXXXXXXX`
 trap "rm $tmpFile" exit
 totalTests=0
@@ -24,6 +24,8 @@ testList=${1:-`ls integration`}
 for i in $testList
 do
 	echo "Running test $i"
+	SECURITY_CHECK_EXT_PATH=`dirname "$0"`"/integration/$i/"
+	export SECURITY_CHECK_EXT_PATH
 	totalTests=$((totalTests+1))
 	$php ../vendor/etsy/phan/phan \
         	--project-root-directory "." \

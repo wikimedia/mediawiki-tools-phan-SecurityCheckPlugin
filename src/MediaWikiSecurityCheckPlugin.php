@@ -7,9 +7,12 @@ require_once __DIR__ . "/MWVisitor.php";
 require_once __DIR__ . "/MWPreVisitor.php";
 
 use Phan\CodeBase;
+use Phan\Config;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionName as FQSENFunc;
+use Phan\Language\FQSEN\FullyQualifiedMethodName as FQSENMethod;
 use ast\Node;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
@@ -284,12 +287,56 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	}
 
 	/**
+	 * Register hooks from extension.json
+	 *
+	 * Assumes extension.json is in project root directory
+	 * unless SECURITY_CHECK_EXT_PATH is set
+	 */
+	protected function loadExtensionJson() {
+		static $done;
+		if ( $done ) {
+			return;
+		}
+		$done = true;
+		$envPath = getenv( 'SECURITY_CHECK_EXT_PATH' );
+		if ( $envPath ) {
+			$jsonPath = $envPath . '/' . 'extension.json';
+		} else {
+			$jsonPath = Config::projectPath( 'extension.json' );
+		}
+		if ( file_exists( $jsonPath ) ) {
+			$json = json_decode( file_get_contents( $jsonPath ), true );
+			if ( !is_array( $json ) ) {
+				return;
+			}
+			if ( isset( $json['Hooks'] ) && is_array( $json['Hooks'] ) ) {
+				foreach ( $json['Hooks'] as $hookName => $cbList ) {
+					foreach ( (array)$cbList as $cb ) {
+						// All callbacks here are simple
+						// "someFunction" or "Class::SomeMethod"
+						if ( strpos( $cb, '::' ) === false ) {
+							$callback = FQSENFunc::fromFullyQualifiedString(
+								$cb
+							);
+						} else {
+							$callback = FQSENMethod::fromFullyQualifiedString(
+								$cb
+							);
+						}
+						$this->registerHook( $hookName, $callback );
+					}
+				}
+			}
+		}
+	}
+	/**
 	 * Get a list of subscribers for hook
 	 *
 	 * @param string $hookName Hook in question. Hooks starting with ! are special.
 	 * @return FullyQualifiedFunctionLikeName[]
 	 */
 	public function getHookSubscribers( string $hookName ) : array {
+		$this->loadExtensionJson();
 		if ( isset( $this->hookSubscribers[$hookName] ) ) {
 			return $this->hookSubscribers[$hookName];
 		}
@@ -305,6 +352,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @return string The hook it is implementing
 	 */
 	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) {
+		$this->loadExtensionJson();
 		$specialHooks = [
 			'!ParserFunctionHook',
 			'!ParserHook'

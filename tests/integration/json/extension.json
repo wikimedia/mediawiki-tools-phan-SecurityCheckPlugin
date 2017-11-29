@@ -1,0 +1,14 @@
+{
+	"name": "testJsonFile",
+	"author": [
+		"Brian Wolff"
+	],
+	"Hooks": {
+		"ParserFirstCallInit": [
+			"wfRegister"
+		],
+		"MediaWikiPerformAction": [
+			"SomeClass::onMediaWikiPerformAction"
+		]
+	}
+}

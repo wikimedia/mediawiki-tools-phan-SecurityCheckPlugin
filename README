@@ -9,3 +9,8 @@ your phan config, depending on if you are checking a non-mediawiki
 project or a MediaWiki/MediaWiki extension respectively.
 
 This is only tested with Phan 0.8.0
+
+== Environment variables ==
+The following environment variables affect the plugin:
+* SECURITY_CHECK_EXT_PATH - Path to extension.json when in MediaWiki mode. If not set assumes the project root directory.
+* SECCHECK_DEBUG - File to output extra debug information (If running from shell, /dev/stderr is convenient)
