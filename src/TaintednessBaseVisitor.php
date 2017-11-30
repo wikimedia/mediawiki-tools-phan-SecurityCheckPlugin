@@ -35,6 +35,9 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/** @var null|string|bool|resource filehandle to output debug messages */
 	private $debugOutput = null;
 
+	/** @var Context Override the file/line number to emit issues */
+	protected $overrideContext = null;
+
 	/**
 	 * @param CodeBase $code_base
 	 * @param Context $context
@@ -1315,6 +1318,11 @@ return [];
 	/**
 	 * Emit an issue using the appropriate issue type
 	 *
+	 * If $this->overrideContext is set, it will use that for the
+	 * file/line number to report. This is meant as a hack, so that
+	 * in MW we can force hook related issues to be in the extension
+	 * instead of where the hook is called from in MW core.
+	 *
 	 * @param int $lhsTaint Taint of left hand side (or equivalent)
 	 * @param int $rhsTaint Taint of right hand side (or equivalent)
 	 * @param string $msg Issue description
@@ -1335,6 +1343,7 @@ return [];
 				$adjustLHS,
 				$rhsTaint,
 				$msg,
+				// FIXME should this be $this->overrideContext ?
 				$this->context,
 				$this->code_base
 			)
@@ -1390,9 +1399,16 @@ return [];
 			}
 		}
 
+		$context = $this->context;
+		if ( $this->overrideContext ) {
+			// If we are overriding the file/line number,
+			// report the original line number as well.
+			$msg .= " (Originally at: $this->context)";
+			$context = $this->overrideContext;
+		}
 		$this->plugin->emitIssue(
 			$this->code_base,
-			$this->context,
+			$context,
 			$issueType,
 			$msg,
 			$severity

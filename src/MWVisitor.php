@@ -130,11 +130,21 @@ class MWVisitor extends TaintednessBaseVisitor {
 			}
 			$taint = $this->getTaintOfFunction( $func );
 			// $this->debug( __METHOD__, "Dispatching $hookName to $subscriber" );
-			// FIXME There is a slight flaw here, in that this will often mark
-			// the offending line as being the Hooks::run call, which means
-			// people only looking at the issues in an extension would
-			// not see it.
+			// This is hacky, but try to ensure that the associated line
+			// number for any issues is in the extension, and not the
+			// line where the Hooks::register() is in MW core.
+			// FIXME: In the case of reference parameters, this is
+			// still reporting things being in MW core instead of extension.
+			$oldContext = $this->overrideContext;
+			$fContext = $func->getContext();
+			$newContext = clone $this->context;
+			$newContext = $newContext->withFile( $fContext->getFile() )
+				->withLineNumberStart( $fContext->getLineNumberStart() );
+			$this->overrideContext = $newContext;
+
 			$this->handleMethodCall( $func, $subscriber, $taint, $args );
+
+			$this->overrideContext = $oldContext;
 		}
 	}
 
