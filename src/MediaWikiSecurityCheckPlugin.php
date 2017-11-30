@@ -76,6 +76,42 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				// What should DB results be considered?
 				'overall' => self::YES_TAINT
 			],
+			'\Wikimedia\Rdbms\IDatabase::select' => [
+				self::SQL_EXEC_TAINT,
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// the function name doesn't seem to be escaped
+				self::SQL_EXEC_TAINT,
+				// I'm not even sure for options
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
+			'\Wikimedia\Rdbms\Database::select' => [
+				self::SQL_EXEC_TAINT,
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// the function name doesn't seem to be escaped
+				self::SQL_EXEC_TAINT,
+				// I'm not even sure for options
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
+			'\Wikimedia\Rdbms\DBConnRef::select' => [
+				self::SQL_EXEC_TAINT,
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// the function name doesn't seem to be escaped
+				self::SQL_EXEC_TAINT,
+				// I'm not even sure for options
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
 			'\Wikimedia\Rdbms\Database::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT,

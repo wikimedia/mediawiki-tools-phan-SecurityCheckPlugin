@@ -1,0 +1,5 @@
+integration/multiassign/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/multiassign/test.php +12)
+integration/multiassign/test2.php:20 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/multiassign/test2.php +12)
+integration/multiassign/test2.php:39 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/multiassign/test2.php +12)
+integration/multiassign/test2.php:41 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/multiassign/test2.php:54 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/multiassign/test2.php +51)

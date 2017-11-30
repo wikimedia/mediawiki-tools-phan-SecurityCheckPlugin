@@ -287,6 +287,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	/**
 	 * Also handles visitAssignOp
 	 *
+	 * @todo FIXME, doesn't handle list( $a, $b ) = $foo;
 	 * @param Node $node
 	 * @return int Taint
 	 */
@@ -319,6 +320,26 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// TODO, be more specific for different OPs
 			// Expand rhs to include implicit lhs ophand.
 			$rhsTaintedness = $this->mergeAddTaint( $rhsTaintedness, $lhsTaintedness );
+		}
+
+		// Special case for SQL_NUMKEY_TAINT
+		// If we're assigning an SQL tainted value as an array key
+		// or as the value of a numeric key, then set NUMKEY taint.
+		$var = $node->children['var'];
+		if ( $var->kind === \ast\AST_DIM ) {
+			$dim = $var->children['dim'];
+			if ( $rhsTaintedness & SecurityCheckPlugin::SQL_TAINT ) {
+				if (
+					$dim === null ||
+					$this->nodeIsInt( $dim )
+				) {
+					$rhsTaintedness |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+				}
+			}
+			if ( $this->getTaintedness( $dim ) & SecurityCheckPlugin::SQL_TAINT ) {
+				$rhsTaintedness |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+
+			}
 		}
 
 		// If we're assigning to a variable we know will be output later
@@ -739,6 +760,16 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		foreach ( $node->children as $child ) {
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$curTaint = $this->mergeAddTaint( $curTaint, $this->getTaintedness( $child ) );
+			$key = $child->children['key'];
+			$value = $child->children['value'];
+			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
+			if (
+				( $this->getTaintedness( $key ) & $sqlTaint ) ||
+				( ( $key === null || $this->nodeIsInt( $key ) )
+				&& ( $this->getTaintedness( $value ) & $sqlTaint ) )
+			) {
+				$curTaint |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+			}
 		}
 		return $curTaint;
 	}

@@ -12,6 +12,7 @@ use Phan\Language\Element\ClassElement;
 use Phan\Language\UnionType;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\MixedType;
+use Phan\Language\Type\IntType;
 use Phan\Language\Type\StringType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
@@ -1359,7 +1360,12 @@ return [];
 		) {
 			$issueType = 'SecurityCheck-XSS';
 		} elseif (
-			$combinedTaint === SecurityCheckPlugin::SQL_TAINT
+			$combinedTaint === SecurityCheckPlugin::SQL_TAINT ||
+			$combinedTaint === SecurityCheckPlugin::SQL_NUMKEY_TAINT ||
+			$combinedTaint === (
+				SecurityCheckPlugin::SQL_TAINT |
+				SecurityCheckPlugin::SQL_NUMKEY_TAINT
+			)
 		) {
 			$issueType = 'SecurityCheck-SQLInjection';
 			$severity = Issue::SEVERITY_CRITICAL;
@@ -1459,6 +1465,16 @@ return [];
 				$curArgTaintedness = SecurityCheckPlugin::NO_TAINT;
 				$effectiveArgTaintedness = SecurityCheckPlugin::NO_TAINT;
 			} elseif ( isset( $taint[$i] ) ) {
+				if (
+					( $taint[$i] & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
+					&& !$this->nodeIsArray( $argument )
+					&& ( $curArgTaintedness & SecurityCheckPlugin::SQL_TAINT )
+				) {
+					// Special case to make NUMKEY work right for non-array
+					// values. Should consider if this is really best
+					// approach.
+					$curArgTaintedness |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+				}
 				$effectiveArgTaintedness = $curArgTaintedness &
 					( $taint[$i] | $this->execToYesTaint( $taint[$i] ) );
 				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
@@ -1636,4 +1652,39 @@ return [];
 		}
 		return false;
 	}
+
+	/**
+	 * Given a Node, is it definitely an int (and nothing else)
+	 *
+	 * Floats are not considered ints here.
+	 *
+	 * @param Mixed|Node $node A node object or simple value from AST tree
+	 * @return bool Is it an int?
+	 */
+	protected function nodeIsInt( $node ) : bool {
+		if ( is_int( $node ) ) {
+			return true;
+		}
+		if ( !( $node instanceof Node ) ) {
+			// simple literal that's not an int.
+			return false;
+		}
+		try {
+			$type = UnionTypeVisitor::unionTypeFromNode(
+				$this->code_base,
+				$this->context,
+				$node
+			);
+			if (
+				$type->hasType( IntType::instance() ) &&
+				$type->typeCount() === 1
+			) {
+				return true;
+			}
+		} catch ( Exception $e ) {
+			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
+		}
+		return false;
+	}
+
 }
