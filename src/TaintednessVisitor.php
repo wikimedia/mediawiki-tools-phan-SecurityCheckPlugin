@@ -294,11 +294,15 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		// echo __METHOD__ . $this->dbgInfo() . ' ';
 		// Debug::printNode($node);
 
-		// FIXME This is wrong for non-local vars (including class props)
-		// Depending on order of methods in the class file.
+		// Note: If there is a local variable that is a reference
+		// to another non-local variable, this will probably incorrectly
+		// override the taint (Pass by reference variables are handled
+		// specially and should be ok).
 
 		// Make sure $foo[2] = 0; doesn't kill taint of $foo generally.
-		$override = $node->children['var']->kind !== \ast\AST_DIM;
+		// Ditto for $this->bar, or props in general just in case.
+		$override = $node->children['var']->kind !== \ast\AST_DIM
+			&& $node->children['var']->kind !== \ast\AST_PROP;
 		try {
 			$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
 		} catch ( Exception $e ) {
@@ -671,7 +675,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			}
 
 			$localVar->taintedness =& $globalVar->taintedness;
-			$localVar->taintednessHasExtendedScope = true;
+			$localVar->taintednessHasOuterScope = true;
 		}
 		return SecurityCheckPlugin::INAPLICABLE_TAINT;
 	}

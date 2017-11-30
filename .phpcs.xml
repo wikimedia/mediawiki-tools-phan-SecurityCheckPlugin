@@ -6,6 +6,7 @@
 		<exclude name="MediaWiki.Commenting.FunctionComment.MissingParamComment"/>
 		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment"/>
 		<exclude name="Generic.CodeAnalysis.ForLoopWithTestFunctionCall.NotAllowed"/>
+		<exclude name="MediaWiki.NamingConventions.ValidGlobalName.wgPrefix"/>
 	</rule>
 		<file>.</file>
 		<arg name="bootstrap" value="./vendor/mediawiki/mediawiki-codesniffer/utils/bootstrap-ci.php"/>
@@ -41,6 +42,9 @@
 		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 	<rule ref="Generic.PHP.NoSilencedErrors.Discouraged">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnconditionalIfStatement.Found">
 		<exclude-pattern>./tests</exclude-pattern>
 	</rule>
 	</ruleset>
