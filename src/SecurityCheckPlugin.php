@@ -48,10 +48,28 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	// category (For the moment, this is stuff like `require $foo`)
 	const MISC_TAINT = 32768;
 	const MISC_EXEC_TAINT = 65536;
+	// Special purpose for supporting MediaWiki's IDatabase::select
+	// and friends. Like SQL_TAINT, but only applies to the numeric
+	// keys of an array. Note: These are not included in YES_TAINT/EXEC_TAINT.
+	// e.g. given $f = [ $_GET['foo'] ]; $f would have the flag, but
+	// $g = $_GET['foo']; or $h = [ 's' => $_GET['foo'] ] would not.
+	// The associative keys also have this flag if they are tainted.
+	// It is also assumed anything with this flag will also have
+	// the SQL_TAINT flag set.
+	const SQL_NUMKEY_TAINT = 131072;
+	const SQL_NUMKEY_EXEC_TAINT = 262144;
 
+	// Special purpose flags(Starting at 2^28)
+	// Cancel's out all EXEC flags on a function arg if arg is array.
+	const ARRAY_OK = 268435456;
+
+	// Combination flags
 	const YES_TAINT = 43688;
 	const EXEC_TAINT = 87376;
 	const YES_EXEC_TAINT = 131064;
+	// ALL_TAINT == YES_TAINT | SQL_NUMKEY_TAINT
+	const ALL_TAINT = 174760;
+	const ALL_EXEC_TAINT = 349520;
 
 	/**
 	 * Called on every node in the AST in post-order

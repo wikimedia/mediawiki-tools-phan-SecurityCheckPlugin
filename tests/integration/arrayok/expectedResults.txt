@@ -1,0 +1,2 @@
+integration/arrayok/test.php:8 SecurityCheck-ShellInjection Calling method \wfShellExec() in \doStuff that outputs using tainted argument $[arg #1].
+integration/arrayok/test.php:10 SecurityCheck-ShellInjection Calling method \wfShellExec() in \doStuff that outputs using tainted argument $command. (Caused by: integration/arrayok/test.php +9)

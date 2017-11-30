@@ -154,11 +154,11 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			// FIXME Doesn't handle array args right.
 			'\wfShellExec' => [
-				SecurityCheckPlugin::SHELL_EXEC_TAINT,
+				self::SHELL_EXEC_TAINT | self::ARRAY_OK,
 				'overall' => self::YES_TAINT
 			],
 			'\wfShellExecWithStderr' => [
-				SecurityCheckPlugin::SHELL_EXEC_TAINT,
+				self::SHELL_EXEC_TAINT | self::ARRAY_OK,
 				'overall' => self::YES_TAINT
 			],
 			'\wfEscapeShellArg' => [
@@ -172,6 +172,34 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				'overall' => self::NO_TAINT,
+			],
+			'MediaWiki\Shell\Shell::escape' => [
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				self::YES_TAINT & ~self::SHELL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'MediaWiki\Shell\Command::unsafeParams' => [
+				self::SHELL_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'MediaWiki\Shell\Result::getStdout' => [
+				// This is a bit unclear. Most of the time
+				// you should probably be escaping the results
+				// of a shell command, but not all the time.
+				'overall' => self::YES_TAINT
+			],
+			'MediaWiki\Shell\Result::getStderr' => [
+				// This is a bit unclear. Most of the time
+				// you should probably be escaping the results
+				// of a shell command, but not all the time.
+				'overall' => self::YES_TAINT
 			],
 			'\Html::rawElement' => [
 				SecurityCheckPlugin::HTML_TAINT,

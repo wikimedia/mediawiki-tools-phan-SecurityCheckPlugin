@@ -2,6 +2,7 @@
 
 use Phan\AST\AnalysisVisitor;
 use Phan\AST\ContextNode;
+use Phan\AST\UnionTypeVisitor;
 use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
@@ -10,6 +11,8 @@ use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\UnionType;
 use Phan\Language\Type\CallableType;
+use Phan\Language\Type\MixedType;
+use Phan\Language\Type\StringType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
@@ -932,7 +935,7 @@ return [];
 	 * @return int The converted taint
 	 */
 	protected function yesToExecTaint( int $taint ) : int {
-		return ( $taint & SecurityCheckPlugin::YES_TAINT ) << 1;
+		return ( $taint & SecurityCheckPlugin::ALL_TAINT ) << 1;
 	}
 
 	/**
@@ -945,7 +948,7 @@ return [];
 	 * @return int The taint with all the EXEC to yes, and all other flags off
 	 */
 	protected function execToYesTaint( int $taint ) : int {
-		return ( $taint & SecurityCheckPlugin::EXEC_TAINT ) >> 1;
+		return ( $taint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
 	}
 
 	/**
@@ -1446,7 +1449,16 @@ return [];
 			}
 
 			$curArgTaintedness = $this->getTaintednessNode( $argument );
-			if ( isset( $taint[$i] ) ) {
+			if (
+				isset( $taint[$i] )
+				&& ( $taint[$i] & SecurityCheckPlugin::ARRAY_OK )
+				&& $this->nodeIsArray( $argument )
+			) {
+				// This function specifies that arrays are always ok
+				// So treat as if untainted.
+				$curArgTaintedness = SecurityCheckPlugin::NO_TAINT;
+				$effectiveArgTaintedness = SecurityCheckPlugin::NO_TAINT;
+			} elseif ( isset( $taint[$i] ) ) {
 				$effectiveArgTaintedness = $curArgTaintedness &
 					( $taint[$i] | $this->execToYesTaint( $taint[$i] ) );
 				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
@@ -1593,5 +1605,35 @@ return [];
 			SecurityCheckPlugin::EXEC_TAINT );
 		return ( $taint['overall'] & $neitherPreserveOrExec )
 			| ( $overallArgTaint & ~SecurityCheckPlugin::EXEC_TAINT );
+	}
+
+	/**
+	 * Given a Node, is it an array? (And definitely not a string)
+	 *
+	 * @param Mixed|Node $node A node object or simple value from AST tree
+	 * @return bool Is it an array?
+	 */
+	protected function nodeIsArray( $node ) : bool {
+		if ( !( $node instanceof Node ) ) {
+			// simple literal
+			return false;
+		}
+		try {
+			$type = UnionTypeVisitor::unionTypeFromNode(
+				$this->code_base,
+				$this->context,
+				$node
+			);
+			if (
+				$type->hasArrayLike() &&
+				!$type->hasType( MixedType::instance() ) &&
+				!$type->hasType( StringType::instance() )
+			) {
+				return true;
+			}
+		} catch ( Exception $e ) {
+			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
+		}
+		return false;
 	}
 }
