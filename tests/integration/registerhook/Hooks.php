@@ -2,8 +2,8 @@
 $wgHooks = [];
 
 class Hooks {
-	public function register( $name, $callback ) {
+	public static function register( $name, $callback ) {
 	}
-	public function run( $name, $args ) {
+	public static function run( $name, $args ) {
 	}
 }

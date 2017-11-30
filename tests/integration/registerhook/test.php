@@ -20,12 +20,12 @@ class SomeClass {
 		$wgHooks['Something'][] = 'foo\SecondClass::hook7';
 		$_GLOBALS['wgHooks']['Something'][] = [ new SecondClass, 'hook8' ];
 	}
-
 }
 
+$tainted = $_GET['user'];
 $output = '';
 $out2 = '';
-Hooks::run( 'Something', [ $_GET['user'], &$output, &$out2 ] );
+Hooks::run( 'Something', [ $tainted, &$output, &$out2 ] );
 echo $out2;
 echo $output;
 
@@ -34,10 +34,10 @@ function wfSomeGlobal( $arg1, &$arg2, $extraArg = '' ) {
 
 class SecondClass {
 	public static function hook1( $arg1, &$arg2, $extraArg = '' ) {
-		// safe
-		$arg2 = htmlspecialchars( $arg1 );
+		$arg2 = htmlspecialchars( $arg1 ); // safe
 	}
-	public static function hook2( $arg1, &$arg2, $extraArg = '' ) {
+	public static function hook2( $arg1, &$arg2, &$extraArg ) {
+		$extraArg = $_GET['unsafe'];
 	}
 	public static function hook3( $arg1, &$arg2, $extraArg = '' ) {
 		// unsafe

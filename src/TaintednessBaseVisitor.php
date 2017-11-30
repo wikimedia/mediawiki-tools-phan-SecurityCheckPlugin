@@ -101,7 +101,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			if ( !property_exists( $func, 'taintedOriginalError' ) ) {
 				$func->taintedOriginalError = '';
 			}
-			$func->taintedOriginalError .= $this->dbgInfo() . ';';
+			$newError = $this->dbgInfo() . ';';
+			if ( strpos( $func->taintedOriginalError, $newError ) === false ) {
+				// Only add to error if we haven't added this line before
+				$func->taintedOriginalError .= $newError;
+			}
 
 			if ( strlen( $func->taintedOriginalError ) > 254 ) {
 				$this->debug( __METHOD__, "Too long original error! for $func" );
@@ -126,7 +130,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
 			$left->taintedOriginalError = '';
 		}
-		$left->taintedOriginalError .= $right->taintedOriginalError ?? '';
+		$rightError = $right->taintedOriginalError ?? '';
+		if ( strpos( $left->taintedOriginalError, $rightError ?: "\1\2" ) === false ) {
+			$left->taintedOriginalError .= $rightError;
+		}
 
 		if ( strlen( $left->taintedOriginalError ) > 254 ) {
 			$this->debug( __METHOD__, "Too long original error! for $left" );
@@ -190,8 +197,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 					$variableObjLinks = $variableObj->taintedMethodLinks ?? new Set;
 					$variableObj->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
 					$parentVarObj->taintedMethodLinks =& $variableObj->taintedMethodLinks;
-					$combinedOrig = ( $variableObj->taintedOriginalError ?? '' )
-						. ( $parentVarObj->taintedOriginalError ?? '' );
+					$varError = $variableObj->taintedOriginalError ?? '';
+					$combinedOrig = $parentVarObj->taintedOriginalError ?? '';
+					if ( strpos( $combinedOrig, $varError ?: "\1\2" ) === false ) {
+						$combinedOrig .= $varError;
+					}
+
 					if ( strlen( $combinedOrig ) > 254 ) {
 						$this->debug( __METHOD__, "Too long original error! $variableObj" );
 						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '...';
@@ -226,7 +237,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			if ( !property_exists( $variableObj, 'taintedOriginalError' ) ) {
 				$variableObj->taintedOriginalError = '';
 			}
-			$variableObj->taintedOriginalError .= $this->dbgInfo() . ';';
+			$newError = $this->dbgInfo() . ';';
+			if ( strpos( $variableObj->taintedOriginalError, $newError ) === false ) {
+				$variableObj->taintedOriginalError .= $newError;
+			}
 
 			if ( strlen( $variableObj->taintedOriginalError ) > 254 ) {
 				$this->debug( __METHOD__, "Too long original error! $variableObj" );
