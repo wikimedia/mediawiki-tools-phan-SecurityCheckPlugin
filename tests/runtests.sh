@@ -24,7 +24,7 @@ testList=${1:-`ls integration`}
 for i in $testList
 do
 	echo "Running test $i"
-	SECURITY_CHECK_EXT_PATH=`dirname "$0"`"/integration/$i/"
+	SECURITY_CHECK_EXT_PATH=`pwd`"/integration/$i/"
 	export SECURITY_CHECK_EXT_PATH
 	totalTests=$((totalTests+1))
 	$php ../vendor/etsy/phan/phan \
