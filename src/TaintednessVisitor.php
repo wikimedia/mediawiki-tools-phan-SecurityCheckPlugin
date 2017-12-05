@@ -457,7 +457,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
+				$this->debug( __METHOD__, "Setting $phanObj exec due to backtick" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
 					SecurityCheckPlugin::SHELL_EXEC_TAINT
@@ -483,14 +483,14 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		);
 
 		if (
-			$this->isSafeAssignment( SecurityCheckPlugin::HTML_EXEC_TAINT, $taintedness ) &&
+			$this->isSafeAssignment( SecurityCheckPlugin::MISC_EXEC_TAINT, $taintedness ) &&
 			is_object( $node->children['expr'] )
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
+				$this->debug( __METHOD__, "Setting $phanObj exec due to require/eval" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
 					SecurityCheckPlugin::MISC_EXEC_TAINT

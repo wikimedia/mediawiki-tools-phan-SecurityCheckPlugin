@@ -59,6 +59,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * Change taintedness of a function/method
 	 *
+	 * @todo FIXME, the taintedOriginalError property should be on
+	 *  a per parameter granuality, instead of per function. As it
+	 *  stands this means very misleading error messages can be
+	 *  output. See the json integration test for an example.
 	 * @param FunctionInterface $func
 	 * @param int[] $taint Numeric keys for each arg and an 'overall' key.
 	 * @param bool $override Whether to merge taint or override
