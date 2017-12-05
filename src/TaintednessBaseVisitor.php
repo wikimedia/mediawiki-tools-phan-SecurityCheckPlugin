@@ -244,9 +244,14 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			if ( !property_exists( $variableObj, 'taintedOriginalError' ) ) {
 				$variableObj->taintedOriginalError = '';
 			}
-			$newError = $this->dbgInfo() . ';';
-			if ( strpos( $variableObj->taintedOriginalError, $newError ) === false ) {
-				$variableObj->taintedOriginalError .= $newError;
+			$newErrors = [ $this->dbgInfo() . ';' ];
+			if ( $this->overrideContext ) {
+				$newErrors[] = $this->dbgInfo( $this->overrideContext ) . ';';
+			}
+			foreach ( $newErrors as $newError ) {
+				if ( strpos( $variableObj->taintedOriginalError, $newError ) === false ) {
+					$variableObj->taintedOriginalError .= $newError;
+				}
 			}
 
 			if ( strlen( $variableObj->taintedOriginalError ) > 254 ) {
@@ -713,12 +718,14 @@ return [];
 	/**
 	 * Get the current filename and line.
 	 *
+	 * @param Context $context Override the context to make debug info for
 	 * @return string path/to/file +linenumber
 	 */
-	protected function dbgInfo() {
+	protected function dbgInfo( Context $context = null ) {
+		$ctx = $context ?: $this->context;
 		// Using a + instead of : so that I can just copy and paste
 		// into a vim command line.
-		return ' ' . $this->context->getFile() . ' +' . $this->context->getLineNumberStart();
+		return ' ' . $ctx->getFile() . ' +' . $ctx->getLineNumberStart();
 	}
 
 	/**
@@ -890,7 +897,7 @@ return [];
 			!property_exists( $method, 'taintedVarLinks' )
 			|| !isset( $method->taintedVarLinks[$i] )
 		) {
-			echo __METHOD__ . $this->dbgInfo() . "returning early no backlinks\n";
+			$this->debug( __METHOD__, "returning early no backlinks" );
 			return;
 		}
 		$oldMem = memory_get_peak_usage();
@@ -1524,7 +1531,7 @@ return [];
 
 				$pobjs = $this->getPhanObjsForNode( $argument );
 				if ( count( $pobjs ) !== 1 ) {
-					echo __METHOD__ . $this->dbgInfo() . "Expected only one " . (string)$param . "\n";
+					$this->debug( __METHOD__, "Expected only one $param" );
 				}
 				foreach ( $pobjs as $pobj ) {
 					// FIXME, is unknown right here.

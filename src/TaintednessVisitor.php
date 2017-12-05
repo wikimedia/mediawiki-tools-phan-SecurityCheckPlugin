@@ -307,7 +307,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		try {
 			$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
 		} catch ( Exception $e ) {
-			echo __METHOD__ . " FIXME Cannot understand RHS. " . get_class( $e ) . " - {$e->getMessage()}\n";
+			$this->debug( __METHOD__, "FIXME Cannot understand RHS. "
+				. get_class( $e ) . " - {$e->getMessage()}"
+			);
 			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
@@ -597,7 +599,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					$this->context
 				);
 				if ( !$this->code_base->hasMethodWithFQSEN( $fqsen ) ) {
-					echo __METHOD__ . "FIXME no constructor or parent class";
+					$this->debug( __METHOD__, "FIXME no constructor or parent class" );
 					throw new exception( "Cannot find __construct" );
 				}
 				$func = $this->code_base->getMethodByFQSEN( $fqsen );
@@ -695,7 +697,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			}
 			if ( property_exists( $localVar, 'taintedness' ) ) {
 				// This should not happen. FIXME this is probably wrong.
-				echo "\tWARNING: local var already tainted at global time.\n";
+				$this->debug( __METHOD__, "WARNING: local var already tainted at global time." );
 				$globalVar->taintedness |= $localVar->taintedness;
 			}
 
