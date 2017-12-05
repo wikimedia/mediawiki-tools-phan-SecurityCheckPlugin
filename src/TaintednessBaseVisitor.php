@@ -59,10 +59,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * Change taintedness of a function/method
 	 *
-	 * @todo FIXME, the taintedOriginalError property should be on
-	 *  a per parameter granuality, instead of per function. As it
-	 *  stands this means very misleading error messages can be
-	 *  output. See the json integration test for an example.
 	 * @param FunctionInterface $func
 	 * @param int[] $taint Numeric keys for each arg and an 'overall' key.
 	 * @param bool $override Whether to merge taint or override
@@ -99,6 +95,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				$newTaint[$index] = ( $curTaint[$index] ?? 0 ) | $t;
 			}
 			$mergedTaint |= $t;
+			if ( is_int( $index ) ) {
+				$this->addTaintError( $t, $func, $index );
+			} else {
+				$this->addTaintError( $t, $func );
+			}
 		}
 		if ( !isset( $newTaint['overall'] ) ) {
 			// FIXME, what's the right default??
@@ -107,22 +108,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 		$this->checkFuncTaint( $newTaint );
 		$func->funcTaint = $newTaint;
-
-		if ( $mergedTaint & SecurityCheckPlugin::YES_EXEC_TAINT ) {
-			if ( !property_exists( $func, 'taintedOriginalError' ) ) {
-				$func->taintedOriginalError = '';
-			}
-			$newError = $this->dbgInfo() . ';';
-			if ( strpos( $func->taintedOriginalError, $newError ) === false ) {
-				// Only add to error if we haven't added this line before
-				$func->taintedOriginalError .= $newError;
-			}
-
-			if ( strlen( $func->taintedOriginalError ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! for $func" );
-				$func->taintedOriginalError = substr( $func->taintedOriginalError, 0, 250 ) . '...';
-			}
-		}
 	}
 
 	/**
@@ -148,7 +133,69 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 
 		if ( strlen( $left->taintedOriginalError ) > 254 ) {
 			$this->debug( __METHOD__, "Too long original error! for $left" );
-			$left->taintedOriginalError = substr( $left->taintedOriginalError, 0, 250 ) . '...';
+			$left->taintedOriginalError = substr( $left->taintedOriginalError, 0, 250 ) . '... ';
+		}
+	}
+
+	/**
+	 * Add the current context to taintedOriginalError book-keeping
+	 *
+	 * This allows us to show users what line caused an issue.
+	 *
+	 * @param int $taintedness The taintedness in question
+	 * @param TypedElementInterface $elem Where to put it
+	 * @param int $arg [Optional] For functions, which argument
+	 */
+	protected function addTaintError( int $taintedness, TypedElementInterface $elem, int $arg = -1 ) {
+		if ( !$this->isExecTaint( $taintedness ) && !$this->isYesTaint( $taintedness ) ) {
+			// Don't add book-keeping if no actual taint was added.
+			return;
+		}
+
+		assert( $arg === -1 || $elem instanceof FunctionInterface );
+
+		if ( $arg === -1 ) {
+			if ( !property_exists( $elem, 'taintedOriginalError' ) ) {
+				$elem->taintedOriginalError = '';
+			}
+		} else {
+			if ( !property_exists( $elem, 'taintedOriginalErrorByArg' ) ) {
+				$elem->taintedOriginalErrorByArg = [];
+			}
+			if ( !isset( $elem->taintedOriginalErrorByArg[$arg] ) ) {
+				$elem->taintedOriginalErrorByArg[$arg] = '';
+			}
+		}
+		$newErrors = [ $this->dbgInfo() . ';' ];
+		if ( $this->overrideContext ) {
+			$newErrors[] = $this->dbgInfo( $this->overrideContext ) . ';';
+		}
+		foreach ( $newErrors as $newError ) {
+			if ( $arg === -1 ) {
+				if ( strpos( $elem->taintedOriginalError, $newError ) === false ) {
+					$elem->taintedOriginalError .= $newError;
+				}
+			} else {
+				if ( strpos( $elem->taintedOriginalErrorByArg[$arg], $newError ) === false ) {
+					$elem->taintedOriginalErrorByArg[$arg] .= $newError;
+				}
+			}
+		}
+
+		if ( $arg === -1 ) {
+			if ( strlen( $elem->taintedOriginalError ) > 254 ) {
+				$this->debug( __METHOD__, "Too long original error! $elem" );
+				$elem->taintedOriginalError = substr(
+					$elem->taintedOriginalError, 0, 250
+				) . '... ';
+			}
+		} else {
+			if ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
+				$this->debug( __METHOD__, "Too long original error! $elem" );
+				$elem->taintedOriginalErrorByArg[$arg] = substr(
+					$elem->taintedOriginalError[$arg], 0, 250
+				) . '... ';
+			}
 		}
 	}
 
@@ -216,7 +263,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 
 					if ( strlen( $combinedOrig ) > 254 ) {
 						$this->debug( __METHOD__, "Too long original error! $variableObj" );
-						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '...';
+						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
 					}
 					$variableObj->taintedOriginalError = $combinedOrig;
 					$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
@@ -244,27 +291,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				);
 		}
 
-		if ( $this->isExecTaint( $taintedness ) || $this->isYesTaint( $taintedness ) ) {
-			if ( !property_exists( $variableObj, 'taintedOriginalError' ) ) {
-				$variableObj->taintedOriginalError = '';
-			}
-			$newErrors = [ $this->dbgInfo() . ';' ];
-			if ( $this->overrideContext ) {
-				$newErrors[] = $this->dbgInfo( $this->overrideContext ) . ';';
-			}
-			foreach ( $newErrors as $newError ) {
-				if ( strpos( $variableObj->taintedOriginalError, $newError ) === false ) {
-					$variableObj->taintedOriginalError .= $newError;
-				}
-			}
-
-			if ( strlen( $variableObj->taintedOriginalError ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! $variableObj" );
-				$variableObj->taintedOriginalError = substr(
-					$variableObj->taintedOriginalError, 0, 250
-				) . '...';
-			}
-		}
+		$this->addTaintError( $taintedness, $variableObj );
 	}
 
 	/**
@@ -998,22 +1025,49 @@ return [];
 	 * Get the line number of the original cause of taint.
 	 *
 	 * @param TypedElementInterface|Node $element
+	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	protected function getOriginalTaintLine( $element ) {
+	protected function getOriginalTaintLine( $element, $arg = -1 ) {
+		$line = $this->getOriginalTaintLineRaw( $element, $arg );
+		if ( $line ) {
+			$line = substr( $line, 0, strlen( $line ) - 1 );
+			return " (Caused by:$line)";
+		} else {
+			return '';
+		}
+	}
+
+	/**
+	 * Get the line number of the original cause of taint without "Caused by" string.
+	 *
+	 * @param TypedElementInterface|Node $element
+	 * @param int $arg [optional] For functions what arg. -1 for overall.
+	 * @return string
+	 */
+	private function getOriginalTaintLineRaw( $element, $arg = - 1 ) {
 		$line = '';
 		if ( !is_object( $element ) ) {
 			return '';
 		} elseif ( $element instanceof TypedElementInterface ) {
-			if ( property_exists( $element, 'taintedOriginalError' ) ) {
-				$line = $element->taintedOriginalError;
+			if ( $arg === -1 ) {
+				if ( property_exists( $element, 'taintedOriginalError' ) ) {
+					$line = $element->taintedOriginalError;
+				}
+				foreach ( $element->taintedOriginalErrorByArg ?? [] as $arg ) {
+					// FIXME is this right? In the generic
+					// case should we include all arguments as
+					// well?
+					$line .= $arg;
+				}
+			} else {
+				assert( $element instanceof FunctionInterface );
+				$line .= $element->taintedOriginalErrorByArg[$arg] ?? '';
 			}
 		} elseif ( $element instanceof Node ) {
 			$pobjs = $this->getPhanObjsForNode( $element );
 			foreach ( $pobjs as $elem ) {
-				if ( property_exists( $elem, 'taintedOriginalError' ) ) {
-					$line .= $elem->taintedOriginalError;
-				}
+				$line .= $this->getOriginalTaintLineRaw( $elem );
 			}
 			if ( $line === '' ) {
 				// try to dig deeper.
@@ -1021,9 +1075,7 @@ return [];
 				// FIXME should we always do this? Is it too spammy.
 				$pobjs = $this->getPhanObjsForNode( $element, true );
 				foreach ( $pobjs as $elem ) {
-					if ( property_exists( $elem, 'taintedOriginalError' ) ) {
-						$line .= $elem->taintedOriginalError;
-					}
+					$line .= $this->getOriginalTaintLineRaw( $elem );
 				}
 			}
 		} else {
@@ -1033,12 +1085,7 @@ return [];
 			);
 		}
 		assert( strlen( $line ) < 8096, " taint error too long $line" );
-		if ( $line ) {
-			$line = substr( $line, 0, strlen( $line ) - 1 );
-			return " (Caused by:$line)";
-		} else {
-			return '';
-		}
+		return $line;
 	}
 
 	/**
@@ -1552,7 +1599,7 @@ return [];
 					$combinedOrig = ( $pobj->taintedOriginalError ?? '' )
 						. ( $methodVar->taintedOriginalError ?? '' );
 					if ( strlen( $combinedOrig ) > 255 ) {
-						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '...';
+						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
 					}
 					$pobj->taintedOriginalError = $combinedOrig;
 					$methodVar->taintedOriginalError =& $pobj->taintedOriginalError;
@@ -1603,7 +1650,7 @@ return [];
 				$curArgTaintedness,
 				"Calling method $funcName() in $containingMethod" .
 				" that outputs using tainted argument \$$taintedArg." .
-				( $func ? $this->getOriginalTaintLine( $func ) : '' ) .
+				( $func ? $this->getOriginalTaintLine( $func, $i ) : '' ) .
 				$this->getOriginalTaintLine( $argument )
 			);
 
