@@ -1,0 +1,1 @@
+integration/lists/test.php:8 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/lists/test.php +6)

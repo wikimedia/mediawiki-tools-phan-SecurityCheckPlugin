@@ -14,7 +14,6 @@ $rows2 = [
 	'third' => 'something'
 ];
 
-
 $unsafe = [
 	"fourth = fourth+" . $_GET['increment']
 ];
