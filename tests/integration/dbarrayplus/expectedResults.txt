@@ -1,0 +1,2 @@
+integration/dbarrayplus/test.php:28 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::insert() in [no method] that outputs using tainted argument $unsafe. (Caused by: integration/dbarrayplus/test.php +18)
+integration/dbarrayplus/test.php:34 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::insert() in [no method] that outputs using tainted argument $[arg #2]. (Caused by: integration/dbarrayplus/test.php +7; integration/dbarrayplus/test.php +18)
