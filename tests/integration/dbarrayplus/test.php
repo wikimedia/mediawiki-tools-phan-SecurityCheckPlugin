@@ -35,3 +35,20 @@ $db->insert(
 	$rows + $rows2 + $unsafe,
 	__METHOD__
 );
+
+$db->insert(
+	'foo',
+	[
+		[ 'first' => $_GET['a'] ],
+		[ 'first' => $_GET['a'] ],
+		[ 'first' => $_GET['a'] ],
+	],
+	__METHOD__
+);
+
+$items = [];
+$items[] = [ 'first' => $_GET['a'] ];
+$items[] = [ 'first' => $_GET['a'] ];
+$items[] = [ 'first' => $_GET['a'] ];
+
+$db->insert( 'foo', $items, __METHOD__ );

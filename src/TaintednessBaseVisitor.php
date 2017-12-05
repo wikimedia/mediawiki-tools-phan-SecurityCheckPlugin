@@ -335,6 +335,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			// Built in php.
 			// Assume that anything really dangerous we've already
 			// hardcoded. So just preserve taint
+			$taintFromReturnType = $this->getTaintByReturnType( $func->getUnionType() );
+			if ( $taintFromReturnType === SecurityCheckPlugin::NO_TAINT ) {
+				return [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
+			}
 			return [ 'overall' => SecurityCheckPlugin::PRESERVE_TAINT ];
 		}
 		if ( property_exists( $func, 'funcTaint' ) ) {

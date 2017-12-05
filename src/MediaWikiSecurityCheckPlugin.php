@@ -131,8 +131,8 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\Wikimedia\Rdbms\IDatabase::insert' => [
 				self::SQL_EXEC_TAINT, // table name
-				// Insert values. The keys names are unsafe.
-				// Unclear how well this works for the multi case.
+				// FIXME This doesn't correctly work
+				// when inserting multiple things at once.
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_EXEC_TAINT, // method name
 				self::SQL_EXEC_TAINT, // options. They are not escaped
@@ -362,12 +362,28 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT,
 				'overall' => SecurityCheckPlugin::NO_TAINT,
 			],
+			'\ParserOutput::getText' => [
+				self::NO_TAINT,
+				'overall' => SecurityCheckPlugin::NO_TAINT,
+			],
 			'\Sanitizer::removeHTMLtags' => [
 				self::YES_TAINT & ~self::HTML_TAINT, /* text */
 				self::SHELL_EXEC_TAINT, /* attribute callback */
 				self::NO_TAINT, /* callback args */
 				self::YES_TAINT, /* extra tags */
 				self::NO_TAINT, /* remove tags */
+				'overall' => SecurityCheckPlugin::NO_TAINT
+			],
+			'\Sanitizer::escapeHtmlAllowEntities' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
+				'overall' => SecurityCheckPlugin::NO_TAINT
+			],
+			'\Sanitizer::safeEncodeAttribute' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
+				'overall' => SecurityCheckPlugin::NO_TAINT
+			],
+			'\Sanitizer::encodeAttribute' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
 				'overall' => SecurityCheckPlugin::NO_TAINT
 			],
 			'\WebRequest::getGPCVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
@@ -409,8 +425,22 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'OOUI\ButtonInputWidget::__construct' => [
 				'overall' => self::NO_TAINT
 			],
+			'OOUI\HorizontalLayout::__construct' => [
+				'overall' => self::NO_TAINT
+			],
 			'HtmlArmor::__construct' => [
 				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			// Due to limitations in how we handle list()
+			// elements, hard code CommentStore stuff.
+			'CommentStore::insert' => [
+				'overall' => self::NO_TAINT
+			],
+			'CommentStore::getJoin' => [
+				'overall' => self::NO_TAINT
+			],
+			'CommentStore::insertWithTempTable' => [
 				'overall' => self::NO_TAINT
 			],
 		];

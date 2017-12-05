@@ -336,8 +336,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				$rhsTaintedness &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 			} elseif ( $rhsTaintedness & SecurityCheckPlugin::SQL_TAINT ) {
 				if (
-					$dim === null ||
-					$this->nodeIsInt( $dim )
+					( $dim === null ||
+					$this->nodeIsInt( $dim ) )
+					&& !$this->nodeIsArray( $node->children['expr'] )
 				) {
 					$rhsTaintedness |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 				}
@@ -768,7 +769,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		$curTaint = SecurityCheckPlugin::NO_TAINT;
 		foreach ( $node->children as $child ) {
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-			$curTaint = $this->mergeAddTaint( $curTaint, $this->getTaintedness( $child ) );
+			$childTaint = $this->getTaintedness( $child );
 			$key = $child->children['key'];
 			$value = $child->children['value'];
 			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
@@ -776,15 +777,17 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				$this->getTaintedness( $value )
 				& SecurityCheckPlugin::SQL_NUMKEY_TAINT
 			) {
-				$curTaint &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+				$childTaint &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 
 			} elseif (
 				( $this->getTaintedness( $key ) & $sqlTaint ) ||
 				( ( $key === null || $this->nodeIsInt( $key ) )
-				&& ( $this->getTaintedness( $value ) & $sqlTaint ) )
+				&& ( $this->getTaintedness( $value ) & $sqlTaint )
+				&& !$this->nodeIsArray( $value ) )
 			) {
-				$curTaint |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+				$childTaint |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 			}
+			$curTaint = $this->mergeAddTaint( $curTaint, $childTaint );
 		}
 		return $curTaint;
 	}
@@ -1005,7 +1008,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			ast\flags\TYPE_OBJECT
 		];
 
-		if ( in_array( $node->flags, $dangerousCasts ) ) {
+		if ( !in_array( $node->flags, $dangerousCasts ) ) {
 			return SecurityCheckPlugin::NO_TAINT;
 		}
 		return $this->getTaintedness( $node->children['expr'] );

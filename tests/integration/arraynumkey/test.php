@@ -80,3 +80,6 @@ $db->select( 't', 'f', '', __METHOD__,
 		'HAVING' => $_GET['string']
 	]
 );
+
+$b = (int)$_GET['b'];
+$db->select( 't', 'f', [ 'foo' => $_GET['a'], "bar > $b" ] );
