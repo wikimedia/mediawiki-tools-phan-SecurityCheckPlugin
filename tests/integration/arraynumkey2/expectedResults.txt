@@ -1,0 +1,1 @@
+integration/arraynumkey2/test.php:29 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::select() in [no method] that outputs using tainted argument $list. (Caused by: integration/arraynumkey2/test.php +22; integration/arraynumkey2/test.php +23; integration/arraynumkey2/test.php +24)

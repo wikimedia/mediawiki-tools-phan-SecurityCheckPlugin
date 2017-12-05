@@ -328,7 +328,11 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		$var = $node->children['var'];
 		if ( $var->kind === \ast\AST_DIM ) {
 			$dim = $var->children['dim'];
-			if ( $rhsTaintedness & SecurityCheckPlugin::SQL_TAINT ) {
+			if ( $rhsTaintedness & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
+				// Things like 'foo' => ['taint', 'taint']
+				// are ok.
+				$rhsTaintedness &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+			} elseif ( $rhsTaintedness & SecurityCheckPlugin::SQL_TAINT ) {
 				if (
 					$dim === null ||
 					$this->nodeIsInt( $dim )
@@ -764,6 +768,12 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			$value = $child->children['value'];
 			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
 			if (
+				$this->getTaintedness( $value )
+				& SecurityCheckPlugin::SQL_NUMKEY_TAINT
+			) {
+				$curTaint &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+
+			} elseif (
 				( $this->getTaintedness( $key ) & $sqlTaint ) ||
 				( ( $key === null || $this->nodeIsInt( $key ) )
 				&& ( $this->getTaintedness( $value ) & $sqlTaint ) )
