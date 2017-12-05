@@ -80,12 +80,12 @@ class MWVisitor extends TaintednessBaseVisitor {
 				case '\Hooks::run':
 					$this->triggerHook( $node );
 					break;
+				default:
+					$this->doSelectWrapperSpecialHandling( $node, $method );
 			}
 		} catch ( Exception $e ) {
 			// ignore
 		}
-
-		$this->doSelectWrapperSpecialHandling( $node, $method );
 	}
 
 	/**
@@ -125,7 +125,8 @@ class MWVisitor extends TaintednessBaseVisitor {
 			'selectField',
 			'selectFieldValues',
 			'selectSQLText',
-			'selectRowCount'
+			'selectRowCount',
+			'selectRow'
 		];
 
 		if ( !in_array( $method->getName(), $relevantMethods ) ) {

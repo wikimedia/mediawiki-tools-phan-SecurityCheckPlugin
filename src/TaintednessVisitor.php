@@ -594,12 +594,15 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		try {
 			if ( $node->kind === \ast\AST_NEW ) {
 				$clazzName = $node->children['class']->children['name'];
+				if ( $clazzName === 'self' && $this->context->isInClassScope() ) {
+					$clazzName = (string)$this->context->getClassFQSEN();
+				}
 				$fqsen = FullyQualifiedMethodName::fromStringInContext(
 					$clazzName . '::__construct',
 					$this->context
 				);
 				if ( !$this->code_base->hasMethodWithFQSEN( $fqsen ) ) {
-					$this->debug( __METHOD__, "FIXME no constructor or parent class" );
+					$this->debug( __METHOD__, "FIXME no constructor for $fqsen" );
 					throw new exception( "Cannot find __construct" );
 				}
 				$func = $this->code_base->getMethodByFQSEN( $fqsen );
@@ -658,7 +661,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		}
 		if ( $varName === '' ) {
 			$this->debug( __METHOD__, "FIXME: Complex variable case not handled." );
-			Debug::printNode( $node );
+			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
@@ -895,8 +898,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					$node->children['prop']
 				);
 			} else {
-				$this->debug( __METHOD__, "Unexpected number of phan objs " . count( $props ) . "" );
-				Debug::printNode( $node );
+				// FIXME, we should handle $this->foo->bar
+				$this->debug( __METHOD__, "Nested property reference " . count( $props ) . "" );
+				# Debug::printNode( $node );
 			}
 			if ( count( $props ) === 0 ) {
 				// Should this be NO_TAINT?

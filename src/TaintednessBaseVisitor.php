@@ -193,7 +193,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			if ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
 				$this->debug( __METHOD__, "Too long original error! $elem" );
 				$elem->taintedOriginalErrorByArg[$arg] = substr(
-					$elem->taintedOriginalError[$arg], 0, 250
+					$elem->taintedOriginalErrorByArg[$arg], 0, 250
 				) . '... ';
 			}
 		}

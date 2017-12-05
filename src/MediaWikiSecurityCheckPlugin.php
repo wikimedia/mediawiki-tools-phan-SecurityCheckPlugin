@@ -108,6 +108,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Wikimedia\Rdbms\IDatabase::selectRowCount' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectRowCount' => $selectWrapper,
 			'\Wikimedia\Rdbms\DBConnRef::selectRowCount' => $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::selectRow' => $selectWrapper,
+			'\Wikimedia\Rdbms\Database::selectRow' => $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::selectRow' => $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::delete' => [
 				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,

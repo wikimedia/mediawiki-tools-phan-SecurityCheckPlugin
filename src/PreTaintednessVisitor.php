@@ -48,7 +48,7 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 
 		if ( $value->kind !== \ast\AST_VAR ) {
 			$this->debug( __METHOD__, "FIXME foreach complex case not handled" );
-			Debug::printNode( $node );
+			// Debug::printNode( $node );
 			return;
 		}
 
