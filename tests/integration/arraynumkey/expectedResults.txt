@@ -5,3 +5,5 @@ integration/arraynumkey/test.php:41 SecurityCheck-SQLInjection Calling method \W
 integration/arraynumkey/test.php:45 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::select() in [no method] that outputs using tainted argument $where3. (Caused by: integration/arraynumkey/test.php +44)
 integration/arraynumkey/test.php:50 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::select() in [no method] that outputs using tainted argument $where4.
 integration/arraynumkey/test.php:54 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::select() in [no method] that outputs using tainted argument $where5. (Caused by: integration/arraynumkey/test.php +53)
+integration/arraynumkey/test.php:59 SecurityCheck-SQLInjection The ON conditions are not properly escaped for the join to `t` (Caused by: integration/arraynumkey/test.php +53) (Originally at: integration/arraynumkey/test.php:57)
+integration/arraynumkey/test.php:80 SecurityCheck-SQLInjection HAVING clause is user controlled (Originally at: integration/arraynumkey/test.php:78)

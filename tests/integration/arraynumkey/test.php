@@ -52,3 +52,31 @@ $db->select( 't', 'f', $where4 );
 // unsafe
 $where5 = [ 1 => $_GET['d'] ];
 $db->select( 't', 'f', $where5 );
+
+// unsafe
+$db->select( 't', 'f', '', __METHOD__, [],
+	[
+		't' => [ 'INNER JOIN', $where5 ]
+	]
+);
+
+// unsafe
+$db->select( 't', 'f', '', __METHOD__, [],
+	[
+		't' => [ 'INNER JOIN', $_GET['string'] ]
+	]
+);
+
+// unsafe
+$db->select( 't', 'f', '', __METHOD__, [],
+	[
+		'HAVING' => $where5
+	]
+);
+
+// unsafe
+$db->select( 't', 'f', '', __METHOD__,
+	[
+		'HAVING' => $_GET['string']
+	]
+);

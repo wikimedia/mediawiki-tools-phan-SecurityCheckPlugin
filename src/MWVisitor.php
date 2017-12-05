@@ -5,6 +5,7 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN;
+use Phan\Language\Element\Method;
 use Phan\Language\Type\CallableType;
 use Phan\Plugin;
 use Phan\CodeBase;
@@ -82,6 +83,61 @@ class MWVisitor extends TaintednessBaseVisitor {
 			}
 		} catch ( Exception $e ) {
 			// ignore
+		}
+
+		$this->doSelectWrapperSpecialHandling( $node, $method );
+	}
+
+	/**
+	 * Special casing for complex format of IDatabase::select
+	 *
+	 * This handled the $options, and $join_cond. Other args are
+	 * handled through normal means
+	 *
+	 * @param Node $node Either an AST_METHOD_CALL or AST_STATIC_CALL
+	 * @param Method $method
+	 */
+	private function doSelectWrapperSpecialHandling( Node $node, Method $method ) {
+		$clazz = $method->getClass( $this->code_base );
+
+		$implementIDB = false;
+		do {
+			$interfaceList = $clazz->getInterfaceFQSENList();
+			foreach ( $interfaceList as $interface ) {
+				if ( (string)$interface === '\\Wikimedia\\Rdbms\\IDatabase' ) {
+					$implementIDB = true;
+					break 2;
+				}
+			}
+		// @codingStandardsIgnoreStart MediaWiki.ControlStructures.AssignmentInControlStructures.AssignmentInControlStructures
+		} while (
+			$clazz->hasParentType() &&
+			( $clazz = $clazz->getParentClass( $this->code_base ) )
+		);
+		// @codingStandardsIgnoreEnd
+
+		if ( !$implementIDB ) {
+			return;
+		}
+
+		$relevantMethods = [
+			'select',
+			'selectField',
+			'selectFieldValues',
+			'selectSQLText',
+			'selectRowCount'
+		];
+
+		if ( !in_array( $method->getName(), $relevantMethods ) ) {
+			return;
+		}
+
+		$args = $node->children['args']->children;
+		if ( isset( $args[4] ) ) {
+			$this->checkSQLOptions( $args[4] );
+		}
+		if ( isset( $args[5] ) ) {
+			$this->checkJoinCond( $args[5] );
 		}
 	}
 
@@ -250,6 +306,11 @@ class MWVisitor extends TaintednessBaseVisitor {
 			return;
 		}
 		$funcFQSEN = $this->context->getFunctionLikeFQSEN();
+
+		if ( strpos( (string)$funcFQSEN, '::getQueryInfo' ) !== false ) {
+			$this->handleGetQueryInfoReturn( $node->children['expr'] );
+		}
+
 		$hookType = $this->plugin->isSpecialHookSubscriber( $funcFQSEN );
 		switch ( $hookType ) {
 		case '!ParserFunctionHook':
@@ -265,6 +326,167 @@ class MWVisitor extends TaintednessBaseVisitor {
 					. $this->getOriginalTaintLine( $ret )
 			);
 			break;
+		}
+	}
+
+	/**
+	 * Methods named getQueryInfo() in MediaWiki usually
+	 * return an array that is later fed to select
+	 *
+	 * @note This will only work where the return
+	 *  statement is an array literal.
+	 * @param Node|Mixed $node Node from ast tree
+	 * @suppress PhanTypeMismatchForeach
+	 */
+	private function handleGetQueryInfoReturn( $node ) {
+		if (
+			!( $node instanceof Node ) ||
+			$node->kind !== \ast\AST_ARRAY
+		) {
+			return;
+		}
+		// The argument order is
+		// $table, $vars, $conds = '', $fname = __METHOD__,
+		// $options = [], $join_conds = []
+		$keysToArg = [
+			'tables' => 0,
+			'fields' => 1,
+			'conds' => 2,
+			'options' => 4,
+			'join_conds' => 5,
+		];
+		$args = [ '', '', '', '' ];
+		foreach ( $node->children as $child ) {
+			assert( $child->kind === \ast\AST_ARRAY_ELEM );
+			if ( !isset( $keysToArg[$child->children['key']] ) ) {
+				continue;
+			}
+			$args[$keysToArg[$child->children['key']]] = $child->children['value'];
+		}
+		$selectFQSEN = FullyQualifiedMethodName::fromFullyQualifiedString(
+			'\Wikimedia\Rdbms\IDatabase::select'
+		);
+		$select = $this->code_base->getMethodByFQSEN( $selectFQSEN );
+		$taint = $this->getTaintOfFunction( $select );
+		$this->handleMethodCall( $select, $selectFQSEN, $taint, $args );
+		if ( isset( $args[4] ) ) {
+			$this->checkSQLOptions( $args[4] );
+		}
+		if ( isset( $args[5] ) ) {
+			$this->checkJoinCond( $args[5] );
+		}
+	}
+
+	/**
+	 * Check the options parameter to IDatabase::select
+	 *
+	 * This only works if its specified as an array literal.
+	 *
+	 * Relavent options:
+	 *  GROUP BY is put directly in the query (array get's imploded)
+	 *  HAVING is treated like a WHERE clause
+	 *  ORDER BY is put directly in the query (array get's imploded)
+	 *  USE INDEX is directly put in string (both array and string version)
+	 *  IGNORE INDEX ditto
+	 * @param Node|mixed $node The node from the AST tree
+	 */
+	private function checkSQLOptions( $node ) {
+		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
+			return;
+		}
+		$relevant = [
+			'GROUP BY',
+			'ORDER BY',
+			'HAVING',
+			'USE INDEX',
+			'IGNORE INDEX',
+		];
+		foreach ( $node->children as $arrayElm ) {
+			assert( $arrayElm->kind === \ast\AST_ARRAY_ELEM );
+			$val = $arrayElm->children['value'];
+			$key = $arrayElm->children['key'];
+			$taintType = ( $key === 'HAVING' && $this->nodeIsArray( $val ) ) ?
+				SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
+				SecurityCheckPlugin::SQL_EXEC_TAINT;
+
+			if ( in_array( $key, $relevant ) ) {
+				$ctx = clone $this->context;
+				$this->overrideContext = $ctx->withLineNumberStart(
+					$val->lineno ?? $ctx->getLineNumberStart()
+				);
+				$this->maybeEmitIssue(
+					$taintType,
+					$this->getTaintedness( $val ),
+					"$key clause is user controlled"
+						. $this->getOriginalTaintLine( $val )
+				);
+				$this->overrideContext = null;
+			}
+		}
+	}
+
+	/**
+	 * Check a join_cond structure.
+	 *
+	 * Syntax is like
+	 *
+	 *  [ 'aliasOfTable' => [ 'JOIN TYPE', $onConditions ], ... ]
+	 *  join type is usually something safe like INNER JOIN, but it is not
+	 *  validated or escaped. $onConditions is the same form as a WHERE clause.
+	 *
+	 * @param Node|mixed $node
+	 */
+	private function checkJoinCond( $node ) {
+		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
+			return;
+		}
+		foreach ( $node->children as $table ) {
+			assert( $table->kind === \ast\AST_ARRAY_ELEM );
+
+			$tableName = is_string( $table->children['key'] ) ?
+				$table->children['key'] :
+				'[UNKNOWN TABLE]';
+			$joinInfo = $table->children['value'];
+			if (
+				$joinInfo instanceof Node
+				&& $joinInfo->kind === \ast\AST_ARRAY
+			) {
+				if (
+					count( $joinInfo->children ) === 0 ||
+					$joinInfo->children[0]->children['key'] !== null
+				) {
+					$this->debug( __METHOD__, "join info has named key??" );
+					continue;
+				}
+				$joinType = $joinInfo->children[0]->children['value'];
+				// join type does not get escaped.
+				$this->maybeEmitIssue(
+					SecurityCheckPlugin::SQL_EXEC_TAINT,
+					$this->getTaintedness( $joinType ),
+					"join type for $tableName is user controlled"
+						. $this->getOriginalTaintLine( $joinType )
+				);
+				// On to the join ON conditions.
+				if (
+					count( $joinInfo->children ) === 1 ||
+					$joinInfo->children[1]->children['key'] !== null
+				) {
+					$this->debug( __METHOD__, "join info has named key??" );
+					continue;
+				}
+				$onCond = $joinInfo->children[1]->children['value'];
+				$ctx = clone $this->context;
+				$this->overrideContext = $ctx->withLineNumberStart(
+					$onCond->lineno ?? $ctx->getLineNumberStart()
+				);
+				$this->maybeEmitIssue(
+					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
+					$this->getTaintedness( $onCond ),
+					"The ON conditions are not properly escaped for the join to `$tableName`"
+						. $this->getOriginalTaintLine( $onCond )
+				);
+				$this->overrideContext = null;
+			}
 		}
 	}
 

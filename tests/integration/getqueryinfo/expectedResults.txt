@@ -1,0 +1,5 @@
+integration/getqueryinfo/test.php:14 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\IDatabase::select() in \MySpecialPage::getQueryInfo that outputs using tainted argument $[arg #2]. (Caused by: integration/getqueryinfo/test.php +12)
+integration/getqueryinfo/test.php:14 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\IDatabase::select() in \MySpecialPage::getQueryInfo that outputs using tainted argument $[arg #3].
+integration/getqueryinfo/test.php:22 SecurityCheck-SQLInjection HAVING clause is user controlled (Originally at: integration/getqueryinfo/test.php:14)
+integration/getqueryinfo/test.php:24 SecurityCheck-SQLInjection GROUP BY clause is user controlled (Originally at: integration/getqueryinfo/test.php:14)
+integration/getqueryinfo/test.php:32 SecurityCheck-SQLInjection The ON conditions are not properly escaped for the join to `page` (Originally at: integration/getqueryinfo/test.php:14)

@@ -58,6 +58,23 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @inheritDoc
 	 */
 	protected function getCustomFuncTaints() : array {
+		$selectWrapper = [
+				self::SQL_EXEC_TAINT,
+				// List of fields. MW does not escape things like COUNT(*)
+				self::SQL_EXEC_TAINT,
+				// Where conditions
+				self::SQL_NUMKEY_EXEC_TAINT,
+				// the function name doesn't seem to be escaped
+				self::SQL_EXEC_TAINT,
+				// OPTIONS. Its complicated. HAVING is like WHERE
+				// This is treated as special case
+				self::NO_TAINT,
+				// Join conditions. This is treated as special case
+				self::NO_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+		];
+
 		return [
 			// Note, at the moment, this checks where the function
 			// is implemented, so you can't use IDatabase.
@@ -76,42 +93,92 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				// What should DB results be considered?
 				'overall' => self::YES_TAINT
 			],
-			'\Wikimedia\Rdbms\IDatabase::select' => [
-				self::SQL_EXEC_TAINT,
+			'\Wikimedia\Rdbms\IDatabase::select' => $selectWrapper,
+			'\Wikimedia\Rdbms\Database::select' => $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::select' => $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::selectField' => $selectWrapper,
+			'\Wikimedia\Rdbms\Database::selectField' => $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::selectField' => $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::selectFieldValues' => $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::selectFieldValues' => $selectWrapper,
+			'\Wikimedia\Rdbms\Database::selectFieldValues' => $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::selectSQLText' => $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::selectSQLText' => $selectWrapper,
+			'\Wikimedia\Rdbms\Database::selectSQLText' => $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::selectRowCount' => $selectWrapper,
+			'\Wikimedia\Rdbms\Database::selectRowCount' => $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::selectRowCount' => $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::delete' => [
 				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				// the function name doesn't seem to be escaped
 				self::SQL_EXEC_TAINT,
-				// I'm not even sure for options
-				self::SQL_EXEC_TAINT,
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// What should DB results be considered?
-				'overall' => self::YES_TAINT
+				'overall' => self::NO_TAINT
 			],
-			'\Wikimedia\Rdbms\Database::select' => [
-				self::SQL_EXEC_TAINT,
-				self::SQL_EXEC_TAINT,
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// the function name doesn't seem to be escaped
-				self::SQL_EXEC_TAINT,
-				// I'm not even sure for options
+			'\Wikimedia\Rdbms\Database::delete' => [
 				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				// What should DB results be considered?
-				'overall' => self::YES_TAINT
+				self::SQL_EXEC_TAINT,
+				'overall' => self::NO_TAINT
 			],
-			'\Wikimedia\Rdbms\DBConnRef::select' => [
-				self::SQL_EXEC_TAINT,
-				self::SQL_EXEC_TAINT,
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// the function name doesn't seem to be escaped
-				self::SQL_EXEC_TAINT,
-				// I'm not even sure for options
+			'\Wikimedia\Rdbms\DBConnRef::delete' => [
 				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				// What should DB results be considered?
-				'overall' => self::YES_TAINT
+				self::SQL_EXEC_TAINT,
+				'overall' => self::NO_TAINT
 			],
+			'\Wikimedia\Rdbms\IDatabase::insert' => [
+				self::SQL_EXEC_TAINT, // table name
+				// Insert values. The keys names are unsafe.
+				// Unclear how well this works for the multi case.
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::SQL_EXEC_TAINT, // options. They are not escaped
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\Database::insert' => [
+				self::SQL_EXEC_TAINT, // table name
+				// Insert values. The keys names are unsafe.
+				// Unclear how well this works for the multi case.
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::SQL_EXEC_TAINT, // options. They are not escaped
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\DBConnRef::insert' => [
+				self::SQL_EXEC_TAINT, // table name
+				// Insert values. The keys names are unsafe.
+				// Unclear how well this works for the multi case.
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::SQL_EXEC_TAINT, // options. They are not escaped
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\IDatabase::update' => [
+				self::SQL_EXEC_TAINT, // table name
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::NO_TAINT, // options. They are validated
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\Database::update' => [
+				self::SQL_EXEC_TAINT, // table name
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::NO_TAINT, // options. They are validated
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\DBConnRef::update' => [
+				self::SQL_EXEC_TAINT, // table name
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::NO_TAINT, // options. They are validated
+				'overall' => self::NO_TAINT
+			],
+			// This is subpar, as addIdentifierQuotes isn't always
+			// the right type of escaping.
 			'\Wikimedia\Rdbms\Database::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT,

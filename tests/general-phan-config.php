@@ -262,7 +262,9 @@ return [
 	 * to this black-list to inhibit them from being reported.
 	 */
 	'suppress_issue_types' => [
-		// 'PhanDeprecatedProperty',
+		// Phan seems to have a bug when it comes
+		// to doing foreach's of children array of \ast\Node's
+		'PhanTypeMismatchForeach'
 	],
 	/*'suppress_issue_types' => [
 		// approximate error count: 8
