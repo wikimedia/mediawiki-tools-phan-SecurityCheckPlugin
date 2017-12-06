@@ -1,9 +1,12 @@
 {
     "name": "wikimedia/security-check-plugin",
     "description": "A Phan plugin to do security checking",
+    "keywords": [ "php", "static", "analyzer", "phan", "security" ],
     "type": "library",
     "require": {
-        "etsy/phan": "0.8.0"
+        "etsy/phan": "0.8.0",
+        "php": "~7.0.0",
+        "ext-ast": "*"
     },
     "require-dev": {
         "mediawiki/mediawiki-codesniffer": "14.1.0",
@@ -19,6 +22,16 @@
 	"integration-tests": "./tests/runtests.sh",
 	"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
         "fix": "phpcbf"
+    },
+    "bin": [
+        "scripts/seccheck-mwext",
+        "scripts/seccheck-slow-mwext",
+        "scripts/seccheck-fast-mwext",
+        "scripts/seccheck-mw",
+        "scripts/seccheck-generic"
+    ],
+    "support": {
+        "issues": "https://phabricator.wikimedia.org"
     },
     "license": "GPLv2",
     "authors": [

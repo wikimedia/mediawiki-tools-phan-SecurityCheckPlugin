@@ -20,9 +20,47 @@ memory.
 
 == How to use ==
 === via composer (recommended) ===
-[This doesn't actually work yet, once this plugin is in packagist]
+[This doesn't actually work yet, as package not in packagist]
 
-[TODO: fill this out]
+* Run (from the root directory of your project)
+
+$ composer require --dev wikimedia/security-check-plugin
+
+* For mediawiki extension, add the following to composer.json
+
+"scripts": {
+   "seccheck": "seccheck-mwext"
+   "seccheck-fast": "seccheck-fast-mwext"
+},
+
+* For a generic php project add
+
+"scripts": {
+   "seccheck": "seccheck-generic"
+},
+
+* For mediawiki core add
+
+"scripts": {
+   "seccheck": "seccheck-mw"
+},
+
+You can then run:
+$ composer seccheck
+
+to run the security check. Note that false positives are disabled by default.
+For mediawiki extensions, this assumes the extension is installed in the normal
+extension directory, and thus MediaWiki is in ../../. If this is not the case,
+then you need to specify the MW_INSTALL_PATH environment variable.
+
+This plugin also provides variants seccheck-fast-mwext (Doesn't analyse mediawiki
+core. May miss some stuff related to hooks) and seccheck-slow-mwext (Also analyzes vendor). seccheck-mwext will generally take about 3 minutes, where seccheck-fast-mwext
+takes only about half a minute.
+
+Additionally, if you want to do a really quick check, you can run the seccheck-generic script from a mediawiki extension which will ignore all MediaWiki stuff,
+making the check much faster (but misses many issues).
+
+If you want to do custom configuration (to say exclude some directories), follow the instructions below unser Manually.
 === Manually ===
 
 For MediaWiki mode, add MediaWikiSecurityCheckPlugin.php to the
@@ -53,7 +91,7 @@ The severity field is usually marked as Issue::SEVERITY_NORMAL (5). False positi
 get Issue::SEVERITY_LOW (0). Issues that may result in server compromise
 (as opposed to just end user compromise) such as shell or sql injection are
 marked as Issue::SEVERITY_CRITICAL (10). SerializationInjection would normally
-be "critical" but its currently denoted as a severity of 4 because the check
+be "critical" but its currently denoted as a severity of NORMAL because the check
 seems to have a high false positive rate at the moment.
 
 You can use the -y command line option of phan to filter by severity.
