@@ -1443,7 +1443,7 @@ return [];
 			$issueType = 'SecurityCheck-PHPSerializeInjection';
 			// For now this is low because it seems to have a lot
 			// of false positives.
-			$severity = Issue::SEVERITY_LOW;
+			$severity = 4;
 		} elseif (
 			$combinedTaint === SecurityCheckPlugin::CUSTOM1_TAINT
 		) {
