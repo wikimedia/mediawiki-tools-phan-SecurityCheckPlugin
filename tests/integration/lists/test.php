@@ -6,3 +6,10 @@ function getStuff() {
 list( $foo ) = getStuff();
 
 echo $foo;
+
+function getSafeStuff() {
+	return [ 'a', 'b' ];
+}
+
+list( $a, $b ) = getSafeStuff();
+echo $b;

@@ -88,30 +88,55 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				// What should DB results be considered?
 				'overall' => self::YES_TAINT
 			],
+			'\Wikimedia\Rdbms\IMaintainableDatabase::query' => [
+				self::SQL_EXEC_TAINT,
+				// What should DB results be considered?
+				'overall' => self::YES_TAINT
+			],
 			'\Wikimedia\Rdbms\DBConnRef::query' => [
 				self::SQL_EXEC_TAINT,
 				// What should DB results be considered?
 				'overall' => self::YES_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::select' => $selectWrapper,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\DBConnRef::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::selectField' => $selectWrapper,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::selectField' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectField' => $selectWrapper,
 			'\Wikimedia\Rdbms\DBConnRef::selectField' => $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::selectFieldValues' => $selectWrapper,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::selectFieldValues' => $selectWrapper,
 			'\Wikimedia\Rdbms\DBConnRef::selectFieldValues' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectFieldValues' => $selectWrapper,
-			'\Wikimedia\Rdbms\IDatabase::selectSQLText' => $selectWrapper,
-			'\Wikimedia\Rdbms\DBConnRef::selectSQLText' => $selectWrapper,
-			'\Wikimedia\Rdbms\Database::selectSQLText' => $selectWrapper,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::selectSQLText' => [
+					'overall' => self::YES_TAINT & ~self::SQL_TAINT
+				] + $selectWrapper,
+			'\Wikimedia\Rdbms\IDatabase::selectSQLText' => [
+					'overall' => self::YES_TAINT & ~self::SQL_TAINT
+				] + $selectWrapper,
+			'\Wikimedia\Rdbms\DBConnRef::selectSQLText' => [
+					'overall' => self::YES_TAINT & ~self::SQL_TAINT
+				] + $selectWrapper,
+			'\Wikimedia\Rdbms\Database::selectSQLText' => [
+					'overall' => self::YES_TAINT & ~self::SQL_TAINT
+				] + $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::selectRowCount' => $selectWrapper,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::selectRowCount' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectRowCount' => $selectWrapper,
 			'\Wikimedia\Rdbms\DBConnRef::selectRowCount' => $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::selectRow' => $selectWrapper,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::selectRow' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectRow' => $selectWrapper,
 			'\Wikimedia\Rdbms\DBConnRef::selectRow' => $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::delete' => [
+				self::SQL_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\IMaintainableDatabase::delete' => [
 				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_EXEC_TAINT,
@@ -130,6 +155,15 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::insert' => [
+				self::SQL_EXEC_TAINT, // table name
+				// FIXME This doesn't correctly work
+				// when inserting multiple things at once.
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::SQL_EXEC_TAINT, // options. They are not escaped
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\IMaintainableDatabase::insert' => [
 				self::SQL_EXEC_TAINT, // table name
 				// FIXME This doesn't correctly work
 				// when inserting multiple things at once.
@@ -157,6 +191,14 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::update' => [
+				self::SQL_EXEC_TAINT, // table name
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_NUMKEY_EXEC_TAINT,
+				self::SQL_EXEC_TAINT, // method name
+				self::NO_TAINT, // options. They are validated
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\IMaintainableDatabase::update' => [
 				self::SQL_EXEC_TAINT, // table name
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
@@ -219,6 +261,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT,
 			],
 			'\Wikimedia\Rdbms\IDatabase::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT,
+			],
+			'\Wikimedia\Rdbms\IMaintainableDatabase::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT,
 			],
@@ -331,6 +377,17 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				SecurityCheckPlugin::NO_TAINT,
 				'overall' => SecurityCheckPlugin::NO_TAINT
 			],
+			'\Xml::encodeJsVar' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
+				self::NO_TAINT, /* pretty */
+				'overall' => self::NO_TAINT
+			],
+			'\Xml::encodeJsCall' => [
+				self::YES_TAINT, /* func name. unescaped */
+				self::YES_TAINT & ~self::HTML_TAINT, /* args */
+				self::NO_TAINT, /* pretty */
+				'overall' => self::NO_TAINT
+			],
 			'\OutputPage::addHeadItem' => [
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT,
@@ -441,6 +498,35 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'CommentStore::insertWithTempTable' => [
+				'overall' => self::NO_TAINT
+			],
+			// TODO FIXME, Why couldn't it figure out
+			// that this is safe on its own?
+			// It seems that it has issue with
+			// the url query parameters.
+			'Linker::linkKnown' => [
+				self::NO_TAINT, /* target */
+				self::YES_TAINT, /* raw html text */
+				// The array keys for this aren't escaped (!)
+				self::NO_TAINT, /* customAttribs */
+				self::NO_TAINT, /* query */
+				self::NO_TAINT, /* options. All are safe */
+				'overall' => self::NO_TAINT
+			],
+			'MediaWiki\Linker\LinkRenderer::buildAElement' => [
+				self::NO_TAINT, /* target */
+				self::NO_TAINT, /* text (using HtmlArmor) */
+				// The array keys for this aren't escaped (!)
+				self::NO_TAINT, /* attribs */
+				self::NO_TAINT, /* known */
+				'overall' => self::NO_TAINT
+			],
+			'MediaWiki\Linker\LinkRenderer::makeLink' => [
+				self::NO_TAINT, /* target */
+				self::NO_TAINT, /* text (using HtmlArmor) */
+				// The array keys for this aren't escaped (!)
+				self::NO_TAINT, /* attribs */
+				self::NO_TAINT, /* query */
 				'overall' => self::NO_TAINT
 			],
 		];

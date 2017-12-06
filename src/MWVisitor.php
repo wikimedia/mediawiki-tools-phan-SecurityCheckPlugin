@@ -270,13 +270,16 @@ class MWVisitor extends TaintednessBaseVisitor {
 		if ( !$alreadyRegistered ) {
 			// If this is the first time seeing this, re-analyze the
 			// node, just in case we had already passed it by.
+			$func = null;
 			if ( $callback->isClosure() ) {
 				// For closures we have to reanalyze the parent
 				// function, as we can't reanalyze the closure, and
 				// we definitely need to since the closure would
 				// have already been analyzed at this point since
 				// we are operating in post-order.
-				$func = $this->context->getFunctionLikeInScope( $this->code_base );
+				if ( $this->context->isInFunctionLikeScope() ) {
+					$func = $this->context->getFunctionLikeInScope( $this->code_base );
+				}
 			} elseif ( $callback instanceof FullyQualifiedMethodName ) {
 				$func = $this->code_base->getMethodByFQSEN( $callback );
 			} else {
@@ -286,10 +289,12 @@ class MWVisitor extends TaintednessBaseVisitor {
 			// Make sure we reanalyze the hook function now that
 			// we know what it is, in case its already been
 			// analyzed.
-			$func->analyze(
-				$func->getContext(),
-				$this->code_base
-			);
+			if ( $func ) {
+				$func->analyze(
+					$func->getContext(),
+					$this->code_base
+				);
+			}
 		}
 	}
 

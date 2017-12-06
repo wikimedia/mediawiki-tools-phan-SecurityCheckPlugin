@@ -1529,7 +1529,7 @@ return [];
 			} elseif ( isset( $taint[$i] ) ) {
 				if (
 					( $taint[$i] & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
-					&& !$this->nodeIsArray( $argument )
+					&& $this->nodeIsString( $argument )
 					&& ( $curArgTaintedness & SecurityCheckPlugin::SQL_TAINT )
 				) {
 					// Special case to make NUMKEY work right for non-array
@@ -1707,6 +1707,42 @@ return [];
 				!$type->hasType( MixedType::instance() ) &&
 				!$type->hasType( StringType::instance() )
 			) {
+				return true;
+			}
+		} catch ( Exception $e ) {
+			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
+		}
+		return false;
+	}
+
+	/**
+	 * Given a Node, is it a string? (And definitely not an array)
+	 *
+	 * @todo Unclear if this should return true for things that can
+	 *   autocast to a string (e.g. ints)
+	 * @param Mixed|Node $node A node object or simple value from AST tree
+	 * @return bool Is it a string?
+	 */
+	protected function nodeIsString( $node ) : bool {
+		if ( is_string( $node ) ) {
+			return true;
+		}
+		if ( !( $node instanceof Node ) ) {
+			// simple literal
+			return false;
+		}
+		try {
+			$type = UnionTypeVisitor::unionTypeFromNode(
+				$this->code_base,
+				$this->context,
+				$node
+			);
+			if (
+				!$type->hasArrayLike() &&
+				$type->hasType( StringType::instance() )
+			) {
+				// FIXME TODO: Should having Mixed type
+				// result in returning false here?
 				return true;
 			}
 		} catch ( Exception $e ) {

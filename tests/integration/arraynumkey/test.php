@@ -83,3 +83,27 @@ $db->select( 't', 'f', '', __METHOD__,
 
 $b = (int)$_GET['b'];
 $db->select( 't', 'f', [ 'foo' => $_GET['a'], "bar > $b" ] );
+
+$row = (object)[ 'foo' => $_GET['bar'] ];
+$db->selectRow( 't', 'f', [ 'foo2' => $row->foo ] );
+$whereRow = [ 'foo2' => $row->foo ];
+$db->selectRow( 't', 'f', $whereRow );
+
+$subquery = $db->selectSQLText(
+	'Foo',
+	'1',
+	[ 'value' => $_GET['val'], 'baz=red', 'foo' => '<script>' ],
+	__METHOD__,
+	[ 'LIMIT' => 1 ]
+);
+
+// safe
+$db->select(
+	'Bar',
+	'*',
+	[ 'NOT EXISTS( ' . $subquery . ')' ],
+	__METHOD__
+);
+
+// unsafe
+echo $subquery;

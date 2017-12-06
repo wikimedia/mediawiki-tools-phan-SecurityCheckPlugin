@@ -778,12 +778,12 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				& SecurityCheckPlugin::SQL_NUMKEY_TAINT
 			) {
 				$childTaint &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
-
-			} elseif (
+			}
+			if (
 				( $this->getTaintedness( $key ) & $sqlTaint ) ||
 				( ( $key === null || $this->nodeIsInt( $key ) )
 				&& ( $this->getTaintedness( $value ) & $sqlTaint )
-				&& !$this->nodeIsArray( $value ) )
+				&& $this->nodeIsString( $value ) )
 			) {
 				$childTaint |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 			}
@@ -888,6 +888,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				// Don't include serialize here due to high false positives
 				// Eventhough unserializing stuff from db can be very
 				// problematic if user can ever control.
+				// FIXME This is MW specific so should not be
+				// in the generic visitor.
 				return SecurityCheckPlugin::YES_TAINT & ~SecurityCheckPlugin::SERIALIZE_TAINT;
 			}
 			if (
