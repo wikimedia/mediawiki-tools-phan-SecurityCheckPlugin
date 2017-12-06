@@ -31,7 +31,10 @@
         "scripts/seccheck-generic"
     ],
     "support": {
-        "issues": "https://phabricator.wikimedia.org"
+        "issues": "https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?subscribers=bawolff",
+	"source": "https://phabricator.wikimedia.org/diffusion/MTPS/",
+	"wiki": "https://www.mediawiki.org/wiki/SecurityCheckPlugin",
+	"irc": "irc://freenode.net/wikimedia-dev"
     },
     "license": "GPLv2",
     "authors": [
