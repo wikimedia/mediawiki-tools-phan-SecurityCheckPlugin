@@ -2,9 +2,9 @@
 /*
  * Copyright Brian Wolff 2017. Released under the GPL version 2 or later.
  */
-require_once __DIR__ . "/SecurityCheckPlugin.php";
-require_once __DIR__ . "/MWVisitor.php";
-require_once __DIR__ . "/MWPreVisitor.php";
+require_once __DIR__ . "/src/SecurityCheckPlugin.php";
+require_once __DIR__ . "/src/MWVisitor.php";
+require_once __DIR__ . "/src/MWPreVisitor.php";
 
 use Phan\CodeBase;
 use Phan\Config;

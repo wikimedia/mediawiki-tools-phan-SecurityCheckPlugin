@@ -288,6 +288,6 @@ return [
 
 	// A list of plugin files to execute
 	'plugins' => [
-		Config::projectPath( '../src/MediaWikiSecurityCheckPlugin.php' )
+		Config::projectPath( '../MediaWikiSecurityCheckPlugin.php' )
 	],
 ];

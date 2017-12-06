@@ -31,10 +31,14 @@ return [
 	/**
 	 * A list of individual files to include in analysis
 	 * with a path relative to the root directory of the
-	 * project. directory_list won't find .inc files so
-	 * we augment it here.
+	 * project.
+	 *
+	 * We include the plugin entry points that aren't in src/
 	 */
-	'file_list' => [],
+	'file_list' => [
+		Config::projectPath( 'GenericSecurityCheckPlugin.php' ),
+		Config::projectPath( 'MediaWikiSecurityCheckPlugin.php' ),
+	],
 
 	/**
 	 * A list of directories that should be parsed for class and
