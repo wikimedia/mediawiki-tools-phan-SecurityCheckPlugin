@@ -1,47 +1,48 @@
 {
-    "name": "wikimedia/security-check-plugin",
-    "description": "A Phan plugin to do security checking",
-    "keywords": [ "php", "static", "analyzer", "phan", "security" ],
-    "type": "library",
-    "require": {
-        "etsy/phan": "0.8.0",
-        "php": "~7.0.0",
-        "ext-ast": "*"
-    },
-    "require-dev": {
-        "mediawiki/mediawiki-codesniffer": "14.1.0",
-        "jakub-onderka/php-parallel-lint": "^0.9.2"
-    },
-    "scripts": {
-        "test": [
-            "composer phpcs",
-            "composer integration-tests",
-            "composer phan-for-plugin"
-        ],
-	"phpcs": "phpcs -p -s",
-	"integration-tests": "./tests/runtests.sh",
-	"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
-        "fix": "phpcbf"
-    },
-    "bin": [
-        "scripts/seccheck-mwext",
-        "scripts/seccheck-slow-mwext",
-        "scripts/seccheck-fast-mwext",
-        "scripts/seccheck-mw",
-        "scripts/seccheck-generic"
-    ],
-    "support": {
-        "issues": "https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?subscribers=bawolff",
-	"source": "https://phabricator.wikimedia.org/diffusion/MTPS/",
-	"wiki": "https://www.mediawiki.org/wiki/SecurityCheckPlugin",
-	"irc": "irc://freenode.net/wikimedia-dev"
-    },
-    "license": "GPLv2",
-    "authors": [
-        {
-            "name": "Brian Wolff",
-            "email": "bawolff+wn@gmail.com"
-        }
-    ],
-    "minimum-stability": "stable"
+	"name": "wikimedia/security-check-plugin",
+	"description": "A Phan plugin to do security checking",
+	"keywords": [ "php", "static", "analyzer", "phan", "security" ],
+	"license": "GPL-2.0+",
+	"authors": [
+		{
+			"name": "Brian Wolff",
+			"email": "bawolff+wn@gmail.com"
+		}
+	],
+	"support": {
+		"issues": "https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?projects=securitycheckplugin",
+		"source": "https://phabricator.wikimedia.org/diffusion/MTPS/",
+		"wiki": "https://www.mediawiki.org/wiki/SecurityCheckPlugin",
+		"irc": "irc://freenode.net/wikimedia-dev"
+	},
+	"require": {
+		"etsy/phan": "0.8.0",
+		"php": ">=7.0",
+		"ext-ast": "*"
+	},
+	"require-dev": {
+		"mediawiki/mediawiki-codesniffer": "14.1.0",
+		"jakub-onderka/php-parallel-lint": "0.9.2",
+		"jakub-onderka/php-console-highlighter": "0.3.2",
+	},
+	"scripts": {
+		"test": [
+			"parallel-lint . --exclude vendor",
+			"composer phpcs",
+			"composer integration-tests",
+			"composer phan-for-plugin"
+			],
+		"phpcs": "phpcs -p -s",
+		"integration-tests": "./tests/runtests.sh",
+		"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
+		"fix": "phpcbf"
+	},
+	"minimum-stability": "stable",
+	"bin": [
+		"scripts/seccheck-mwext",
+		"scripts/seccheck-slow-mwext",
+		"scripts/seccheck-fast-mwext",
+		"scripts/seccheck-mw",
+		"scripts/seccheck-generic"
+	]
 }
