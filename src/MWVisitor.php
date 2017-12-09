@@ -687,7 +687,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 	 *
 	 * @param Node $node
 	 * @note This assumes $wgHooks is always the global
-	 *   even if there is no globals decleration.
+	 *   even if there is no globals declaration.
 	 */
 	public function visitAssign( Node $node ) {
 		$var = $node->children['var'];

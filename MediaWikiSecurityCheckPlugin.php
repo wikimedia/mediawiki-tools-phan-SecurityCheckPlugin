@@ -661,7 +661,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	}
 
 	/**
-	 * Mark XSS's that happen in a Maintinance subclass as false a positive
+	 * Mark XSS's that happen in a Maintenance subclass as false a positive
 	 *
 	 * @param int $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
 	 * @param int $rhsTaint The taint of the expression
