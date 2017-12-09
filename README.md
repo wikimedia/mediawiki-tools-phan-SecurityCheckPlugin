@@ -17,7 +17,7 @@ Usage
 -----
 
 ### System requirements
-* php >= 7.0
+* php = 7.0 (7.1 is not supported)
 * Phan 0.8.0 [This has not been tested on any other version of phan]
 * Lots of memory. Scanning MediaWiki seems to take about 3 minutes
 and use about 2 GB of memory. Running out of memory may be a real issue
