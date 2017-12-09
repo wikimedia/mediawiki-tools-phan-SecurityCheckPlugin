@@ -1,5 +1,5 @@
 {
-	"name": "wikimedia/security-check-plugin",
+	"name": "mediawiki/phan-security-plugin",
 	"description": "A Phan plugin to do security checking",
 	"keywords": [ "php", "static", "analyzer", "phan", "security" ],
 	"license": "GPL-2.0+",

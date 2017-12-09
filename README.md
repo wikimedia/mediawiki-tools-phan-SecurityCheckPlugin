@@ -26,7 +26,7 @@ memory.
 
 ### Composer
 
-  $ composer require --dev wikimedia/security-check-plugin
+  $ composer require --dev mediawiki/phan-security-plugin
 
 * For MediaWiki core, add the following to composer.json:
 
