@@ -33,7 +33,7 @@ class Foo {
 	 * was called before this despite it being
 	 * earlier in the source file
 	 */
-	public function echoThing() {
+	public function echoThing2() {
 		global $globalFoo, $globalBar;
 		// Should give warning
 		echo $this->bar2;
