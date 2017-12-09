@@ -126,6 +126,10 @@ There's much more than listed here, but some notable limitations/bugs:
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you may have to write a subclass of
   SecurityCheckPlugin in order for the plugin to recognize it.
+* The plugin can only validate the fifth ($options) and sixth ($join_cond)
+  of MediaWiki's IDatabase::select() if its provided directly as an array
+  literal, or directly returned as an array literal from a getQueryInfo()
+  method.
 
 Customizing
 -----------
