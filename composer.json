@@ -1,7 +1,7 @@
 {
-	"name": "mediawiki/phan-security-plugin",
+	"name": "mediawiki/phan-taint-check-plugin",
 	"description": "A Phan plugin to do security checking",
-	"keywords": [ "php", "static", "analyzer", "phan", "security" ],
+	"keywords": [ "php", "static", "analyzer", "phan", "security", "taint" ],
 	"license": "GPL-2.0+",
 	"authors": [
 		{
