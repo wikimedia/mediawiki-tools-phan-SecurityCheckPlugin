@@ -295,26 +295,26 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT,
 			],
-			// '\Message::__construct' => SecurityCheckPlugin::YES_TAINT,
-			// '\wfMessage' => SecurityCheckPlugin::YES_TAINT,
-			'\Message::plain' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\Message::text' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\Message::parseAsBlock' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\Message::parse' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\Message::escaped' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
+			// '\Message::__construct' => self::YES_TAINT,
+			// '\wfMessage' => self::YES_TAINT,
+			'\Message::plain' => [ 'overall' => self::YES_TAINT, ],
+			'\Message::text' => [ 'overall' => self::YES_TAINT, ],
+			'\Message::parseAsBlock' => [ 'overall' => self::NO_TAINT, ],
+			'\Message::parse' => [ 'overall' => self::NO_TAINT, ],
+			'\Message::escaped' => [ 'overall' => self::NO_TAINT, ],
 			'\Message::rawParams' => [
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
 				// meh, not sure how right the overall is.
-				'overall' => SecurityCheckPlugin::HTML_TAINT
+				'overall' => self::HTML_TAINT
 			],
 			// AddItem should also take care of addGeneral and friends.
 			'\StripState::addItem' => [
@@ -373,28 +373,28 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::YES_TAINT
 			],
 			'\Html::rawElement' => [
-				SecurityCheckPlugin::HTML_TAINT,
-				SecurityCheckPlugin::NO_TAINT,
-				SecurityCheckPlugin::HTML_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				self::HTML_TAINT,
+				self::NO_TAINT,
+				self::HTML_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Html::element' => [
-				SecurityCheckPlugin::HTML_TAINT,
-				SecurityCheckPlugin::NO_TAINT,
-				SecurityCheckPlugin::NO_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				self::HTML_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Xml::tags' => [
-				SecurityCheckPlugin::HTML_TAINT,
-				SecurityCheckPlugin::NO_TAINT,
-				SecurityCheckPlugin::HTML_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				self::HTML_TAINT,
+				self::NO_TAINT,
+				self::HTML_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Xml::element' => [
-				SecurityCheckPlugin::HTML_TAINT,
-				SecurityCheckPlugin::NO_TAINT,
-				SecurityCheckPlugin::NO_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				self::HTML_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Xml::encodeJsVar' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
@@ -408,39 +408,39 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\OutputPage::addHeadItem' => [
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT,
 			],
 			'\OutputPage::addHTML' => [
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 			'\OutputPage::prependHTML' => [
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 			'\OutputPage::addInlineStyle' => [
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT,
 			],
-			'\OutputPage::parse' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
+			'\OutputPage::parse' => [ 'overall' => self::NO_TAINT, ],
 			'\Parser::parse' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 			'\Parser::recursiveTagParse' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
 				self::NO_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 			'\Parser::recursiveTagParseFully' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
 				self::NO_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 			'\ParserOutput::getText' => [
 				self::NO_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT,
+				'overall' => self::NO_TAINT,
 			],
 			'\Sanitizer::removeHTMLtags' => [
 				self::YES_TAINT & ~self::HTML_TAINT, /* text */
@@ -448,46 +448,46 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT, /* callback args */
 				self::YES_TAINT, /* extra tags */
 				self::NO_TAINT, /* remove tags */
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				'overall' => self::NO_TAINT
 			],
 			'\Sanitizer::escapeHtmlAllowEntities' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				'overall' => self::NO_TAINT
 			],
 			'\Sanitizer::safeEncodeAttribute' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				'overall' => self::NO_TAINT
 			],
 			'\Sanitizer::encodeAttribute' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => SecurityCheckPlugin::NO_TAINT
+				'overall' => self::NO_TAINT
 			],
-			'\WebRequest::getGPCVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getGPCVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getRawVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getVal' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getArray' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getIntArray' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getInt' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getIntOrNull' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getFloat' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getBool' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getFuzzyBool' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getCheck' => [ 'overall' => SecurityCheckPlugin::NO_TAINT, ],
-			'\WebRequest::getText' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getValues' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getValueNames' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getQueryValues' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getRawQueryString' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getRawPostString' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getRawInput' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getCookie' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getGlobalRequestURL' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getRequestURL' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getFullRequestURL' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getAllHeaders' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getHeader' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
-			'\WebRequest::getAcceptLang' => [ 'overall' => SecurityCheckPlugin::YES_TAINT, ],
+			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getRawVal' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getVal' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getArray' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getIntArray' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getInt' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getIntOrNull' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getFloat' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getBool' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getFuzzyBool' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getCheck' => [ 'overall' => self::NO_TAINT, ],
+			'\WebRequest::getText' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getValues' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getValueNames' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getQueryValues' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getRawQueryString' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getRawPostString' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getRawInput' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getCookie' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getGlobalRequestURL' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getRequestURL' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getFullRequestURL' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getAllHeaders' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
+			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
 			'OOUI\HtmlSnippet::__construct' => [
 				self::HTML_EXEC_TAINT & self::YES_TAINT,
 				'overall' => self::NO_TAINT

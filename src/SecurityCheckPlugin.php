@@ -149,7 +149,7 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 *   return value, or whether the parameter is directly executed.
 	 *   The special key overall controls the taint of the function
 	 *   irrespective of its parameters. The overall keys must always be specified.
-	 *   As a special case, if the overall key has SecurityCheckPlugin::PRESERVE_TAINT
+	 *   As a special case, if the overall key has self::PRESERVE_TAINT
 	 *   then any unspecified keys behave like they are self::YES_TAINT.
 	 *
 	 *   For example: [ self::YES_TAINT, 'overall' => self::NO_TAINT ]
