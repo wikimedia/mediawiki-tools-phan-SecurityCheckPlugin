@@ -373,25 +373,25 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::YES_TAINT
 			],
 			'\Html::rawElement' => [
-				self::HTML_TAINT,
+				self::YES_TAINT,
 				self::NO_TAINT,
-				self::HTML_TAINT,
+				self::YES_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Html::element' => [
-				self::HTML_TAINT,
+				self::YES_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Xml::tags' => [
-				self::HTML_TAINT,
+				self::YES_TAINT,
 				self::NO_TAINT,
-				self::HTML_TAINT,
+				self::YES_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Xml::element' => [
-				self::HTML_TAINT,
+				self::YES_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
