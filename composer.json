@@ -32,6 +32,12 @@
 			"composer integration-tests",
 			"./tests/run-phan-on-plugin.sh"
 		],
+		"test-php7.0": [
+			"parallel-lint . --exclude vendor -p php7.0",
+			"composer phpcs",
+			"composer integration-tests",
+			"./tests/run-phan-on-plugin.sh -p"
+		],
 		"phpcs": "phpcs -p -s",
 		"integration-tests": "./tests/runtests.sh",
 		"phan-for-plugin": "./tests/run-phan-on-plugin.sh -p",
