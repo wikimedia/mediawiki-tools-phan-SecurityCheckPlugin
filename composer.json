@@ -30,11 +30,11 @@
 			"parallel-lint . --exclude vendor",
 			"composer phpcs",
 			"composer integration-tests",
-			"composer phan-for-plugin"
-			],
+			"./tests/run-phan-on-plugin.sh"
+		],
 		"phpcs": "phpcs -p -s",
 		"integration-tests": "./tests/runtests.sh",
-		"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
+		"phan-for-plugin": "./tests/run-phan-on-plugin.sh -p",
 		"fix": "phpcbf"
 	},
 	"minimum-stability": "stable",

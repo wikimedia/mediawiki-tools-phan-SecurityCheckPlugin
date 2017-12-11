@@ -244,7 +244,9 @@ return [
 	'expand_file_list' => false,
 
 	// Include a progress bar in the output
-	'progress_bar' => true,
+	// Shell script determines this dynamically
+	// if stderr is a tty.
+	'progress_bar' => false,
 
 	/**
 	 * The probability of actually emitting any progress
