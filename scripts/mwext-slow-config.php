@@ -65,7 +65,7 @@ $MWExtConfig = [
 	 * files.
 	 */
 	"exclude_analysis_directory_list" => [
-		'vendor/wikimedia/security-check-plugin'
+		'vendor/mediawiki/phan-taint-check-plugin'
 	],
 
 	/**
