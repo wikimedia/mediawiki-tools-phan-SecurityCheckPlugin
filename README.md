@@ -22,34 +22,40 @@ Usage
 * Lots of memory. Scanning MediaWiki seems to take about 3 minutes
 and use about 2 GB of memory. Running out of memory may be a real issue
 if you try and scan something from within a VM that has limited
-memory.
+memory. Small projects do not require so much memory
 
 ### Composer
 
-  $ composer require --dev mediawiki/phan-security-plugin
+  $ `composer require --dev mediawiki/phan-taint-check-plugin`
 
 * For MediaWiki core, add the following to composer.json:
 
+```json
   "scripts": {
      "seccheck": "seccheck-mw"
   }
+```
 
 * For a MediaWiki extension, add the following to composer.json:
 
+```json
   "scripts": {
-     "seccheck": "seccheck-mwext"
+     "seccheck": "seccheck-mwext",
      "seccheck-fast": "seccheck-fast-mwext"
   }
+```
 
 * For a generic php project, add the following to composer.json:
 
+```json
   "scripts": {
      "seccheck": "seccheck-generic"
   }
+```
 
 You can then run:
 
-  $ composer seccheck
+  $ `composer seccheck`
 
 to run the security check. Note that false positives are disabled by default.
 For MediaWiki extensions, this assumes the extension is installed in the
