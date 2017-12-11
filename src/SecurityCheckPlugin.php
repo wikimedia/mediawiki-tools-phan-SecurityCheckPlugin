@@ -36,10 +36,10 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	// to the variable in question.
 
 	const NO_TAINT = 0;
-	// For decleration type things. Given a special value for
+	// For declaration type things. Given a special value for
 	// debugging purposes, but inapplicable taint should not
 	// actually show up anywhere.
-	const INAPLICABLE_TAINT = 1;
+	const INAPPLICABLE_TAINT = 1;
 	// Flag to denote that we don't know
 	const UNKNOWN_TAINT = 2;
 	// Flag for function parameters and the like, where it

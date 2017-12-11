@@ -39,7 +39,7 @@ use Phan\Debug;
  * this does for now.
  *
  * This also maintains some other properties, such as where the error
- * originates, and dependencies in certaint cases.
+ * originates, and dependencies in certain cases.
  */
 class TaintednessVisitor extends TaintednessBaseVisitor {
 
@@ -100,7 +100,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// some issues in the inbetween period.
 			$this->setFuncTaint( $method, [ 'overall' => SecurityCheckPlugin::NO_TAINT ] );
 		}
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	// No-ops we ignore.
@@ -112,7 +112,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitStmtList( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -120,7 +120,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitUseElem( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -128,7 +128,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitType( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -136,7 +136,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitArgList( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -144,7 +144,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitParamList( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -153,7 +153,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitParam( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -161,7 +161,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitClass( Decl $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -169,7 +169,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitClassConstDecl( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -177,7 +177,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitIf( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -185,7 +185,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitThrow( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -194,7 +194,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitPropDecl( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -202,7 +202,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitConstElem( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -210,7 +210,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitUse( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -218,7 +218,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitBreak( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -226,7 +226,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitContinue( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -234,7 +234,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitGoto( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -242,7 +242,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitCatch( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -250,7 +250,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitNamespace( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -258,7 +258,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitSwitch( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -266,7 +266,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitSwitchCase( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -274,7 +274,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitWhile( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -282,7 +282,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitUnset( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -290,7 +290,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * @return int Taint
 	 */
 	public function visitTry( Node $node ) : int {
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -697,7 +697,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * A global decleration. Assume most globals are untainted.
+	 * A global declaration. Assume most globals are untainted.
 	 *
 	 * @param Node $node
 	 * @return int Taint
@@ -725,7 +725,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			$localVar->taintedness =& $globalVar->taintedness;
 			$localVar->taintednessHasOuterScope = true;
 		}
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -774,7 +774,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				);
 			}
 		}
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
@@ -952,7 +952,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, "Setting taint preserve if not set"
 		// . " yet for \$" . $node->children['name'] . "" );
 		$this->setTaintedness( $prop, SecurityCheckPlugin::NO_TAINT, false );
-		return SecurityCheckPlugin::INAPLICABLE_TAINT;
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**

@@ -3,8 +3,8 @@
  * This is phan plugin to provide security static analysis checks for php
  *
  * If your project has functions/methods whose output you
- * specificly need to mark tainted, then you probably
- * want to make your own subcalss of SecurityCheckPlugin
+ * specifically need to mark tainted, then you probably
+ * want to make your own subclass of SecurityCheckPlugin
  * and override getCustomFuncTaint().
  *
  * See MediaWikiSecurityCheckPlugin for an example of that.

@@ -336,7 +336,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 *                  the TAINT flags are what taint the output has
 	 *   For numeric keys: EXEC flags for what taints are unsafe here
 	 *                     TAINT flags for what taint gets passed through func.
-	 *   If func has an arg that is mssing from array, then it should be
+	 *   If func has an arg that is missing from array, then it should be
 	 *   treated as TAINT_NO if its a number or bool. TAINT_YES otherwise.
 	 * @suppress PhanUndeclaredMethod
 	 */
@@ -988,7 +988,7 @@ return [];
 	/**
 	 * Convert the yes taint bits to corresponding exec taint bits.
 	 *
-	 * Any UNKNOWN_TAINT or INAPLICABLE_TAINT is discarded.
+	 * Any UNKNOWN_TAINT or INAPPLICABLE_TAINT is discarded.
 	 *
 	 * @param int $taint
 	 * @return int The converted taint
@@ -1000,7 +1000,7 @@ return [];
 	/**
 	 * Convert exec to yes taint
 	 *
-	 * Special flags like UNKNOWN or INAPLICABLE are discarded.
+	 * Special flags like UNKNOWN or INAPPLICABLE are discarded.
 	 * Any YES flags are also discarded
 	 *
 	 * @param int $taint The taint in question
