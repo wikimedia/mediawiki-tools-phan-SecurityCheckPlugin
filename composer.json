@@ -18,7 +18,7 @@
 	"require": {
 		"etsy/phan": "0.8.0",
 		"php": "~7.0.0",
-		"ext-ast": "*"
+		"ext-ast": "<=0.1.4"
 	},
 	"require-dev": {
 		"mediawiki/mediawiki-codesniffer": "14.1.0",
