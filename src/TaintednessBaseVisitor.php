@@ -1461,6 +1461,10 @@ return [];
 			// of false positives.
 			// $severity = 4;
 		} elseif (
+			$combinedTaint === SecurityCheckPlugin::ESCAPED_TAINT
+		) {
+			$issueType = 'SecurityCheck-DoubleEscaped';
+		} elseif (
 			$combinedTaint === SecurityCheckPlugin::CUSTOM1_TAINT
 		) {
 			$issueType = 'SecurityCheck-CUSTOM1';

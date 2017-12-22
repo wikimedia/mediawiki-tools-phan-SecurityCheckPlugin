@@ -77,6 +77,9 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	// the SQL_TAINT flag set.
 	const SQL_NUMKEY_TAINT = 131072;
 	const SQL_NUMKEY_EXEC_TAINT = 262144;
+	// For double escaped variables
+	const ESCAPED_TAINT = 524288;
+	const ESCAPED_EXEC_TAINT = 1048576;
 
 	// Special purpose flags(Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
@@ -87,8 +90,8 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	const EXEC_TAINT = 87376;
 	const YES_EXEC_TAINT = 131064;
 	// ALL_TAINT == YES_TAINT | SQL_NUMKEY_TAINT
-	const ALL_TAINT = 174760;
-	const ALL_EXEC_TAINT = 349520;
+	const ALL_TAINT = 699048;
+	const ALL_EXEC_TAINT = 1398096;
 
 	/**
 	 * Called on every node in the AST in post-order
@@ -202,15 +205,15 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	}
 
 	/**
-	 * Tains for builtin php functions
+	 * Taints for builtin php functions
 	 *
 	 * @return array List of func taints (See getBuiltinFuncTaint())
 	 */
 	protected function getPHPFuncTaints() : array {
 		return [
 			'\htmlspecialchars' => [
-				~self::HTML_TAINT & self::YES_TAINT,
-				'overall' => self::NO_TAINT
+				( ~self::HTML_TAINT & self::YES_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\escapeshellarg' => [
 				~self::SHELL_TAINT & self::YES_TAINT,

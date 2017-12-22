@@ -245,63 +245,63 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			// the right type of escaping.
 			'\Wikimedia\Rdbms\Database::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabaseMysqlBase::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabaseMssql::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DBConnRef::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\Database::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DBConnRef::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabaseMysqlBase::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabaseMssql::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IMaintainableDatabase::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabasePostgres::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabaseSqlite::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			// '\Message::__construct' => self::YES_TAINT,
 			// '\wfMessage' => self::YES_TAINT,
-			'\Message::plain' => [ 'overall' => self::YES_TAINT, ],
-			'\Message::text' => [ 'overall' => self::YES_TAINT, ],
-			'\Message::parseAsBlock' => [ 'overall' => self::NO_TAINT, ],
-			'\Message::parse' => [ 'overall' => self::NO_TAINT, ],
-			'\Message::escaped' => [ 'overall' => self::NO_TAINT, ],
+			'\Message::plain' => [ 'overall' => self::YES_TAINT ],
+			'\Message::text' => [ 'overall' => self::YES_TAINT ],
+			'\Message::parseAsBlock' => [ 'overall' => self::ESCAPED_TAINT ],
+			'\Message::parse' => [ 'overall' => self::ESCAPED_TAINT ],
+			'\Message::escaped' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::rawParams' => [
 				self::HTML_EXEC_TAINT,
 				self::HTML_EXEC_TAINT,
@@ -342,7 +342,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'MediaWiki\Shell\Shell::escape' => [
 				self::YES_TAINT & ~self::SHELL_TAINT,
@@ -354,7 +354,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'MediaWiki\Shell\Command::unsafeParams' => [
 				self::SHELL_EXEC_TAINT,
@@ -397,27 +397,27 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\Xml::encodeJsVar' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
 				self::NO_TAINT, /* pretty */
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Xml::encodeJsCall' => [
 				self::YES_TAINT, /* func name. unescaped */
-				self::YES_TAINT & ~self::HTML_TAINT, /* args */
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT, /* args */
 				self::NO_TAINT, /* pretty */
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\OutputPage::addHeadItem' => [
 				self::HTML_EXEC_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\OutputPage::addHTML' => [
 				self::HTML_EXEC_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\OutputPage::prependHTML' => [
 				self::HTML_EXEC_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\OutputPage::addInlineStyle' => [
 				self::HTML_EXEC_TAINT,
@@ -425,42 +425,42 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\OutputPage::parse' => [ 'overall' => self::NO_TAINT, ],
 			'\Parser::parse' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => self::NO_TAINT,
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Parser::recursiveTagParse' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Parser::recursiveTagParseFully' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\ParserOutput::getText' => [
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\Sanitizer::removeHTMLtags' => [
-				self::YES_TAINT & ~self::HTML_TAINT, /* text */
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT, /* text */
 				self::SHELL_EXEC_TAINT, /* attribute callback */
 				self::NO_TAINT, /* callback args */
 				self::YES_TAINT, /* extra tags */
 				self::NO_TAINT, /* remove tags */
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::escapeHtmlAllowEntities' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => self::NO_TAINT
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::safeEncodeAttribute' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => self::NO_TAINT
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::encodeAttribute' => [
-				self::YES_TAINT & ~self::HTML_TAINT,
-				'overall' => self::NO_TAINT
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
@@ -489,8 +489,8 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
 			'OOUI\HtmlSnippet::__construct' => [
-				self::HTML_EXEC_TAINT & self::YES_TAINT,
-				'overall' => self::NO_TAINT
+				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'OOUI\FieldLayout::__construct' => [
 				'overall' => self::NO_TAINT

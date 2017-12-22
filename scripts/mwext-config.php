@@ -134,6 +134,7 @@ $MWExtConfig = [
 		'SecurityCheck-XSS',
 		'SecurityCheck-SQLInjection',
 		'SecurityCheck-ShellInjection',
+		'SecurityCheck-DoubleEscaped',
 		'SecurityCheck-CUSTOM1',
 		'SecurityCheck-CUSTOM2',
 		'SecurityCheck-OTHER',
