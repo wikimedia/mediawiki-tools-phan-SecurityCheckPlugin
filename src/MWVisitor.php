@@ -94,6 +94,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 					$this->handleNormalHookRegistration( $node );
 					break;
 				case '\Hooks::run':
+				case '\Hooks::runWithoutAbort':
 					$this->triggerHook( $node );
 					break;
 				default:
