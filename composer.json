@@ -16,7 +16,7 @@
 		"irc": "irc://freenode.net/wikimedia-dev"
 	},
 	"require": {
-		"etsy/phan": "0.8.0",
+		"phan/phan": "0.8.0",
 		"php": "~7.0.0",
 		"ext-ast": "<=0.1.4"
 	},

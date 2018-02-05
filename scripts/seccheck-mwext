@@ -14,7 +14,7 @@ then
 	php=`which php`
 fi
 
-$php vendor/etsy/phan/phan \
+$php vendor/phan/phan/phan \
 	-d . \
 	-k vendor/mediawiki/phan-taint-check-plugin/scripts/mwext-config.php \
 	--output "php://stdout" "$@" | grep '\(^\./\| \./\)'

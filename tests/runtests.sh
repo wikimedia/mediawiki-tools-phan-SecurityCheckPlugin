@@ -27,7 +27,7 @@ do
 	SECURITY_CHECK_EXT_PATH=`pwd`"/integration/$i/"
 	export SECURITY_CHECK_EXT_PATH
 	totalTests=$((totalTests+1))
-	$php ../vendor/etsy/phan/phan \
+	$php ../vendor/phan/phan/phan \
         	--project-root-directory "." \
         	--config-file "integration-test-config.php" \
         	--output "php://stdout" \
