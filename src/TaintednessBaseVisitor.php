@@ -17,6 +17,7 @@ use Phan\Language\Type\StringType;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN;
 use Phan\Plugin;
 use ast\Node;
@@ -441,9 +442,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			case 'void':
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::NO_TAINT );
 				break;
-			default:
-				// This means specific class.
-				// TODO - maybe look up __toString() method.
 			case 'string':
 			case 'closure':
 			case 'callable':
@@ -451,10 +449,32 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			case 'object':
 			case 'resource':
 			case 'mixed':
-				// TODO If we have a specific class, maybe look at __toString()
 				// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::UNKNOWN_TAINT );
 				break;
+			default:
+				// This means specific class.
+				// TODO - maybe look up __toString() method.
+				$fqsen = $type->asFQSEN();
+				if ( !($fqsen instanceof FullyQualifiedClassName) ) {
+					$this->debug( __METHOD__, " $type not a class?" );
+					$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::UNKNOWN_TAINT );
+					break;
+				}
+				$toStringFQSEN = FullyQualifiedMethodName::fromStringInContext(
+					$fqsen . '::__toString',
+					$this->context
+				);
+				if ( !$this->code_base->hasMethodWithFQSEN( $toStringFQSEN ) ) {
+					// This is common in a void context.
+					// e.g. code like $this->foo() will reach this
+					// check.
+					$taint |= SecurityCheckPlugin::UNKNOWN_TAINT;
+					break;
+				}
+				$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
+				$methodTaint = $this->getTaintOfFunction( $toString );
+				$taint |= $this->handleMethodCall( $toString, $toStringFQSEN, $methodTaint, [] );
 			}
 		}
 		return $taint;

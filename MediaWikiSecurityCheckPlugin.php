@@ -301,6 +301,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Message::text' => [ 'overall' => self::YES_TAINT ],
 			'\Message::parseAsBlock' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::parse' => [ 'overall' => self::ESCAPED_TAINT ],
+			'\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::escaped' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::rawParams' => [
 				self::HTML_EXEC_TAINT,
