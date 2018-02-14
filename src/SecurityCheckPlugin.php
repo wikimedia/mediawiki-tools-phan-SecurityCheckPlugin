@@ -92,7 +92,7 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	// ALL_TAINT == YES_TAINT | SQL_NUMKEY_TAINT
 	const ALL_TAINT = 699048;
 	const ALL_EXEC_TAINT = 1398096;
-
+	const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
 	/**
 	 * Called on every node in the AST in post-order
 	 *
@@ -211,8 +211,12 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 */
 	protected function getPHPFuncTaints() : array {
 		return [
+			'\htmlentities' => [
+				self::ESCAPES_HTML,
+				'overall' => self::ESCAPED_TAINT
+			],
 			'\htmlspecialchars' => [
-				( ~self::HTML_TAINT & self::YES_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\escapeshellarg' => [

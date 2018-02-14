@@ -374,36 +374,36 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\Html::rawElement' => [
 				self::YES_TAINT,
-				self::NO_TAINT,
+				self::ESCAPES_HTML,
 				self::YES_TAINT,
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Html::element' => [
 				self::YES_TAINT,
-				self::NO_TAINT,
-				self::NO_TAINT,
-				'overall' => self::NO_TAINT
+				self::ESCAPES_HTML,
+				self::ESCAPES_HTML,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Xml::tags' => [
 				self::YES_TAINT,
-				self::NO_TAINT,
+				self::ESCAPES_HTML,
 				self::YES_TAINT,
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Xml::element' => [
 				self::YES_TAINT,
-				self::NO_TAINT,
-				self::NO_TAINT,
-				'overall' => self::NO_TAINT
+				self::ESCAPES_HTML,
+				self::ESCAPES_HTML,
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Xml::encodeJsVar' => [
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				self::ESCAPES_HTML,
 				self::NO_TAINT, /* pretty */
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\Xml::encodeJsCall' => [
 				self::YES_TAINT, /* func name. unescaped */
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT, /* args */
+				self::ESCAPES_HTML,
 				self::NO_TAINT, /* pretty */
 				'overall' => self::ESCAPED_TAINT
 			],
@@ -425,25 +425,28 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\OutputPage::parse' => [ 'overall' => self::NO_TAINT, ],
 			'\Parser::parse' => [
+				// FIXME: Maybe should not have ESCAPED_EXEC_TAINT
 				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\Parser::recursiveTagParse' => [
+				// FIXME: Maybe should not have ESCAPED_EXEC_TAINT
 				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
 				self::NO_TAINT,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\Parser::recursiveTagParseFully' => [
+				// FIXME: Maybe should not have ESCAPED_EXEC_TAINT
 				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
 				self::NO_TAINT,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\ParserOutput::getText' => [
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::removeHTMLtags' => [
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT, /* text */
+				self::ESCAPES_HTML,
 				self::SHELL_EXEC_TAINT, /* attribute callback */
 				self::NO_TAINT, /* callback args */
 				self::YES_TAINT, /* extra tags */
@@ -451,15 +454,15 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::escapeHtmlAllowEntities' => [
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				( self::YES_TAINT & ~self::HTML_TAINT ),
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::safeEncodeAttribute' => [
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\Sanitizer::encodeAttribute' => [
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
@@ -489,7 +492,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
 			'OOUI\HtmlSnippet::__construct' => [
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'OOUI\FieldLayout::__construct' => [
@@ -525,28 +528,44 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			// the url query parameters.
 			'Linker::linkKnown' => [
 				self::NO_TAINT, /* target */
-				self::YES_TAINT, /* raw html text */
+				self::YES_TAINT | self::HTML_EXEC_TAINT, /* raw html text */
 				// The array keys for this aren't escaped (!)
 				self::NO_TAINT, /* customAttribs */
 				self::NO_TAINT, /* query */
 				self::NO_TAINT, /* options. All are safe */
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'MediaWiki\Linker\LinkRenderer::buildAElement' => [
 				self::NO_TAINT, /* target */
-				self::NO_TAINT, /* text (using HtmlArmor) */
+				self::ESCAPES_HTML, /* text (using HtmlArmor) */
 				// The array keys for this aren't escaped (!)
 				self::NO_TAINT, /* attribs */
 				self::NO_TAINT, /* known */
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
 			],
 			'MediaWiki\Linker\LinkRenderer::makeLink' => [
 				self::NO_TAINT, /* target */
-				self::NO_TAINT, /* text (using HtmlArmor) */
+				self::ESCAPES_HTML, /* text (using HtmlArmor) */
 				// The array keys for this aren't escaped (!)
 				self::NO_TAINT, /* attribs */
 				self::NO_TAINT, /* query */
-				'overall' => self::NO_TAINT
+				'overall' => self::ESCAPED_TAINT
+			],
+			'MediaWiki\Linker\LinkRenderer::makeKnownLink' => [
+				self::NO_TAINT, /* target */
+				self::ESCAPES_HTML, /* text (using HtmlArmor) */
+				// The array keys for this aren't escaped (!)
+				self::NO_TAINT, /* attribs */
+				self::NO_TAINT, /* query */
+				'overall' => self::ESCAPED_TAINT
+			],
+			'MediaWiki\Linker\LinkRenderer::makePreloadedLink' => [
+				self::NO_TAINT, /* target */
+				self::ESCAPES_HTML, /* text (using HtmlArmor) */
+				// The array keys for this aren't escaped (!)
+				self::NO_TAINT, /* attribs */
+				self::NO_TAINT, /* query */
+				'overall' => self::ESCAPED_TAINT
 			],
 		];
 	}
