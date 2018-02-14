@@ -345,7 +345,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				'overall' => self::NO_TAINT
 			],
-			'MediaWiki\Shell\Shell::escape' => [
+			'\MediaWiki\Shell\Shell::escape' => [
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				self::YES_TAINT & ~self::SHELL_TAINT,
@@ -357,17 +357,17 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SHELL_TAINT,
 				'overall' => self::NO_TAINT
 			],
-			'MediaWiki\Shell\Command::unsafeParams' => [
+			'\MediaWiki\Shell\Command::unsafeParams' => [
 				self::SHELL_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
-			'MediaWiki\Shell\Result::getStdout' => [
+			'\MediaWiki\Shell\Result::getStdout' => [
 				// This is a bit unclear. Most of the time
 				// you should probably be escaping the results
 				// of a shell command, but not all the time.
 				'overall' => self::YES_TAINT
 			],
-			'MediaWiki\Shell\Result::getStderr' => [
+			'\MediaWiki\Shell\Result::getStderr' => [
 				// This is a bit unclear. Most of the time
 				// you should probably be escaping the results
 				// of a shell command, but not all the time.
@@ -492,42 +492,42 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\WebRequest::getAllHeaders' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
-			'OOUI\HtmlSnippet::__construct' => [
+			'\OOUI\HtmlSnippet::__construct' => [
 				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
-			'OOUI\FieldLayout::__construct' => [
+			'\OOUI\FieldLayout::__construct' => [
 				'overall' => self::NO_TAINT
 			],
-			'OOUI\TextInputWidget::__construct' => [
+			'\OOUI\TextInputWidget::__construct' => [
 				'overall' => self::NO_TAINT
 			],
-			'OOUI\ButtonInputWidget::__construct' => [
+			'\OOUI\ButtonInputWidget::__construct' => [
 				'overall' => self::NO_TAINT
 			],
-			'OOUI\HorizontalLayout::__construct' => [
+			'\OOUI\HorizontalLayout::__construct' => [
 				'overall' => self::NO_TAINT
 			],
-			'HtmlArmor::__construct' => [
+			'\HtmlArmor::__construct' => [
 				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			// Due to limitations in how we handle list()
 			// elements, hard code CommentStore stuff.
-			'CommentStore::insert' => [
+			'\CommentStore::insert' => [
 				'overall' => self::NO_TAINT
 			],
-			'CommentStore::getJoin' => [
+			'\CommentStore::getJoin' => [
 				'overall' => self::NO_TAINT
 			],
-			'CommentStore::insertWithTempTable' => [
+			'\CommentStore::insertWithTempTable' => [
 				'overall' => self::NO_TAINT
 			],
 			// TODO FIXME, Why couldn't it figure out
 			// that this is safe on its own?
 			// It seems that it has issue with
 			// the url query parameters.
-			'Linker::linkKnown' => [
+			'\Linker::linkKnown' => [
 				self::NO_TAINT, /* target */
 				self::YES_TAINT | self::HTML_EXEC_TAINT, /* raw html text */
 				// The array keys for this aren't escaped (!)
@@ -536,7 +536,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT, /* options. All are safe */
 				'overall' => self::ESCAPED_TAINT
 			],
-			'MediaWiki\Linker\LinkRenderer::buildAElement' => [
+			'\MediaWiki\Linker\LinkRenderer::buildAElement' => [
 				self::NO_TAINT, /* target */
 				self::ESCAPES_HTML, /* text (using HtmlArmor) */
 				// The array keys for this aren't escaped (!)
@@ -544,7 +544,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT, /* known */
 				'overall' => self::ESCAPED_TAINT
 			],
-			'MediaWiki\Linker\LinkRenderer::makeLink' => [
+			'\MediaWiki\Linker\LinkRenderer::makeLink' => [
 				self::NO_TAINT, /* target */
 				self::ESCAPES_HTML, /* text (using HtmlArmor) */
 				// The array keys for this aren't escaped (!)
@@ -552,7 +552,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT, /* query */
 				'overall' => self::ESCAPED_TAINT
 			],
-			'MediaWiki\Linker\LinkRenderer::makeKnownLink' => [
+			'\MediaWiki\Linker\LinkRenderer::makeKnownLink' => [
 				self::NO_TAINT, /* target */
 				self::ESCAPES_HTML, /* text (using HtmlArmor) */
 				// The array keys for this aren't escaped (!)
@@ -560,7 +560,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT, /* query */
 				'overall' => self::ESCAPED_TAINT
 			],
-			'MediaWiki\Linker\LinkRenderer::makePreloadedLink' => [
+			'\MediaWiki\Linker\LinkRenderer::makePreloadedLink' => [
 				self::NO_TAINT, /* target */
 				self::ESCAPES_HTML, /* text (using HtmlArmor) */
 				// The array keys for this aren't escaped (!)
