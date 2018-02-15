@@ -456,7 +456,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				// This means specific class.
 				// TODO - maybe look up __toString() method.
 				$fqsen = $type->asFQSEN();
-				if ( !($fqsen instanceof FullyQualifiedClassName) ) {
+				if ( !( $fqsen instanceof FullyQualifiedClassName ) ) {
 					$this->debug( __METHOD__, " $type not a class?" );
 					$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::UNKNOWN_TAINT );
 					break;

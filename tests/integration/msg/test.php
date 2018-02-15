@@ -11,4 +11,4 @@ echo htmlspecialchars( $msg );
 
 echo htmlspecialchars( "Hi $msg" );
 
-echo htmlspecialchars( "Hi " . (new Message) );
+echo htmlspecialchars( "Hi " . ( new Message ) );
