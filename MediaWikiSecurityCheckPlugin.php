@@ -400,13 +400,13 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Xml::encodeJsVar' => [
 				self::ESCAPES_HTML,
 				self::NO_TAINT, /* pretty */
-				'overall' => self::ESCAPED_TAINT
+				'overall' => self::NO_TAINT
 			],
 			'\Xml::encodeJsCall' => [
 				self::YES_TAINT, /* func name. unescaped */
 				self::ESCAPES_HTML,
 				self::NO_TAINT, /* pretty */
-				'overall' => self::ESCAPED_TAINT
+				'overall' => self::NO_TAINT
 			],
 			'\OutputPage::addHeadItem' => [
 				self::HTML_EXEC_TAINT,
