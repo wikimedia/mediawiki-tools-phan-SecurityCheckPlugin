@@ -1,6 +1,7 @@
 <?php
 
 use Phan\Language\Context;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
@@ -723,6 +724,247 @@ class MWVisitor extends TaintednessBaseVisitor {
 			} else {
 				$this->debug( __METHOD__, "Could not register hook " .
 					"$hookName due to complex callback"
+				);
+			}
+		}
+	}
+
+	/**
+	 * Try to detect HTMLForm specifiers
+	 *
+	 * @param Node $node
+	 */
+	public function visitArray( Node $node ) {
+		// This is a rather superficial check. There
+		// are many ways to construct htmlform specifiers this
+		// won't catch, and it may also have some false positives.
+
+		$validHTMLFormTypes = [
+			'api',
+			'text',
+			'textwithbutton',
+			'textarea',
+			'select',
+			'combobox',
+			'radio',
+			'multiselect',
+			'limitselect',
+			'check',
+			'toggle',
+			'int',
+			'float',
+			'info',
+			'selectorother',
+			'selectandother',
+			'namespaceselect',
+			'namespaceselectwithbutton',
+			'tagfilter',
+			'sizefilter',
+			'submit',
+			'hidden',
+			'edittools',
+			'checkmatrix',
+			'cloner',
+			'autocompleteselect',
+			'date',
+			'time',
+			'datetime',
+			'email',
+			'password',
+			'url',
+			'title',
+			'user',
+			'usersmultiselect',
+		];
+
+		// FIXME: TODO options key is very confusing.
+		$type = null;
+		$raw = null;
+		$class = null;
+		$rawLabel = null;
+		$label = null;
+		$default = null;
+		$options = null;
+		$isInfo = false;
+		$isOptionsSafe = true; // options key is really messed up with escaping.
+		foreach ( $node->children as $child ) {
+			assert( $child->kind === \ast\AST_ARRAY_ELEM );
+			if ( !is_string( $child->children['key'] ) ) {
+				// FIXME, instead of skipping, should we abort
+				// the whole thing if there is a numeric or null
+				// key? As its unlikely to be an htmlform in that case.
+				continue;
+			}
+			$key = (string)$child->children['key'];
+			switch ( $key ) {
+				case 'type':
+				case 'class':
+				case 'label':
+				case 'options':
+				case 'default':
+					$$key = $child->children['value'];
+					break;
+				case 'label-raw':
+					$rawLabel = $child->children['value'];
+					break;
+				case 'raw':
+					$raw = $child->children['value'];
+					if (
+						$raw instanceof Node
+						&& $raw->kind === \ast\AST_CONST
+						&& isset( $raw->children['name'] )
+						&& $raw->children['name'] instanceof Node
+						&& $raw->children['name']->kind === \ast\AST_NAME
+					) {
+						$raw = $raw->children['name']->children['name'];
+						if ( $raw === 'true' ) {
+							$raw = true;
+						}
+						if ( $raw === 'false' ) {
+							$raw = false;
+						}
+					}
+					break;
+			}
+		}
+
+		if ( $class === null && $type === null ) {
+			// Definitely not an HTMLForm
+			return;
+		}
+
+		if (
+			$raw === null && $label === null && $rawLabel === null
+			&& $default === null && $options === null
+		) {
+			// e.g. [ 'class' => 'someCssClass' ] appears a lot
+			// in the code base. If we don't have any of the html
+			// fields, skip out early.
+			return;
+		}
+
+		if ( $type !== null && !in_array( $type, $validHTMLFormTypes ) ) {
+			// Not a valid HTMLForm field
+			// (Or someone just added a new field type)
+			return;
+		}
+
+		if ( $type === 'info' ) {
+			$isInfo = true;
+		}
+
+		if ( in_array( $type, [ 'radio', 'multiselect' ] ) ) {
+			$isOptionsSafe = false;
+		}
+
+		if ( $class !== null ) {
+			$className = null;
+			if ( is_string( $class ) ) {
+				$className = $class;
+			}
+			if (
+				$class instanceof Node &&
+				$class->kind === \ast\AST_CLASS_CONST &&
+				$class->children['const'] === 'class' &&
+				$class->children['class'] instanceof Node &&
+				$class->children['class']->kind === \ast\AST_NAME &&
+				is_string( $class->children['class']->children['name'] )
+			) {
+				$className = $class->children['class']->children['name'];
+			}
+
+			if ( $className === null ) {
+				return;
+			}
+
+			$fqsen = FullyQualifiedClassName::fromStringInContext(
+				$className,
+				$this->context
+			);
+			if ( !$this->code_base->hasClassWithFQSEN( $fqsen ) ) {
+				return;
+			}
+			if ( (string)$fqsen === '\HTMLInfoField' ) {
+				$isInfo = true;
+			}
+			if (
+				(string)$fqsen === '\HTMLMultiSelectField' ||
+				(string)$fqsen === '\HTMLRadioField'
+			) {
+				$isOptionsSafe = false;
+			}
+			$clazz = $this->code_base->getClassByFQSEN( $fqsen );
+
+			$fqsenBase = FullyQualifiedClassName::fromFullyQualifiedString(
+				'\HTMLFormField'
+			);
+			if ( !$this->code_base->hasClassWithFQSEN( $fqsenBase ) ) {
+				$this->debug( __METHOD__, "Missing HTMLFormField base class?!" );
+				return;
+			}
+			$baseClazz = $this->code_base->getClassByFQSEN( $fqsenBase );
+
+			$isAField = $clazz->isSubclassOf( $this->code_base, $baseClazz );
+
+			if ( !$isAField ) {
+				return;
+			}
+		}
+
+		if ( $label !== null ) {
+			// double escape check for label.
+			$this->maybeEmitIssue(
+				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
+				$this->getTaintedness( $label ),
+				'HTMLForm label key escapes its input' .
+					$this->getOriginalTaintLine( $label )
+			);
+		}
+		if ( $rawLabel !== null ) {
+			// double escape check for label.
+			$this->maybeEmitIssue(
+				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				$this->getTaintedness( $rawLabel ),
+				'HTMLForm label-raw needs to escape input' .
+					$this->getOriginalTaintLine( $rawLabel )
+			);
+		}
+		if ( $isInfo === true && $raw === true ) {
+			$this->maybeEmitIssue(
+				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				$this->getTaintedness( $default ),
+				'HTMLForm info field in raw mode needs to escape default key' .
+					$this->getOriginalTaintLine( $default )
+			);
+		}
+		if ( $isInfo === true && ( $raw === false || $raw === null ) ) {
+			$this->maybeEmitIssue(
+				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
+				$this->getTaintedness( $default ),
+				'HTMLForm info field (non-raw) escapes default key already' .
+					$this->getOriginalTaintLine( $default )
+			);
+		}
+		if ( !$isOptionsSafe && $options instanceof Node && $options->kind === \ast\AST_ARRAY ) {
+			// This is going to miss a lot of things, as the options key
+			// is commonly specified separately.
+			// We need to make sure all the keys are escaped
+			foreach ( $options->children as $child ) {
+				assert( $child instanceof Node );
+				assert( $child->kind === \ast\AST_ARRAY_ELEM );
+				$key = $child->children['key'];
+				$value = !is_object( $child->children['value'] ) ?
+					" (for value '" . $child->children['value'] . "')" :
+					"";
+				if ( !( $key instanceof Node ) ) {
+					continue;
+				}
+				$this->maybeEmitIssue(
+					SecurityCheckPlugin::HTML_EXEC_TAINT,
+					$this->getTaintedness( $key ),
+					'HTMLForm option label needs escaping' .
+						$value .
+						$this->getOriginalTaintLine( $key )
 				);
 			}
 		}

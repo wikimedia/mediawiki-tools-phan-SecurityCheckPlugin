@@ -1,0 +1,10 @@
+integration/htmlform/test.php:4 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:27 SecurityCheck-XSS HTMLForm label-raw needs to escape input
+integration/htmlform/test.php:33 SecurityCheck-DoubleEscaped HTMLForm label key escapes its input
+integration/htmlform/test.php:57 SecurityCheck-XSS HTMLForm label-raw needs to escape input
+integration/htmlform/test.php:68 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:74 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:94 SecurityCheck-XSS HTMLForm option label needs escaping (for value 'the evil value')
+integration/htmlform/test.php:102 SecurityCheck-XSS HTMLForm option label needs escaping (for value 'the evil value')
+integration/htmlform/test.php:110 SecurityCheck-XSS HTMLForm option label needs escaping (for value 'the evil value')
+integration/htmlform/test.php:118 SecurityCheck-XSS HTMLForm option label needs escaping (for value 'the evil value')
