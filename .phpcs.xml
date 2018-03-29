@@ -3,10 +3,10 @@
 		<rule ref="./vendor/mediawiki/mediawiki-codesniffer/MediaWiki">
 			<exclude name="MediaWiki.NamingConventions.PrefixedGlobalFunctions.wfPrefix"/>
 			<exclude name="MediaWiki.Usage.ScalarTypeHintUsage.Found"/>
-			<exclude name="MediaWiki.Commenting.FunctionComment.MissingParamComment"/>
-			<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment"/>
+				<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment"/>
 			<exclude name="Generic.CodeAnalysis.ForLoopWithTestFunctionCall.NotAllowed"/>
-			<exclude name="MediaWiki.NamingConventions.ValidGlobalName.wgPrefix"/>
+			<exclude name="MediaWiki.NamingConventions.ValidGlobalName.wgPrefix" />
+		<exclude name="MediaWiki.Usage.ForbiddenFunctions.assert" />
 		</rule>
 		<file>.</file>
 		<arg name="bootstrap" value="./vendor/mediawiki/mediawiki-codesniffer/utils/bootstrap-ci.php"/>
