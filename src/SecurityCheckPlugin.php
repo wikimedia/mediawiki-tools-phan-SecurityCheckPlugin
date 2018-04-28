@@ -205,6 +205,123 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	}
 
 	/**
+	 * Given a param description line, extract taint
+	 *
+	 * This is to allow putting taint information in method docblocks.
+	 * If a function has a docblock comment like:
+	 *  *  @param-taint $foo escapes_html
+	 * This converts that line into:
+	 *   ( self::YES_TAINT & ~self::SQL_TAINT )
+	 * Multiple taint types are separated by commas
+	 * (which are interpreted as bitwise OR ( "|" ). Future versions
+	 * might support more complex bitwise operators, but for now it
+	 * doesn't seem needed.
+	 *
+	 * The following keywords are supported where {type} can be
+	 * html, sql, shell, serialize, custom1, custom2, misc, sql_numkey,
+	 * escaped.
+	 *  * {type} - just set the flag. 99% you should only use 'none' or 'tainted'
+	 *  * exec_{type} - sets the exec flag.
+	 *  * escapes_{type} - self::YES_TAINT & ~self::{type}_TAINT.
+	 *     Note: escapes_html adds the exec_escaped flag, use
+	 *     escapes_htmlnoent if the value is safe to double encode.
+	 *  * onlysafefor_{type}
+	 *     Same as above, intended for @return statements. No special case htmlnoent.
+	 *  * none - self::NO_TAINT
+	 *  * tainted - self::YES_TAINT
+	 *  * array_ok - sets self::ARRAY_OK
+	 *
+	 * @todo Should UNKOWN_TAINT be in here? What about ~ operator?
+	 * @note The special casing to have escapes_html always add exec_escaped
+	 *   (and having htmlnoent exist) is "experimental" and may change in
+	 *   future versions (Maybe all types should set exec_escaped. Maybe it
+	 *   should be explicit)
+	 * @param string $line A line from the docblock
+	 * @return null|int null on no info, or taint info integer.
+	 */
+	public static function parseTaintLine( string $line ) {
+		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
+			. 'custom2|misc|sql_numkey|escaped|none|tainted)';
+		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
+		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok)$/";
+
+		$taints = explode( ',', strtolower( $line ) );
+		$taints = array_map( 'trim', $taints );
+
+		$overallTaint = 0;
+		$numberOfTaintsProcessed = 0;
+		foreach ( $taints as $taint ) {
+			$taintParts = [];
+			if ( !preg_match( $taintExpr, $taint, $taintParts ) ) {
+				continue;
+			}
+			$numberOfTaintsProcessed++;
+			if ( $taintParts['taint'] === 'array_ok' ) {
+				$overallTaint |= self::ARRAY_OK;
+				continue;
+			}
+			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );
+			switch ( $taintParts['prefix'] ) {
+				case '':
+					$overallTaint |= $taintAsInt;
+					break;
+				case 'exec':
+					$overallTaint |= ( $taintAsInt << 1 );
+					break;
+				case 'escapes':
+				case 'onlysafefor':
+					$overallTaint |= ( self::YES_TAINT & ~$taintAsInt );
+					if ( $taintParts['type'] === 'html' ) {
+						$overallTaint |= self::ESCAPED_EXEC_TAINT;
+					}
+					break;
+			}
+		}
+		if ( $numberOfTaintsProcessed === 0 ) {
+			return null;
+		}
+		return $overallTaint;
+	}
+
+	/**
+	 * Convert a string like 'html' to self::HTML_TAINT.
+	 *
+	 * @note htmlnoent treated like self::HTML_TAINT.
+	 * @param string $name one of:
+	 *   html, sql, shell, serialize, custom1, custom2, misc, sql_numkey,
+	 *   escaped, none (= self::NO_TAINT), tainted (= self::YES_TAINT)
+	 * @return int One of the TAINT constants
+	 */
+	public static function convertTaintNameToConstant( string $name ) : int {
+		switch ( $name ) {
+			case 'html':
+			case 'htmlnoent':
+				return self::HTML_TAINT;
+			case 'sql':
+				return self::SQL_TAINT;
+			case 'shell':
+				return self::SHELL_TAINT;
+			case 'serialize':
+				return self::SERIALIZE_TAINT;
+			case 'custom1':
+				return self::CUSTOM1_TAINT;
+			case 'custom2':
+				return self::CUSTOM2_TAINT;
+			case 'misc':
+				return self::MISC_TAINT;
+			case 'sql_numkey':
+				return self::SQL_NUMKEY_TAINT;
+			case 'escaped':
+				return self::ESCAPED_TAINT;
+			case 'tainted':
+				return self::YES_TAINT;
+			case 'none':
+				return self::NO_TAINT;
+			default:
+				assert( false, "$name not valid taint" );
+		}
+	}
+	/**
 	 * Taints for builtin php functions
 	 *
 	 * @return array List of func taints (See getBuiltinFuncTaint())

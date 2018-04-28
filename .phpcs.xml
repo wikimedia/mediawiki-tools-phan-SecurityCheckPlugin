@@ -24,13 +24,7 @@
 			<exclude-pattern>./tests</exclude-pattern>
 		</rule>
 
-		<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationPublic">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationProtected">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="MediaWiki.Commenting.FunctionComment.MissingDocumentationPrivate">
+		<rule ref="MediaWiki.Commenting.FunctionComment">
 			<exclude-pattern>./tests</exclude-pattern>
 		</rule>
 		<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">

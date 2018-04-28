@@ -141,13 +141,46 @@ There's much more than listed here, but some notable limitations/bugs:
 
 Customizing
 -----------
-
 The plugin supports being customized, by subclassing the [SecurityCheckPlugin]
 class. For a complex example of doing so, see [MediaWikiSecurityCheckPlugin].
 
-You can add pretty much arbitrary behavior here, but the primary thing you
-would usually want to customize is adding information about how different
-functions affect the taint of a variable.
+Sometimes you have methods in your codebase that alter the taint of a
+variable. For example, a custom html escaping function should clear the
+html taint bit. Similarly, sometimes phan-taint-check can get confused and
+you want to override the taint calculated for a specific function.
+
+You can do this by adding a taint directive in a docblock comment. For example:
+```
+/**
+ * My function description
+ *
+ * @param string $html the text to be escaped
+ * @param-taint $html escapes_html
+ */
+function escapeHtml( $html ) {
+...
+```
+Taint directives are prefixed with either `@param-taint $parametername` or `@return-taint`. If there are multiple directives they can be separated by a comma. @param-taint is used for either marking how taint is transmited from the parameter to the methods return value, or when used with `exec_` directives, to mark places where parameters are outputted/executed. `@return-taint` is used to add taint to the return value other than what comes from a parameter.
+
+The type of directives include:
+* `exec_$TYPE` - If a parameter is marked as exec_$TYPE then feeding that parameter a value with $TYPE taint will result in a warning triggered. Typically you would use this when a function that outputs or executes its parameter
+* `escapes_$TYPE` - Used for parameters where the function escapes and then returns the parameter. So `escapes_sql` would clear the sql taint bit, but leave other taint bits alone.
+* `onlysafefor_$TYPE - For use in `@return`, marks the return type as safe for a specific $TYPE but unsafe for the other types.
+* `$TYPE` - if just the type is specified in a parameter, it is bitwised AND with the input variable's taint. Normally you wouldn't want to do this, but can be useful when $TYPE is `none` to specify that the parameter is not used to generate the return value. In an @return this could be used to enumerate which taint flags the return value has, which is usually only useful when specified as `tainted` to say it has all flags.
+* `array_ok` - special purpose flag to say ignore tainted arguments if they are in an array.
+
+The value for $TYPE can be one of htmlnoent, html, sql, shell, serialize, custom1, custom2, misc, sql_numkey, escaped, none, tainted. Most of these are taint categories, except:
+* htmlnoent - like html but disable double escaping detection that gets used with html. When escapes_html is specified, escaped automatically gets added to @return, and exec_escaped is added to @param
+* none - Means no taint
+* tainted - Means all taint categories except special categories (equivalent to SecurityCheckPlugin::YES_TAINT)
+* escaped - Is used to mean the value is already escaped (To track double escaping)
+* sql_numkey - Is fairly special purpose for MW. It ignores taint in arrays if they are for associative keys.
+
+The default value for @param-taint is `tainted` if its a string (or other dangerous type), and `none` if its something like an integer. The default value for @return-taint is `none`.
+
+Instead of annotating methods in your codebase, you can also customize
+phan-taint-check to have builtin knowledge of method taints. In addition
+you can extend the plugin to have fairly arbitrary behaviour.
 
 To do this, you override the `getCustomFuncTaints()` method. This method
 returns an associative array of fully qualified method names to an array

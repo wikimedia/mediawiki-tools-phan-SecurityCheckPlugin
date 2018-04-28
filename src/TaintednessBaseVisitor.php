@@ -343,7 +343,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 */
 	protected function getTaintOfFunction( FunctionInterface $func ) {
 		$funcName = $func->getFQSEN();
-		$taint = null;
+		$taint = $this->getDocBlockTaintOfFunc( $func );
+		if ( $taint !== null ) {
+			return $taint;
+		}
 		$taint = $this->getBuiltinFuncTaint( $funcName );
 		if ( $taint !== null ) {
 			return $taint;
@@ -414,6 +417,86 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		return $taint;
 	}
 
+	/**
+	 * Obtain taint information from a docblock comment.
+	 *
+	 * @todo Possibly this should cache results.
+	 * @suppress PhanUndeclaredMethod
+	 * @param FunctionInterface $func The function to check
+	 * @return null|int[] null for no info, or a function taint array
+	 */
+	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) {
+		// hasNode/getNode is part of \Phan\Analysis\Analyzable trait
+		// which all implementations of FunctionInterface use, but
+		// is not actually part of the interface, so phan complains
+		// about this line.
+		if ( !$func->hasNode() ) {
+			// No docblock available
+			return null;
+		}
+		// Assume that if some of the taint is specified, then
+		// the person would specify all the dangerous taints, so
+		// don't set the unknown flag if not taint annotation on
+		// @return.
+		$funcTaint = [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
+		$docBlock = $func->getNode()->docComment ?? '';
+		$lines = explode( "\n", $docBlock );
+		$validTaintEncountered = false;
+
+		foreach ( $lines as $line ) {
+			$m = [];
+			if ( preg_match( '/@param-taint &?\$(\S+)\s+(.*)$/', $line, $m ) ) {
+				$paramNumber = $this->getParamNumberGivenName( $func, $m[1] );
+				if ( $paramNumber === null ) {
+					continue;
+				}
+				$taint = SecurityCheckPlugin::parseTaintLine( $m[2] );
+				if ( $taint !== null ) {
+					$funcTaint[$paramNumber] = $taint;
+					$validTaintEncountered = true;
+					if ( ( $taint & SecurityCheckPlugin::ESCAPES_HTML ) ===
+						SecurityCheckPlugin::ESCAPES_HTML
+					) {
+						// Special case to auto-set
+						// anything that escapes html to
+						// detect double escaping.
+						$funcTaint['overall'] |=
+							SecurityCheckPlugin::ESCAPED_TAINT;
+					}
+				} else {
+					$this->debug( __METHOD__, "Could not " .
+						"understand taint line '$m[2]'" );
+				}
+			} elseif ( strpos( $line, '@return-taint' ) !== false ) {
+				$taintLine = substr( $line, strpos( $line, '@return-taint' ) + 14 );
+				$taint = SecurityCheckPlugin::parseTaintLine( $taintLine );
+				if ( $taint !== null ) {
+					$funcTaint['overall'] = $taint;
+					$validTaintEncountered = true;
+				} else {
+					$this->debug( __METHOD__, "Could not " .
+						"understand return taint '$taintLine'" );
+				}
+			}
+		}
+		return $validTaintEncountered ? $funcTaint : null;
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 * @param string $name The name of parameter, no $ or & prefixed
+	 * @return null|int null on no such parameter
+	 */
+	private function getParamNumberGivenName( FunctionInterface $func, string $name ) {
+		$parameters = $func->getParameterList();
+		foreach ( $parameters as $i => $param ) {
+			if ( $name === $param->getName() ) {
+				return $i;
+			}
+		}
+		$this->debug( __METHOD__, "$func does not have param $name" );
+		return null;
+	}
 	/**
 	 * Given a type, determine what type of taint
 	 *
@@ -1735,6 +1818,10 @@ return [];
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return false;
+		}
+		if ( $node->kind === \ast\AST_ARRAY ) {
+			// Exit early in the simple case.
+			return true;
 		}
 		try {
 			$type = UnionTypeVisitor::unionTypeFromNode(
