@@ -14,4 +14,6 @@ php7.0 "./vendor/phan/phan/phan" \
         --config-file "tests/general-phan-config.php" \
         --output "php://stdout" \
         $progressBar
+result=$?
 echo
+exit $result
