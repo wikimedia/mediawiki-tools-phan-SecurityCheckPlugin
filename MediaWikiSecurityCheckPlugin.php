@@ -47,7 +47,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @param CodeBase $code_base
 	 * @param Context $context
 	 * @param Node $node
-	 * @param Node $parentNode
+	 * @param Node|null $parentNode
 	 */
 	public function analyzeNode(
 		CodeBase $code_base,

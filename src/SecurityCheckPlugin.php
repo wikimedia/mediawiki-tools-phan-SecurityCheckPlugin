@@ -99,7 +99,7 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 * @param CodeBase $code_base The code base in which the node exists
 	 * @param Context $context The context in which the node exits.
 	 * @param Node $node The php-ast Node being analyzed.
-	 * @param Node $parent_node The parent node of the given node (if one exists).
+	 * @param Node|null $parent_node The parent node of the given node (if one exists).
 	 * @return void
 	 */
 	public function analyzeNode(

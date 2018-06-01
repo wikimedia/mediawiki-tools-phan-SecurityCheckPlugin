@@ -872,7 +872,7 @@ return [];
 	/**
 	 * Get the current filename and line.
 	 *
-	 * @param Context $context Override the context to make debug info for
+	 * @param Context|null $context Override the context to make debug info for
 	 * @return string path/to/file +linenumber
 	 */
 	protected function dbgInfo( Context $context = null ) {
