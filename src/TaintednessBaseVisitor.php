@@ -9,6 +9,7 @@ use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\ClassElement;
+use Phan\Language\Element\Property;
 use Phan\Language\UnionType;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\MixedType;
@@ -229,7 +230,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		$override = true
 	) {
 		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
-			// . " <- $taintedness (override=$override)" );
+			// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' ) );
 
 		assert( $taintedness >= 0, $taintedness );
 
@@ -307,7 +308,8 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 					$variableObj->taintedness ?? 0, $taintedness
 				);
 		}
-
+		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
+			// ( $variableObj->taintedness ?? 'unset' ) );
 		$this->addTaintError( $taintedness, $variableObj );
 	}
 
@@ -689,11 +691,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @suppress PhanTypeMismatchForeach No idea why its confused
 	 * @suppress PhanUndeclaredMethod it checks method_exists()
 	 * @param Node $node AST node in question
-	 * @param bool $all Whether or not to only include objects that directly correspond
-	 *   In particular, whether or not to include Method objects for method calls.
-	 * @return Array Array of various phan objects corresponding to $node
+	 * @param string[] $options Change type of objects returned
+	 *    * 'all' -> Given a method call, include the method and its args
+	 *    * 'return' -> Given a method call, include objects in its return.
+	 * @return array Array of various phan objects corresponding to $node
 	 */
-	protected function getPhanObjsForNode( Node $node, $all = false ) {
+	protected function getPhanObjsForNode( Node $node, $options = [] ) {
 		$cn = $this->getCtxN( $node );
 
 		switch ( $node->kind ) {
@@ -758,20 +761,20 @@ return [];
 					if ( !is_object( $child ) ) {
 						continue;
 					}
-					$results = array_merge( $this->getPhanObjsForNode( $child ), $results );
+					$results = array_merge( $this->getPhanObjsForNode( $child, $options ), $results );
 				}
 				return $results;
 			case \ast\AST_ARRAY_ELEM:
 				$results = [];
 				if ( is_object( $node->children['key'] ) ) {
 					$results = array_merge(
-						$this->getPhanObjsForNode( $node->children['key'] ),
+						$this->getPhanObjsForNode( $node->children['key'], $options ),
 						$results
 					);
 				}
 				if ( is_object( $node->children['value'] ) ) {
 					$results = array_merge(
-						$this->getPhanObjsForNode( $node->children['value'] ),
+						$this->getPhanObjsForNode( $node->children['value'], $options ),
 						$results
 					);
 				}
@@ -781,27 +784,27 @@ return [];
 				// such things should be safe. Unclear if that makes
 				// sense in all circumstances.
 				if ( is_object( $node->children['expr'] ) ) {
-					return $this->getPhanObjsForNode( $node->children['expr'] );
+					return $this->getPhanObjsForNode( $node->children['expr'], $options );
 				}
 				return [];
 			case \ast\AST_DIM:
 				// For now just consider the outermost array.
 				// FIXME. doesn't handle tainted array keys!
-				return $this->getPhanObjsForNode( $node->children['expr'] );
+				return $this->getPhanObjsForNode( $node->children['expr'], $options );
 			case \ast\AST_UNARY_OP:
 				$var = $node->children['expr'];
-				return $var instanceof Node ? $this->getPhanObjsForNode( $var ) : [];
+				return $var instanceof Node ? $this->getPhanObjsForNode( $var, $options ) : [];
 			case \ast\AST_BINARY_OP:
 				$left = $node->children['left'];
 				$right = $node->children['right'];
-				$leftObj = $left instanceof Node ? $this->getPhanObjsForNode( $left ) : [];
-				$rightObj = $right instanceof Node ? $this->getPhanObjsForNode( $right ) : [];
+				$leftObj = $left instanceof Node ? $this->getPhanObjsForNode( $left, $options ) : [];
+				$rightObj = $right instanceof Node ? $this->getPhanObjsForNode( $right, $options ) : [];
 				return array_merge( $leftObj, $rightObj );
 			case \ast\AST_CONDITIONAL:
 				$t = $node->children['true'];
 				$f = $node->children['false'];
-				$tObj = $t instanceof Node ? $this->getPhanObjsForNode( $t ) : [];
-				$fObj = $f instanceof Node ? $this->getPhanObjsForNode( $f ) : [];
+				$tObj = $t instanceof Node ? $this->getPhanObjsForNode( $t, $options ) : [];
+				$fObj = $f instanceof Node ? $this->getPhanObjsForNode( $f, $options ) : [];
 				return array_merge( $tObj, $fObj );
 			case \ast\AST_CONST:
 			case \ast\AST_CLASS_CONST:
@@ -815,7 +818,7 @@ return [];
 			case \ast\AST_CALL:
 			case \ast\AST_STATIC_CALL:
 			case \ast\AST_METHOD_CALL:
-				if ( !$all ) {
+				if ( !$options ) {
 					return [];
 				}
 				try {
@@ -832,6 +835,12 @@ return [];
 							$node->kind === \ast\AST_STATIC_CALL
 						);
 					}
+					if ( in_array( 'return', $options ) ) {
+						// intentionally resetting options to []
+						// here to ensure we don't recurse beyond
+						// a depth of 1.
+						return $this->getReturnObjsOfFunc( $func );
+					}
 					$args = $node->children['args']->children;
 					$pObjs = [ $func ];
 					foreach ( $args as $arg ) {
@@ -840,7 +849,7 @@ return [];
 						}
 						$pObjs = array_merge(
 							$pObjs,
-							$this->getPhanObjsForNode( $arg )
+							$this->getPhanObjsForNode( $arg, $options )
 						);
 					}
 					return $pObjs;
@@ -886,6 +895,7 @@ return [];
 	 * @param int $i Which argument number is $param
 	 */
 	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) {
+		// $this->debug( __METHOD__, "Linking '$param' to '$func' arg $i" );
 		if ( !( $param instanceof Variable ) ) {
 			// Probably a PassByReferenceVariable.
 			// TODO, handling of PassByReferenceVariable probably wrong here.
@@ -930,6 +940,7 @@ return [];
 		TypedElementInterface $lhs,
 		TypedElementInterface $rhs
 	) {
+		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
 		$taintLHS = $this->getTaintedness( $lhs );
 		$taintRHS = $this->getTaintedness( $rhs );
 
@@ -1038,10 +1049,31 @@ return [];
 			return;
 		}
 		$oldMem = memory_get_peak_usage();
+		// If we mark a class member as being tainted, we recheck all the
+		// methods of the class, as the previous taint of the methods may
+		// have assumed the class member was not tainted.
+		$classesNeedRefresh = new Set;
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
 			$curVarTaint = $this->getTaintedness( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, SecurityCheckPlugin::YES_TAINT );
 			$this->setTaintedness( $var, $newTaint );
+			if (
+				$this->isYesTaint( $newTaint ^ $curVarTaint ) &&
+				$var instanceof ClassElement
+			) {
+				// TODO: This is subpar -
+				// * Its inefficient, reanalyzing much more than needed.
+				// * It doesn't handle parent classes properly
+				// * For public class members, it wouldn't catch uses
+				// outside of the member's own class.
+				$classesNeedRefresh->attach( $var->getClass( $this->code_base ) );
+			}
+		}
+		foreach ( $classesNeedRefresh as $class ) {
+			foreach ( $class->getMethodMap( $this->code_base ) as $method ) {
+				$this->debug( __METHOD__, "reanalyze $method" );
+				$method->analyze( $method->getContext(), $this->code_base );
+			}
 		}
 		// Maybe delete links??
 		$newMem = memory_get_peak_usage();
@@ -1179,7 +1211,7 @@ return [];
 				// try to dig deeper.
 				// This will also include method calls and whatnot.
 				// FIXME should we always do this? Is it too spammy.
-				$pobjs = $this->getPhanObjsForNode( $element, true );
+				$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
 				foreach ( $pobjs as $elem ) {
 					$line .= $this->getOriginalTaintLineRaw( $elem );
 				}
@@ -1235,7 +1267,11 @@ return [];
 			$links = $pobj->taintedMethodLinks ?? null;
 			if ( !$links ) {
 				// No method links.
-				 $this->debug( __METHOD__, "no method links for " .$curFunc->getFQSEN() );
+				// $this->debug( __METHOD__, "no method links for $pobj in " . $curFunc->getFQSEN() );
+				// If its a non-private property, try getting parent class
+				if ( $pobj instanceof Property && !$pobj->isPrivate() ) {
+					$this->debug( __METHOD__, "FIXME should check parent class of $pobj" );
+				}
 				$otherTaint |= $pobjTaintContribution;
 				$taintRemaining &= ~$pobjTaintContribution;
 				continue;
@@ -1645,8 +1681,8 @@ return [];
 				}
 				$effectiveArgTaintedness = $curArgTaintedness &
 					( $taint[$i] | $this->execToYesTaint( $taint[$i] ) );
-				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					// . " via arg $i $funcName" );
+				 $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
+					 . " via arg $i $funcName" );
 			} elseif ( ( $taint['overall'] &
 				( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
 			) ) {
@@ -1656,16 +1692,16 @@ return [];
 				// pass the taint through.
 				// FIXME, could maybe check if type is safe like int.
 				$effectiveArgTaintedness = $curArgTaintedness;
-				# $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					# . " via preserve or unkown $funcName" );
+				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
+					// . " via preserve or unkown $funcName" );
 			} else {
 				// This parameter has no taint info.
 				// And overall this function doesn't depend on param
 				// for taint and isn't unknown.
 				// So we consider this argument untainted.
 				$effectiveArgTaintedness = SecurityCheckPlugin::NO_TAINT;
-				# $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-					# . " via no taint info $funcName" );
+				// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
+					// . " via no taint info $funcName" );
 			}
 
 			// -------Start complex reference parameter bit--------/
@@ -1736,7 +1772,7 @@ return [];
 			if ( $this->isExecTaint( $taint[$i] ?? 0 ) ) {
 				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
 				try {
-					$phanObjs = $this->getPhanObjsForNode( $argument );
+					$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
 					foreach ( $phanObjs as $phanObj ) {
 						$this->markAllDependentMethodsExec(
 							$phanObj,
@@ -1895,4 +1931,42 @@ return [];
 		return false;
 	}
 
+	/**
+	 * Get the phan objects from the return line of a Func/Method
+	 *
+	 * This is primarily used to handle the case where a method
+	 * returns a member (e.g. return $this->foo), and then something
+	 * else does something evil with it - e.g. echo $someObj->getFoo().
+	 * This allows keeping track that $this->foo is outputted, so if
+	 * somewhere else in the code someone calls $someObj->setFoo( $unsafe )
+	 * we can trigger a warning.
+	 *
+	 * This of course will only work in simple cases. It may also potentially
+	 * have false positives if one instance is used solely for escaped stuff
+	 * and a different instance is used for unsafe values that are later
+	 * escaped, as all the different instaces are treated the same.
+	 *
+	 * It needs the return statement to be trivial (e.g. return $this->foo;). It
+	 * will not work even with something as simple as $a = $this->foo; return $a;
+	 * However, this code path will only happen if the plugin encounters the
+	 * code to output the value prior to reading the code that sets the value to
+	 * something evil. The other code path where the set happens first is much
+	 * more robust and hopefully the more common code path.
+	 *
+	 * @param FunctionInterface $func The function/method. Must use Analyzable trait
+	 * @return array An array of phan objects
+	 * @suppress PhanUndeclaredMethod hasNode is not part of the interface
+	 */
+	public function getReturnObjsOfFunc( FunctionInterface $func ) {
+		if ( !$func->hasNode() ) {
+			// Can't do anything
+			return [];
+		}
+		$node = $func->getNode();
+		return ( new GetReturnObjsVisitor(
+			$this->code_base,
+			$func->getContext(),
+			$this->plugin
+		) )( $node );
+	}
 }

@@ -473,7 +473,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
 				$this->debug( __METHOD__, "Setting $phanObj exec due to backtick" );
 				$this->markAllDependentMethodsExec(
@@ -506,7 +506,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
 				$this->debug( __METHOD__, "Setting $phanObj exec due to require/eval" );
 				$this->markAllDependentMethodsExec(
@@ -550,7 +550,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
 				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
 				// FIXME, maybe not do this for local variables
@@ -611,6 +611,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		// in question.
 		try {
 			if ( $node->kind === \ast\AST_NEW ) {
+				// We check the __construct() method first, but the
+				// final resulting taint is from the __toString()
+				// method. This is a little hacky.
 				$clazzName = $node->children['class']->children['name'];
 				if ( $clazzName === 'self' && $this->context->isInClassScope() ) {
 					$clazzName = (string)$this->context->getClassFQSEN();
@@ -624,6 +627,32 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 					throw new exception( "Cannot find __construct" );
 				}
 				$func = $this->code_base->getMethodByFQSEN( $fqsen );
+				// First do __construct()
+				$this->handleMethodCall(
+					$func,
+					$func->getFQSEN(),
+					$this->getTaintOfFunction( $func ),
+					$node->children['args']->children
+				);
+				// Now return __toString()
+				$fqsen = FullyQualifiedMethodName::fromStringInContext(
+					$clazzName . '::__toString',
+					$this->context
+				);
+				if ( !$this->code_base->hasMethodWithFQSEN( $fqsen ) ) {
+					$this->debug( __METHOD__, "no __toString() $fqsen" );
+					// If there is no __toString(), then presumably
+					// the object can't be outputed, so should be
+					// safe.
+					return SecurityCheckPlugin::NO_TAINT;
+				}
+				$func = $this->code_base->getMethodByFQSEN( $fqsen );
+				return $this->handleMethodCall(
+					$func,
+					$func->getFQSEN(),
+					$this->getTaintOfFunction( $func ),
+					[] // __toString() has no args
+				);
 			} elseif ( $isFunc ) {
 				if ( $node->children['expr']->kind !== \ast\AST_NAME ) {
 					throw new Exception( "Non-simple func call" );
