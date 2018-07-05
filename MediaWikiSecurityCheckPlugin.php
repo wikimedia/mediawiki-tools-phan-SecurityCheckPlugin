@@ -492,22 +492,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\WebRequest::getAllHeaders' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
-			'\OOUI\HtmlSnippet::__construct' => [
-				self::ESCAPES_HTML,
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\OOUI\FieldLayout::__construct' => [
-				'overall' => self::NO_TAINT
-			],
-			'\OOUI\TextInputWidget::__construct' => [
-				'overall' => self::NO_TAINT
-			],
-			'\OOUI\ButtonInputWidget::__construct' => [
-				'overall' => self::NO_TAINT
-			],
-			'\OOUI\HorizontalLayout::__construct' => [
-				'overall' => self::NO_TAINT
-			],
 			'\HtmlArmor::__construct' => [
 				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT
