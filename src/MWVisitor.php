@@ -8,6 +8,7 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN;
 use Phan\Language\Element\Method;
 use Phan\Language\Type\CallableType;
+use Phan\Language\UnionType;
 use Phan\Plugin;
 use Phan\CodeBase;
 use ast\Node;
@@ -967,6 +968,49 @@ class MWVisitor extends TaintednessBaseVisitor {
 						$this->getOriginalTaintLine( $key )
 				);
 			}
+		}
+	}
+
+	/**
+	 * A global declaration. Use to adjust types for MW globals
+	 *
+	 * @param Node $node
+	 */
+	public function visitGlobal( Node $node ) {
+		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
+		$varName = $node->children['var']->children['name'];
+		$scope = $this->context->getScope();
+		if ( $scope->hasVariableWithName( $varName ) ) {
+			$variable = $scope->getVariableByName( $varName );
+			$typeName = false;
+			switch ( $varName ) {
+				case 'wgContLang':
+				case 'wgLang':
+					$typeName = '\\Language';
+					break;
+				case 'wgUser':
+					$typeName = '\\User';
+					break;
+				case 'wgRequest':
+					$typeName = '\\WebRequest';
+					break;
+				case 'wgOut':
+					$typeName = '\\OutputPage';
+					break;
+				case 'wgParser':
+					$typeName = '\\Parser';
+					break;
+				case 'wgTitle':
+					$typeName = '\\Title';
+					break;
+			}
+			if ( $typeName !== false ) {
+				$variable->setUnionType(
+					UnionType::fromFullyQualifiedString( $typeName )
+				);
+			}
+		} else {
+			$this->debug( __METHOD__, "global $varName not in scope (?)" );
 		}
 	}
 }
