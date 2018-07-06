@@ -404,14 +404,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			// check the return type. If it (e.g.) returns just an int,
 			// its probably safe.
 			$taint = [ 'overall' => $this->getTaintByReturnType( $func->getUnionType() ) ];
-			/*if ( $taint === SecurityCheckPlugin::UNKNOWN_TAINT ) {
-			*	//Otherwise, if its unknown, assume that
-			*	// the function depends only on its arguments (unclear how
-			*	// good an assumption this is. Does it make more sense to
-			*	// assume its safe until). Except we don't.
-			*	$taint = SecurityCheckPlugin::PRESERVE_TAINT;
-			}*/
-			// echo "No taint for method $funcName - now $taint\n";
 		}
 		$this->checkFuncTaint( $taint );
 		return $taint;
@@ -940,17 +932,6 @@ return [];
 	) {
 		$taintLHS = $this->getTaintedness( $lhs );
 		$taintRHS = $this->getTaintedness( $rhs );
-		/********************
-		FIXME what was this check about. Does it make sense as an
-		error condition??
-		// LHS may already be tainted by something earlier.
-		if (
-			$taintLHS < SecurityCheckPlugin::PRESERVE_TAINT ||
-			$taintRHS !== SecurityCheckPlugin::PRESERVE_TAINT
-		) {
-			$this->debug( __METHOD__, "FIXME merging dependencies where" .
-				" LHS and RHS are not both preserved taint. lhs=$taintLHS; rhs=$taintRHS" );
-		} */
 
 		if ( $taintRHS & SecurityCheckPlugin::YES_EXEC_TAINT ) {
 			$this->mergeTaintError( $lhs, $rhs );
