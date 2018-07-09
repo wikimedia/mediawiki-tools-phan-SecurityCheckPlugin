@@ -137,9 +137,8 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 				continue;
 			}
 
-			// Its going to depend on whether anyone calls the method
-			// with something dangerous.
-			$this->setTaintedness( $varObj, SecurityCheckPlugin::PRESERVE_TAINT );
+			// Initially, the variable starts off with no taint.
+			$this->setTaintedness( $varObj, SecurityCheckPlugin::NO_TAINT );
 			$this->linkParamAndFunc( $varObj, $method, $i );
 		}
 	}
