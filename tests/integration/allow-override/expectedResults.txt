@@ -1,0 +1,4 @@
+integration/allow-override/test.php:50 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/allow-override/test.php +14)
+integration/allow-override/test.php:52 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/allow-override/test.php +22)
+integration/allow-override/test.php:56 SecurityCheck-XSS Calling method \foo5() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/allow-override/test.php +36)
+integration/allow-override/test.php:58 SecurityCheck-XSS Calling method \foo6() in [no method] that outputs using tainted argument $[arg #2]. (Caused by: integration/allow-override/test.php +44)

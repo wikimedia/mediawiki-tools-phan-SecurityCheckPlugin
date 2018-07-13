@@ -85,6 +85,8 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	// Special purpose flags(Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
 	const ARRAY_OK = 268435456;
+	// Do not allow autodetected taint info override given taint.
+	const NO_OVERRIDE = 0x20000000;
 
 	// Combination flags
 	const YES_TAINT = 43688;
@@ -170,7 +172,15 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 		$funcTaints = $this->getCustomFuncTaints() + $this->getPHPFuncTaints();
 		$name = (string)$fqsen;
 
-		return $funcTaints[$name] ?? null;
+		if ( isset( $funcTaints[$name] ) ) {
+			$taint = $funcTaints[$name];
+			// For backcompat, make self::NO_OVERRIDE always be set.
+			foreach ( $taint as $_ => &$val ) {
+				$val |= self::NO_OVERRIDE;
+			}
+			return $taint;
+		}
+		return null;
 	}
 
 	/**
@@ -231,6 +241,7 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 *  * none - self::NO_TAINT
 	 *  * tainted - self::YES_TAINT
 	 *  * array_ok - sets self::ARRAY_OK
+	 *  * allow_override - Allow autodetected taints to override annotation
 	 *
 	 * @todo Should UNKOWN_TAINT be in here? What about ~ operator?
 	 * @note The special casing to have escapes_html always add exec_escaped
@@ -244,12 +255,12 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
-		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok)$/";
+		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override)$/";
 
 		$taints = explode( ',', strtolower( $line ) );
 		$taints = array_map( 'trim', $taints );
 
-		$overallTaint = 0;
+		$overallTaint = self::NO_OVERRIDE;
 		$numberOfTaintsProcessed = 0;
 		foreach ( $taints as $taint ) {
 			$taintParts = [];
@@ -259,6 +270,10 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 			$numberOfTaintsProcessed++;
 			if ( $taintParts['taint'] === 'array_ok' ) {
 				$overallTaint |= self::ARRAY_OK;
+				continue;
+			}
+			if ( $taintParts['taint'] === 'allow_override' ) {
+				$overallTaint = $overallTaint & ( ~self::NO_OVERRIDE );
 				continue;
 			}
 			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );

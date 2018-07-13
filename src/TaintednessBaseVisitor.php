@@ -80,9 +80,15 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @param FunctionInterface $func
 	 * @param int[] $taint Numeric keys for each arg and an 'overall' key.
 	 * @param bool $override Whether to merge taint or override
+	 * @param string|Context|null $reason Either a reason or a context representing the line number
 	 * @suppress PhanUndeclaredMethod
 	 */
-	protected function setFuncTaint( FunctionInterface $func, array $taint, bool $override = false ) {
+	protected function setFuncTaint(
+		FunctionInterface $func,
+		array $taint,
+		bool $override = false,
+		$reason = null
+	) {
 		if (
 			$func instanceof ClassElement &&
 			(string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
@@ -95,11 +101,13 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		}
 		$curTaint = [];
 		$newTaint = [];
-		// What taint we're setting, to do book-keeping about whenever
-		// we add a dangerous taint.
-		$mergedTaint = SecurityCheckPlugin::NO_TAINT;
+
 		if ( property_exists( $func, 'funcTaint' ) ) {
 			$curTaint = $func->funcTaint;
+		} elseif ( !$override ) {
+			// If we are not overriding, and we don't know
+			// current taint, figure it out.
+			$curTaint = $this->getTaintOfFunction( $func );
 		}
 		if ( $override ) {
 			$newTaint = $taint;
@@ -109,14 +117,29 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		foreach ( $bothTaint as $index => $_ ) {
 			$t = $taint[$index] ?? 0;
 			assert( is_int( $t ) );
+			$curT = $curTaint[$index] ?? 0;
 			if ( !$override ) {
-				$newTaint[$index] = ( $curTaint[$index] ?? 0 ) | $t;
+				if ( $curT & SecurityCheckPlugin::NO_OVERRIDE ) {
+					// We have some hard coded taint (e.g. from
+					// docblock) and do not want to override it
+					// from stuff deduced from src code.
+					$newTaint[$index] = $curT;
+				} else {
+					// We also clear the UNKNOWN flag here, as
+					// if we are explicitly setting it, it is no
+					// longer unknown.
+					$curTNoUnk = $curT & ( ~SecurityCheckPlugin::UNKNOWN_TAINT );
+					$newTaint[$index] = $curTNoUnk | $t;
+				}
 			}
-			$mergedTaint |= $t;
-			if ( is_int( $index ) ) {
-				$this->addTaintError( $t, $func, $index );
-			} else {
-				$this->addTaintError( $t, $func );
+			// Only copy error lines if we add some taint not
+			// previously present.
+			if ( ( ( $curT | $t ) ^ $curT ) !== 0 ) {
+				if ( is_int( $index ) ) {
+					$this->addTaintError( $t, $func, $index, $reason );
+				} else {
+					$this->addTaintError( $t, $func, -1, $reason );
+				}
 			}
 		}
 		if ( !isset( $newTaint['overall'] ) ) {
@@ -163,8 +186,14 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @param int $taintedness The taintedness in question
 	 * @param TypedElementInterface $elem Where to put it
 	 * @param int $arg [Optional] For functions, which argument
+	 * @param string|Context|null $reason To override the caused by line
 	 */
-	protected function addTaintError( int $taintedness, TypedElementInterface $elem, int $arg = -1 ) {
+	protected function addTaintError(
+		int $taintedness,
+		TypedElementInterface $elem,
+		int $arg = -1,
+		$reason = null
+	) {
 		if ( !$this->isExecTaint( $taintedness ) && !$this->isYesTaint( $taintedness ) ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
@@ -184,7 +213,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				$elem->taintedOriginalErrorByArg[$arg] = '';
 			}
 		}
-		$newErrors = [ $this->dbgInfo() . ';' ];
+		if ( !is_string( $reason ) ) {
+			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) . ';' ];
+		} else {
+			$newErrors = [ ' ' . $reason. ';' ];
+		}
 		if ( $this->overrideContext ) {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext ) . ';';
 		}
@@ -327,6 +360,94 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	}
 
 	/**
+	 * Get the taint of a PHP builtin function/method
+	 *
+	 * Assume that anything not-hardcoded just passes its
+	 * arguments into its return value
+	 *
+	 * @param FunctionInterface $func A builtin Function/Method
+	 * @return array The function taint.
+	 */
+	private function getTaintOfFunctionPHP( FunctionInterface $func ) {
+		$taint = $this->getBuiltinFuncTaint( $func->getFQSEN() );
+		if ( $taint !== null ) {
+			return $taint;
+		}
+
+		// Assume that anything really dangerous we've already
+		// hardcoded. So just preserve taint
+		$taintFromReturnType = $this->getTaintByReturnType( $func->getUnionType() );
+		if ( $taintFromReturnType === SecurityCheckPlugin::NO_TAINT ) {
+			return [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
+		}
+		return [ 'overall' => SecurityCheckPlugin::PRESERVE_TAINT ];
+	}
+
+	/**
+	 * Given a func, get the defining func or null
+	 *
+	 * @suppress PhanUndeclaredMethod
+	 * @param FunctionInterface $func
+	 * @return null|FunctionInterface
+	 */
+	private function getDefiningFunc( FunctionInterface $func ) {
+		if (
+			$func instanceof ClassElement
+			&& $func->hasDefiningFQSEN()
+		) {
+			// Our function has a parent, and potentially interface and traits.
+			if ( (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN() ) {
+				$definingFunc = $this->code_base->getMethodByFQSEN(
+					$func->getDefiningFQSEN()
+				);
+				return $definingFunc;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of places to look for function taint info
+	 *
+	 * @todo How to handle multiple function definitions (phan "alternates")
+	 * @param FunctionInterface $func
+	 * @return FunctionInterface[]
+	 */
+	private function getPossibleFuncDefinitions( FunctionInterface $func ) {
+		$funcsToTry = [ $func ];
+
+		// If we don't have a defining func, stay with the same func.
+		// definingFunc is used later on during fallback processing.
+		$definingFunc = $this->getDefiningFunc( $func );
+		if ( $definingFunc ) {
+			$funcToTry[] = $definingFunc;
+		}
+		if ( $func instanceof ClassElement ) {
+			try {
+				$class = $func->getClass( $this->code_base );
+				$nonParents = $class->getNonParentAncestorFQSENList( $this->code_base );
+
+				foreach ( $nonParents as $nonParentFQSEN ) {
+					$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
+					if ( $nonParent->hasMethodWithName(
+						$this->code_base, $func->getName()
+					) ) {
+						$funcsToTry[] = $nonParent->getMethodByName(
+							$this->code_base, $func->getName()
+						);
+					}
+				}
+			} catch ( Exception $e ) {
+				// Could happen if the interface file is missing
+				$this->debug( __METHOD__, "Error looking up interface " .
+					get_class( $e ) . ' ' . $e->getMessage()
+				);
+			}
+		}
+		return $funcsToTry;
+	}
+
+	/**
 	 * This is also for methods and other function like things
 	 *
 	 * @param FunctionInterface $func What function/method to look up
@@ -344,70 +465,63 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @suppress PhanUndeclaredMethod
 	 */
 	protected function getTaintOfFunction( FunctionInterface $func ) {
-		$funcName = $func->getFQSEN();
-		$taint = $this->getDocBlockTaintOfFunc( $func );
-		if ( $taint !== null ) {
-			return $taint;
-		}
-		$taint = $this->getBuiltinFuncTaint( $funcName );
-		if ( $taint !== null ) {
-			return $taint;
-		}
+		// Fast case, either a builtin to php function or we already
+		// know taint:
 		if ( $func->isInternal() ) {
-			// Built in php.
-			// Assume that anything really dangerous we've already
-			// hardcoded. So just preserve taint
-			$taintFromReturnType = $this->getTaintByReturnType( $func->getUnionType() );
-			if ( $taintFromReturnType === SecurityCheckPlugin::NO_TAINT ) {
-				return [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
-			}
-			return [ 'overall' => SecurityCheckPlugin::PRESERVE_TAINT ];
+			return $this->getTaintOfFunctionPHP( $func );
 		}
-		if ( property_exists( $func, 'funcTaint' ) ) {
-			$taint = $func->funcTaint;
-		} elseif (
-			$func instanceof ClassElement
-			&& $func->hasDefiningFQSEN()
-			&& (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
-		) {
-			// @todo Should we check this earlier. Should we skip right to
-			// the taint of the defining method, and not even look at
-			// whatever the method is called as?
-			// In the case of builtin taints, perhaps it should still look
-			// at base classes even if the base class got overriden(?)
-			$definingFqsen = $func->getDefiningFQSEN();
-			$definingFunc = $this->code_base->getMethodByFQSEN( $definingFqsen );
-			$this->debug( __METHOD__, "Checking base implemntation $definingFqsen of $funcName" );
-			return $this->getTaintOfFunction( $definingFunc );
-		} else {
-			// Ensure we don't indef loop.
-			if (
-				!$func->isInternal() &&
-				( !$this->context->isInFunctionLikeScope() ||
-				$func->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
-			) {
-				// $this->debug( __METHOD__, "no taint info for func $func" );
-				try {
-					$func->analyze( $func->getContext(), $this->code_base );
-				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
-				}
-				// $this->debug( __METHOD__, "updated taint info for $func" );
-				// var_dump( $func->funcTaint ?? "NO INFO" );
-				if ( property_exists( $func, 'funcTaint' ) ) {
-					$this->checkFuncTaint( $func->funcTaint );
-					return $func->funcTaint;
-				}
-			}
-			// TODO: Maybe look at __toString() if we are at __construct().
-			// FIXME this could probably use a second look.
 
-			// If we haven't seen this function before, first of all
-			// check the return type. If it (e.g.) returns just an int,
-			// its probably safe.
-			$taint = [ 'overall' => $this->getTaintByReturnType( $func->getUnionType() ) ];
+		if ( property_exists( $func, 'funcTaint' ) ) {
+			return $func->funcTaint;
 		}
+
+		// Gather up
+
+		$funcsToTry = $this->getPossibleFuncDefinitions( $func );
+		foreach ( $funcsToTry as $trialFunc ) {
+			$trialFuncName = $trialFunc->getFQSEN();
+			$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
+			if ( $taint !== null ) {
+				$this->setFuncTaint( $func, $taint, true, $trialFunc->getContext() );
+
+				return $taint;
+			}
+			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
+			if ( $taint !== null ) {
+				$this->setFuncTaint( $func, $taint, true, "Builtin-$trialFuncName" );
+				return $taint;
+			}
+		}
+
+		$definingFunc = $this->getDefiningFunc( $func ) ?: $func;
+		// Ensure we don't indef loop.
+		if (
+			!$definingFunc->isInternal() &&
+			( !$this->context->isInFunctionLikeScope() ||
+			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
+		) {
+			$this->debug( __METHOD__, "no taint info for func $func" );
+			try {
+				$definingFunc->analyze( $definingFunc->getContext(), $this->code_base );
+			} catch ( Exception $e ) {
+				$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
+			}
+			$this->debug( __METHOD__, "updated taint info for $definingFunc" );
+			// var_dump( $definingFunc->funcTaint ?? "NO INFO" );
+			if ( property_exists( $definingFunc, 'funcTaint' ) ) {
+				$this->checkFuncTaint( $definingFunc->funcTaint );
+				return $definingFunc->funcTaint;
+			}
+		}
+		// TODO: Maybe look at __toString() if we are at __construct().
+		// FIXME this could probably use a second look.
+
+		// If we haven't seen this function before, first of all
+		// check the return type. If it (e.g.) returns just an int,
+		// its probably safe.
+		$taint = [ 'overall' => $this->getTaintByReturnType( $func->getUnionType() ) ];
 		$this->checkFuncTaint( $taint );
+		$this->setFuncTaint( $func, $taint, true );
 		return $taint;
 	}
 

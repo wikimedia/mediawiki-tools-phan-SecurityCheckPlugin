@@ -82,6 +82,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		if (
 			$this->getBuiltinFuncTaint( $method->getFQSEN() ) === null &&
+			$this->getDocBlockTaintOfFunc( $method ) === null &&
 			!$method->getHasYield() &&
 			!$method->getHasReturn() &&
 			!property_exists( $method, 'funcTaint' )

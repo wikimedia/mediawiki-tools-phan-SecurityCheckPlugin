@@ -1,4 +1,4 @@
-integration/lowercase/test.php:5 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1].
-integration/lowercase/test.php:6 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1].
-integration/lowercase/test.php:7 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1].
-integration/lowercase/test.php:8 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1].
+integration/lowercase/test.php:5 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: Builtin-\OutputPage::addHTML)
+integration/lowercase/test.php:6 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: Builtin-\OutputPage::addHTML)
+integration/lowercase/test.php:7 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: Builtin-\OutputPage::addHTML)
+integration/lowercase/test.php:8 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: Builtin-\OutputPage::addHTML)
