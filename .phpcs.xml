@@ -43,4 +43,7 @@
 		<rule ref="Generic.CodeAnalysis.UnconditionalIfStatement.Found">
 			<exclude-pattern>./tests</exclude-pattern>
 		</rule>
+		<rule ref="MediaWiki.Files.ClassMatchesFilename.WrongCase">
+			<exclude-pattern>./tests</exclude-pattern>
+		</rule>
 	</ruleset>

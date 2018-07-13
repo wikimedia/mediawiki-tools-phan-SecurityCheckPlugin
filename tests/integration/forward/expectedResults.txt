@@ -1,0 +1,2 @@
+integration/forward/dummy.php:34 SecurityCheck-XSS Calling method \StaticDummy::someFunc() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/forward/dummy.php +19)
+integration/forward/dummy.php:34 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/forward/dummy.php +19)

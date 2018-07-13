@@ -980,6 +980,8 @@ return [];
 		TypedElementInterface $var,
 		int $taint = SecurityCheckPlugin::EXEC_TAINT
 	) {
+		// Ensure we only set exec bits, not normal taint bits.
+		$taint = $taint & SecurityCheckPlugin::EXEC_TAINT;
 		// FIXME. Does this check make sense?
 		// should it also check if it has any of the YES_TAINT flags?
 
