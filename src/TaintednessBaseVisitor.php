@@ -1771,7 +1771,7 @@ return [];
 		$this->maybeEmitIssue(
 			$taint['overall'],
 			$this->execToYesTaint( $taint['overall'] ),
-			"Calling Method $funcName in $containingMethod that "
+			"Calling method $funcName in $containingMethod that "
 			. "is always unsafe " .
 			( $func ? $this->getOriginalTaintLine( $func ) : '' )
 		);
