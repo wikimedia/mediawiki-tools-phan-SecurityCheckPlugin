@@ -26,7 +26,7 @@ memory. Small projects do not require so much memory
 
 ### Composer
 
-  $ `composer require --dev mediawiki/phan-taint-check-plugin`
+    $ `composer require --dev mediawiki/phan-taint-check-plugin`
 
 * For MediaWiki core, add the following to composer.json:
 
@@ -55,7 +55,7 @@ memory. Small projects do not require so much memory
 
 You can then run:
 
-  $ `composer seccheck`
+    $ `composer seccheck`
 
 to run the security check. Note that false positives are disabled by default.
 For MediaWiki extensions, this assumes the extension is installed in the
@@ -83,7 +83,7 @@ of plugins in your phan config.php file.
 
 Then run phan as you normally would:
 
-  $ php7 /path/to/phan/phan -p
+    $ php7 /path/to/phan/phan -p
 
 Plugin output
 -------------
@@ -96,14 +96,12 @@ detects. The issue types it outputs are:
 * SecurityCheck-XSS
 * SecurityCheck-SQLInjection
 * SecurityCheck-ShellInjection
-* SecurityCheck-PHPSerializeInjection - For when someone does `unserialize(
-  $_GET['d'] );` This issue type seems to have a high false positive rate
-  currently.
+* SecurityCheck-PHPSerializeInjection - For when someone does `unserialize( $_GET['d'] );`
+  This issue type seems to have a high false positive rate currently.
 * SecurityCheck-CUSTOM1 - To allow people to have custom taint types
 * SecurityCheck-CUSTOM2 - ditto
 * SecurityCheck-OTHER - At the moment, this corresponds to things that don't
-  have an escaping function to make input safe. e.g. `eval( $_GET['foo'] );
-  require $_GET['bar'];`
+  have an escaping function to make input safe. e.g. `eval( $_GET['foo'] ); require $_GET['bar'];`
 * SecurityCheck-LikelyFalsePositive - A potential issue, but probably not.
   Mostly happens when the plugin gets confused.
 
@@ -125,9 +123,9 @@ There's much more than listed here, but some notable limitations/bugs:
 * When an issue is output, the plugin tries to include details about what line
   originally caused the issue. Usually it works, but sometimes it gives
   misleading/wrong information
-** In particular, with pass by reference parameters to MediaWiki hooks,
-   sometimes the line number is the hook call in MediaWiki core, instead of
-   the hook subscriber in the extension that caused the issue.
+    * In particular, with pass by reference parameters to MediaWiki hooks,
+      sometimes the line number is the hook call in MediaWiki core, instead of
+      the hook subscriber in the extension that caused the issue.
 * Command line scripts cause XSS false positives
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you may have to write a subclass of
@@ -150,6 +148,7 @@ html taint bit. Similarly, sometimes phan-taint-check can get confused and
 you want to override the taint calculated for a specific function.
 
 You can do this by adding a taint directive in a docblock comment. For example:
+
 ```
 /**
  * My function description
@@ -158,20 +157,21 @@ You can do this by adding a taint directive in a docblock comment. For example:
  * @param-taint $html escapes_html
  */
 function escapeHtml( $html ) {
-...
+}
 ```
+
 Taint directives are prefixed with either `@param-taint $parametername` or `@return-taint`. If there are multiple directives they can be separated by a comma. @param-taint is used for either marking how taint is transmited from the parameter to the methods return value, or when used with `exec_` directives, to mark places where parameters are outputted/executed. `@return-taint` is used to adjust the return value's taint regardless of the input parameters.
 
 The type of directives include:
 * `exec_$TYPE` - If a parameter is marked as exec_$TYPE then feeding that parameter a value with $TYPE taint will result in a warning triggered. Typically you would use this when a function that outputs or executes its parameter
 * `escapes_$TYPE` - Used for parameters where the function escapes and then returns the parameter. So `escapes_sql` would clear the sql taint bit, but leave other taint bits alone.
-* `onlysafefor_$TYPE - For use in `@return`, marks the return type as safe for a specific $TYPE but unsafe for the other types.
+* `onlysafefor_$TYPE` - For use in `@return`, marks the return type as safe for a specific $TYPE but unsafe for the other types.
 * `$TYPE` - if just the type is specified in a parameter, it is bitwised AND with the input variable's taint. Normally you wouldn't want to do this, but can be useful when $TYPE is `none` to specify that the parameter is not used to generate the return value. In an @return this could be used to enumerate which taint flags the return value has, which is usually only useful when specified as `tainted` to say it has all flags.
 * `array_ok` - special purpose flag to say ignore tainted arguments if they are in an array.
 * `allow_override` - Special purpose flag to specify that that taint annotation should be overriden by phan-taint-check if it can detect a specific taint.
 
 The value for $TYPE can be one of htmlnoent, html, sql, shell, serialize, custom1, custom2, misc, sql_numkey, escaped, none, tainted. Most of these are taint categories, except:
-* htmlnoent - like html but disable double escaping detection that gets used with html. When escapes_html is specified, escaped automatically gets added to @return, and exec_escaped is added to @param
+* htmlnoent - like html but disable double escaping detection that gets used with html. When escapes\_html is specified, escaped automatically gets added to @return, and exec_escaped is added to @param
 * none - Means no taint
 * tainted - Means all taint categories except special categories (equivalent to SecurityCheckPlugin::YES_TAINT)
 * escaped - Is used to mean the value is already escaped (To track double escaping)
@@ -197,10 +197,10 @@ example, an output function).
 For example, [htmlspecialchars] which removes html taint but leaves other taint
 would look like
 
-  'htmlspecialchars' => [
-      self::YES_TAINT & ~self::HTML_TAINT,
-      'overall' => self::NO_TAINT,
-  ];
+    'htmlspecialchars' => [
+        self::YES_TAINT & ~self::HTML_TAINT,
+        'overall' => self::NO_TAINT,
+    ];
 
 Environment variables
 ---------------------
