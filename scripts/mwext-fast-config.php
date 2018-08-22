@@ -66,6 +66,7 @@ $MWExtConfig = [
 	 */
 	"exclude_analysis_directory_list" => [
 		'vendor/',
+		'tests/',
 		$IP,
 	],
 
