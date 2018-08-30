@@ -208,7 +208,7 @@ Environment variables
 The following environment variables affect the plugin. Normally you would not
 have to adjust these.
 
-* `SECURITY_CHECK_EXT_PATH` - Path to extension.json when in MediaWiki mode.
+* `SECURITY_CHECK_EXT_PATH` - Path to extension.json/skin.json when in MediaWiki mode.
   If not set assumes the project root directory.
 * `SECCHECK_DEBUG` - File to output extra debug information (If running from
   shell, /dev/stderr is convenient)

@@ -580,9 +580,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	}
 
 	/**
-	 * Register hooks from extension.json
+	 * Register hooks from extension.json/skin.json
 	 *
-	 * Assumes extension.json is in project root directory
+	 * Assumes extension.json/skin.json is in project root directory
 	 * unless SECURITY_CHECK_EXT_PATH is set
 	 */
 	protected function loadExtensionJson() {
@@ -591,32 +591,34 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			return;
 		}
 		$done = true;
-		$envPath = getenv( 'SECURITY_CHECK_EXT_PATH' );
-		if ( $envPath ) {
-			$jsonPath = $envPath . '/' . 'extension.json';
-		} else {
-			$jsonPath = Config::projectPath( 'extension.json' );
-		}
-		if ( file_exists( $jsonPath ) ) {
-			$json = json_decode( file_get_contents( $jsonPath ), true );
-			if ( !is_array( $json ) ) {
-				return;
+		foreach ( [ 'extension.json', 'skin.json' ] as $filename ) {
+			$envPath = getenv( 'SECURITY_CHECK_EXT_PATH' );
+			if ( $envPath ) {
+				$jsonPath = $envPath . '/' . $filename;
+			} else {
+				$jsonPath = Config::projectPath( $filename );
 			}
-			if ( isset( $json['Hooks'] ) && is_array( $json['Hooks'] ) ) {
-				foreach ( $json['Hooks'] as $hookName => $cbList ) {
-					foreach ( (array)$cbList as $cb ) {
-						// All callbacks here are simple
-						// "someFunction" or "Class::SomeMethod"
-						if ( strpos( $cb, '::' ) === false ) {
-							$callback = FQSENFunc::fromFullyQualifiedString(
-								$cb
-							);
-						} else {
-							$callback = FQSENMethod::fromFullyQualifiedString(
-								$cb
-							);
+			if ( file_exists( $jsonPath ) ) {
+				$json = json_decode( file_get_contents( $jsonPath ), true );
+				if ( !is_array( $json ) ) {
+					continue;
+				}
+				if ( isset( $json['Hooks'] ) && is_array( $json['Hooks'] ) ) {
+					foreach ( $json['Hooks'] as $hookName => $cbList ) {
+						foreach ( (array)$cbList as $cb ) {
+							// All callbacks here are simple
+							// "someFunction" or "Class::SomeMethod"
+							if ( strpos( $cb, '::' ) === false ) {
+								$callback = FQSENFunc::fromFullyQualifiedString(
+									$cb
+								);
+							} else {
+								$callback = FQSENMethod::fromFullyQualifiedString(
+									$cb
+								);
+							}
+							$this->registerHook( $hookName, $callback );
 						}
-						$this->registerHook( $hookName, $callback );
 					}
 				}
 			}
