@@ -8,6 +8,7 @@
 # Assumes that either MediaWiki is installed in ../../
 # or the user has set MW_INSTALL_PATH environment variable.
 
+extname=`basename "$PWD"`
 php=`which php7.0`
 if [ "$?" != 0 ]
 then
@@ -17,6 +18,6 @@ fi
 $php vendor/phan/phan/phan \
 	-d . \
 	-k vendor/mediawiki/phan-taint-check-plugin/scripts/mwext-config.php \
-	--output "php://stdout" "$@" | grep '\(^\./\| \./\)'
+	--output "php://stdout" "$@" | grep '\(^\./\| \./\|'${extname//[^a-zA-Z0-9]/}'\)'
 
 exit $?

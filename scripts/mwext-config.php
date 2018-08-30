@@ -70,7 +70,6 @@ $MWExtConfig = [
 		$IP . 'includes/composer/',
 		$IP . 'maintenance/language/',
 		$IP . 'includes/libs/jsminplus.php',
-		$IP . 'skins/',
 		'vendor'
 	],
 

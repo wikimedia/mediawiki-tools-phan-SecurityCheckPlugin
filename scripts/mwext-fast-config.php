@@ -45,7 +45,6 @@ $MWExtConfig = [
 		$IP . 'maintenance/',
 		$IP . 'mw-config/',
 		$IP . 'resources/',
-		$IP . 'skins/',
 		$IP . 'vendor/',
 		'.'
 	],
