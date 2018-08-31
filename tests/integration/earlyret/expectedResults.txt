@@ -1,0 +1,1 @@
+integration/earlyret/test.php:10 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/earlyret/test.php +7)

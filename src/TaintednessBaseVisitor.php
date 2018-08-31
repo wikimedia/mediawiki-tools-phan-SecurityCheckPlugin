@@ -107,7 +107,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		} elseif ( !$override ) {
 			// If we are not overriding, and we don't know
 			// current taint, figure it out.
-			$curTaint = $this->getTaintOfFunction( $func );
+			$curTaint = $this->getTaintOfFunction( $func, false );
 		}
 		if ( $override ) {
 			$newTaint = $taint;
@@ -462,17 +462,18 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 *                     TAINT flags for what taint gets passed through func.
 	 *   If func has an arg that is missing from array, then it should be
 	 *   treated as TAINT_NO if its a number or bool. TAINT_YES otherwise.
+	 * @param bool $clearOverride Include SecurityCheckPlugin::NO_OVERRIDE
 	 * @suppress PhanUndeclaredMethod
 	 */
-	protected function getTaintOfFunction( FunctionInterface $func ) {
+	protected function getTaintOfFunction( FunctionInterface $func, $clearOverride = true ) {
 		// Fast case, either a builtin to php function or we already
 		// know taint:
 		if ( $func->isInternal() ) {
-			return $this->getTaintOfFunctionPHP( $func );
+			return $this->maybeClearNoOverride( $this->getTaintOfFunctionPHP( $func ), $clearOverride );
 		}
 
 		if ( property_exists( $func, 'funcTaint' ) ) {
-			return $func->funcTaint;
+			return $this->maybeClearNoOverride( $func->funcTaint, $clearOverride );
 		}
 
 		// Gather up
@@ -484,12 +485,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			if ( $taint !== null ) {
 				$this->setFuncTaint( $func, $taint, true, $trialFunc->getContext() );
 
-				return $taint;
+				return $this->maybeClearNoOverride( $taint, $clearOverride );
 			}
 			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
 			if ( $taint !== null ) {
 				$this->setFuncTaint( $func, $taint, true, "Builtin-$trialFuncName" );
-				return $taint;
+				return $this->maybeClearNoOverride( $taint, $clearOverride );
 			}
 		}
 
@@ -510,7 +511,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			// var_dump( $definingFunc->funcTaint ?? "NO INFO" );
 			if ( property_exists( $definingFunc, 'funcTaint' ) ) {
 				$this->checkFuncTaint( $definingFunc->funcTaint );
-				return $definingFunc->funcTaint;
+				return $this->maybeClearNoOverride( $definingFunc->funcTaint, $clearOverride );
 			}
 		}
 		// TODO: Maybe look at __toString() if we are at __construct().
@@ -522,9 +523,28 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		$taint = [ 'overall' => $this->getTaintByReturnType( $func->getUnionType() ) ];
 		$this->checkFuncTaint( $taint );
 		$this->setFuncTaint( $func, $taint, true );
-		return $taint;
+		return $this->maybeClearNoOverride( $taint, $clearOverride );
 	}
 
+	/**
+	 * Sometimes we don't want NO_OVERRIDE.
+	 *
+	 * This is primarily used to ensure that no override doesn't
+	 * propagate into other variables.
+	 *
+	 * @param array $taint Function taint
+	 * @param bool $clear Whether to clear it or not
+	 * @return array Function taint
+	 */
+	private function maybeClearNoOverride( array $taint, bool $clear ) {
+		if ( !$clear ) {
+			return $taint;
+		}
+		foreach ( $taint as &$t ) {
+			$t = $t & ( ~SecurityCheckPlugin::NO_OVERRIDE );
+		}
+		return $taint;
+	}
 	/**
 	 * Obtain taint information from a docblock comment.
 	 *
