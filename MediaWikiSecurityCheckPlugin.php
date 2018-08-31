@@ -425,27 +425,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT,
 			],
 			'\OutputPage::parse' => [ 'overall' => self::NO_TAINT, ],
-			'\Parser::parse' => [
-				// FIXME: Maybe should not have ESCAPED_EXEC_TAINT
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\Parser::recursiveTagParse' => [
-				// FIXME: Maybe should not have ESCAPED_EXEC_TAINT
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
-				self::NO_TAINT,
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\Parser::recursiveTagParseFully' => [
-				// FIXME: Maybe should not have ESCAPED_EXEC_TAINT
-				( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
-				self::NO_TAINT,
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\ParserOutput::getText' => [
-				self::NO_TAINT,
-				'overall' => self::ESCAPED_TAINT
-			],
 			'\Sanitizer::removeHTMLtags' => [
 				self::ESCAPES_HTML,
 				self::SHELL_EXEC_TAINT, /* attribute callback */
