@@ -404,6 +404,10 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\base64_encode' => [
+				self::YES_TAINT & ~self::HTML_TAINT,
+				'overall' => self::NO_TAINT
+			],
 		];
 	}
 }
