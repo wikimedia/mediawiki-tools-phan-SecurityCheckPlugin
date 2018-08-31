@@ -8,6 +8,7 @@ class SomeClass {
 		$parser->setHook( 'something', [ __CLASS__, 'evil' ] );
 		$parser->setHook( 'something', [ 'SecondClass', 'evilAttribs' ] );
 		$parser->setHook( 'something', [ 'SecondClass', 'good' ] );
+		$parser->setHook( 'indirect', [ __CLASS__, 'wrapper' ] );
 	}
 
 	public static function evil( $content, array $attribs, Parser $parser, PPFrame $frame ) {
@@ -15,6 +16,13 @@ class SomeClass {
 		return $text;
 	}
 
+	public static function wrapper( $content, array $attribs, Parser $parser, PPFrame $frame ) {
+		return self::evil2( $content, $attribs, $parser, $frame );
+	}
+
+	public static function evil2( $content, $attribs, $parser, $frame ) {
+		return $_GET['foo'];
+	}
 }
 
 class SecondClass {
