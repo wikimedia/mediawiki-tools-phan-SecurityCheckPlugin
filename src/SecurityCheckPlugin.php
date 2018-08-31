@@ -237,7 +237,9 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 *     Note: escapes_html adds the exec_escaped flag, use
 	 *     escapes_htmlnoent if the value is safe to double encode.
 	 *  * onlysafefor_{type}
-	 *     Same as above, intended for @return statements. No special case htmlnoent.
+	 *     Same as above, intended for @return statements.
+	 *     Only difference is that onlysafefor_html sets ESCAPED_TAINT instead
+	 *     of ESCAPED_EXEC_TAINT
 	 *  * none - self::NO_TAINT
 	 *  * tainted - self::YES_TAINT
 	 *  * array_ok - sets self::ARRAY_OK
@@ -288,7 +290,11 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 				case 'onlysafefor':
 					$overallTaint |= ( self::YES_TAINT & ~$taintAsInt );
 					if ( $taintParts['type'] === 'html' ) {
-						$overallTaint |= self::ESCAPED_EXEC_TAINT;
+						if ( $taintParts['prefix'] === 'escapes' ) {
+							$overallTaint |= self::ESCAPED_EXEC_TAINT;
+						} else {
+							$overallTaint |= self::ESCAPED_TAINT;
+						}
 					}
 					break;
 			}
