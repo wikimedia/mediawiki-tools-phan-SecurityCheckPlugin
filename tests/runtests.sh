@@ -31,7 +31,7 @@ do
         	--project-root-directory "." \
         	--config-file "integration-test-config.php" \
         	--output "php://stdout" \
-		-l "integration/$i" | tee "$SECCHECK_DEBUG" | grep ' SecurityCheck\|ParseError:\|Stack trace:\|phan_error_handler()\|ast\\'  > $tmpFile
+		-l "integration/$i" | tee "$SECCHECK_DEBUG" | grep ' SecurityCheck\|ParseError:\|Stack trace:\|phan_error_handler()\|^#[0-9][0-9]* \|ast\\'  > $tmpFile
 	diff -u "integration/$i/expectedResults.txt" "$tmpFile"
 	if [ $? -gt 0 ]
 		then failedTests=$((failedTests+1))

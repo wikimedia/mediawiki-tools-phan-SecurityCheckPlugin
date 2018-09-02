@@ -829,8 +829,11 @@ class MWVisitor extends TaintednessBaseVisitor {
 			}
 		}
 
-		if ( $class === null && $type === null ) {
+		if ( !$class && !$type ) {
 			// Definitely not an HTMLForm
+			// Also important to reject empty string, not just
+			// null, otherwise 9e409c781015 of Wikibase causes
+			// this to fatal
 			return;
 		}
 
@@ -874,7 +877,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 				$className = $class->children['class']->children['name'];
 			}
 
-			if ( $className === null ) {
+			if ( !$className ) {
 				return;
 			}
 
