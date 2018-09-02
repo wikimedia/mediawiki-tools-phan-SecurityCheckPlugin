@@ -1,0 +1,7 @@
+integration/scope/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/scope/test.php +10)
+integration/scope/test.php:35 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/scope/test.php +26)
+integration/scope/test.php:42 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/scope/test.php +40)
+integration/scope/test.php:50 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/scope/test.php:60 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/scope/test.php:68 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/scope/test.php +64)
+integration/scope/test.php:78 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/scope/test.php +64; integration/scope/test.php +72)

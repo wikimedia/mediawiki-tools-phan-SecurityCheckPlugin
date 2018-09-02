@@ -263,7 +263,9 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		$override = true
 	) {
 		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
-			// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' ) );
+			// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' )
+			// . ' Caller: ' . ( debug_backtrace()[1]['function'] ?? 'n/a' )
+			// . ', ' . ( debug_backtrace()[2]['function'] ?? 'n/a' ) );
 
 		assert( $taintedness >= 0, $taintedness );
 
@@ -275,29 +277,40 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		if ( property_exists( $variableObj, 'taintednessHasOuterScope' )
 			|| !( $this->context->getScope() instanceof FunctionLikeScope )
 		) {
-// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
-// . get_class( $this->context->getScope()) . "" );
+			// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
+				// . get_class( $this->context->getScope() ) . "" );
 			// If the current context is not a FunctionLikeScope, then
 			// it might be a class, or an if branch, or global. In any case
 			// its probably a non-local variable (or in the if case, code
 			// that may not be executed).
 
+			// This is a little confusing. Some clarifying points:
+			// * If we are currently in a branch, the the context scope
+			// will be an instance of BranchScope.
+			// * The varibaleObj->getScope() will return the underlying
+			// FunctionLikeScope regardless of if we are in a branch
+			// provided this is a local variable.
+			// * Things like while loops do not have a BranchScope but
+			// a normal FunctionLikeScope.
 			if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
 				&& ( $this->context->getScope() instanceof BranchScope )
+				&& ( $variableObj->getContext()->getScope() instanceof FunctionLikeScope )
 			) {
-// echo __METHOD__ . "in a branch\n";
-				$scope = $this->context->getScope();
-				do {
-					// echo __METHOD__ . " getting parent scope\n";
-					$scope = $scope->getParentScope();
-				} while ( $scope instanceof BranchScope );
+				// We are in a branch and this is a local variable
+				// (as opposed to a class member). Try to link this
+				// variable with its parent outside the branch in same func.
+				$scope = $variableObj->getContext()->getScope();
 				if ( $scope->hasVariableWithName( $variableObj->getName() ) ) {
 					$parentVarObj = $scope->getVariableByName( $variableObj->getName() );
 
 					if ( !property_exists( $parentVarObj, 'taintedness' ) ) {
-						// echo __METHOD__ . " parent scope for {$variableObj->getName()} has no taint\n";
+						// $this->debug( __METHOD__,
+						// "parent scope for $variableObj has no taint. Setting $taintedness" );
 						$parentVarObj->taintedness = $taintedness;
 					} else {
+						// $this->debug( __METHOD__,
+						// "parent scope for $variableObj already has taint "
+						// . $parentVarObj->taintedness . " adding $taintedness " );
 						$parentVarObj->taintedness = $this->mergeAddTaint( $parentVarObj->taintedness, $taintedness );
 					}
 					$variableObj->taintedness =& $parentVarObj->taintedness;
@@ -320,11 +333,16 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 					$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
 
 				} else {
-					// $this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
+					$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
 				}
 			}
-			// This may not be executed, so it can only increase
-			// taint level, not decrease.
+			// Given we are either in a branch, or the variable has some
+			// sort of outer scope (is a global, is a class member), we
+			// try to merge the taint instead of overriding, as we have
+			// no garuntee that this particular branch gets executed, so
+			// we make the variable taint be the union of the case where
+			// this branch is executed and where it isn't.
+
 			// Future todo: In cases of if...else where all cases covered,
 			// should try to merge all branches ala ContextMergeVisitor.
 			if ( property_exists( $variableObj, 'taintedness' ) ) {
@@ -333,7 +351,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 				$variableObj->taintedness = $taintedness;
 			}
 		} else {
-// echo __METHOD__ . " \${$variableObj->getName()} is local variable\n";
 			// This must be executed, so it can overwrite taintedness.
 			$variableObj->taintedness = $override ?
 				$taintedness :
@@ -1100,7 +1117,7 @@ return [];
 			foreach ( $paramInfo as $index => $_ ) {
 				assert( property_exists( $method, 'taintedVarLinks' ) );
 				assert( isset( $method->taintedVarLinks[$index] ) );
-
+				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$method->taintedVarLinks[$index]->attach( $lhs );
 			}
 			if ( isset( $lhs->taintedMethodLinks[$method] ) ) {
@@ -1161,17 +1178,17 @@ return [];
 	}
 
 	/**
-	 * This happens when someone call foo( $evilTaintedVar );
+	 * This happens when someone calls foo( $evilTaintedVar );
 	 *
 	 * It makes sure that any variable that the function foo() sets takes on
 	 * the taint of the supplied argument.
 	 *
-	 * @todo FIXME this needs to handle different types of taint.
-	 *
 	 * @param FunctionInterface $method The function or method in question
 	 * @param int $i The number of the argument in question.
+	 * @param int $taint The taint to apply.
 	 */
-	protected function markAllDependentVarsYes( FunctionInterface $method, int $i ) {
+	protected function markAllDependentVarsYes( FunctionInterface $method, int $i, int $taint ) {
+		$taintAdjusted = $taint & SecurityCheckPlugin::ALL_TAINT;
 		if ( $method->isInternal() ) {
 			return;
 		}
@@ -1189,7 +1206,9 @@ return [];
 		$classesNeedRefresh = new Set;
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
 			$curVarTaint = $this->getTaintedness( $var );
-			$newTaint = $this->mergeAddTaint( $curVarTaint, SecurityCheckPlugin::YES_TAINT );
+			$newTaint = $this->mergeAddTaint( $curVarTaint, $taintAdjusted );
+			// $this->debug( __METHOD__, "handling $var as dependent yes" .
+			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
 			$this->setTaintedness( $var, $newTaint );
 			if (
 				$this->isYesTaint( $newTaint ^ $curVarTaint ) &&
@@ -1897,7 +1916,7 @@ return [];
 				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
 				// "($curArgTaintedness). Marking dependent $funcName" );
 				// Mark all dependent vars as tainted.
-				$this->markAllDependentVarsYes( $func, $i );
+				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness );
 			}
 
 			// We are doing something like evilMethod( $arg );
