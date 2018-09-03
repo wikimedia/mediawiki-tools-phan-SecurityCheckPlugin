@@ -36,7 +36,7 @@ memory. Small projects do not require so much memory
   }
 ```
 
-* For a MediaWiki extension, add the following to composer.json:
+* For a MediaWiki extension/skin, add the following to composer.json:
 
 ```json
   "scripts": {
@@ -58,8 +58,8 @@ You can then run:
     $ `composer seccheck`
 
 to run the security check. Note that false positives are disabled by default.
-For MediaWiki extensions, this assumes the extension is installed in the
-normal extension directory, and thus MediaWiki is in `../../`. If this is not
+For MediaWiki extensions/skins, this assumes the extension/skin is installed in the
+normal `extensions` or `skins` directory, and thus MediaWiki is in `../../`. If this is not
 the case, then you need to specify the `MW_INSTALL_PATH` environment variable.
 
 This plugin also provides variants seccheck-fast-mwext (Doesn't analyze
@@ -68,7 +68,7 @@ MediaWiki core. May miss some stuff related to hooks) and seccheck-slow-mwext
 where seccheck-fast-mwext takes only about half a minute.
 
 Additionally, if you want to do a really quick check, you can run the
-seccheck-generic script from a mediawiki extension which will ignore all
+seccheck-generic script from a mediawiki extension/skin which will ignore all
 MediaWiki stuff, making the check much faster (but misses many issues).
 
 If you want to do custom configuration (to say exclude some directories), follow the instructions below unser Manually.
@@ -86,7 +86,7 @@ Then run phan as you normally would:
     $ php7 /path/to/phan/phan -p
 
 ### Docker
-The docker image used by Wikimedia for scanning extensions and skins
+The docker image used by Wikimedia's continuous integration for scanning extensions and skins
 is available at https://gerrit.wikimedia.org/r/plugins/gitiles/integration/config/+/master/dockerfiles/mediawiki-phan-seccheck .
 
 For more information about Wikimedia's use of this plugin see
@@ -107,6 +107,7 @@ detects. The issue types it outputs are:
   This issue type seems to have a high false positive rate currently.
 * SecurityCheck-CUSTOM1 - To allow people to have custom taint types
 * SecurityCheck-CUSTOM2 - ditto
+* SecurityCheck-DoubleEscaped - Detecting that HTML is being double escaped
 * SecurityCheck-OTHER - At the moment, this corresponds to things that don't
   have an escaping function to make input safe. e.g. `eval( $_GET['foo'] ); require $_GET['bar'];`
 * SecurityCheck-LikelyFalsePositive - A potential issue, but probably not.
@@ -124,25 +125,64 @@ You can use the `-y` command line option of Phan to filter by severity.
 
 Limitations
 -----------
+If you need to suppress a false positive, you can put `@suppress NAME-OF-WARNING`
+in the docblock for a function/method. The @param-taint and @return-taint (see
+"Customizing" section) are also very useful with dealing with false positives.
 
 There's much more than listed here, but some notable limitations/bugs:
+
+
+## General limitations
 
 * When an issue is output, the plugin tries to include details about what line
   originally caused the issue. Usually it works, but sometimes it gives
   misleading/wrong information
-    * In particular, with pass by reference parameters to MediaWiki hooks,
-      sometimes the line number is the hook call in MediaWiki core, instead of
-      the hook subscriber in the extension that caused the issue.
 * Command line scripts cause XSS false positives
 * The plugin won't recognize things that do custom escaping. If you have
-  custom escaping methods, you may have to write a subclass of
-  SecurityCheckPlugin in order for the plugin to recognize it.
+  custom escaping methods, you must add annotations to its docblock so
+  that the plugin can recognize it. See the Customizing section.
+* The plugin does is not capable of determining which branch is taken
+  even in cases where it seems like it would be easy to determine statically.
+  Thus it can fall to false positves like:
+  ```
+  $a = $_GET['evil'];
+  if ( foo() ) {
+  	$a = htmlspecialchars( $a );
+  } else {
+  	$a = htmlspecialchars( $a );
+  }
+  echo $a;
+  ```
+  Will give a warning, since the plugin is not smart enough to realize that
+  all possible branches will result in the value being escaped. Generally false
+  positives related to this can be avoided by avoiding reusing variable names,
+  for values that have different amounts of escaping, which in the author's opinion
+  is best practise anyways.
+* Arrays are considered as a single unit. The taint of any member of an array is
+  the union of the taint that all the members should have. For example:
+  ```
+  	$stuff = [
+		$_GET['evil'],
+		htmlspecialchars( $_GET['foo'] ),
+	];
+   	echo $stuff[1];
+	echo htmlspecialchars( $stuff[0] );
+  ```
+  This will give both a double escaped warning and an XSS warning, as the
+  plugin only tracks $stuff, not $stuff[0] vs $stuff[1].
+* `@suppress` is only recognized in function/method doc comments. This means
+  that it is difficult to suppress errors for code written in a global scope.
+
+## MediaWiki specific limitations
+* With pass by reference parameters to MediaWiki hooks,
+  sometimes the line number is the hook call in MediaWiki core, instead of
+  the hook subscriber in the extension that caused the issue.
 * The plugin can only validate the fifth ($options) and sixth ($join_cond)
   of MediaWiki's IDatabase::select() if its provided directly as an array
   literal, or directly returned as an array literal from a getQueryInfo()
   method.
 * Checking of HTMLForm field specifiers only works if they are specified
-  as array literals
+  as array literals and may also misidentify things which aren't really HTMLForms
 
 Customizing
 -----------
