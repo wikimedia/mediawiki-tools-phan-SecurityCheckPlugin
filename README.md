@@ -85,6 +85,13 @@ Then run phan as you normally would:
 
     $ php7 /path/to/phan/phan -p
 
+### Docker
+The docker image used by Wikimedia for scanning extensions and skins
+is available at https://gerrit.wikimedia.org/r/plugins/gitiles/integration/config/+/master/dockerfiles/mediawiki-phan-seccheck .
+
+For more information about Wikimedia's use of this plugin see
+https://www.mediawiki.org/wiki/Phan-taint-check-plugin
+
 Plugin output
 -------------
 
