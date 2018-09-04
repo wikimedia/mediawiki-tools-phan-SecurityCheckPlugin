@@ -736,6 +736,23 @@ class MWVisitor extends TaintednessBaseVisitor {
 	 * @param Node $node
 	 */
 	public function visitArray( Node $node ) {
+		$authReqFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
+			'MediaWiki\Auth\AuthenticationRequest'
+		);
+
+		if ( $this->code_base->hasClassWithFQSEN( $authReqFQSEN ) ) {
+			$authReq = $this->code_base->getClassByFQSEN( $authReqFQSEN );
+			if (
+				$this->context->isInClassScope() &&
+				$this->context->getClassInScope( $this->code_base )
+					->isSubclassOf( $this->code_base, $authReq )
+			) {
+				// AuthenticationRequest::getFieldInfo() defines a very
+				// similar array but with different rules. T202112
+				return;
+			}
+		}
+
 		// This is a rather superficial check. There
 		// are many ways to construct htmlform specifiers this
 		// won't catch, and it may also have some false positives.
