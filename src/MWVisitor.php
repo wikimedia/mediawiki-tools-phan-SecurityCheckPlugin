@@ -1056,26 +1056,40 @@ class MWVisitor extends TaintednessBaseVisitor {
 					$this->getOriginalTaintLine( $default )
 			);
 		}
-		if ( !$isOptionsSafe && $options instanceof Node && $options->kind === \ast\AST_ARRAY ) {
-			// This is going to miss a lot of things, as the options key
-			// is commonly specified separately.
-			// We need to make sure all the keys are escaped
-			foreach ( $options->children as $child ) {
-				assert( $child instanceof Node );
-				assert( $child->kind === \ast\AST_ARRAY_ELEM );
-				$key = $child->children['key'];
-				$value = !is_object( $child->children['value'] ) ?
-					" (for value '" . $child->children['value'] . "')" :
-					"";
-				if ( !( $key instanceof Node ) ) {
-					continue;
+		if ( !$isOptionsSafe && $options instanceof Node ) {
+			if ( $options->kind === \ast\AST_ARRAY ) {
+				// We need to make sure all the keys are escaped
+				foreach ( $options->children as $child ) {
+					assert( $child instanceof Node );
+					assert( $child->kind === \ast\AST_ARRAY_ELEM );
+					$key = $child->children['key'];
+					$value = !is_object( $child->children['value'] ) ?
+						" (for value '" . $child->children['value'] . "')" :
+						"";
+					if ( !( $key instanceof Node ) ) {
+						continue;
+					}
+					$this->maybeEmitIssue(
+						SecurityCheckPlugin::HTML_EXEC_TAINT,
+						$this->getTaintedness( $key ),
+						'HTMLForm option label needs escaping' .
+							$value .
+							$this->getOriginalTaintLine( $key )
+					);
 				}
+			} else {
+				// It would be really odd to have the field name
+				// be from user input, so in the event we can't look
+				// directly at the array, and given that it is common
+				// to specify options in a separate variable, warn
+				// if it contains any html.
 				$this->maybeEmitIssue(
 					SecurityCheckPlugin::HTML_EXEC_TAINT,
-					$this->getTaintedness( $key ),
-					'HTMLForm option label needs escaping' .
-						$value .
-						$this->getOriginalTaintLine( $key )
+					$this->getTaintedness( $options ),
+					'HTMLForm option label needs escaping ' .
+					'(Maybe false positive as could not determine ' .
+					'if it was key or value that is unescaped)' .
+						$this->getOriginalTaintLine( $options )
 				);
 			}
 		}
