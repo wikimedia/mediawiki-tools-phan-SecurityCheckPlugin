@@ -936,6 +936,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 					$rawLabel = $child->children['value'];
 					break;
 				case 'raw':
+				case 'rawrow':
 					$raw = $child->children['value'];
 					if (
 						$raw instanceof Node

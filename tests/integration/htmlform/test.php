@@ -139,3 +139,9 @@ $safe10 = [
 		'foo' => $_GET['ok']
 	]
 ];
+
+$unsafe12 = [
+	'type' => 'info',
+	'rawrow' => true,
+	'default' => $_GET['evil']
+];
