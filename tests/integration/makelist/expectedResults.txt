@@ -1,0 +1,39 @@
+integration/makelist/test.php:12 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys (Caused by: integration/makelist/test.php +11)
+integration/makelist/test.php:56 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:57 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:61 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:62 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:66 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:67 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:71 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:72 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:79 SecurityCheck-SQLInjection IDatabase::makeList with unknown type arg is given an array with unescaped keynames or values for numeric keys (May be false positive)
+integration/makelist/test.php:80 SecurityCheck-SQLInjection IDatabase::makeList with unknown type arg is given an array with unescaped keynames or values for numeric keys (May be false positive)
+integration/makelist/test.php:86 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:87 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:91 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:92 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:96 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:97 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:101 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:102 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:108 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:109 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:113 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:114 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:118 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:119 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:123 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:124 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:130 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:131 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:132 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:135 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:136 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:137 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:140 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:141 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:142 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:145 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:146 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:147 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
