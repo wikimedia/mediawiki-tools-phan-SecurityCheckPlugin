@@ -6,6 +6,7 @@ use ast\Node\Decl;
 use Phan\Debug;
 use Phan\CodeBase;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\UnionType;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.
@@ -111,9 +112,9 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	 */
 	private function setTagHookParamTaint( array $params, FunctionInterface $method ) {
 		// Only care about first 2 parameters.
+		$scope = $this->context->getScope();
 		for ( $i = 0; $i < 2 && $i < count( $params ); $i++ ) {
 			$param = $params[$i];
-			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
 				// Well uh-oh.
 				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
@@ -122,6 +123,32 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$this->setTaintedness( $varObj, SecurityCheckPlugin::YES_TAINT );
 			// $this->debug( __METHOD__, "In $method setting param $varObj as tainted" );
+		}
+		// If there are no type hints, phan won't know that the parser
+		// is a parser as the hook isn't triggered from a real func call.
+		if ( isset( $params[2] ) ) {
+			$param = $params[2];
+			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
+				// Well uh-oh.
+				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+			} else {
+				$varObj = $scope->getVariableByName( $param->children['name'] );
+				$varObj->setUnionType(
+					UnionType::fromFullyQualifiedString( '\\Parser' )
+				);
+			}
+		}
+		if ( isset( $params[3] ) ) {
+			$param = $params[3];
+			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
+				// Well uh-oh.
+				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+			} else {
+				$varObj = $scope->getVariableByName( $param->children['name'] );
+				$varObj->setUnionType(
+					UnionType::fromFullyQualifiedString( '\\PPFrame' )
+				);
+			}
 		}
 	}
 
@@ -136,13 +163,27 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	 * @param FunctionInterface $method
 	 */
 	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) {
+		// First make sure the first arg is set to be a Parser
+		$scope = $this->context->getScope();
+		if ( isset( $params[0] ) ) {
+			$param = $params[0];
+			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
+				// Well uh-oh.
+				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+			} else {
+				$varObj = $scope->getVariableByName( $param->children['name'] );
+				$varObj->setUnionType(
+					UnionType::fromFullyQualifiedString( '\\Parser' )
+				);
+			}
+		}
+
 		$funcTaint = $this->getTaintOfFunction( $method );
 		$varObjs = [];
 		foreach ( $params as $i => $param ) {
 			if ( $i === 0 ) {
 				continue;
 			}
-			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
 				// Well uh-oh.
 				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );

@@ -8,6 +8,7 @@ class SomeClass {
 		$parser->setHook( 'something', [ __CLASS__, 'evil' ] );
 		$parser->setHook( 'something', [ 'SecondClass', 'evilAttribs' ] );
 		$parser->setHook( 'something', [ 'SecondClass', 'good' ] );
+		$parser->setHook( 'something', [ 'SecondClass', 'good2' ] );
 		$parser->setHook( 'indirect', [ __CLASS__, 'wrapper' ] );
 	}
 
@@ -36,6 +37,10 @@ class SecondClass {
 	}
 
 	public static function good( $content, array $attribs, Parser $parser, PPFrame $frame ) {
+		return '<div>' . $parser->recursiveTagParse( $content ) . '</div>';
+	}
+
+	public static function good2( $content, $attribs, $parser, $frame ) {
 		return '<div>' . $parser->recursiveTagParse( $content ) . '</div>';
 	}
 }
