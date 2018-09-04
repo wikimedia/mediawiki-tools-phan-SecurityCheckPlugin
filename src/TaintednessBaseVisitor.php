@@ -216,7 +216,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) . ';' ];
 		} else {
-			$newErrors = [ ' ' . $reason. ';' ];
+			$newErrors = [ ' ' . $reason . ';' ];
 		}
 		if ( $this->overrideContext ) {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext ) . ';';
@@ -1470,7 +1470,7 @@ return [];
 				$this->debugOutput = false;
 			}
 		}
-		$line = $method . "\33[1m" . $this->dbgInfo() . " \33[0m" . $msg .     "\n";
+		$line = $method . "\33[1m" . $this->dbgInfo() . " \33[0m" . $msg . "\n";
 		if ( $this->debugOutput && $this->debugOutput !== '-' ) {
 			fwrite(
 				$this->debugOutput,
