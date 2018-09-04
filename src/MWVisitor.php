@@ -139,6 +139,10 @@ class MWVisitor extends TaintednessBaseVisitor {
 			return;
 		}
 
+		if ( $method->getName() === 'makeList' ) {
+			$this->checkMakeList( $node );
+		}
+
 		$relevantMethods = [
 			'select',
 			'selectField',
@@ -399,6 +403,112 @@ class MWVisitor extends TaintednessBaseVisitor {
 		}
 		if ( isset( $args[5] ) ) {
 			$this->checkJoinCond( $args[5] );
+		}
+	}
+
+	/**
+	 * Check IDatabase::makeList
+	 *
+	 * Special cased because the second arg totally changes
+	 * how this function is interpreted.
+	 */
+	private function checkMakeList( $node ) {
+		$args = $node->children['args'];
+		// First determine which IDatabase::LIST_*
+		// 0 = IDatabase::LIST_COMMA is default value.
+		$typeArg = $args->children[1] ?? 0;
+		if ( !is_object( $typeArg ) ) {
+			// Someone specified it literally instead of constant.
+			switch ( $typeArg ) {
+				case 0 /* LIST_COMMA */:
+					$type = 'comma';
+					break;
+				case 1 /* LIST_AND */:
+				case 2 /* LIST_SET */:
+				case 4 /* LIST_OR */:
+					$type = 'cond';
+					break;
+				case 3 /* LIST_NAMES */:
+					$type = 'name';
+					break;
+				default:
+					$this->debug( __METHOD__, "Unregonized 2nd arg "
+						. "to IDatabase::makeList '$typeArg'"
+					);
+					return;
+
+			}
+		} else {
+			if ( $typeArg->kind === \ast\AST_CLASS_CONST ) {
+				$constName = $typeArg->children['const'];
+			} elseif (
+				$typeArg->kind === \ast\AST_CONST &&
+				$typeArg->children['name']->kind === \ast\AST_NAME &&
+				is_string( $typeArg->children['name']->children['name'] )
+			) {
+				// oldstyle LIST_AND from defines.php
+				$constName = $typeArg->children['name']->children['name'];
+			} else {
+				// Maybe someone passed it by variable.
+				$this->debug( __METHOD__, "Could not determine 2nd arg makeList()" );
+				// Since LIST_NAMES is very rare, and LIST_COMMA is default,
+				// assume its LIST_AND or LIST_OR
+				$this->maybeEmitIssue(
+					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
+					$this->getTaintedness( $args->children[0] ),
+					"IDatabase::makeList with unknown type arg is " .
+					"given an array with unescaped keynames or " .
+					"values for numeric keys (May be false positive)"
+						. $this->getOriginalTaintLine( $args->children[0] )
+				);
+				return;
+			}
+			switch ( $constName ) {
+				case 'LIST_COMMA':
+					$type = 'comma';
+					break;
+				case 'LIST_AND':
+				case 'LIST_SET':
+				case 'LIST_OR':
+					$type = 'cond';
+					break;
+				case 'LIST_NAMES':
+					$type = 'name';
+					break;
+				default:
+					$this->debug( __METHOD__, "Unregonized 2nd arg "
+						. "to IDatabase::makeList '$constName'"
+					);
+					return;
+			}
+		}
+
+		switch ( $type ) {
+			case 'comma':
+				// String keys ignored. Everything escaped.
+				// so nothing to worry about.
+				break;
+			case 'cond':
+				// exec_sql_numkey
+				$this->maybeEmitIssue(
+					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
+					$this->getTaintedness( $args->children[0] ),
+					"IDatabase::makeList with LIST_AND, LIST_OR or "
+						. "LIST_SET must sql escape string "
+						. "key names and values of numeric keys"
+						. $this->getOriginalTaintLine( $args->children[0] )
+				);
+				break;
+			case 'name':
+				// Like comma but with no escaping.
+				$this->maybeEmitIssue(
+					SecurityCheckPlugin::SQL_EXEC_TAINT,
+					$this->getTaintedness( $args->children[0] ),
+					"IDatabase::makeList with LIST_NAMES needs "
+						. "to escape for SQL"
+						. $this->getOriginalTaintLine( $args->children[0] )
+				);
+				break;
 		}
 	}
 

@@ -295,6 +295,13 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			// makeList is special cased in MWVistor::checkMakeList
+			// so simply disable auto-taint detection here.
+			'\Wikimedia\Rdbms\IDatabase::makeList' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			// '\Message::__construct' => self::YES_TAINT,
 			// '\wfMessage' => self::YES_TAINT,
 			'\Message::plain' => [ 'overall' => self::YES_TAINT ],
