@@ -121,3 +121,21 @@ $unsafe10 = [
 		$_GET['evil'] => 'the evil value'
 	]
 ];
+
+$evilOptions = [
+	htmlspecialchars( $_GET['evil'] ) => 'the good value',
+	$_GET['evil'] => 'the evil value'
+];
+
+$unsafe11 = [
+	'class' => HTMLRadioField::class,
+	'options' => $evilOptions
+];
+
+$safe10 = [
+	'class' => HTMLRadioField::class,
+	'options' => [
+		htmlspecialchars( $_GET['evil'] ) => 'the good value',
+		'foo' => $_GET['ok']
+	]
+];
