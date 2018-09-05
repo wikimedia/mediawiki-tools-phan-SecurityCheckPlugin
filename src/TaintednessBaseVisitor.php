@@ -194,7 +194,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		int $arg = -1,
 		$reason = null
 	) {
-		if ( !$this->isExecTaint( $taintedness ) && !$this->isYesTaint( $taintedness ) ) {
+		if ( !$this->isExecTaint( $taintedness ) && !$this->isAllTaint( $taintedness ) ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
 		}
@@ -1095,7 +1095,9 @@ return [];
 		$taintLHS = $this->getTaintedness( $lhs );
 		$taintRHS = $this->getTaintedness( $rhs );
 
-		if ( $taintRHS & SecurityCheckPlugin::YES_EXEC_TAINT ) {
+		if ( $taintRHS &
+			( SecurityCheckPlugin::ALL_EXEC_TAINT | SecurityCheckPlugin::ALL_TAINT )
+		) {
 			$this->mergeTaintError( $lhs, $rhs );
 		}
 
@@ -1211,7 +1213,7 @@ return [];
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
 			$this->setTaintedness( $var, $newTaint );
 			if (
-				$this->isYesTaint( $newTaint ^ $curVarTaint ) &&
+				$this->isAllTaint( $newTaint ^ $curVarTaint ) &&
 				$var instanceof ClassElement
 			) {
 				// TODO: This is subpar -
@@ -1237,13 +1239,13 @@ return [];
 	}
 
 	/**
-	 * Are any of the YES (i.e HTML_TAINT) taint flags set
+	 * Are any of the positive (i.e HTML_TAINT) taint flags set
 	 *
 	 * @param int $taint
 	 * @return bool If the variable has known (non-execute taint)
 	 */
-	protected function isYesTaint( $taint ) {
-		return ( $taint & SecurityCheckPlugin::YES_TAINT ) !== 0;
+	protected function isAllTaint( $taint ) {
+		return ( $taint & SecurityCheckPlugin::ALL_TAINT ) !== 0;
 	}
 
 	/**
@@ -1253,7 +1255,7 @@ return [];
 	 * @return bool If the variable has any exec taint
 	 */
 	protected function isExecTaint( $taint ) {
-		return ( $taint & SecurityCheckPlugin::EXEC_TAINT ) !== 0;
+		return ( $taint & SecurityCheckPlugin::ALL_EXEC_TAINT ) !== 0;
 	}
 
 	/**
@@ -1293,7 +1295,7 @@ return [];
 		// $this->debug( __METHOD__, "lhs=$lhs; rhs=$rhs, adjustRhs=$adjustRHS" );
 		return ( $adjustRHS & $lhs ) === 0 &&
 			!(
-				( $lhs & SecurityCheckPlugin::EXEC_TAINT ) &&
+				( $lhs & SecurityCheckPlugin::ALL_EXEC_TAINT ) &&
 				( $rhs & SecurityCheckPlugin::UNKNOWN_TAINT )
 			);
 	}
@@ -1912,7 +1914,7 @@ return [];
 			// FIXME: We also need to handle the case where
 			// someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
-			if ( $func && $this->isYesTaint( $curArgTaintedness ) ) {
+			if ( $func && $this->isAllTaint( $curArgTaintedness ) ) {
 				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
 				// "($curArgTaintedness). Marking dependent $funcName" );
 				// Mark all dependent vars as tainted.

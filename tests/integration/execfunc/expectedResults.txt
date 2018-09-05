@@ -1,0 +1,3 @@
+integration/execfunc/OutputPage.php:7 SecurityCheck-XSS Assigning a tainted value to a variable that later does something unsafe with it (Caused by: integration/execfunc/OutputPage.php +15; integration/execfunc/OutputPage.php +7; integration/execfunc/test.php +6)
+integration/execfunc/OutputPage.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/execfunc/OutputPage.php +15; integration/execfunc/OutputPage.php +7; integration/execfunc/test.php +6)
+integration/execfunc/test.php:6 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: Builtin-\OutputPage::addHTML)

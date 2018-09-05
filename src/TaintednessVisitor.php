@@ -776,7 +776,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		}
 
 		$curFunc = $this->context->getFunctionLikeInScope( $this->code_base );
-		$taintedness = $this->getTaintedness( $node->children['expr'] );
+		// The EXEC taint flags have different meaning for variables and
+		// functions. We don't want to transmit exec flags here.
+		$taintedness = $this->getTaintedness( $node->children['expr'] ) &
+			SecurityCheckPlugin::ALL_TAINT;
 
 		$funcTaint = $this->matchTaintToParam(
 			$node->children['expr'],

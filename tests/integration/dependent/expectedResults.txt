@@ -1,1 +1,1 @@
-integration/dependent/test2.php:15 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \Foo::output that outputs using tainted argument $[arg #1]. (Caused by: integration/dependent/test2.php +19)
+integration/dependent/test2.php:15 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \Foo::output that outputs using tainted argument $[arg #1]. (Caused by: integration/dependent/test2.php +19; integration/dependent/test2.php +15)
