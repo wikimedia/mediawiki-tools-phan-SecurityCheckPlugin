@@ -353,10 +353,20 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 				// are ok.
 				$rhsTaintedness &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 			} elseif ( $rhsTaintedness & SecurityCheckPlugin::SQL_TAINT ) {
+				// Checking the case:
+				// $foo[1] = $sqlTainted;
+				// $foo[] = $sqlTainted;
+				// But ensuring we don't catch:
+				// $foo['bar'][] = $sqlTainted;
+				// $foo[] = [ $sqlTainted ];
+				// $foo[2] = [ $sqlTainted ];
 				if (
 					( $dim === null ||
 					$this->nodeIsInt( $dim ) )
 					&& !$this->nodeIsArray( $node->children['expr'] )
+					&& !( $var->children['expr'] instanceof Node
+						&& $var->children['expr']->kind === \ast\AST_DIM
+					)
 				) {
 					$rhsTaintedness |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 				}
