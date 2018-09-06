@@ -139,6 +139,7 @@ $MWExtConfig = [
 		'SecurityCheck-OTHER',
 		// Rely on severity setting to blacklist false positive.
 		'SecurityCheck-LikelyFalsePositive',
+		'PhanSyntaxError',
 	],
 
 	/**
