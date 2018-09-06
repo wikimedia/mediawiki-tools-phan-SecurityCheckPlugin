@@ -404,6 +404,13 @@ class MWVisitor extends TaintednessBaseVisitor {
 		if ( isset( $args[5] ) ) {
 			$this->checkJoinCond( $args[5] );
 		}
+		// Since this returns an array, it will probably
+		// result in false positive, so prevent that.
+		$func = $this->context->getFunctionLikeInScope( $this->code_base );
+		$taint = $this->getTaintOfFunction( $func );
+		$mask = ~( SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		$taint['overall'] = ( $taint['overall'] & $mask ) | SecurityCheckPlugin::NO_OVERRIDE;
+		$this->setFuncTaint( $func, $taint, true );
 	}
 
 	/**
