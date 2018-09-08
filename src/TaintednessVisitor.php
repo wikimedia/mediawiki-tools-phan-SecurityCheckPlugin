@@ -745,6 +745,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	public function visitGlobal( Node $node ) : int {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
 		$varName = $node->children['var']->children['name'];
+		if ( !is_string( $varName ) ) {
+			// Something like global $$indirectReference;
+			return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+		}
 		$scope = $this->context->getScope();
 		if (
 			$scope->hasVariableWithName( $varName )

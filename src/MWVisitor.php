@@ -1131,6 +1131,10 @@ class MWVisitor extends TaintednessBaseVisitor {
 	public function visitGlobal( Node $node ) {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
 		$varName = $node->children['var']->children['name'];
+		if ( !is_string( $varName ) ) {
+			// global $$foo;
+			return;
+		}
 		$scope = $this->context->getScope();
 		if ( $scope->hasVariableWithName( $varName ) ) {
 			$variable = $scope->getVariableByName( $varName );
