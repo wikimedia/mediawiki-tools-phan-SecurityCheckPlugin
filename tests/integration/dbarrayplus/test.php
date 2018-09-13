@@ -52,3 +52,9 @@ $items[] = [ 'first' => $_GET['a'] ];
 $items[] = [ 'first' => $_GET['a'] ];
 
 $db->insert( 'foo', $items, __METHOD__ );
+
+$insertBatch = [];
+$insertRow = [ 'first' => $_GET['evil'] ];
+$insertBatch[] = $insertRow;
+$insertBatch[] = [ 'first' => $_GET['evil2'] ];
+$db->insert( 'foo', $insertBatch, __METHOD__, [ 'IGNORE' ] );
