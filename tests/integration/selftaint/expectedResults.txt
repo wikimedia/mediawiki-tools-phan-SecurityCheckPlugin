@@ -1,0 +1,2 @@
+integration/selftaint/test.php:12 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/selftaint/test.php +12; integration/selftaint/test.php +24)
+integration/selftaint/test.php:24 SecurityCheck-XSS Calling method \Foo::__construct() in [no method] that outputs using tainted argument $b. (Caused by: integration/selftaint/test.php +12) (Caused by: integration/selftaint/test.php +23)
