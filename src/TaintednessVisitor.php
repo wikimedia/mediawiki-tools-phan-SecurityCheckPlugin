@@ -381,6 +381,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// We only want to give a warning if we are adding new taint to the
 		// variable. If the variable is alredy tainted, no need to retaint.
 		// Otherwise, this could result in a variable basically tainting itself.
+		// TODO: Additionally, we maybe consider skipping this when in
+		// branch scope and variable is not pass by reference.
 		$adjustedRHS = $rhsTaintedness & ( $rhsTaintedness ^ $lhsTaintedness );
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
@@ -404,7 +406,20 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				continue;
 			}
 			foreach ( $rhsObjs as $rhsObj ) {
-				$this->mergeTaintDependencies( $variableObj, $rhsObj );
+				// Only merge dependencies if there are no other
+				// sources of taint. Otherwise we can potentially
+				// misattribute where the taint is coming from
+				// See testcase dblescapefieldset.
+				$taintRHSObj = $this->getTaintedness( $rhsObj );
+				if (
+					( ( ( $lhsTaintedness | $rhsTaintedness )
+					& ~$taintRHSObj ) & SecurityCheckPlugin::ALL_YES_EXEC_TAINT )
+					=== 0
+				) {
+					$this->mergeTaintDependencies( $variableObj, $rhsObj );
+				} elseif ( $taintRHSObj ) {
+					$this->mergeTaintError( $variableObj, $rhsObj );
+				}
 			}
 		}
 		return $rhsTaintedness;
