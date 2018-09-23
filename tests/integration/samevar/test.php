@@ -16,8 +16,8 @@ echo $y;
 
 $z = $_GET['baz'];
 // These _are_ double escaped
-getEscaped( htmlspecialchars( $z ) );
-getEscaped2( htmlspecialchars( $z ) );
+getEscaped( htmlspecialchars( $z ) );// TODO: Line 26 shouldn't be in the caused-by lines
+getEscaped2( htmlspecialchars( $z ) );// TODO: Line 32 shouldn't be in the caused-by lines
 // This is safe because it doesn't use the arg
 getEscaped3( htmlspecialchars( $z ) );
 
@@ -90,4 +90,11 @@ function logFormatter6() {
 function makePageLink6( $html ) {
 	list( $_, $html, $_ ) = rand() ? [ 'foo', $html, 'bar' ] : [ '', '', '' ]; // This must not clear the taint!
 	echo htmlspecialchars( $html );
+}
+
+htmlspecialchars( getEscapedForCausedBy( 'foo' ) ); // DoubleEscaped
+
+function getEscapedForCausedBy( $x ) {
+	$x = htmlspecialchars( $x ); // This should be in caused-by
+	return $x; // This should be in caused-by
 }

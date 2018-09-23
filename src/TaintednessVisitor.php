@@ -569,8 +569,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$adjTaint = $lhsTaintedness->with( $rhsTaintedness )->without( $taintRHSObj );
 				if ( $adjTaint->lacks( SecurityCheckPlugin::ALL_YES_EXEC_TAINT ) ) {
 					$this->mergeTaintDependencies( $variableObj, $rhsObj );
-				} elseif ( !$taintRHSObj->isSafe() ) {
-					$this->mergeTaintError( $variableObj, $rhsObj );
+				}
+			}
+
+			if ( $rhs instanceof Node ) {
+				$allRhsObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'all' ] );
+				// This is essentially mergeTaintError, but keeping a line only if it's participating with any taint
+				// TODO Find a prettier way to do this.
+				foreach ( $allRhsObjs as $rhsObj ) {
+					$lines = $this->getOriginalTaintArray( $rhsObj );
+					foreach ( $lines as [ $lineTaint, $line ] ) {
+						$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $variableObj, -1, $line );
+					}
 				}
 			}
 		}

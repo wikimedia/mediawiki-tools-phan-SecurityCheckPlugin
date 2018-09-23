@@ -1,18 +1,16 @@
 <?php
 
 class Message {
-	private $foo = 'safe';
 	public function text() {
-		return $this->foo;
+		return 'placeholder';
 	}
 	public function parse() {
-		return $this->foo;
+		return 'placeholder';
 	}
 	public function escaped() {
-		return $this->foo;
+		return 'placeholder';
 	}
 	public function rawParams( $params ) {
-		$this->foo = $params;
 		return $this;
 	}
 	public function params( $params ) {
