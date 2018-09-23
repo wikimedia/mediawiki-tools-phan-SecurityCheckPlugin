@@ -377,9 +377,13 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 
 		// If we're assigning to a variable we know will be output later
 		// raise an issue now.
+		// We only want to give a warning if we are adding new taint to the
+		// variable. If the variable is alredy tainted, no need to retaint.
+		// Otherwise, this could result in a variable basically tainting itself.
+		$adjustedRHS = $rhsTaintedness & ( $rhsTaintedness ^ $lhsTaintedness );
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
-			$rhsTaintedness,
+			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it"
 				. $this->getOriginalTaintLine( $node->children['var'] )
 		);

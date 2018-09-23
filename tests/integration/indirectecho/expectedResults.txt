@@ -1,3 +1,2 @@
-integration/indirectecho/test.php:7 SecurityCheck-XSS Assigning a tainted value to a variable that later does something unsafe with it (Caused by: integration/indirectecho/test.php +11; integration/indirectecho/test.php +7; integration/indirectecho/test2.php +5)
 integration/indirectecho/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/indirectecho/test.php +11; integration/indirectecho/test.php +7; integration/indirectecho/test2.php +5)
 integration/indirectecho/test2.php:5 SecurityCheck-XSS Calling method \Foo::appendHold() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/indirectecho/test.php +11)
