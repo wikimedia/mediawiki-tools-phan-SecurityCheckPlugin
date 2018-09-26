@@ -670,9 +670,20 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		CodeBase $code_base
 	) : bool {
 		if (
-			( $lhsTaint & $rhsTaint ) === self::HTML_TAINT &&
-			$context->isInClassScope()
+			( $lhsTaint & $rhsTaint ) === self::HTML_TAINT
 		) {
+			if (
+				strpos( $context->getFile(), "maintenance/" ) === 0 ||
+				strpos( $context->getFile(), "./maintenance/" ) === 0
+			) {
+				// For classes not using Maintenance subclasses
+				$msg = ' [Likely false positive because in maintenance'
+					. ' subdirectory, thus probably CLI]';
+				return true;
+			}
+			if ( !$context->isInClassScope() ) {
+				return false;
+			}
 			$class = $context->getClassInScope( $code_base );
 			$maintFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
 				'\\Maintenance'
