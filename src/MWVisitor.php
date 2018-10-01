@@ -71,6 +71,9 @@ class MWVisitor extends TaintednessVisitor {
 				case '\Hooks::runWithoutAbort':
 					$this->triggerHook( $node );
 					break;
+				case '\Linker::makeExternalLink':
+					$this->checkExternalLink( $node );
+					break;
 				default:
 					$this->doSelectWrapperSpecialHandling( $node, $method );
 			}
@@ -78,6 +81,28 @@ class MWVisitor extends TaintednessVisitor {
 			// ignore
 		}
 		return $parentTaint;
+	}
+
+	/**
+	 * Linker::makeExternalLink escaping depends on third argument
+	 *
+	 * @param Node $node
+	 */
+	private function checkExternalLink( Node $node ) {
+		$escapeArg = $node->children['args']->children[2] ?? true;
+		if ( is_object( $escapeArg ) && $escapeArg->kind === \ast\AST_CONST ) {
+			$escapeArg = $escapeArg->children['name']->children['name'] !== 'false';
+		}
+		$text = $node->children['args']->children[1] ?? null;
+		if ( !$escapeArg && $text instanceof Node ) {
+			$this->maybeEmitIssue(
+				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				$this->getTaintedness( $text ),
+				"Calling Linker::makeExternalLink with user controlled text " .
+				"and third argument set to false"
+					. $this->getOriginalTaintLine( $text )
+			);
+		}
 	}
 
 	/**
