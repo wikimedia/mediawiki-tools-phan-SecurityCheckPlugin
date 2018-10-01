@@ -295,6 +295,27 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\Wikimedia\Rdbms\Database::buildLike' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			// makeList is special cased in MWVistor::checkMakeList
 			// so simply disable auto-taint detection here.
 			'\Wikimedia\Rdbms\IDatabase::makeList' => [
