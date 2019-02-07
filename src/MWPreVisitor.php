@@ -3,7 +3,6 @@
 use Phan\Language\Context;
 use ast\Node;
 use ast\Node\Decl;
-use Phan\Debug;
 use Phan\CodeBase;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\UnionType;

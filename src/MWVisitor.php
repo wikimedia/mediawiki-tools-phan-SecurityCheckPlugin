@@ -9,7 +9,6 @@ use Phan\Language\FQSEN;
 use Phan\Language\Element\Method;
 use Phan\Language\Type\CallableType;
 use Phan\Language\UnionType;
-use Phan\Plugin;
 use Phan\CodeBase;
 use ast\Node;
 

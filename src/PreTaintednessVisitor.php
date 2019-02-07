@@ -1,9 +1,7 @@
 <?php
 
-use Phan\Language\Context;
 use ast\Node;
 use ast\Node\Decl;
-use Phan\Debug;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.

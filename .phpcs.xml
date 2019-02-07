@@ -1,53 +1,52 @@
 <?xml version="1.0"?>
-	<ruleset>
-		<rule ref="./vendor/mediawiki/mediawiki-codesniffer/MediaWiki">
-			<exclude name="MediaWiki.NamingConventions.PrefixedGlobalFunctions.wfPrefix" />
+<ruleset>
+	<rule ref="./vendor/mediawiki/mediawiki-codesniffer/MediaWiki">
+		<exclude name="MediaWiki.NamingConventions.PrefixedGlobalFunctions.wfPrefix" />
 		<exclude name="MediaWiki.NamingConventions.ValidGlobalName.allowedPrefix" />
-			<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment" />
+		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment" />
 		<exclude name="Squiz.PHP.NonExecutableCode.Unreachable" />
-			<exclude name="Generic.CodeAnalysis.ForLoopWithTestFunctionCall.NotAllowed" />
-				<exclude name="MediaWiki.PHP70Features.ScalarTypeHintUsage.Found" />
-			<exclude name="MediaWiki.PHP70Features.ScalarTypeHintUsage.ReturnTypeFound" />
-			<exclude name="MediaWiki.Usage.ForbiddenFunctions.assert" />
-			<exclude name="MediaWiki.Usage.ForbiddenFunctions.escapeshellarg" />
-		</rule>
-		<file>.</file>
-		<arg name="bootstrap" value="./vendor/mediawiki/mediawiki-codesniffer/utils/bootstrap-ci.php"/>
-		<arg name="extensions" value="php,php5,inc"/>
-		<arg name="encoding" value="UTF-8"/>
+		<exclude name="MediaWiki.PHP70Features.ScalarTypeHintUsage.Found" />
+		<exclude name="MediaWiki.PHP70Features.ScalarTypeHintUsage.ReturnTypeFound" />
+		<exclude name="MediaWiki.Usage.ForbiddenFunctions.assert" />
+		<exclude name="MediaWiki.Usage.ForbiddenFunctions.escapeshellarg" />
+	</rule>
+	<file>.</file>
+	<arg name="bootstrap" value="./vendor/mediawiki/mediawiki-codesniffer/utils/bootstrap-ci.php"/>
+	<arg name="extensions" value="php,php5,inc"/>
+	<arg name="encoding" value="UTF-8"/>
 
-		<exclude-pattern>./vendor</exclude-pattern>
+	<exclude-pattern>./vendor</exclude-pattern>
 
-		<!-- Stuff we are only excluding in tests" -->
-		<rule ref="MediaWiki.Usage.SuperGlobalsUsage.SuperGlobals">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="Generic.Classes.DuplicateClassName.Found">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
+	<!-- Stuff we are only excluding in tests" -->
+	<rule ref="MediaWiki.Usage.SuperGlobalsUsage.SuperGlobals">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Classes.DuplicateClassName.Found">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
 
-		<rule ref="MediaWiki.Commenting.FunctionComment">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="Generic.Files.OneObjectStructurePerFile">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="Generic.PHP.BacktickOperator.Found">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="Generic.PHP.NoSilencedErrors.Discouraged">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="Generic.CodeAnalysis.UnconditionalIfStatement.Found">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="MediaWiki.Files.ClassMatchesFilename.WrongCase">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-		<rule ref="MediaWiki.Usage.DbrQueryUsage">
-			<exclude-pattern>./tests</exclude-pattern>
-		</rule>
-	</ruleset>
+	<rule ref="MediaWiki.Commenting.FunctionComment">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.PHP.BacktickOperator.Found">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.PHP.NoSilencedErrors.Discouraged">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnconditionalIfStatement.Found">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="MediaWiki.Files.ClassMatchesFilename.WrongCase">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+	<rule ref="MediaWiki.Usage.DbrQueryUsage">
+		<exclude-pattern>./tests</exclude-pattern>
+	</rule>
+</ruleset>

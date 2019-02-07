@@ -20,7 +20,6 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN;
-use Phan\Plugin;
 use ast\Node;
 use Phan\Debug;
 use Phan\Issue;

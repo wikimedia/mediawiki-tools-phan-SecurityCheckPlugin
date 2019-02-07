@@ -18,13 +18,11 @@
  */
 
 use Phan\AST\ContextNode;
-use Phan\Language\Context;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use ast\Node;
 use ast\Node\Decl;
 use Phan\Exception\IssueException;
-use Phan\Debug;
 
 /**
  * This class visits all the nodes in the ast. It has two jobs:
