@@ -2143,9 +2143,9 @@ trait TaintednessBaseVisitor {
 		// taint from arguments of the right type.
 		// With all the exec bits removed from args.
 		$neitherPreserveOrExec = ~( SecurityCheckPlugin::PRESERVE_TAINT |
-			SecurityCheckPlugin::EXEC_TAINT );
+			SecurityCheckPlugin::ALL_EXEC_TAINT );
 		return ( $taint['overall'] & $neitherPreserveOrExec )
-			| ( $overallArgTaint & ~SecurityCheckPlugin::EXEC_TAINT );
+			| ( $overallArgTaint & ~SecurityCheckPlugin::ALL_EXEC_TAINT );
 	}
 
 	/**
