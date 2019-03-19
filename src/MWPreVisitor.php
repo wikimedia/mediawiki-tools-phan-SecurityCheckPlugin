@@ -177,8 +177,6 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 			}
 		}
 
-		$funcTaint = $this->getTaintOfFunction( $method );
-		$varObjs = [];
 		foreach ( $params as $i => $param ) {
 			if ( $i === 0 ) {
 				continue;
@@ -191,6 +189,7 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$this->setTaintedness( $varObj, SecurityCheckPlugin::YES_TAINT );
 			/*** Is this needed ? Disabling for now.
+			$funcTaint = $this->getTaintOfFunction( $method );
 			if ( isset( $funcTaint[$i] ) ) {
 				if ( !$this->isSafeAssignment(
 					$funcTaint[$i],

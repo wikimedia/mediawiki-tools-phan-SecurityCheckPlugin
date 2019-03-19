@@ -37,7 +37,7 @@ use ast\Node;
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 
 	/**
-	 * @var Array A mapping from hook names to FQSEN that implement it
+	 * @var array A mapping from hook names to FQSEN that implement it
 	 */
 	protected $hookSubscribers = [];
 
@@ -453,7 +453,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
-			'\WebRequest::getGPCVal' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getRawVal' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getVal' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getArray' => [ 'overall' => self::YES_TAINT, ],
@@ -630,7 +629,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @note This assumes that any given func will only implement
 	 *   one hook
 	 * @param FullyQualifiedFunctionLikeName $fqsen The function to check
-	 * @return string The hook it is implementing
+	 * @return string|null The hook it is implementing or null if no hook
 	 */
 	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) {
 		$this->loadExtensionJson();
@@ -650,6 +649,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				}
 			}
 		}
+		return null;
 	}
 
 	/**

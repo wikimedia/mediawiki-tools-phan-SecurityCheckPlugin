@@ -59,7 +59,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Node $node
+	 * @param Decl $node
 	 * @return int Taint
 	 */
 	public function visitFuncDecl( Decl $node ) : int {
@@ -156,7 +156,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Node $node
+	 * @param Decl $node
 	 * @return int Taint
 	 */
 	public function visitClass( Decl $node ) : int {
@@ -589,8 +589,8 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		if ( $node->children['class']->kind === \ast\AST_NAME ) {
 			return $this->visitMethodCall( $node );
 		} else {
-			return SecurityCheckPlugin::UNKNOWN_TAINT;
 			$this->debug( __METHOD__, "cannot understand new" );
+			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 	}
 

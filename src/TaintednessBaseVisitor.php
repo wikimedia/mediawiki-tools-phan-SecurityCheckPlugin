@@ -792,7 +792,6 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * @return int The taint
 	 */
 	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : int {
-		$taintedness = SecurityCheckPlugin::UNKNOWN_TAINT;
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new Exception( "This method cannot be used with methods" );
 		}
@@ -1091,7 +1090,6 @@ return [];
 		TypedElementInterface $rhs
 	) {
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
-		$taintLHS = $this->getTaintedness( $lhs );
 		$taintRHS = $this->getTaintedness( $rhs );
 
 		if ( $taintRHS &
@@ -1390,7 +1388,7 @@ return [];
 	 * @param Mixed $node Either a Node or a string, int, etc. The expression
 	 * @param int $taintedness The taintedness in question
 	 * @param FunctionInterface $curFunc The function/method we are in.
-	 * @return Array numeric keys for each parameter taint and 'overall' key
+	 * @return array numeric keys for each parameter taint and 'overall' key
 	 * @suppress PhanTypeMismatchForeach
 	 */
 	protected function matchTaintToParam(
@@ -1796,7 +1794,7 @@ return [];
 	 * @param null|FunctionInterface $func null if no function
 	 * @param FQSEN|string $funcName FQSEN for method/function or string description
 	 * @param array $taint Taint of function/method
-	 * @param Array $args Arguments to function/method
+	 * @param array $args Arguments to function/method
 	 * @return int Taint The resulting taint of the expression
 	 */
 	public function handleMethodCall( $func, $funcName, array $taint, array $args ) : int {

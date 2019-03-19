@@ -417,8 +417,9 @@ class MWVisitor extends TaintednessBaseVisitor {
 	 *
 	 * Special cased because the second arg totally changes
 	 * how this function is interpreted.
+	 * @param Node $node
 	 */
-	private function checkMakeList( $node ) {
+	private function checkMakeList( Node $node ) {
 		$args = $node->children['args'];
 		// First determine which IDatabase::LIST_*
 		// 0 = IDatabase::LIST_COMMA is default value.
@@ -635,6 +636,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 	 * Check to see if isHTML => true and is tainted.
 	 *
 	 * @param Node $node The expr child of the return. NOT the return itself
+	 * @param FQSEN $funcName
 	 * @suppress PhanTypeMismatchForeach
 	 */
 	private function visitReturnOfFunctionHook( Node $node, FQSEN $funcName ) {
