@@ -830,6 +830,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	public function visitArray( Node $node ) : int {
 		$curTaint = SecurityCheckPlugin::NO_TAINT;
 		foreach ( $node->children as $child ) {
+			if ( $child === null ) {
+				// Happens for list( , $x ) = foo()
+				continue;
+			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$childTaint = $this->getTaintedness( $child );
 			$key = $child->children['key'];
@@ -988,11 +992,23 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		$clazz = $this->context->getClassInScope( $this->code_base );
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
-		$prop = $clazz->getPropertyByNameInContext(
-			$this->code_base,
-			$node->children['name'],
-			$this->context
-		);
+		// @fixme Here we don't know if the property is static, so just try to guess. A future release
+		// will add a method to avoid this hack.
+		try {
+			$prop = $clazz->getPropertyByNameInContext(
+				$this->code_base,
+				$node->children['name'],
+				$this->context,
+				true
+			);
+		} catch ( IssueException $e ) {
+			$prop = $clazz->getPropertyByNameInContext(
+				$this->code_base,
+				$node->children['name'],
+				$this->context,
+				false
+			);
+		}
 		// FIXME should this be NO?
 		// $this->debug( __METHOD__, "Setting taint preserve if not set"
 		// . " yet for \$" . $node->children['name'] . "" );

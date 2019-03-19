@@ -441,7 +441,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		if ( $func instanceof ClassElement ) {
 			try {
 				$class = $func->getClass( $this->code_base );
-				$nonParents = $class->getNonParentAncestorFQSENList( $this->code_base );
+				$nonParents = $class->getNonParentAncestorFQSENList();
 
 				foreach ( $nonParents as $nonParentFQSEN ) {
 					$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
@@ -484,7 +484,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	protected function getTaintOfFunction( FunctionInterface $func, $clearOverride = true ) {
 		// Fast case, either a builtin to php function or we already
 		// know taint:
-		if ( $func->isInternal() ) {
+		if ( $func->isPHPInternal() ) {
 			return $this->maybeClearNoOverride( $this->getTaintOfFunctionPHP( $func ), $clearOverride );
 		}
 
@@ -513,7 +513,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		$definingFunc = $this->getDefiningFunc( $func ) ?: $func;
 		// Ensure we don't indef loop.
 		if (
-			!$definingFunc->isInternal() &&
+			!$definingFunc->isPHPInternal() &&
 			( !$this->context->isInFunctionLikeScope() ||
 			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
 		) {
@@ -852,7 +852,9 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			case \ast\AST_PROP:
 			case \ast\AST_STATIC_PROP:
 				try {
-					return [ $cn->getProperty( $node->children['prop'] ) ];
+					return [ $cn->getProperty(
+						$node->children['prop'], $node->kind === \ast\AST_STATIC_PROP
+					) ];
 				} catch ( Exception $e ) {
 					try {
 						// There won't be an expr for static prop.
@@ -893,7 +895,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 						return [];
 					} else {
 						return [ $cn->getVariable() ];
-return [];
+						// return [];
 					}
 				} catch ( IssueException $e ) {
 					$this->debug( __METHOD__, "variable not in scope?? " . $e->getIssueInstance() );
@@ -1188,7 +1190,7 @@ return [];
 	 */
 	protected function markAllDependentVarsYes( FunctionInterface $method, int $i, int $taint ) {
 		$taintAdjusted = $taint & SecurityCheckPlugin::ALL_TAINT;
-		if ( $method->isInternal() ) {
+		if ( $method->isPHPInternal() ) {
 			return;
 		}
 		if (
@@ -1623,7 +1625,7 @@ return [];
 					break;
 				case \ast\AST_PROP:
 					$var = $this->getCtxN( $classNode )
-						->getProperty( $classNode->children['prop'] );
+						->getProperty( $classNode->children['prop'], false );
 					$type = $var->getUnionType();
 					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
 						return null;
@@ -1776,6 +1778,7 @@ return [];
 			$context,
 			$issueType,
 			$msg,
+			[],
 			$severity
 		);
 	}
@@ -1865,7 +1868,7 @@ return [];
 			// assume that their variables are tainted? Most common
 			// example is probably preg_match, which may very well be
 			// tainted much of the time.
-			if ( $param && $param->isPassByReference() && !$func->isInternal() ) {
+			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
 				if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
 					$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
 					continue;
@@ -2002,8 +2005,8 @@ return [];
 			);
 			if (
 				$type->hasArrayLike() &&
-				!$type->hasType( MixedType::instance() ) &&
-				!$type->hasType( StringType::instance() )
+				!$type->hasType( MixedType::instance( false ) ) &&
+				!$type->hasType( StringType::instance( false ) )
 			) {
 				return true;
 			}
@@ -2037,7 +2040,7 @@ return [];
 			);
 			if (
 				!$type->hasArrayLike() &&
-				$type->hasType( StringType::instance() )
+				$type->hasType( StringType::instance( false ) )
 			) {
 				// FIXME TODO: Should having Mixed type
 				// result in returning false here?
@@ -2072,7 +2075,7 @@ return [];
 				$node
 			);
 			if (
-				$type->hasType( IntType::instance() ) &&
+				$type->hasType( IntType::instance( false ) ) &&
 				$type->typeCount() === 1
 			) {
 				return true;

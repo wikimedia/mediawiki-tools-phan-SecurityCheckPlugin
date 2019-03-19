@@ -924,6 +924,11 @@ class MWVisitor extends TaintednessBaseVisitor {
 		$isInfo = false;
 		$isOptionsSafe = true; // options key is really messed up with escaping.
 		foreach ( $node->children as $child ) {
+			if ( $child === null ) {
+				// Happens for list( , $x ) = foo()
+				// @fixme Same as the fixme below
+				continue;
+			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			if ( !is_string( $child->children['key'] ) ) {
 				// FIXME, instead of skipping, should we abort
