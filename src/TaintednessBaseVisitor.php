@@ -8,6 +8,7 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
+use Phan\Language\Element\UnaddressableTypedElement;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
 use Phan\Language\UnionType;
@@ -24,7 +25,6 @@ use ast\Node;
 use Phan\Debug;
 use Phan\Issue;
 use Phan\Language\Scope\FunctionLikeScope;
-use Phan\Language\Scope\BranchScope;
 use Phan\Library\Set;
 use Phan\Exception\IssueException;
 
@@ -159,10 +159,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * or its not a local variable).
 	 *
 	 * @note It is assumed you already checked that right is tainted in some way.
-	 * @param TypedElementInterface $left (LHS-ish variable)
-	 * @param TypedElementInterface $right (RHS-ish variable)
+	 * @param TypedElementInterface|UnaddressableTypedElement $left (LHS-ish variable)
+	 * @param TypedElementInterface|UnaddressableTypedElement $right (RHS-ish variable)
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, TypedElementInterface $right ) {
+	protected function mergeTaintError( $left, $right ) {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
 			$left->taintedOriginalError = '';
 		}
@@ -183,13 +183,13 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * This allows us to show users what line caused an issue.
 	 *
 	 * @param int $taintedness The taintedness in question
-	 * @param TypedElementInterface $elem Where to put it
+	 * @param TypedElementInterface|UnaddressableTypedElement $elem Where to put it
 	 * @param int $arg [Optional] For functions, which argument
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		int $taintedness,
-		TypedElementInterface $elem,
+		$elem,
 		int $arg = -1,
 		$reason = null
 	) {
@@ -252,12 +252,12 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * Change the taintedness of a variable
 	 *
-	 * @param TypedElementInterface $variableObj The variable in question
+	 * @param TypedElementInterface|UnaddressableTypedElement $variableObj The variable in question
 	 * @param int $taintedness One of the class constants
 	 * @param bool $override Override taintedness or just take max.
 	 */
 	protected function setTaintedness(
-		TypedElementInterface $variableObj,
+		$variableObj,
 		int $taintedness,
 		$override = true
 	) {
@@ -283,62 +283,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 			// its probably a non-local variable (or in the if case, code
 			// that may not be executed).
 
-			// This is a little confusing. Some clarifying points:
-			// * If we are currently in a branch, the the context scope
-			// will be an instance of BranchScope.
-			// * The varibaleObj->getScope() will return the underlying
-			// FunctionLikeScope regardless of if we are in a branch
-			// provided this is a local variable.
-			// * Things like while loops do not have a BranchScope but
-			// a normal FunctionLikeScope.
-			if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
-				&& ( $this->context->getScope() instanceof BranchScope )
-				&& ( $variableObj->getContext()->getScope() instanceof FunctionLikeScope )
-			) {
-				// We are in a branch and this is a local variable
-				// (as opposed to a class member). Try to link this
-				// variable with its parent outside the branch in same func.
-				$scope = $variableObj->getContext()->getScope();
-				if ( $scope->hasVariableWithName( $variableObj->getName() ) ) {
-					$parentVarObj = $scope->getVariableByName( $variableObj->getName() );
-
-					if ( !property_exists( $parentVarObj, 'taintedness' ) ) {
-						// $this->debug( __METHOD__,
-						// "parent scope for $variableObj has no taint. Setting $taintedness" );
-						$parentVarObj->taintedness = $taintedness;
-					} else {
-						// $this->debug( __METHOD__,
-						// "parent scope for $variableObj already has taint "
-						// . $parentVarObj->taintedness . " adding $taintedness " );
-						$parentVarObj->taintedness = $this->mergeAddTaint( $parentVarObj->taintedness, $taintedness );
-					}
-					$variableObj->taintedness =& $parentVarObj->taintedness;
-
-					$methodLinks = $parentVarObj->taintedMethodLinks ?? new Set;
-					$variableObjLinks = $variableObj->taintedMethodLinks ?? new Set;
-					$variableObj->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
-					$parentVarObj->taintedMethodLinks =& $variableObj->taintedMethodLinks;
-					$varError = $variableObj->taintedOriginalError ?? '';
-					$combinedOrig = $parentVarObj->taintedOriginalError ?? '';
-					if ( strpos( $combinedOrig, $varError ?: "\1\2" ) === false ) {
-						$combinedOrig .= $varError;
-					}
-
-					if ( strlen( $combinedOrig ) > 254 ) {
-						$this->debug( __METHOD__, "Too long original error! $variableObj" );
-						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
-					}
-					$variableObj->taintedOriginalError = $combinedOrig;
-					$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
-
-				} else {
-					$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
-				}
-			}
 			// Given we are either in a branch, or the variable has some
 			// sort of outer scope (is a global, is a class member), we
 			// try to merge the taint instead of overriding, as we have
-			// no garuntee that this particular branch gets executed, so
+			// no guarantee that this particular branch gets executed, so
 			// we make the variable taint be the union of the case where
 			// this branch is executed and where it isn't.
 
@@ -756,7 +704,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
-			} elseif ( $expr instanceof TypedElementInterface ) {
+			} elseif (
+				$expr instanceof TypedElementInterface ||
+				$expr instanceof UnaddressableTypedElement
+			) {
 				// echo __METHOD__ . "FIXME, do we want this interface here?\n";
 				return $this->getTaintednessPhanObj( $expr );
 			}
@@ -788,10 +739,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * Given a phan object (not method/function) find its taint
 	 *
-	 * @param TypedElementInterface $variableObj
+	 * @param TypedElementInterface|UnaddressableTypedElement $variableObj
 	 * @return int The taint
 	 */
-	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : int {
+	protected function getTaintednessPhanObj( $variableObj ) : int {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new Exception( "This method cannot be used with methods" );
 		}
@@ -1084,13 +1035,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 *
 	 * This also merges the information on what line caused the taint.
 	 *
-	 * @param TypedElementInterface $lhs Source of method list
-	 * @param TypedElementInterface $rhs Destination of merged method list
+	 * @param TypedElementInterface|UnaddressableTypedElement $lhs Source of method list
+	 * @param TypedElementInterface|UnaddressableTypedElement $rhs Destination of merged method list
 	 */
-	protected function mergeTaintDependencies(
-		TypedElementInterface $lhs,
-		TypedElementInterface $rhs
-	) {
+	protected function mergeTaintDependencies( $lhs, $rhs ) {
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
 		$taintRHS = $this->getTaintedness( $rhs );
 
@@ -1136,11 +1084,11 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	 * as TAINT_EXEC.
 	 *
 	 * @todo delete all dependencies as no longer needed (or are they?)
-	 * @param TypedElementInterface $var The variable in question
+	 * @param TypedElementInterface|UnaddressableTypedElement $var The variable in question
 	 * @param int $taint What taint to mark them as.
 	 */
 	protected function markAllDependentMethodsExec(
-		TypedElementInterface $var,
+		$var,
 		int $taint = SecurityCheckPlugin::EXEC_TAINT
 	) {
 		// Ensure we only set exec bits, not normal taint bits.
@@ -1316,7 +1264,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * Get the line number of the original cause of taint.
 	 *
-	 * @param TypedElementInterface|Node $element
+	 * @param TypedElementInterface|UnaddressableTypedElement|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
@@ -1333,7 +1281,7 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 	/**
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
-	 * @param TypedElementInterface|Node $element
+	 * @param TypedElementInterface|UnaddressableTypedElement|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
@@ -1341,7 +1289,10 @@ abstract class TaintednessBaseVisitor extends AnalysisVisitor {
 		$line = '';
 		if ( !is_object( $element ) ) {
 			return '';
-		} elseif ( $element instanceof TypedElementInterface ) {
+		} elseif (
+			$element instanceof TypedElementInterface ||
+			$element instanceof UnaddressableTypedElement
+		) {
 			if ( $arg === -1 ) {
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
 					$line = $element->taintedOriginalError;

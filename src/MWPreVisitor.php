@@ -2,7 +2,6 @@
 
 use Phan\Language\Context;
 use ast\Node;
-use ast\Node\Decl;
 use Phan\CodeBase;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\UnionType;
@@ -57,19 +56,19 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 
 	/**
 	 * @see visitMethod
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return void
 	 */
-	public function visitClosure( Decl $node ) {
+	public function visitClosure( Node $node ) {
 		return $this->visitMethod( $node );
 	}
 
 	/**
 	 * @see visitMethod
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitFuncDecl( Decl $node ) {
+	public function visitFuncDecl( Node $node ) {
 		return $this->visitMethod( $node );
 	}
 
@@ -77,9 +76,9 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	 * Set taint for certain hook types.
 	 *
 	 * Also handles FuncDecl
-	 * @param Decl $node
+	 * @param Node $node
 	 */
-	public function visitMethod( Decl $node ) {
+	public function visitMethod( Node $node ) {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		$hookType = $this->plugin->isSpecialHookSubscriber( $method->getFQSEN() );
 		if ( !$hookType ) {

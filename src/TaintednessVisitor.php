@@ -21,7 +21,6 @@ use Phan\AST\ContextNode;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use ast\Node;
-use ast\Node\Decl;
 use Phan\Exception\IssueException;
 
 /**
@@ -59,10 +58,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return int Taint
 	 */
-	public function visitFuncDecl( Decl $node ) : int {
+	public function visitFuncDecl( Node $node ) : int {
 		return $this->visitMethod( $node );
 	}
 
@@ -73,10 +72,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * so if we haven't yet, mark this function as no taint.
 	 *
 	 * Also handles FuncDecl
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return int Taint
 	 */
-	public function visitMethod( Decl $node ) : int {
+	public function visitMethod( Node $node ) : int {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		if (
 			$this->getBuiltinFuncTaint( $method->getFQSEN() ) === null &&
@@ -156,10 +155,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return int Taint
 	 */
-	public function visitClass( Decl $node ) : int {
+	public function visitClass( Node $node ) : int {
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 

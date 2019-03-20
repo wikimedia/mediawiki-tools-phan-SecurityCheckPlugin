@@ -1,7 +1,6 @@
 <?php
 
 use ast\Node;
-use ast\Node\Decl;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.
@@ -85,19 +84,19 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 
 	/**
 	 * @see visitMethod
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitFuncDecl( Decl $node ) {
+	public function visitFuncDecl( Node $node ) {
 		return $this->visitMethod( $node );
 	}
 
 	/**
 	 * @see visitMethod
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitClosure( Decl $node ) {
+	public function visitClosure( Node $node ) {
 		return $this->visitMethod( $node );
 	}
 
@@ -112,9 +111,9 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 	 * to output a warning.
 	 *
 	 * Also handles FuncDecl and Closure
-	 * @param Decl $node
+	 * @param Node $node
 	 */
-	public function visitMethod( Decl $node ) {
+	public function visitMethod( Node $node ) {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 
