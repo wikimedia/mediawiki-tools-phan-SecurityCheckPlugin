@@ -112,19 +112,10 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 		Node $node,
 		Node $parent_node = null
 	) {
-		$oldMem = memory_get_peak_usage();
 		// This would also return the taint of the current node,
 		// but we don't need that here so we discard the return value.
 		$visitor = new TaintednessVisitor( $code_base, $context, $this );
 		$visitor( $node );
-		$newMem = memory_get_peak_usage();
-		$diff = floor( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
-		if ( $diff > 10 ) {
-			$cur = floor( ( memory_get_usage() / ( 1024 * 1024 ) ) );
-			$visitor->debug( __METHOD__, "Memory Spike! " . \ast\get_kind_name( $node->kind ) .
-				" diff=$diff MB; cur=$cur MB\n"
-			);
-		}
 	}
 
 	/**

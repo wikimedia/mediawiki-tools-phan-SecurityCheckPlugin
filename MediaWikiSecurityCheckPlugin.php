@@ -55,8 +55,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		Node $node,
 		Node $parentNode = null
 	) {
-		parent::analyzeNode( $code_base, $context, $node, $parentNode );
-
 		$visitor = new MWVisitor( $code_base, $context, $this );
 		$visitor( $node );
 	}
@@ -69,7 +67,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @param Node $node
 	 */
 	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
-		parent::preAnalyzeNode( $code_base, $context, $node );
 		( new MWPreVisitor( $code_base, $context, $this ) )( $node );
 	}
 

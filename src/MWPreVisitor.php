@@ -25,7 +25,7 @@ use Phan\Language\UnionType;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class MWPreVisitor extends TaintednessBaseVisitor {
+class MWPreVisitor extends PreTaintednessVisitor {
 
 	/**
 	 * Ensure type of plugin is instance of MediaWikiSecurityCheckPlugin
@@ -45,40 +45,14 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Handle any node not otherwise handled.
-	 *
-	 * Currently a no-op.
-	 *
-	 * @param Node $node
-	 */
-	public function visit( Node $node ) {
-	}
-
-	/**
-	 * @see visitMethod
-	 * @param Node $node
-	 * @return void
-	 */
-	public function visitClosure( Node $node ) {
-		return $this->visitMethod( $node );
-	}
-
-	/**
-	 * @see visitMethod
-	 * @param Node $node
-	 * @return void Just has a return statement in case visitMethod changes
-	 */
-	public function visitFuncDecl( Node $node ) {
-		return $this->visitMethod( $node );
-	}
-
-	/**
 	 * Set taint for certain hook types.
 	 *
 	 * Also handles FuncDecl
 	 * @param Node $node
 	 */
 	public function visitMethod( Node $node ) {
+		parent::visitMethod( $node );
+
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		$hookType = $this->plugin->isSpecialHookSubscriber( $method->getFQSEN() );
 		if ( !$hookType ) {

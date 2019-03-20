@@ -31,7 +31,7 @@ use ast\Node;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class MWVisitor extends TaintednessBaseVisitor {
+class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * Constructor to enforce plugin is instance of MediaWikiSecurityCheckPlugin
@@ -51,30 +51,20 @@ class MWVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Node $node
-	 */
-	public function visit( Node $node ) {
-	}
-
-	/**
-	 * Check static calls for hook registration
-	 *
-	 * Forwards to method call handler.
-	 * @param Node $node
-	 */
-	public function visitStaticCall( Node $node ) {
-		$this->visitMethodCall( $node );
-	}
-
-	/**
 	 * Try and recognize hook registration
 	 *
 	 * Also handles static calls
 	 * @param Node $node
+	 * @return int
 	 */
-	public function visitMethodCall( Node $node ) {
+	public function visitMethodCall( Node $node ) : int {
+		$parentTaint = parent::visitMethodCall( $node );
 		try {
 			$ctx = $this->getCtxN( $node );
+			if ( !isset( $node->children['method'] ) ) {
+				// Called by visitCall
+				return $parentTaint;
+			}
 			$methodName = $node->children['method'];
 			$method = $ctx->getMethod(
 				$methodName,
@@ -104,6 +94,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 		} catch ( Exception $e ) {
 			// ignore
 		}
+		return $parentTaint;
 	}
 
 	/**
@@ -325,13 +316,15 @@ class MWVisitor extends TaintednessBaseVisitor {
 	 *
 	 * e.g. A tag hook's return value is output as html.
 	 * @param Node $node
+	 * @return int
 	 */
-	public function visitReturn( Node $node ) {
+	public function visitReturn( Node $node ) : int {
+		$parentTaint = parent::visitReturn( $node );
 		if (
 			!$this->context->isInFunctionLikeScope()
 			|| !$node->children['expr'] instanceof Node
 		) {
-			return;
+			return $parentTaint;
 		}
 		$funcFQSEN = $this->context->getFunctionLikeFQSEN();
 
@@ -355,6 +348,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 			);
 			break;
 		}
+		return $parentTaint;
 	}
 
 	/**
@@ -807,10 +801,13 @@ class MWVisitor extends TaintednessBaseVisitor {
 	 * Check for $wgHooks registration
 	 *
 	 * @param Node $node
+	 * @return int
 	 * @note This assumes $wgHooks is always the global
 	 *   even if there is no globals declaration.
 	 */
-	public function visitAssign( Node $node ) {
+	public function visitAssign( Node $node ) : int {
+		$parentTaint = parent::visitAssign( $node );
+
 		$var = $node->children['var'];
 		assert( $var instanceof Node );
 		$cb = null;
@@ -846,14 +843,15 @@ class MWVisitor extends TaintednessBaseVisitor {
 				);
 			}
 		}
+		return $parentTaint;
 	}
 
 	/**
-	 * Try to detect HTMLForm specifiers
+	 * Special implementation of visitArray to detect HTMLForm specifiers
 	 *
 	 * @param Node $node
 	 */
-	public function visitArray( Node $node ) {
+	private function doVisitArray( Node $node ) {
 		$authReqFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
 			'MediaWiki\Auth\AuthenticationRequest'
 		);
@@ -1062,7 +1060,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
 				$this->getTaintedness( $label ),
 				'HTMLForm label key escapes its input' .
-					$this->getOriginalTaintLine( $label )
+				$this->getOriginalTaintLine( $label )
 			);
 		}
 		if ( $rawLabel !== null ) {
@@ -1071,7 +1069,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
 				$this->getTaintedness( $rawLabel ),
 				'HTMLForm label-raw needs to escape input' .
-					$this->getOriginalTaintLine( $rawLabel )
+				$this->getOriginalTaintLine( $rawLabel )
 			);
 		}
 		if ( $isInfo === true && $raw === true ) {
@@ -1079,7 +1077,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
 				$this->getTaintedness( $default ),
 				'HTMLForm info field in raw mode needs to escape default key' .
-					$this->getOriginalTaintLine( $default )
+				$this->getOriginalTaintLine( $default )
 			);
 		}
 		if ( $isInfo === true && ( $raw === false || $raw === null ) ) {
@@ -1087,7 +1085,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
 				$this->getTaintedness( $default ),
 				'HTMLForm info field (non-raw) escapes default key already' .
-					$this->getOriginalTaintLine( $default )
+				$this->getOriginalTaintLine( $default )
 			);
 		}
 		if ( !$isOptionsSafe && $options instanceof Node ) {
@@ -1107,8 +1105,8 @@ class MWVisitor extends TaintednessBaseVisitor {
 						SecurityCheckPlugin::HTML_EXEC_TAINT,
 						$this->getTaintedness( $key ),
 						'HTMLForm option label needs escaping' .
-							$value .
-							$this->getOriginalTaintLine( $key )
+						$value .
+						$this->getOriginalTaintLine( $key )
 					);
 				}
 			} else {
@@ -1123,23 +1121,36 @@ class MWVisitor extends TaintednessBaseVisitor {
 					'HTMLForm option label needs escaping ' .
 					'(Maybe false positive as could not determine ' .
 					'if it was key or value that is unescaped)' .
-						$this->getOriginalTaintLine( $options )
+					$this->getOriginalTaintLine( $options )
 				);
 			}
 		}
+	}
+	/**
+	 * Try to detect HTMLForm specifiers
+	 *
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitArray( Node $node ) : int {
+		$parentTaint = parent::visitArray( $node );
+		$this->doVisitArray( $node );
+		return $parentTaint;
 	}
 
 	/**
 	 * A global declaration. Use to adjust types for MW globals
 	 *
 	 * @param Node $node
+	 * @return int
 	 */
-	public function visitGlobal( Node $node ) {
+	public function visitGlobal( Node $node ) : int {
+		$parentTaint = parent::visitGlobal( $node );
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
 		$varName = $node->children['var']->children['name'];
 		if ( !is_string( $varName ) ) {
 			// global $$foo;
-			return;
+			return $parentTaint;
 		}
 		$scope = $this->context->getScope();
 		if ( $scope->hasVariableWithName( $varName ) ) {
@@ -1174,5 +1185,7 @@ class MWVisitor extends TaintednessBaseVisitor {
 		} else {
 			$this->debug( __METHOD__, "global $varName not in scope (?)" );
 		}
+
+		return $parentTaint;
 	}
 }
