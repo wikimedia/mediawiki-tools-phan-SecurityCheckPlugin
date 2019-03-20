@@ -1,6 +1,5 @@
 <?php
 
-use Phan\AST\AnalysisVisitor;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
 use Phan\CodeBase;
@@ -29,7 +28,7 @@ use Phan\Library\Set;
 use Phan\Exception\IssueException;
 
 /**
- * Base class for the Tainedness visitor subclass. Mostly contains
+ * Trait for the Tainedness visitor subclasses. Mostly contains
  * utility methods.
  *
  * Copyright (C) 2017  Brian Wolff <bawolff@gmail.com>
@@ -48,7 +47,7 @@ use Phan\Exception\IssueException;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-abstract class TaintednessBaseVisitor extends AnalysisVisitor {
+trait TaintednessBaseVisitor {
 
 	/** @var SecurityCheckPlugin */
 	protected $plugin;

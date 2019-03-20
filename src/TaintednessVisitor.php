@@ -17,6 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+use Phan\AST\AnalysisVisitor;
 use Phan\AST\ContextNode;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
@@ -38,7 +39,8 @@ use Phan\Exception\IssueException;
  * This also maintains some other properties, such as where the error
  * originates, and dependencies in certain cases.
  */
-class TaintednessVisitor extends TaintednessBaseVisitor {
+class TaintednessVisitor extends AnalysisVisitor {
+	use TaintednessBaseVisitor;
 
 	/**
 	 * Generic visitor when we haven't defined a more specific one.

@@ -1,6 +1,7 @@
 <?php
 
 use ast\Node;
+use Phan\AST\AnalysisVisitor;
 
 /**
  * Get the returned things of a method
@@ -21,7 +22,8 @@ use ast\Node;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class GetReturnObjsVisitor extends TaintednessBaseVisitor {
+class GetReturnObjsVisitor extends AnalysisVisitor {
+	use TaintednessBaseVisitor;
 
 	/**
 	 * @param Node $node
