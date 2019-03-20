@@ -1,8 +1,6 @@
 <?php
 
-use Phan\Language\Context;
 use ast\Node;
-use Phan\CodeBase;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\UnionType;
 
@@ -26,24 +24,6 @@ use Phan\Language\UnionType;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 class MWPreVisitor extends PreTaintednessVisitor {
-
-	/**
-	 * Ensure type of plugin is instance of MediaWikiSecurityCheckPlugin
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param MediaWikiSecurityCheckPlugin $plugin
-	 */
-	public function __construct(
-		CodeBase $code_base,
-		Context $context,
-		MediaWikiSecurityCheckPlugin $plugin
-	) {
-		parent::__construct( $code_base, $context, $plugin );
-		// Ensure phan knows plugin is right type
-		$this->plugin = $plugin;
-	}
-
 	/**
 	 * Set taint for certain hook types.
 	 *

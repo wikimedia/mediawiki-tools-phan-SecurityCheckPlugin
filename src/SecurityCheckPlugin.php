@@ -27,10 +27,13 @@ require_once __DIR__ . '/GetReturnObjsVisitor.php';
 use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Plugin\PluginImplementation;
-use ast\Node;
+use Phan\PluginV2;
+use Phan\PluginV2\AnalyzeNodeCapability;
+use Phan\PluginV2\PreAnalyzeNodeCapability;
 
-abstract class SecurityCheckPlugin extends PluginImplementation {
+abstract class SecurityCheckPlugin extends PluginV2
+	implements AnalyzeNodeCapability, PreAnalyzeNodeCapability
+{
 
 	// Various taint flags. The _EXEC_ varieties mean
 	// that it is unsafe to assign that type of taint
@@ -97,40 +100,17 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	const ALL_TAINT = self::YES_TAINT | self::SQL_NUMKEY_TAINT | self::ESCAPED_TAINT;
 	const ALL_EXEC_TAINT = self::EXEC_TAINT | self::SQL_NUMKEY_EXEC_TAINT | self::ESCAPED_EXEC_TAINT;
 	const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
-	/**
-	 * Called on every node in the AST in post-order
-	 *
-	 * @param CodeBase $code_base The code base in which the node exists
-	 * @param Context $context The context in which the node exits.
-	 * @param Node $node The php-ast Node being analyzed.
-	 * @param Node|null $parent_node The parent node of the given node (if one exists).
-	 * @return void
-	 */
-	public function analyzeNode(
-		CodeBase $code_base,
-		Context $context,
-		Node $node,
-		Node $parent_node = null
-	) {
-		// This would also return the taint of the current node,
-		// but we don't need that here so we discard the return value.
-		$visitor = new TaintednessVisitor( $code_base, $context, $this );
-		$visitor( $node );
-	}
 
 	/**
-	 * Called on every node in the ast, but in pre-order
-	 *
-	 * We only need this for a couple things, namely
-	 * structural elements that cause a new variable to be
-	 * declared (e.g. method declarations, foreach loops)
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param Node $node
+	 * @var SecurityCheckPlugin Passed to the visitor for context
 	 */
-	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
-		( new PreTaintednessVisitor( $code_base, $context, $this ) )( $node );
+	public static $pluginInstance;
+
+	/**
+	 * Save the subclass instance to make it accessible from the visitor
+	 */
+	public function __construct() {
+		self::$pluginInstance = $this;
 	}
 
 	/**

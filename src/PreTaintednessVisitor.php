@@ -1,7 +1,7 @@
 <?php
 
 use ast\Node;
-use Phan\AST\AnalysisVisitor;
+use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.
@@ -26,7 +26,7 @@ use Phan\AST\AnalysisVisitor;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class PreTaintednessVisitor extends AnalysisVisitor {
+class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/**

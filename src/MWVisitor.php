@@ -1,6 +1,5 @@
 <?php
 
-use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
@@ -9,7 +8,6 @@ use Phan\Language\FQSEN;
 use Phan\Language\Element\Method;
 use Phan\Language\Type\CallableType;
 use Phan\Language\UnionType;
-use Phan\CodeBase;
 use ast\Node;
 
 /**
@@ -32,24 +30,6 @@ use ast\Node;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 class MWVisitor extends TaintednessVisitor {
-
-	/**
-	 * Constructor to enforce plugin is instance of MediaWikiSecurityCheckPlugin
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param MediaWikiSecurityCheckPlugin $plugin
-	 */
-	public function __construct(
-		CodeBase $code_base,
-		Context $context,
-		MediaWikiSecurityCheckPlugin $plugin
-	) {
-		parent::__construct( $code_base, $context, $plugin );
-		// Ensure phan knows plugin is right type
-		$this->plugin = $plugin;
-	}
-
 	/**
 	 * Try and recognize hook registration
 	 *

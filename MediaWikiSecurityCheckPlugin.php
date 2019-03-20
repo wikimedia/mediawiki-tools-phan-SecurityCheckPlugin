@@ -32,43 +32,26 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName as FQSENFunc;
 use Phan\Language\FQSEN\FullyQualifiedMethodName as FQSENMethod;
-use ast\Node;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
+	/**
+	 * @inheritDoc
+	 */
+	public static function getAnalyzeNodeVisitorClassName(): string {
+		return MWVisitor::class;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function getPreAnalyzeNodeVisitorClassName(): string {
+		return MWPreVisitor::class;
+	}
 
 	/**
 	 * @var array A mapping from hook names to FQSEN that implement it
 	 */
 	protected $hookSubscribers = [];
-
-	/**
-	 * Override so we can check for hook registration
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param Node $node
-	 * @param Node|null $parentNode
-	 */
-	public function analyzeNode(
-		CodeBase $code_base,
-		Context $context,
-		Node $node,
-		Node $parentNode = null
-	) {
-		$visitor = new MWVisitor( $code_base, $context, $this );
-		$visitor( $node );
-	}
-
-	/**
-	 * Called on every node in the ast, but in pre-order
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param Node $node
-	 */
-	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
-		( new MWPreVisitor( $code_base, $context, $this ) )( $node );
-	}
 
 	/**
 	 * @inheritDoc

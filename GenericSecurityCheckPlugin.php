@@ -30,6 +30,19 @@
 require_once __DIR__ . "/src/SecurityCheckPlugin.php";
 
 class GenericSecurityCheckPlugin extends SecurityCheckPlugin {
+	/**
+	 * @inheritDoc
+	 */
+	public static function getAnalyzeNodeVisitorClassName(): string {
+		return TaintednessVisitor::class;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function getPreAnalyzeNodeVisitorClassName(): string {
+		return PreTaintednessVisitor::class;
+	}
 
 	/**
 	 * @inheritDoc

@@ -48,7 +48,6 @@ use Phan\Exception\IssueException;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 trait TaintednessBaseVisitor {
-
 	/** @var SecurityCheckPlugin */
 	protected $plugin;
 
@@ -59,17 +58,11 @@ trait TaintednessBaseVisitor {
 	protected $overrideContext = null;
 
 	/**
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param SecurityCheckPlugin $plugin The instance of the plugin we're using
+	 * @inheritDoc
 	 */
-	public function __construct(
-		CodeBase $code_base,
-		Context $context,
-		SecurityCheckPlugin $plugin
-	) {
+	public function __construct( CodeBase $code_base, Context $context ) {
 		parent::__construct( $code_base, $context );
-		$this->plugin = $plugin;
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
 	}
 
 	/**
@@ -728,7 +721,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintednessNode( Node $node ) : int {
 		// Debug::printNode( $node );
-		$r = ( new TaintednessVisitor( $this->code_base, $this->context, $this->plugin ) )(
+		$r = ( new TaintednessVisitor( $this->code_base, $this->context ) )(
 			$node
 		);
 		assert( $r >= 0, $r );
@@ -2070,8 +2063,7 @@ trait TaintednessBaseVisitor {
 		$node = $func->getNode();
 		return ( new GetReturnObjsVisitor(
 			$this->code_base,
-			$func->getContext(),
-			$this->plugin
+			$func->getContext()
 		) )( $node );
 	}
 }
