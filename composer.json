@@ -23,8 +23,8 @@
 		"irc": "irc://freenode.net/wikimedia-dev"
 	},
 	"require": {
-		"phan/phan": "0.8.13",
-		"php": "~7.0.0 || ~7.1.0 || ~7.2.0",
+		"phan/phan": "0.9.6",
+		"php": "~7.1.0 || ~7.2.0",
 		"ext-ast": "^0.1.5"
 	},
 	"require-dev": {
