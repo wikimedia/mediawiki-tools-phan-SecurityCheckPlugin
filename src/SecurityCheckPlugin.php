@@ -28,11 +28,11 @@ use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\PluginV2;
-use Phan\PluginV2\AnalyzeNodeCapability;
+use Phan\PluginV2\PostAnalyzeNodeCapability;
 use Phan\PluginV2\PreAnalyzeNodeCapability;
 
 abstract class SecurityCheckPlugin extends PluginV2
-	implements AnalyzeNodeCapability, PreAnalyzeNodeCapability
+	implements PostAnalyzeNodeCapability, PreAnalyzeNodeCapability
 {
 
 	// Various taint flags. The _EXEC_ varieties mean

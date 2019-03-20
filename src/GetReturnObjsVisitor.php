@@ -1,7 +1,7 @@
 <?php
 
 use ast\Node;
-use Phan\PluginV2\PluginAwareAnalysisVisitor;
+use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 
 /**
  * Get the returned things of a method
@@ -22,7 +22,7 @@ use Phan\PluginV2\PluginAwareAnalysisVisitor;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class GetReturnObjsVisitor extends PluginAwareAnalysisVisitor {
+class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/**

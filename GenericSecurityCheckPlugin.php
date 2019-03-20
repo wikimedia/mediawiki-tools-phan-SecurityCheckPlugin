@@ -33,7 +33,7 @@ class GenericSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
 	 * @inheritDoc
 	 */
-	public static function getAnalyzeNodeVisitorClassName(): string {
+	public static function getPostAnalyzeNodeVisitorClassName(): string {
 		return TaintednessVisitor::class;
 	}
 

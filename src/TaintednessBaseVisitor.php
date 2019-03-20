@@ -795,9 +795,7 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_PROP:
 			case \ast\AST_STATIC_PROP:
 				try {
-					return [ $cn->getProperty(
-						$node->children['prop'], $node->kind === \ast\AST_STATIC_PROP
-					) ];
+					return [ $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP ) ];
 				} catch ( Exception $e ) {
 					try {
 						// There won't be an expr for static prop.
@@ -1568,7 +1566,7 @@ trait TaintednessBaseVisitor {
 					break;
 				case \ast\AST_PROP:
 					$var = $this->getCtxN( $classNode )
-						->getProperty( $classNode->children['prop'], false );
+						->getProperty( false );
 					$type = $var->getUnionType();
 					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
 						return null;

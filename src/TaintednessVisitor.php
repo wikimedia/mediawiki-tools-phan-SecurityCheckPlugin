@@ -22,7 +22,7 @@ use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use ast\Node;
 use Phan\Exception\IssueException;
-use Phan\PluginV2\PluginAwareAnalysisVisitor;
+use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 
 /**
  * This class visits all the nodes in the ast. It has two jobs:
@@ -39,7 +39,7 @@ use Phan\PluginV2\PluginAwareAnalysisVisitor;
  * This also maintains some other properties, such as where the error
  * originates, and dependencies in certain cases.
  */
-class TaintednessVisitor extends PluginAwareAnalysisVisitor {
+class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/**
