@@ -610,6 +610,7 @@ trait TaintednessBaseVisitor {
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::NO_TAINT );
 				break;
 			case 'string':
+			case 'class-string':
 			case 'closure':
 			case 'callable':
 			case 'array':
