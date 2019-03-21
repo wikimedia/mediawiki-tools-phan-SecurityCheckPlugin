@@ -25,7 +25,8 @@
 	"require": {
 		"phan/phan": "1.0.0",
 		"php": "^7.0.0",
-		"ext-ast": "^0.1.5"
+		"ext-ast": "^0.1.5",
+		"ext-json": "*"
 	},
 	"require-dev": {
 		"mediawiki/mediawiki-codesniffer": "24.0.0",

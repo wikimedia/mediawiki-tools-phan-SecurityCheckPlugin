@@ -1111,7 +1111,7 @@ trait TaintednessBaseVisitor {
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for $var" );
+			$this->debug( __METHOD__, "Memory spike $diffMem for variable $var" );
 		}
 		// FIXME delete links
 	}
@@ -1171,7 +1171,7 @@ trait TaintednessBaseVisitor {
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for $var" );
+			$this->debug( __METHOD__, "Memory spike $diffMem for method $method" );
 		}
 	}
 

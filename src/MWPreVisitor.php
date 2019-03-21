@@ -24,6 +24,8 @@ use Phan\Language\UnionType;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 class MWPreVisitor extends PreTaintednessVisitor {
+	/** @var MediaWikiSecurityCheckPlugin */
+	protected $plugin;
 	/**
 	 * Set taint for certain hook types.
 	 *

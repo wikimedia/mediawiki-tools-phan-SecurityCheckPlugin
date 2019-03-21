@@ -120,7 +120,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 
 		$params = $node->children['params']->children;
-		$varObjs = [];
 		foreach ( $params as $i => $param ) {
 			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
