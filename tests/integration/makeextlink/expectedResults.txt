@@ -1,0 +1,3 @@
+integration/makeextlink/test.php:25 SecurityCheck-XSS Calling Linker::makeExternalLink with user controlled text and third argument set to false
+integration/makeextlink/test.php:32 SecurityCheck-XSS Calling Linker::makeExternalLink with user controlled text and third argument set to false
+integration/makeextlink/test.php:40 SecurityCheck-XSS Calling Linker::makeExternalLink with user controlled text and third argument set to false (Caused by: integration/makeextlink/test.php +39)
