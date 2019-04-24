@@ -1,1 +1,1 @@
-integration/subclasses/test.php:10 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::query() in [no method] that outputs using tainted argument $myQuery. (Caused by: integration/subclasses/test.php +8; integration/subclasses/test.php +7)
+integration/subclasses/test.php:10 SecurityCheck-SQLInjection Calling method \Wikimedia\Rdbms\MysqlDatabase::query() in [no method] that outputs using tainted argument $myQuery. (Caused by: Builtin-\Wikimedia\Rdbms\Database::query) (Caused by: integration/subclasses/test.php +8; integration/subclasses/test.php +7)
