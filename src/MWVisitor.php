@@ -30,7 +30,11 @@ use ast\Node;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 class MWVisitor extends TaintednessVisitor {
-	/** @var MediaWikiSecurityCheckPlugin */
+	/**
+	 * Re-declared for better type inference
+	 * @suppress PhanReadOnlyProtectedProperty
+	 * @var MediaWikiSecurityCheckPlugin
+	 */
 	protected $plugin;
 
 	/**
@@ -77,7 +81,7 @@ class MWVisitor extends TaintednessVisitor {
 				default:
 					$this->doSelectWrapperSpecialHandling( $node, $method );
 			}
-		} catch ( Exception $e ) {
+		} catch ( Exception $_ ) {
 			// ignore
 		}
 		return $parentTaint;
@@ -287,6 +291,8 @@ class MWVisitor extends TaintednessVisitor {
 
 	private function registerHook( string $hookType, FullyQualifiedFunctionLikeName $callback ) {
 		$alreadyRegistered = $this->plugin->registerHook( $hookType, $callback );
+		// @phan-suppress-next-next-line PhanTypeSuspiciousStringExpression Implementations of
+		// FullyQualifiedFunctionLikeName have a __toString method.
 		$this->debug( __METHOD__, "registering $callback for hook $hookType" );
 		if ( !$alreadyRegistered ) {
 			// If this is the first time seeing this, re-analyze the
@@ -366,7 +372,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * @note This will only work where the return
 	 *  statement is an array literal.
 	 * @param Node|Mixed $node Node from ast tree
-	 * @suppress PhanTypeMismatchForeach
 	 */
 	private function handleGetQueryInfoReturn( $node ) {
 		if (
@@ -639,7 +644,6 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The expr child of the return. NOT the return itself
 	 * @param FQSEN $funcName
-	 * @suppress PhanTypeMismatchForeach
 	 */
 	private function visitReturnOfFunctionHook( Node $node, FQSEN $funcName ) {
 		if (
@@ -818,7 +822,6 @@ class MWVisitor extends TaintednessVisitor {
 
 		$var = $node->children['var'];
 		assert( $var instanceof Node );
-		$cb = null;
 		$hookName = null;
 		$cbExpr = $node->children['expr'];
 		// The $wgHooks['foo'][] case

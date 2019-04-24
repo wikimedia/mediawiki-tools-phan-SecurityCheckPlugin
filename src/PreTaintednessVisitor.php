@@ -1,6 +1,8 @@
 <?php
 
 use ast\Node;
+use Phan\CodeBase;
+use Phan\Language\Context;
 use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
 
 /**
@@ -30,13 +32,11 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/**
-	 * Handle any node not otherwise handled.
-	 *
-	 * Currently a no-op.
-	 *
-	 * @param Node $node
+	 * @inheritDoc
 	 */
-	public function visit( Node $node ) {
+	public function __construct( CodeBase $code_base, Context $context ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
 	}
 
 	/**

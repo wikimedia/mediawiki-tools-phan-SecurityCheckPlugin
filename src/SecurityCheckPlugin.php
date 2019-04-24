@@ -31,6 +31,9 @@ use Phan\PluginV2;
 use Phan\PluginV2\PostAnalyzeNodeCapability;
 use Phan\PluginV2\PreAnalyzeNodeCapability;
 
+/**
+ * @suppress PhanUnreferencedPublicClassConstant They're for use in custom plugins, too
+ */
 abstract class SecurityCheckPlugin extends PluginV2
 	implements PostAnalyzeNodeCapability, PreAnalyzeNodeCapability
 {
@@ -180,6 +183,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 	 * @param Context $context
 	 * @param CodeBase $code_base
 	 * @return bool Is this a false positive?
+	 * @suppress PhanUnusedPublicMethodParameter No param is used
 	 */
 	public function isFalsePositive(
 		int $lhsTaint,
@@ -213,7 +217,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 	 *     Note: escapes_html adds the exec_escaped flag, use
 	 *     escapes_htmlnoent if the value is safe to double encode.
 	 *  * onlysafefor_{type}
-	 *     Same as above, intended for "@return" statements.
+	 *     Same as above, intended for return type declarations.
 	 *     Only difference is that onlysafefor_html sets ESCAPED_TAINT instead
 	 *     of ESCAPED_EXEC_TAINT
 	 *  * none - self::NO_TAINT

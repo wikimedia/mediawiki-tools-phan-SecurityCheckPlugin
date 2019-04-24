@@ -1,6 +1,8 @@
 <?php
 
 use ast\Node;
+use Phan\CodeBase;
+use Phan\Language\Context;
 use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 
 /**
@@ -26,8 +28,17 @@ class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/**
+	 * @inheritDoc
+	 */
+	public function __construct( CodeBase $code_base, Context $context ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
+	}
+
+	/**
 	 * @param Node $node
 	 * @return array Phan objects related to elements in return line
+	 * @suppress PhanParamSignatureMismatch
 	 */
 	public function visit( Node $node ) {
 		$results = [];

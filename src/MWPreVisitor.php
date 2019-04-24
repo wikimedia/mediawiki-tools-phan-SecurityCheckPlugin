@@ -24,7 +24,11 @@ use Phan\Language\UnionType;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 class MWPreVisitor extends PreTaintednessVisitor {
-	/** @var MediaWikiSecurityCheckPlugin */
+	/**
+	 * Re-declared for better type inference
+	 * @suppress PhanReadOnlyProtectedProperty
+	 * @var MediaWikiSecurityCheckPlugin
+	 */
 	protected $plugin;
 	/**
 	 * Set taint for certain hook types.
@@ -62,7 +66,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 *  PPFrame object
 	 *
 	 * @param array $params formal parameters of tag hook
-	 * @param FunctionInterface $method
+	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
 	private function setTagHookParamTaint( array $params, FunctionInterface $method ) {
 		// Only care about first 2 parameters.
@@ -114,7 +118,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 *
 	 * @todo This is handling SFH_OBJECT type func hooks incorrectly.
 	 * @param Node[] $params Children of the AST_PARAM_LIST
-	 * @param FunctionInterface $method
+	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
 	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) {
 		// First make sure the first arg is set to be a Parser

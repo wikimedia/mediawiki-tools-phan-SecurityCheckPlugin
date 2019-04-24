@@ -18,6 +18,8 @@
  */
 
 use Phan\AST\ContextNode;
+use Phan\CodeBase;
+use Phan\Language\Context;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use ast\Node;
@@ -38,19 +40,30 @@ use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
  *
  * This also maintains some other properties, such as where the error
  * originates, and dependencies in certain cases.
+ *
+ * @phan-file-suppress PhanUnusedPublicMethodParameter Many methods don't use $node
  */
 class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
+
+	/**
+	 * @inheritDoc
+	 */
+	public function __construct( CodeBase $code_base, Context $context ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
+	}
 
 	/**
 	 * Generic visitor when we haven't defined a more specific one.
 	 *
 	 * @param Node $node
 	 * @return int The taintedness of the node.
+	 * @suppress PhanParamSignatureMismatch
 	 */
 	public function visit( Node $node ) : int {
 		// This method will be called on all nodes for which
-		// there is no implementation of it's kind visitor.
+		// there is no implementation of its kind visitor.
 
 		// To see what kinds of nodes are passing through here,
 		// you can run `Debug::printNode($node)`.
@@ -843,7 +856,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * @suppress PhanTypeMismatchForeach
 	 * @param Node $node
 	 * @return int Taint
 	 */
@@ -956,7 +968,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitProp( Node $node ) : int {
 		try {
 			$props = $this->getPhanObjsForNode( $node );
-		} catch ( Exception $e ) {
+		} catch ( Exception $_ ) {
 			// $this->debug( __METHOD__, "Cannot understand class prop. "
 			// . get_class($e) . " - {$e->getMessage()}" );
 			// Debug::printNode( $node );
@@ -1021,7 +1033,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->context,
 				true
 			);
-		} catch ( IssueException $e ) {
+		} catch ( IssueException $_ ) {
 			$prop = $clazz->getPropertyByNameInContext(
 				$this->code_base,
 				$node->children['name'],
@@ -1119,7 +1131,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 * @return int the taint
-	 * @suppress PhanTypeMismatchForeach
 	 */
 	public function visitEncapsList( Node $node ) : int {
 		$taint = SecurityCheckPlugin::NO_TAINT;

@@ -2,7 +2,6 @@
 
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
-use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
@@ -21,6 +20,7 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN;
 use ast\Node;
+// @phan-suppress-next-line PhanUnreferencedUseNormal Used in commented code
 use Phan\Debug;
 use Phan\Issue;
 use Phan\Language\Scope\FunctionLikeScope;
@@ -58,21 +58,12 @@ trait TaintednessBaseVisitor {
 	protected $overrideContext = null;
 
 	/**
-	 * @inheritDoc
-	 */
-	public function __construct( CodeBase $code_base, Context $context ) {
-		parent::__construct( $code_base, $context );
-		$this->plugin = SecurityCheckPlugin::$pluginInstance;
-	}
-
-	/**
 	 * Change taintedness of a function/method
 	 *
 	 * @param FunctionInterface $func
 	 * @param int[] $taint Numeric keys for each arg and an 'overall' key.
 	 * @param bool $override Whether to merge taint or override
 	 * @param string|Context|null $reason Either a reason or a context representing the line number
-	 * @suppress PhanUndeclaredMethod
 	 */
 	protected function setFuncTaint(
 		FunctionInterface $func,
@@ -135,7 +126,7 @@ trait TaintednessBaseVisitor {
 		}
 		if ( !isset( $newTaint['overall'] ) ) {
 			// FIXME, what's the right default??
-			$this->debug( __METHOD__, "FIXME No overall taint specified $func" );
+			$this->debug( __METHOD__, 'FIXME No overall taint specified for ' . $func->getName() );
 			$newTaint['overall'] = SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		$this->checkFuncTaint( $newTaint );
@@ -258,7 +249,7 @@ trait TaintednessBaseVisitor {
 			// . ' Caller: ' . ( debug_backtrace()[1]['function'] ?? 'n/a' )
 			// . ', ' . ( debug_backtrace()[2]['function'] ?? 'n/a' ) );
 
-		assert( $taintedness >= 0, $taintedness );
+		assert( $taintedness >= 0, "Taintedness: $taintedness" );
 
 		if ( $variableObj instanceof FunctionInterface ) {
 			// FIXME what about closures?
@@ -342,7 +333,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given a func, get the defining func or null
 	 *
-	 * @suppress PhanUndeclaredMethod
 	 * @param FunctionInterface $func
 	 * @return null|FunctionInterface
 	 */
@@ -376,7 +366,7 @@ trait TaintednessBaseVisitor {
 		// definingFunc is used later on during fallback processing.
 		$definingFunc = $this->getDefiningFunc( $func );
 		if ( $definingFunc ) {
-			$funcToTry[] = $definingFunc;
+			$funcsToTry[] = $definingFunc;
 		}
 		if ( $func instanceof ClassElement ) {
 			try {
@@ -419,7 +409,6 @@ trait TaintednessBaseVisitor {
 	 *   If func has an arg that is missing from array, then it should be
 	 *   treated as TAINT_NO if its a number or bool. TAINT_YES otherwise.
 	 * @param bool $clearOverride Include SecurityCheckPlugin::NO_OVERRIDE
-	 * @suppress PhanUndeclaredMethod
 	 */
 	protected function getTaintOfFunction( FunctionInterface $func, $clearOverride = true ) {
 		// Fast case, either a builtin to php function or we already
@@ -457,13 +446,13 @@ trait TaintednessBaseVisitor {
 			( !$this->context->isInFunctionLikeScope() ||
 			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
 		) {
-			$this->debug( __METHOD__, "no taint info for func $func" );
+			$this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
 			try {
 				$definingFunc->analyze( $definingFunc->getContext(), $this->code_base );
 			} catch ( Exception $e ) {
 				$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
 			}
-			$this->debug( __METHOD__, "updated taint info for $definingFunc" );
+			$this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
 			// var_dump( $definingFunc->funcTaint ?? "NO INFO" );
 			if ( property_exists( $definingFunc, 'funcTaint' ) ) {
 				$this->checkFuncTaint( $definingFunc->funcTaint );
@@ -578,7 +567,7 @@ trait TaintednessBaseVisitor {
 				return $i;
 			}
 		}
-		$this->debug( __METHOD__, "$func does not have param $name" );
+		$this->debug( __METHOD__, $func->getName() . " does not have param $name" );
 		return null;
 	}
 	/**
@@ -781,7 +770,6 @@ trait TaintednessBaseVisitor {
 	 * e.g. Should foo( $bar ) return the $bar variable object?
 	 *  What about the foo function object?
 	 *
-	 * @suppress PhanTypeMismatchForeach No idea why its confused
 	 * @suppress PhanUndeclaredMethod it checks method_exists()
 	 * @param Node $node AST node in question
 	 * @param string[] $options Change type of objects returned
@@ -946,10 +934,9 @@ trait TaintednessBaseVisitor {
 						);
 					}
 					return $pObjs;
-				} catch ( Exception $e ) {
+				} catch ( Exception $_ ) {
 					// Something non-simple
-					// Future todo might be to still return
-					// arguments in this case.
+					// @todo Future todo might be to still return arguments in this case.
 					return [];
 				}
 			default:
@@ -982,7 +969,6 @@ trait TaintednessBaseVisitor {
 	 * The idea being if the method gets called with something evil
 	 * later, we can traceback anything it might affect
 	 *
-	 * @suppress PhanTypeMismatchProperty
 	 * @param Variable $param The variable object for the parameter
 	 * @param FunctionInterface $func The function/method in question
 	 * @param int $i Which argument number is $param
@@ -1251,6 +1237,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param int $taint
 	 * @return bool
+	 * @suppress PhanUnreferencedProtectedMethod It's really unused though
 	 */
 	protected function isLikelyFalsePositive( int $taint ) : bool {
 		return ( $taint & SecurityCheckPlugin::UNKNOWN_TAINT ) !== 0
@@ -1338,14 +1325,13 @@ trait TaintednessBaseVisitor {
 	 * @param int $taintedness The taintedness in question
 	 * @param FunctionInterface $curFunc The function/method we are in.
 	 * @return array numeric keys for each parameter taint and 'overall' key
-	 * @suppress PhanTypeMismatchForeach
 	 */
 	protected function matchTaintToParam(
 		$node,
 		int $taintedness,
 		FunctionInterface $curFunc
 	) : array {
-		assert( $taintedness >= 0, $taintedness );
+		assert( $taintedness >= 0, "Taintedness: $taintedness" );
 		if ( !is_object( $node ) ) {
 			assert( $taintedness === SecurityCheckPlugin::NO_TAINT );
 			return [ 'overall' => $taintedness ];
@@ -1441,7 +1427,7 @@ trait TaintednessBaseVisitor {
 		assert(
 			isset( $taint['overall'] )
 			&& is_int( $taint['overall'] )
-			&& $taint >= 0,
+			&& $taint['overall'] >= 0,
 			"Overall taint is wrong " . $this->dbgInfo() . ( $taint['overall'] ?? 'unset' )
 		);
 
@@ -1457,7 +1443,6 @@ trait TaintednessBaseVisitor {
 	 * only really work for callbacks that are basically literals.
 	 *
 	 * @note $node may not be the current node in $this->context.
-	 * @suppress PhanTypeMismatchArgument
 	 *
 	 * @param Node|string $node The thingy from AST expected to be a Callable
 	 * @return FullyQualifiedMethodName|FullyQualifiedFunctionName|null The corresponding FQSEN
