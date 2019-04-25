@@ -3,6 +3,7 @@
 use ast\Node;
 use Phan\CodeBase;
 use Phan\Language\Context;
+use Phan\Language\Element\PassByReferenceVariable;
 use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
 
 /**
@@ -128,6 +129,12 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				continue;
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
+
+			if ( $varObj instanceof PassByReferenceVariable ) {
+				// PassByReferenceVariable objects are too ephemeral to store taintedness there.
+				$varObj = $varObj->getElement();
+			}
+
 			$paramTypeTaint = $this->getTaintByReturnType( $varObj->getUnionType() );
 			if ( $paramTypeTaint === SecurityCheckPlugin::NO_TAINT ) {
 				// The param is an integer or something, so skip.

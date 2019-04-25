@@ -20,6 +20,7 @@
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Language\Context;
+use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use ast\Node;
@@ -764,6 +765,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$variableObj = $variableObj->getElement();
+		}
 		return $this->getTaintednessPhanObj( $variableObj );
 	}
 
