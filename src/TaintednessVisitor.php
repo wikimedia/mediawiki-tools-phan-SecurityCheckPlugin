@@ -736,7 +736,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * A variable (e.g. $foo)
 	 *
-	 * This always considers superglobals as tainted
+	 * This always considers superglobals and superglobals-like as tainted
 	 *
 	 * @param Node $node
 	 * @return int Taint
@@ -754,9 +754,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
-			if ( Variable::isSuperglobalVariableWithName( $varName ) ) {
-				// Super globals are tainted.
-				// echo "$varName is superglobal. Marking tainted\n";
+			if ( Variable::isHardcodedGlobalVariableWithName( $varName ) ) {
+				// Superglobals-like are tainted.
+				// echo "$varName is superglobal-like. Marking tainted\n";
 				return SecurityCheckPlugin::YES_TAINT;
 			}
 			// Probably the var just isn't in scope yet.
