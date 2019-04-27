@@ -1,0 +1,1 @@
+integration/user/test.php:12 SecurityCheck-XSS Calling method \Foo::output() in \Foo::execute that outputs using tainted argument $sameName. (Caused by: integration/user/test.php +16) (Caused by: integration/user/test.php +8)
