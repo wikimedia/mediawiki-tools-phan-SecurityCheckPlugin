@@ -7,6 +7,7 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN;
 use Phan\Language\Element\Method;
 use Phan\Language\Type\CallableType;
+use Phan\Language\Type\ClosureType;
 use Phan\Language\UnionType;
 use ast\Node;
 
@@ -794,7 +795,7 @@ class MWVisitor extends TaintednessVisitor {
 		$var = $cnode->getVariable();
 		$types = $var->getUnionType()->getTypeSet();
 		foreach ( $types as $type ) {
-			if ( $type instanceof CallableType ) {
+			if ( $type instanceof CallableType || $type instanceof ClosureType ) {
 				return $this->getFQSENFromCallable( $node );
 			}
 			if ( $type->isNativeType() ) {
