@@ -667,11 +667,12 @@ trait TaintednessBaseVisitor {
 			case 'true':
 			case 'null':
 			case 'void':
+			case 'class-string':
+			case 'callable-string':
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::NO_TAINT );
 				break;
 			case 'string':
-			case 'class-string':
-			case 'closure':
+			case 'Closure':
 			case 'callable':
 			case 'array':
 			case 'object':
