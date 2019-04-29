@@ -318,10 +318,7 @@ class MWVisitor extends TaintednessVisitor {
 			// we know what it is, in case its already been
 			// analyzed.
 			if ( $func ) {
-				$func->analyze(
-					$func->getContext(),
-					$this->code_base
-				);
+				$this->analyzeFunc( $func );
 			}
 		}
 	}

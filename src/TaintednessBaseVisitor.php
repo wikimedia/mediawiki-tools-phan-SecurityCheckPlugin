@@ -2,6 +2,7 @@
 
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
+use Phan\BlockAnalysisVisitor;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
@@ -519,7 +520,7 @@ trait TaintednessBaseVisitor {
 		) {
 			$this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
 			try {
-				$definingFunc->analyze( $definingFunc->getContext(), $this->code_base );
+				$this->analyzeFunc( $definingFunc );
 			} catch ( Exception $e ) {
 				$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
 			}
@@ -540,6 +541,37 @@ trait TaintednessBaseVisitor {
 		$this->checkFuncTaint( $taint );
 		$this->setFuncTaint( $func, $taint, true );
 		return $this->maybeClearNoOverride( $taint, $clearOverride );
+	}
+
+	/**
+	 * Analyze a function. This is very similar to Analyzable::analyze, but avoids several checks
+	 * used by phan for performance. Phan doesn't know about taintedness, so it may decide to skip
+	 * a re-analysis which we need.
+	 * @todo This is a bit hacky.
+	 *
+	 * @param FunctionInterface $func
+	 */
+	public function analyzeFunc( FunctionInterface $func ) {
+		static $depth = 0;
+		$node = $func->getNode();
+		// @todo Tune the max depth. Raw benchmarking shows very little difference between e.g.
+		// 5 and 10. However, while with higher values we can detect more issues and avoid more
+		// false positives, it becomes harder to tell where an issue is coming from.
+		// Thus, this value should be increased only when we'll have better error reporting.
+		if ( !$node || $depth > 5 ) {
+			return;
+		}
+		if ( $node->kind === \ast\AST_CLOSURE && isset( $node->children['uses'] ) ) {
+			return;
+		}
+		$depth++;
+		try {
+			( new BlockAnalysisVisitor( $this->code_base, clone $func->getContext() ) )(
+				$node
+			);
+		} finally {
+			$depth--;
+		}
 	}
 
 	/**
@@ -1236,7 +1268,7 @@ trait TaintednessBaseVisitor {
 		foreach ( $classesNeedRefresh as $class ) {
 			foreach ( $class->getMethodMap( $this->code_base ) as $method ) {
 				$this->debug( __METHOD__, "reanalyze $method" );
-				$method->analyze( $method->getContext(), $this->code_base );
+				$this->analyzeFunc( $method );
 			}
 		}
 		// Maybe delete links??
