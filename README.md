@@ -17,8 +17,9 @@ Usage
 -----
 
 ### System requirements
-* php = 7.0 (7.1 is not supported)
-* Phan 0.8.0 [This has not been tested on any other version of phan]
+* php >= 7.0.0
+* Phan 1.3.2
+* php-ast >=1.0.0
 * Lots of memory. Scanning MediaWiki seems to take about 3 minutes
 and use about 2 GB of memory. Running out of memory may be a real issue
 if you try and scan something from within a VM that has limited
@@ -126,8 +127,11 @@ You can use the `-y` command line option of Phan to filter by severity.
 Limitations
 -----------
 If you need to suppress a false positive, you can put `@suppress NAME-OF-WARNING`
-in the docblock for a function/method. The @param-taint and @return-taint (see
-"Customizing" section) are also very useful with dealing with false positives.
+in the docblock for a function/method. Alternatively, you can use other types of
+suppression, like `@phan-suppress-next-line`. See phan's readme for a complete
+list.
+The @param-taint and @return-taint (see "Customizing" section) are also very useful
+with dealing with false positives.
 
 There's much more than listed here, but some notable limitations/bugs:
 
@@ -141,7 +145,7 @@ There's much more than listed here, but some notable limitations/bugs:
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you must add annotations to its docblock so
   that the plugin can recognize it. See the Customizing section.
-* The plugin does is not capable of determining which branch is taken
+* The plugin is not capable of determining which branch is taken
   even in cases where it seems like it would be easy to determine statically.
   Thus it can fall to false positves like:
   ```
@@ -170,8 +174,6 @@ There's much more than listed here, but some notable limitations/bugs:
   ```
   This will give both a double escaped warning and an XSS warning, as the
   plugin only tracks $stuff, not $stuff[0] vs $stuff[1].
-* `@suppress` is only recognized in function/method doc comments. This means
-  that it is difficult to suppress errors for code written in a global scope.
 
 ## MediaWiki specific limitations
 * With pass by reference parameters to MediaWiki hooks,
