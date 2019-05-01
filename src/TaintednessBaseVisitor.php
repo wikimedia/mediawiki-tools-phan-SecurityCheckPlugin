@@ -1647,6 +1647,11 @@ trait TaintednessBaseVisitor {
 			$combinedTaint === SecurityCheckPlugin::ESCAPED_TAINT
 		) {
 			$issueType = 'SecurityCheck-DoubleEscaped';
+			if ( preg_match( '!Calling method \\\\OOUI\\\\\S+::__construct\(\)!', $msg ) ) {
+				// @fixme HACK param-taint annotations in OOUI cause double escaping false positives.
+				// Remove those annotations and this hack when all extensions will use 2.0
+				return;
+			}
 		} elseif (
 			$combinedTaint === SecurityCheckPlugin::CUSTOM1_TAINT
 		) {
