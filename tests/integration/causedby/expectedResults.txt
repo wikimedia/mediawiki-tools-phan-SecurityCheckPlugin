@@ -1,0 +1,3 @@
+integration/causedby/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedby/test.php +5)
+integration/causedby/test.php:20 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedby/test.php +12; integration/causedby/test.php +15)
+integration/causedby/test.php:31 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedby/test.php +29; integration/causedby/test.php +30)
