@@ -430,7 +430,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// sources of taint. Otherwise we can potentially
 				// misattribute where the taint is coming from
 				// See testcase dblescapefieldset.
-				$taintRHSObj = $this->getTaintedness( $rhsObj );
+				$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
 				if (
 					( ( ( $lhsTaintedness | $rhsTaintedness )
 					& ~$taintRHSObj ) & SecurityCheckPlugin::ALL_YES_EXEC_TAINT )
@@ -1034,23 +1034,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$clazz = $this->context->getClassInScope( $this->code_base );
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
-		// @fixme Here we don't know if the property is static, so just try to guess. A future release
-		// will add a method to avoid this hack.
-		try {
-			$prop = $clazz->getPropertyByNameInContext(
-				$this->code_base,
-				$node->children['name'],
-				$this->context,
-				true
-			);
-		} catch ( IssueException $_ ) {
-			$prop = $clazz->getPropertyByNameInContext(
-				$this->code_base,
-				$node->children['name'],
-				$this->context,
-				false
-			);
-		}
+		$prop = $clazz->getPropertyByName( $this->code_base, $node->children['name'] );
 		// FIXME should this be NO?
 		// $this->debug( __METHOD__, "Setting taint preserve if not set"
 		// . " yet for \$" . $node->children['name'] . "" );

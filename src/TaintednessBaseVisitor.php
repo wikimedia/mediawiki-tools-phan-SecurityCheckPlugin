@@ -5,6 +5,7 @@ use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\Method;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
@@ -50,6 +51,10 @@ use Phan\Exception\IssueException;
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * @property-read Context $context
+ * @property-read \Phan\CodeBase $code_base
  */
 trait TaintednessBaseVisitor {
 	/** @var SecurityCheckPlugin */
@@ -422,7 +427,7 @@ trait TaintednessBaseVisitor {
 	 */
 	private function getDefiningFunc( FunctionInterface $func ) {
 		if (
-			$func instanceof ClassElement
+			$func instanceof Method
 			&& $func->hasDefiningFQSEN()
 		) {
 			// Our function has a parent, and potentially interface and traits.
@@ -802,20 +807,13 @@ trait TaintednessBaseVisitor {
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
-			} elseif (
-				$expr instanceof TypedElementInterface ||
-				$expr instanceof UnaddressableTypedElement
-			) {
-				// echo __METHOD__ . "FIXME, do we want this interface here?\n";
-				return $this->getTaintednessPhanObj( $expr );
 			}
 			// fallthrough
 		case "resource":
 		case "unknown type":
 		case "array":
 		default:
-			throw new Exception( "wtf - $type" );
-
+			throw new Exception( __METHOD__ . " called with invalid type $type" );
 		}
 	}
 
@@ -1132,7 +1130,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function mergeTaintDependencies( $lhs, $rhs ) {
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
-		$taintRHS = $this->getTaintedness( $rhs );
+		$taintRHS = $this->getTaintednessPhanObj( $rhs );
 
 		if ( $taintRHS &
 			( SecurityCheckPlugin::ALL_EXEC_TAINT | SecurityCheckPlugin::ALL_TAINT )
@@ -1221,7 +1219,7 @@ trait TaintednessBaseVisitor {
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 		}
-		$curVarTaint = $this->getTaintedness( $var );
+		$curVarTaint = $this->getTaintednessPhanObj( $var );
 		$newTaint = $this->mergeAddTaint( $curVarTaint, $taint );
 		$this->setTaintedness( $var, $newTaint );
 
@@ -1260,7 +1258,7 @@ trait TaintednessBaseVisitor {
 		// have assumed the class member was not tainted.
 		$classesNeedRefresh = new Set;
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
-			$curVarTaint = $this->getTaintedness( $var );
+			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, $taintAdjusted );
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
@@ -1476,7 +1474,7 @@ trait TaintednessBaseVisitor {
 
 		$pobjs = $this->getPhanObjsForNode( $node );
 		foreach ( $pobjs as $pobj ) {
-			$pobjTaintContribution = $this->getTaintedness( $pobj );
+			$pobjTaintContribution = $this->getTaintednessPhanObj( $pobj );
 			// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
 			$links = $pobj->taintedMethodLinks ?? null;
 			if ( !$links ) {
@@ -2137,7 +2135,7 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given a Node, is it a string? (And definitely not an array)
+	 * Given a Node, is it a string?
 	 *
 	 * @todo Unclear if this should return true for things that can
 	 *   autocast to a string (e.g. ints)
@@ -2158,18 +2156,8 @@ trait TaintednessBaseVisitor {
 				$this->context,
 				$node
 			);
-			// @todo The hasArrayLike check below would seem to make sense. However, prior to
-			// phan 0.8.7 (i.e. with seccheck 1.5), that function would deem an union type as
-			// array like if **all** of its types were array like. Starting from phan 0.8.7,
-			// instead, it checks that **any** type is array-like. That is obviously the correct
-			// choice, but makes the check below redundant because we check if the uniontype has
-			// string type inside.
-			if (
-				// !$type->hasArrayLike() &&
-				$type->hasType( StringType::instance( false ) )
-			) {
-				// FIXME TODO: Should having Mixed type
-				// result in returning false here?
+			if ( $type->hasType( StringType::instance( false ) ) ) {
+				// @todo Should having mixed type result in returning false here?
 				return true;
 			}
 		} catch ( Exception $e ) {
