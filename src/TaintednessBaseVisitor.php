@@ -9,7 +9,6 @@ use Phan\Language\Element\Method;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
-use Phan\Language\Element\UnaddressableTypedElement;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
 use Phan\Language\Scope\BranchScope;
@@ -151,10 +150,10 @@ trait TaintednessBaseVisitor {
 	 * or its not a local variable).
 	 *
 	 * @note It is assumed you already checked that right is tainted in some way.
-	 * @param TypedElementInterface|UnaddressableTypedElement $left (LHS-ish variable)
-	 * @param TypedElementInterface|UnaddressableTypedElement $right (RHS-ish variable)
+	 * @param TypedElementInterface $left (LHS-ish variable)
+	 * @param TypedElementInterface $right (RHS-ish variable)
 	 */
-	protected function mergeTaintError( $left, $right ) {
+	protected function mergeTaintError( TypedElementInterface $left, TypedElementInterface $right ) {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
 			$left->taintedOriginalError = '';
 		}
@@ -175,13 +174,13 @@ trait TaintednessBaseVisitor {
 	 * This allows us to show users what line caused an issue.
 	 *
 	 * @param int $taintedness The taintedness in question
-	 * @param TypedElementInterface|UnaddressableTypedElement $elem Where to put it
+	 * @param TypedElementInterface $elem Where to put it
 	 * @param int $arg [Optional] For functions, which argument
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		int $taintedness,
-		$elem,
+		TypedElementInterface $elem,
 		int $arg = -1,
 		$reason = null
 	) {
@@ -244,12 +243,12 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Change the taintedness of a variable
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $variableObj The variable in question
+	 * @param TypedElementInterface $variableObj The variable in question
 	 * @param int $taintedness One of the class constants
 	 * @param bool $override Override taintedness or just take max.
 	 */
 	protected function setTaintedness(
-		$variableObj,
+		TypedElementInterface $variableObj,
 		int $taintedness,
 		$override = true
 	) {
@@ -835,10 +834,10 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given a phan object (not method/function) find its taint
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $variableObj
+	 * @param TypedElementInterface $variableObj
 	 * @return int The taint
 	 */
-	protected function getTaintednessPhanObj( $variableObj ) : int {
+	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : int {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new Exception( "This method cannot be used with methods" );
 		}
@@ -1125,10 +1124,13 @@ trait TaintednessBaseVisitor {
 	 *
 	 * This also merges the information on what line caused the taint.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $lhs Source of method list
-	 * @param TypedElementInterface|UnaddressableTypedElement $rhs Destination of merged method list
+	 * @param TypedElementInterface $lhs Source of method list
+	 * @param TypedElementInterface $rhs Destination of merged method list
 	 */
-	protected function mergeTaintDependencies( $lhs, $rhs ) {
+	protected function mergeTaintDependencies(
+		TypedElementInterface $lhs,
+		TypedElementInterface $rhs
+	) {
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
 		$taintRHS = $this->getTaintednessPhanObj( $rhs );
 
@@ -1173,11 +1175,11 @@ trait TaintednessBaseVisitor {
 	 * This method is called to make all things that set $this->foo
 	 * as TAINT_EXEC.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $var The variable in question
+	 * @param TypedElementInterface $var The variable in question
 	 * @param int $taint What taint to mark them as.
 	 */
 	protected function markAllDependentMethodsExec(
-		$var,
+		TypedElementInterface $var,
 		int $taint = SecurityCheckPlugin::EXEC_TAINT
 	) {
 		// Ensure we only set exec bits, not normal taint bits.
@@ -1369,7 +1371,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement|Node $element
+	 * @param TypedElementInterface|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
@@ -1386,7 +1388,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement|Node $element
+	 * @param TypedElementInterface|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
@@ -1394,10 +1396,7 @@ trait TaintednessBaseVisitor {
 		$line = '';
 		if ( !is_object( $element ) ) {
 			return '';
-		} elseif (
-			$element instanceof TypedElementInterface ||
-			$element instanceof UnaddressableTypedElement
-		) {
+		} elseif ( $element instanceof TypedElementInterface ) {
 			if ( $arg === -1 ) {
 				if ( $element instanceof PassByReferenceVariable ) {
 					$element = $element->getElement();
