@@ -941,6 +941,7 @@ trait TaintednessBaseVisitor {
 					return [];
 				}
 			case \ast\AST_VAR:
+			case \ast\AST_CLOSURE_VAR:
 				try {
 					if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 						return [];
