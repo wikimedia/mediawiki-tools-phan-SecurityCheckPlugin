@@ -24,9 +24,12 @@ use Phan\Language\Context;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use ast\Node;
 use Phan\Exception\IssueException;
+use Phan\Language\Type\ClosureType;
 use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
+use Phan\Language\Element\FunctionInterface;
 
 /**
  * This class visits all the nodes in the ast. It has two jobs:
@@ -78,28 +81,59 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 * @return int Taint
 	 */
+	public function visitClosure( Node $node ) : int {
+		// We cannot use getFunctionLikeInScope for closures
+		$closureFQSEN = FullyQualifiedFunctionName::fromClosureInContext( $this->context, $node );
+
+		if ( $this->code_base->hasFunctionWithFQSEN( $closureFQSEN ) ) {
+			$func = $this->code_base->getFunctionByFQSEN( $closureFQSEN );
+			return $this->analyzeFunctionLike( $func );
+		} else {
+			$this->debug( __METHOD__, 'closure doesn\'t exist' );
+			return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+		}
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
 	public function visitFuncDecl( Node $node ) : int {
-		return $this->visitMethod( $node );
+		$func = $this->context->getFunctionLikeInScope( $this->code_base );
+		return $this->analyzeFunctionLike( $func );
 	}
 
 	/**
 	 * Visit a method decleration
 	 *
-	 * At this point we should have already hit a return statement
-	 * so if we haven't yet, mark this function as no taint.
+
 	 *
-	 * Also handles FuncDecl
 	 * @param Node $node
 	 * @return int Taint
 	 */
 	public function visitMethod( Node $node ) : int {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
+		return $this->analyzeFunctionLike( $method );
+	}
+
+	/**
+	 * Handles methods, functions and closures.
+	 *
+	 * At this point we should have already hit a return statement
+	 * so if we haven't yet, mark this function as no taint.
+	 *
+	 * @param FunctionInterface $func The func to analyze, or null to retrieve
+	 *   it from the context.
+	 * @return int Taint
+	 */
+	private function analyzeFunctionLike( FunctionInterface $func ) : int {
 		if (
-			$this->getBuiltinFuncTaint( $method->getFQSEN() ) === null &&
-			$this->getDocBlockTaintOfFunc( $method ) === null &&
-			!$method->getHasYield() &&
-			!$method->getHasReturn() &&
-			!property_exists( $method, 'funcTaint' )
+			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
+			$this->getDocBlockTaintOfFunc( $func ) === null &&
+			// @phan-suppress-next-line PhanUndeclaredMethod all implementations have it
+			!$func->getHasYield() &&
+			!$func->getHasReturn() &&
+			!property_exists( $func, 'funcTaint' )
 		) {
 			// At this point, if func exec's stuff, funcTaint
 			// should already be set.
@@ -113,7 +147,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// somewhere else - the exec status of this won't be detected
 			// until later, so setting this to NO_TAINT here might miss
 			// some issues in the inbetween period.
-			$this->setFuncTaint( $method, [ 'overall' => SecurityCheckPlugin::NO_TAINT ] );
+			$this->setFuncTaint( $func, [ 'overall' => SecurityCheckPlugin::NO_TAINT ] );
 		}
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
@@ -704,10 +738,25 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 					[] // __toString() has no args
 				);
 			} elseif ( $isFunc ) {
-				if ( $node->children['expr']->kind !== \ast\AST_NAME ) {
+				if ( $node->children['expr']->kind === \ast\AST_NAME ) {
+					$func = $ctxNode->getFunction( $node->children['expr']->children['name'] );
+				} elseif ( $node->children['expr']->kind === \ast\AST_VAR ) {
+					// Closure
+					$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
+					assert( count( $pobjs ) === 1 );
+					$types = $pobjs[0]->getUnionType()->getTypeSet();
+					$func = null;
+					foreach ( $types as $type ) {
+						if ( $type instanceof ClosureType ) {
+							$func = $type->asFunctionInterfaceOrNull( $this->code_base, $this->context );
+						}
+					}
+					if ( $func === null ) {
+						throw new Exception( 'Cannot get closure from variable.' );
+					}
+				} else {
 					throw new Exception( "Non-simple func call" );
 				}
-				$func = $ctxNode->getFunction( $node->children['expr']->children['name'] );
 			} else {
 				$methodName = $node->children['method'];
 				$func = $ctxNode->getMethod( $methodName, $isStatic );
