@@ -24,7 +24,6 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN;
 use ast\Node;
-// @phan-suppress-next-line PhanUnreferencedUseNormal Used in commented code
 use Phan\Debug;
 use Phan\Issue;
 use Phan\Language\Scope\FunctionLikeScope;
@@ -80,7 +79,7 @@ trait TaintednessBaseVisitor {
 		$reason = null
 	) {
 		if (
-			$func instanceof ClassElement &&
+			$func instanceof Method &&
 			(string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
 		) {
 			$this->debug( __METHOD__, "Setting taint on function " . $func->getFQSEN() . " other than"
@@ -163,7 +162,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( strlen( $left->taintedOriginalError ) > 254 ) {
-			$this->debug( __METHOD__, "Too long original error! for $left" );
+			$this->debug( __METHOD__, "Too long original error! for " . $left->getName() );
 			$left->taintedOriginalError = substr( $left->taintedOriginalError, 0, 250 ) . '... ';
 		}
 	}
@@ -225,14 +224,14 @@ trait TaintednessBaseVisitor {
 
 		if ( $arg === -1 ) {
 			if ( strlen( $elem->taintedOriginalError ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! $elem" );
+				$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
 				$elem->taintedOriginalError = substr(
 					$elem->taintedOriginalError, 0, 250
 				) . '... ';
 			}
 		} else {
 			if ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! $elem" );
+				$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
 				$elem->taintedOriginalErrorByArg[$arg] = substr(
 					$elem->taintedOriginalErrorByArg[$arg], 0, 250
 				) . '... ';
@@ -425,10 +424,7 @@ trait TaintednessBaseVisitor {
 	 * @return null|FunctionInterface
 	 */
 	private function getDefiningFunc( FunctionInterface $func ) {
-		if (
-			$func instanceof Method
-			&& $func->hasDefiningFQSEN()
-		) {
+		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
 			// Our function has a parent, and potentially interface and traits.
 			if ( (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN() ) {
 				$definingFunc = $this->code_base->getMethodByFQSEN(
@@ -456,7 +452,7 @@ trait TaintednessBaseVisitor {
 		if ( $definingFunc ) {
 			$funcsToTry[] = $definingFunc;
 		}
-		if ( $func instanceof ClassElement ) {
+		if ( $func instanceof Method ) {
 			try {
 				$class = $func->getClass( $this->code_base );
 				$nonParents = $class->getNonParentAncestorFQSENList();
@@ -612,16 +608,19 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Obtain taint information from a docblock comment.
 	 *
-	 * @todo Possibly this should cache results.
-	 * @suppress PhanUndeclaredMethod
 	 * @param FunctionInterface $func The function to check
 	 * @return null|int[] null for no info, or a function taint array
 	 */
 	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) {
-		// hasNode/getNode is part of \Phan\Analysis\Analyzable trait
-		// which all implementations of FunctionInterface use, but
-		// is not actually part of the interface, so phan complains
-		// about this line.
+		static $cache = [];
+
+		// Note that we're not using the hashed docblock for caching, because the same docblock
+		// may have different meanings in different contexts. E.g. @return self
+		$fqsen = (string)$func->getFQSEN();
+		if ( isset( $cache[ $fqsen ] ) ) {
+			return $cache[ $fqsen ];
+		}
+		// @phan-suppress-next-line PhanUndeclaredMethod All FunctionInterface implementations have it
 		if ( !$func->hasNode() ) {
 			// No docblock available
 			return null;
@@ -649,18 +648,18 @@ trait TaintednessBaseVisitor {
 					if ( ( $taint & SecurityCheckPlugin::ESCAPES_HTML ) ===
 						SecurityCheckPlugin::ESCAPES_HTML
 					) {
-						// Special case to auto-set
-						// anything that escapes html to
-						// detect double escaping.
-						$funcTaint['overall'] |=
-							SecurityCheckPlugin::ESCAPED_TAINT;
+						// Special case to auto-set anything that escapes html to detect double escaping.
+						$funcTaint['overall'] |= SecurityCheckPlugin::ESCAPED_TAINT;
 					}
 				} else {
 					$this->debug( __METHOD__, "Could not " .
 						"understand taint line '$m[2]'" );
 				}
 			} elseif ( strpos( $line, '@return-taint' ) !== false ) {
-				$taintLine = substr( $line, strpos( $line, '@return-taint' ) + 14 );
+				$taintLine = substr(
+					$line,
+					strpos( $line, '@return-taint' ) + strlen( '@return-taint' ) + 1
+				);
 				$taint = SecurityCheckPlugin::parseTaintLine( $taintLine );
 				if ( $taint !== null ) {
 					$funcTaint['overall'] = $taint;
@@ -671,7 +670,16 @@ trait TaintednessBaseVisitor {
 				}
 			}
 		}
-		return $validTaintEncountered ? $funcTaint : null;
+
+		if ( !$validTaintEncountered ) {
+			return null;
+		}
+
+		$cache[ $fqsen ] = $funcTaint;
+		if ( count( $cache ) > 1000 ) {
+			array_shift( $cache );
+		}
+		return $funcTaint;
 	}
 
 	/**
@@ -707,7 +715,7 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
-		foreach ( $types->getTypeSet() as $type ) {
+		foreach ( $typelist as $type ) {
 			switch ( $type->getName() ) {
 			case 'int':
 			case 'float':
@@ -883,12 +891,11 @@ trait TaintednessBaseVisitor {
 	 * e.g. Should foo( $bar ) return the $bar variable object?
 	 *  What about the foo function object?
 	 *
-	 * @suppress PhanUndeclaredMethod it checks method_exists()
 	 * @param Node $node AST node in question
 	 * @param string[] $options Change type of objects returned
 	 *    * 'all' -> Given a method call, include the method and its args
 	 *    * 'return' -> Given a method call, include objects in its return.
-	 * @return array Array of various phan objects corresponding to $node
+	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
 	protected function getPhanObjsForNode( Node $node, $options = [] ) {
 		$cn = $this->getCtxN( $node );
@@ -927,6 +934,7 @@ trait TaintednessBaseVisitor {
 					$this->debug( __METHOD__, "Cannot determine " .
 						"property [3] (Maybe don't know what class) - " .
 						( method_exists( $e, 'getIssueInstance' )
+						// @phan-suppress-next-line PhanUndeclaredMethod it checks method_exists()
 						? $e->getIssueInstance()
 						: get_class( $e ) . $e->getMessage() )
 					);
@@ -1057,7 +1065,7 @@ trait TaintednessBaseVisitor {
 				// This should really be a visitor that recurses into
 				// things.
 				$this->debug( __METHOD__, "FIXME unhandled case"
-					. \ast\get_kind_name( $node->kind ) . "\n"
+					. Debug::nodeName( $node ) . "\n"
 				);
 				return [];
 		}
@@ -1158,6 +1166,7 @@ trait TaintednessBaseVisitor {
 			foreach ( $paramInfo as $index => $_ ) {
 				assert( property_exists( $method, 'taintedVarLinks' ) );
 				assert( isset( $method->taintedVarLinks[$index] ) );
+				assert( $method->taintedVarLinks[$index] instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$method->taintedVarLinks[$index]->attach( $lhs );
 			}
@@ -1228,7 +1237,7 @@ trait TaintednessBaseVisitor {
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for variable $var" );
+			$this->debug( __METHOD__, "Memory spike $diffMem for variable " . $var->getName() );
 		}
 	}
 
@@ -1260,6 +1269,7 @@ trait TaintednessBaseVisitor {
 		// have assumed the class member was not tainted.
 		$classesNeedRefresh = new Set;
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
+			assert( $var instanceof TypedElementInterface );
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, $taintAdjusted );
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
@@ -1556,7 +1566,10 @@ trait TaintednessBaseVisitor {
 		);
 
 		foreach ( $taint as $i => $t ) {
-			assert( is_int( $t ) && $t >= 0, "Taint index $i wrong $t" . $this->dbgInfo() );
+			if ( !( is_int( $t ) && $t >= 0 ) ) {
+				// Keep this inside the conditional to avoid computing dbgInfo lots of times.
+				assert( false, "Taint index $i wrong $t" . $this->dbgInfo() );
+			}
 		}
 	}
 
@@ -2223,9 +2236,9 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func The function/method. Must use Analyzable trait
 	 * @return array An array of phan objects
-	 * @suppress PhanUndeclaredMethod hasNode is not part of the interface
 	 */
 	public function getReturnObjsOfFunc( FunctionInterface $func ) {
+		// @phan-suppress-next-line PhanUndeclaredMethod hasNode is not part of the interface
 		if ( !$func->hasNode() ) {
 			// Can't do anything
 			return [];

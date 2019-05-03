@@ -931,18 +931,12 @@ class MWVisitor extends TaintednessVisitor {
 		$isInfo = false;
 		$isOptionsSafe = true; // options key is really messed up with escaping.
 		foreach ( $node->children as $child ) {
-			if ( $child === null ) {
-				// Happens for list( , $x ) = foo()
-				// @fixme Same as the fixme below
-				continue;
+			if ( $child === null || !is_string( $child->children['key'] ) ) {
+				// If we have list( , $x ) = foo() or a numeric/null key, chances
+				// are this is not an HTMLForm.
+				return;
 			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-			if ( !is_string( $child->children['key'] ) ) {
-				// FIXME, instead of skipping, should we abort
-				// the whole thing if there is a numeric or null
-				// key? As its unlikely to be an htmlform in that case.
-				continue;
-			}
 			$key = (string)$child->children['key'];
 			switch ( $key ) {
 				case 'type':

@@ -19,6 +19,7 @@
 
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
+use Phan\Debug;
 use Phan\Language\Context;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
@@ -69,7 +70,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// To see what kinds of nodes are passing through here,
 		// you can run `Debug::printNode($node)`.
 		# Debug::printNode( $node );
-		$this->debug( __METHOD__, "unhandled case " . \ast\get_kind_name( $node->kind ) );
+		$this->debug( __METHOD__, "unhandled case " . Debug::nodeName( $node ) );
 		return SecurityCheckPlugin::UNKNOWN_TAINT;
 	}
 
@@ -524,7 +525,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to backtick" );
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to backtick" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
 					SecurityCheckPlugin::SHELL_EXEC_TAINT
@@ -557,7 +558,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to require/eval" );
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to require/eval" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
 					SecurityCheckPlugin::MISC_EXEC_TAINT
@@ -601,7 +602,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to echo" );
 				// FIXME, maybe not do this for local variables
 				// since they don't have other code paths that can set them.
 				$this->markAllDependentMethodsExec(
