@@ -1074,6 +1074,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * This is e.g. for class X implements Name,List
+	 *
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitNameList( Node $node ) : int {
+		return SecurityCheckPlugin::NO_TAINT;
+	}
+
+	/**
 	 * @todo Is this right? The child condition should
 	 *  be visited when going in post order analysis anyways,
 	 *  and the taint of an If statement isn't really its condition.
@@ -1099,6 +1109,57 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return $this->getTaintedness( $node->children['expr'] );
 		}
 		return SecurityCheckPlugin::NO_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPostInc( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPreInc( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPostDec( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPreDec( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * Handles all post/pre-increment/decrement operators. They have no effect on the
+	 * taintedness of a variable.
+	 *
+	 * @param Node $node
+	 * @return int
+	 */
+	private function analyzeIncOrDec( Node $node ) : int {
+		$children = $this->getPhanObjsForNode( $node );
+		if ( count( $children ) === 1 ) {
+			return $this->getTaintednessPhanObj( reset( $children ) );
+		} elseif ( isset( $node->children['var'] ) ) {
+			// @fixme Stopgap to handle superglobals, which getPhanObjsForNode doesn't return
+			return $this->visitVar( $node->children['var'] );
+		} else {
+			return SecurityCheckPlugin::NO_TAINT;
+		}
 	}
 
 	/**

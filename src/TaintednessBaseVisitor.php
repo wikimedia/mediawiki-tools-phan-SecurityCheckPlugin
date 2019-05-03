@@ -1060,6 +1060,13 @@ trait TaintednessBaseVisitor {
 					// @todo Future todo might be to still return arguments in this case.
 					return [];
 				}
+			case \ast\AST_PRE_INC:
+			case \ast\AST_PRE_DEC:
+			case \ast\AST_POST_INC:
+			case \ast\AST_POST_DEC:
+				$children = $node->children;
+				assert( count( $children ) === 1 );
+				return $this->getPhanObjsForNode( reset( $children ) );
 			default:
 				// Debug::printNode( $node );
 				// This should really be a visitor that recurses into
