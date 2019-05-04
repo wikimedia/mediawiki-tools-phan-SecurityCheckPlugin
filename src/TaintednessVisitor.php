@@ -17,13 +17,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Debug;
+use Phan\Exception\CodeBaseException;
 use Phan\Language\Context;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
-use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use ast\Node;
 use Phan\Exception\IssueException;
@@ -379,7 +378,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * Also handles visitAssignOp
 	 *
-	 * @todo FIXME, doesn't handle list( $a, $b ) = $foo;
 	 * @param Node $node
 	 * @return int Taint
 	 */
@@ -642,32 +640,29 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	public function visitEcho( Node $node ) : int {
-		$taintedness = $this->getTaintedness( $node->children['expr'] );
+		$echoTaint = SecurityCheckPlugin::HTML_EXEC_TAINT;
+		$echoedExpr = $node->children['expr'];
+		$taintedness = $this->getTaintedness( $echoedExpr );
 		# $this->debug( __METHOD__, "Echoing with taint $taintedness" );
 
 		$this->maybeEmitIssue(
-			SecurityCheckPlugin::HTML_EXEC_TAINT,
+			$echoTaint,
 			$taintedness,
 			"Echoing expression that was not html escaped"
-				. $this->getOriginalTaintLine( $node->children['expr'] )
+				. $this->getOriginalTaintLine( $echoedExpr )
 		);
 
-		// FIXME what is the PRESERVE_TAINT doing in the condition??
-		if (
-			$this->isSafeAssignment( SecurityCheckPlugin::HTML_EXEC_TAINT, $taintedness ) &&
-			( is_object( $node->children['expr'] ) ||
-			$taintedness & SecurityCheckPlugin::PRESERVE_TAINT )
-		) {
+		if ( $this->isSafeAssignment( $echoTaint, $taintedness ) && is_object( $echoedExpr ) ) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
+			$phanObjs = $this->getPhanObjsForNode( $echoedExpr, [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
 				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to echo" );
 				// FIXME, maybe not do this for local variables
 				// since they don't have other code paths that can set them.
 				$this->markAllDependentMethodsExec(
 					$phanObj,
-					SecurityCheckPlugin::HTML_EXEC_TAINT
+					$echoTaint
 				);
 			}
 		}
@@ -709,11 +704,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	public function visitMethodCall( Node $node ) : int {
-		$ctxNode = new ContextNode(
-			$this->code_base,
-			$this->context,
-			$node
-		);
+		$ctxNode = $this->getCtxN( $node );
 		$isStatic = ( $node->kind === \ast\AST_STATIC_CALL );
 		$isFunc = ( $node->kind === \ast\AST_CALL );
 
@@ -724,43 +715,33 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// We check the __construct() method first, but the
 				// final resulting taint is from the __toString()
 				// method. This is a little hacky.
-				$clazzName = $node->children['class']->children['name'];
-				if ( $clazzName === 'self' && $this->context->isInClassScope() ) {
-					$clazzName = (string)$this->context->getClassFQSEN();
-				}
-				$fqsen = FullyQualifiedMethodName::fromStringInContext(
-					$clazzName . '::__construct',
-					$this->context
+				$constructor = $ctxNode->getMethod(
+					'__construct',
+					false,
+					false,
+					true
 				);
-				if ( !$this->code_base->hasMethodWithFQSEN( $fqsen ) ) {
-					$this->debug( __METHOD__, "FIXME no constructor for $fqsen" );
-					throw new exception( "Cannot find __construct" );
-				}
-				$func = $this->code_base->getMethodByFQSEN( $fqsen );
 				// First do __construct()
 				$this->handleMethodCall(
-					$func,
-					$func->getFQSEN(),
-					$this->getTaintOfFunction( $func ),
+					$constructor,
+					$constructor->getFQSEN(),
+					$this->getTaintOfFunction( $constructor ),
 					$node->children['args']->children
 				);
 				// Now return __toString()
-				$fqsen = FullyQualifiedMethodName::fromStringInContext(
-					$clazzName . '::__toString',
-					$this->context
-				);
-				if ( !$this->code_base->hasMethodWithFQSEN( $fqsen ) ) {
-					$this->debug( __METHOD__, "no __toString() $fqsen" );
-					// If there is no __toString(), then presumably
-					// the object can't be outputed, so should be
-					// safe.
+				$clazz = $constructor->getClass( $this->code_base );
+				try {
+					$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
+				} catch ( CodeBaseException $_ ) {
+					// There is no __toString(), then presumably the object can't be outputed, so should be safe.
+					$this->debug( __METHOD__, "no __toString() in $clazz" );
 					return SecurityCheckPlugin::NO_TAINT;
 				}
-				$func = $this->code_base->getMethodByFQSEN( $fqsen );
+
 				return $this->handleMethodCall(
-					$func,
-					$func->getFQSEN(),
-					$this->getTaintOfFunction( $func ),
+					$toString,
+					$toString->getFQSEN(),
+					$this->getTaintOfFunction( $toString ),
 					[] // __toString() has no args
 				);
 			} elseif ( $isFunc ) {
