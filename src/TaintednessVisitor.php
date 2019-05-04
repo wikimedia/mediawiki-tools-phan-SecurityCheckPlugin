@@ -1263,6 +1263,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * Visits calls to empty(), which is always safe
+	 *
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitEmpty( Node $node ) : int {
+		return SecurityCheckPlugin::NO_TAINT;
+	}
+
+	/**
 	 * Visit a node that is always safe
 	 *
 	 * @param Node $node
