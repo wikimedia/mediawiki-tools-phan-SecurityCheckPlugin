@@ -248,6 +248,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param Node $node
+	 * @return int
+	 */
+	public function visitConstDecl( Node $node ) : int {
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
 	 * @return int Taint
 	 */
 	public function visitIf( Node $node ) : int {
@@ -284,6 +292,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	public function visitUse( Node $node ) : int {
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitUseTrait( Node $node ) : int {
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
@@ -353,6 +369,40 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param Node $node
+	 * @return int
+	 */
+	public function visitDoWhile( Node $node ) : int {
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitFor( Node $node ) : int {
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitSwitchList( Node $node ) : int {
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * This is e.g. the list of expressions inside the for condition
+	 *
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitExprList( Node $node ) : int {
+		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
 	 * @return int Taint
 	 */
 	public function visitUnset( Node $node ) : int {
@@ -365,6 +415,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitTry( Node $node ) : int {
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitClone( Node $node ) : int {
+		// @todo This should first check the __clone method, acknowledge its side effects
+		// (probably via handleMethodCall), and *then* return the taintedness of the cloned
+		// item. But finding the __clone definition might be hard...
+		return $this->getTaintedness( $node->children['expr'] );
 	}
 
 	/**
@@ -562,6 +623,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * This is for exit() and die(). If they're passed an argument, they behave the
+	 * same as print.
+	 * @param Node $node
+	 * @return int
+	 */
+	public function visitExit( Node $node ) : int {
+		return $this->visitEcho( $node );
+	}
+
+	/**
 	 * @param Node $node
 	 * @return int Taint
 	 */
@@ -631,7 +702,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * Also handles print, eval() and include() (for now).
+	 * Also handles exit(), print, eval() and include() (for now).
 	 *
 	 * We assume a web based system, where outputting HTML via echo
 	 * is bad. This will have false positives in a CLI environment.
