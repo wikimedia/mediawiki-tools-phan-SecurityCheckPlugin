@@ -312,16 +312,18 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::escaped' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::rawParams' => [
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
+				// @todo Add taint type to reflect that HTML escaping will be prevented
+				// using these parameters.
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
 				// meh, not sure how right the overall is.
 				'overall' => self::HTML_TAINT
 			],
@@ -479,7 +481,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
 			'\HtmlArmor::__construct' => [
-				self::HTML_EXEC_TAINT,
+				// @todo Add taint type to reflect that HTML escaping will be prevented
+				// using this parameter.
+				self::HTML_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			// Due to limitations in how we handle list()
@@ -499,7 +503,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			// the url query parameters.
 			'\Linker::linkKnown' => [
 				self::NO_TAINT, /* target */
-				self::YES_TAINT | self::HTML_EXEC_TAINT, /* raw html text */
+				// @todo Add taint type to reflect that HTML escaping will be prevented
+				// using this parameter.
+				self::YES_TAINT, /* raw html text */
 				// The array keys for this aren't escaped (!)
 				self::NO_TAINT, /* customAttribs */
 				self::NO_TAINT, /* query */
