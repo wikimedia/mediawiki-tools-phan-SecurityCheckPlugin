@@ -13,6 +13,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	public function testScenarios( $dirPath, $expected ) {
 		$here = __DIR__;
+		putenv( "SECURITY_CHECK_EXT_PATH=$dirPath" );
 		$cmd = "php $here/../vendor/phan/phan/phan" .
 			" --project-root-directory \"$here\"" .
 			" --config-file \"$here/integration-test-config.php\"" .

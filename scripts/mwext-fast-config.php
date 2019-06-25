@@ -3,7 +3,10 @@
 // If xdebug is enabled, we need to increase the nesting level for phan
 ini_set( 'xdebug.max_nesting_level', 1000 );
 
-$IP = getenv( 'MW_INSTALL_PATH' ) ?: '../../';
+$IP = getenv( 'MW_INSTALL_PATH' ) !== false
+	// Replace \\ by / for windows users to let exclude work correctly
+	? str_replace( '\\', '/', getenv( 'MW_INSTALL_PATH' ) )
+	: '../..';
 
 /**
  * Fast mode excludes MW from analysis. May miss some stuff with hooks.
