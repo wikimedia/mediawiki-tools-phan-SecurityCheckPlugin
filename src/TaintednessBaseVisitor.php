@@ -1129,7 +1129,6 @@ trait TaintednessBaseVisitor {
 	 * This method is called to make all things that set $this->foo
 	 * as TAINT_EXEC.
 	 *
-	 * @todo delete all dependencies as no longer needed (or are they?)
 	 * @param TypedElementInterface|UnaddressableTypedElement $var The variable in question
 	 * @param int $taint What taint to mark them as.
 	 */
@@ -1145,6 +1144,22 @@ trait TaintednessBaseVisitor {
 			$this->isIssueSuppressedOrFalsePositive( $taint ) ||
 			!property_exists( $var, 'taintedMethodLinks' )
 		) {
+			return;
+		}
+
+		if (
+			$var instanceof Property && (
+				(
+					$this->context->isInClassScope() &&
+					$this->context->getClassInScope( $this->code_base ) !== $var->getClass( $this->code_base )
+				) ||
+				$var->getContext()->getFile() !== $this->context->getFile()
+			)
+		) {
+			// @todo This should be tweaked. The idea behind this check is:
+			//  - Let properties affect methods within the same class / the same file (depending
+			//     on whether we're currently in class scope), e.g. for getters/setters
+			//  - Forbid any other taintedness transfer. See the test 'user2' for the reason.
 			return;
 		}
 
@@ -1169,7 +1184,6 @@ trait TaintednessBaseVisitor {
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for variable $var" );
 		}
-		// FIXME delete links
 	}
 
 	/**
