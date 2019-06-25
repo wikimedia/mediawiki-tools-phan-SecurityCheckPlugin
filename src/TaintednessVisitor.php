@@ -409,6 +409,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
 			$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
+
+			if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) ) {
+				$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
+				$this->setTaintedness( $globalVar, $rhsTaintedness, false );
+			}
+
 			try {
 				if ( !is_object( $node->children['expr'] ) ) {
 					continue;
@@ -785,24 +791,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 		}
 		$scope = $this->context->getScope();
-		if (
-			$scope->hasVariableWithName( $varName )
-			&& $scope->hasGlobalVariableWithName( $varName )
-		) {
-			$localVar = $scope->getVariableByName( $varName );
+		if ( $scope->hasGlobalVariableWithName( $varName ) ) {
 			$globalVar = $scope->getGlobalVariableByName( $varName );
-			if ( !property_exists( $globalVar, 'taintedness' ) ) {
-				// echo "Setting initial taintedness for global $varName of NO\n";
-				$globalVar->taintedness = SecurityCheckPlugin::NO_TAINT;
-			}
-			if ( property_exists( $localVar, 'taintedness' ) ) {
-				// This should not happen. FIXME this is probably wrong.
-				$this->debug( __METHOD__, "WARNING: local var already tainted at global time." );
-				$globalVar->taintedness |= $localVar->taintedness;
-			}
-
-			$localVar->taintedness =& $globalVar->taintedness;
+			$localVar = clone $globalVar;
 			$localVar->taintednessHasOuterScope = true;
+			$scope->addVariable( $localVar );
 		}
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
