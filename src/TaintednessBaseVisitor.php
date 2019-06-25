@@ -4,6 +4,7 @@ use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\UnaddressableTypedElement;
@@ -254,6 +255,10 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof FunctionInterface ) {
 			// FIXME what about closures?
 			throw new Exception( "Must use setFuncTaint for functions" );
+		}
+
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$variableObj = $variableObj->getElement();
 		}
 
 		if ( property_exists( $variableObj, 'taintednessHasOuterScope' )
@@ -969,20 +974,14 @@ trait TaintednessBaseVisitor {
 	 * The idea being if the method gets called with something evil
 	 * later, we can traceback anything it might affect
 	 *
-	 * @param Variable $param The variable object for the parameter
+	 * @param Variable $param The variable object for the parameter. This can also be
+	 *  instance of Parameter (subclass of Variable).
 	 * @param FunctionInterface $func The function/method in question
 	 * @param int $i Which argument number is $param
 	 */
 	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) {
 		// $this->debug( __METHOD__, "Linking '$param' to '$func' arg $i" );
-		if ( !( $param instanceof Variable ) ) {
-			// Probably a PassByReferenceVariable.
-			// TODO, handling of PassByReferenceVariable probably wrong here.
-			$this->debug( __METHOD__, "Called on a non-variable \$"
-				. $param->getName() . " of type " . get_class( $param )
-				. ". May be handled wrong."
-			);
-		}
+
 		if ( !property_exists( $func, 'taintedVarLinks' ) ) {
 			$func->taintedVarLinks = [];
 		}
@@ -1277,6 +1276,9 @@ trait TaintednessBaseVisitor {
 			$element instanceof UnaddressableTypedElement
 		) {
 			if ( $arg === -1 ) {
+				if ( $element instanceof PassByReferenceVariable ) {
+					$element = $element->getElement();
+				}
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
 					$line = $element->taintedOriginalError;
 				}
@@ -1863,6 +1865,7 @@ trait TaintednessBaseVisitor {
 					continue;
 				}
 				$methodVar = $func->getInternalScope()->getVariableByName( $param->getName() );
+
 				// FIXME: Better to keep a list of dependencies
 				// like what we do for methods?
 				// Iffy if this will work, because phan replaces
@@ -1877,7 +1880,7 @@ trait TaintednessBaseVisitor {
 				foreach ( $pobjs as $pobj ) {
 					// FIXME, is unknown right here.
 					$combinedTaint = $this->mergeAddTaint(
-						$methodVar->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT,
+						$methodVar->taintedness ?? SecurityCheckPlugin::NO_TAINT,
 						$pobj->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT
 					);
 					$pobj->taintedness = $combinedTaint;
