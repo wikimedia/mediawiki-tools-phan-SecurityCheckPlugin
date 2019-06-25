@@ -10,6 +10,7 @@ use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\UnaddressableTypedElement;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
+use Phan\Language\Scope\BranchScope;
 use Phan\Language\UnionType;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\MixedType;
@@ -270,6 +271,70 @@ trait TaintednessBaseVisitor {
 			// it might be a class, or an if branch, or global. In any case
 			// its probably a non-local variable (or in the if case, code
 			// that may not be executed).
+
+			$fixmeCanLinkVarToParent = function() use ( $variableObj ) {
+				// @fixme!!! This is a super hack: in the following if, we used to use
+				// $variableObj->getContext() to then get the parent scope, which is correct.
+				// However, phan stopped storing a Context object inside variables (replacing it
+				// with a FileRef), so that cannot be done anymore. As a workaround, using
+				// $this->context->getScope()->getParentScope() will work most of the times.
+				// BUT not always, because the current context must be equal to the var's one, and there
+				// are situations where this isn't true; for instance, when setting taintedness of
+				// variables retrieved by taintedVarLinks, which could live very far to the current
+				// context. The proper solution is PR #2778 upstream, which restores the Context
+				// inside Variables. However, it is included in phan 2.0.0, which brings in too
+				// many changes to be included in our 2.0 release; it also drops PHP7.0 support.
+				// The check below should cover most of the cases where the var lives far from our
+				// current context, but it's really a stopgap to get rid of ASAP.
+				return $this->context->getFile() === $variableObj->getFileRef()->getFile() &&
+					$variableObj->getFileRef()->getLineNumberStart() <= $this->context->getLineNumberStart();
+			};
+
+			if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
+				&& $fixmeCanLinkVarToParent()
+				&& ( $this->context->getScope() instanceof BranchScope )
+				// && ( $variableObj->getContext()->getScope() instanceof FunctionLikeScope )
+			) {
+				$parentScope = $this->context->getScope()->getParentScope();
+				// We are in a branch and this is a local variable
+				// (as opposed to a class member). Try to link this
+				// variable with its parent outside the branch in same func.
+				if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
+					$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
+
+					if ( !property_exists( $parentVarObj, 'taintedness' ) ) {
+						// $this->debug( __METHOD__,
+						// "parent scope for $variableObj has no taint. Setting $taintedness" );
+						$parentVarObj->taintedness = $taintedness;
+					} else {
+						// $this->debug( __METHOD__,
+						// "parent scope for $variableObj already has taint "
+						// . $parentVarObj->taintedness . " adding $taintedness " );
+						$parentVarObj->taintedness = $this->mergeAddTaint( $parentVarObj->taintedness, $taintedness );
+					}
+					$variableObj->taintedness =& $parentVarObj->taintedness;
+
+					$methodLinks = $parentVarObj->taintedMethodLinks ?? new Set;
+					$variableObjLinks = $variableObj->taintedMethodLinks ?? new Set;
+					$variableObj->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
+					$parentVarObj->taintedMethodLinks =& $variableObj->taintedMethodLinks;
+					$varError = $variableObj->taintedOriginalError ?? '';
+					$combinedOrig = $parentVarObj->taintedOriginalError ?? '';
+					if ( strpos( $combinedOrig, $varError ?: "\1\2" ) === false ) {
+						$combinedOrig .= $varError;
+					}
+
+					if ( strlen( $combinedOrig ) > 254 ) {
+						$this->debug( __METHOD__, "Too long original error! $variableObj" );
+						$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
+					}
+					$variableObj->taintedOriginalError = $combinedOrig;
+					$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
+
+				} else {
+					$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
+				}
+			}
 
 			// Given we are either in a branch, or the variable has some
 			// sort of outer scope (is a global, is a class member), we
