@@ -11,6 +11,7 @@ use Phan\Language\Element\UnaddressableTypedElement;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
 use Phan\Language\Scope\BranchScope;
+use Phan\Language\Type\ClosureType;
 use Phan\Language\UnionType;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\MixedType;
@@ -1562,7 +1563,7 @@ trait TaintednessBaseVisitor {
 			$types = $var->getUnionType()->getTypeSet();
 			foreach ( $types as $type ) {
 				if (
-					$type instanceof CallableType &&
+					( $type instanceof CallableType || $type instanceof ClosureType ) &&
 					$type->asFQSEN() instanceof FullyQualifiedFunctionLikeName
 				) {
 					// @todo FIXME This doesn't work if the closure
