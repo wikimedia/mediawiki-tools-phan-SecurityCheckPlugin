@@ -2030,8 +2030,14 @@ trait TaintednessBaseVisitor {
 				$this->context,
 				$node
 			);
+			// @todo The hasArrayLike check below would seem to make sense. However, prior to
+			// phan 0.8.7 (i.e. with seccheck 1.5), that function would deem an union type as
+			// array like if **all** of its types were array like. Starting from phan 0.8.7,
+			// instead, it checks that **any** type is array-like. That is obviously the correct
+			// choice, but makes the check below redundant because we check if the uniontype has
+			// string type inside.
 			if (
-				!$type->hasArrayLike() &&
+				// !$type->hasArrayLike() &&
 				$type->hasType( StringType::instance( false ) )
 			) {
 				// FIXME TODO: Should having Mixed type
