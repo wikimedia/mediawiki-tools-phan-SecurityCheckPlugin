@@ -9,7 +9,7 @@ fi
 
 echo Starting phan
 
-php7.0 "./vendor/phan/phan/phan" \
+php "./vendor/phan/phan/phan" \
         --project-root-directory . \
         --config-file "tests/general-phan-config.php" \
         --output "php://stdout" \

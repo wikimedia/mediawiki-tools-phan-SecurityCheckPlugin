@@ -1,6 +1,9 @@
 <?php
 
 use ast\Node;
+use Phan\CodeBase;
+use Phan\Language\Context;
+use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 
 /**
  * Get the returned things of a method
@@ -21,11 +24,21 @@ use ast\Node;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class GetReturnObjsVisitor extends TaintednessBaseVisitor {
+class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
+	use TaintednessBaseVisitor;
+
+	/**
+	 * @inheritDoc
+	 */
+	public function __construct( CodeBase $code_base, Context $context ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
+	}
 
 	/**
 	 * @param Node $node
 	 * @return array Phan objects related to elements in return line
+	 * @suppress PhanParamSignatureMismatch
 	 */
 	public function visit( Node $node ) {
 		$results = [];

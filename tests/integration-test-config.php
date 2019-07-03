@@ -267,6 +267,16 @@ return [
 	 * will be emitted by Phan.
 	 */
 	'whitelist_issue_types' => [
+		'SecurityCheckMulti',
+		'SecurityCheck-XSS',
+		'SecurityCheck-SQLInjection',
+		'SecurityCheck-ShellInjection',
+		'SecurityCheck-PHPSerializeInjection',
+		'SecurityCheck-DoubleEscaped',
+		'SecurityCheck-CUSTOM1',
+		'SecurityCheck-CUSTOM2',
+		'SecurityCheck-OTHER',
+		'SecurityCheck-LikelyFalsePositive',
 	],
 
 	/**

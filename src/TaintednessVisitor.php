@@ -18,11 +18,14 @@
  */
 
 use Phan\AST\ContextNode;
+use Phan\CodeBase;
+use Phan\Language\Context;
+use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use ast\Node;
-use ast\Node\Decl;
 use Phan\Exception\IssueException;
+use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 
 /**
  * This class visits all the nodes in the ast. It has two jobs:
@@ -38,18 +41,30 @@ use Phan\Exception\IssueException;
  *
  * This also maintains some other properties, such as where the error
  * originates, and dependencies in certain cases.
+ *
+ * @phan-file-suppress PhanUnusedPublicMethodParameter Many methods don't use $node
  */
-class TaintednessVisitor extends TaintednessBaseVisitor {
+class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
+	use TaintednessBaseVisitor;
+
+	/**
+	 * @inheritDoc
+	 */
+	public function __construct( CodeBase $code_base, Context $context ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
+	}
 
 	/**
 	 * Generic visitor when we haven't defined a more specific one.
 	 *
 	 * @param Node $node
 	 * @return int The taintedness of the node.
+	 * @suppress PhanParamSignatureMismatch
 	 */
 	public function visit( Node $node ) : int {
 		// This method will be called on all nodes for which
-		// there is no implementation of it's kind visitor.
+		// there is no implementation of its kind visitor.
 
 		// To see what kinds of nodes are passing through here,
 		// you can run `Debug::printNode($node)`.
@@ -59,10 +74,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return int Taint
 	 */
-	public function visitFuncDecl( Decl $node ) : int {
+	public function visitFuncDecl( Node $node ) : int {
 		return $this->visitMethod( $node );
 	}
 
@@ -73,10 +88,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 * so if we haven't yet, mark this function as no taint.
 	 *
 	 * Also handles FuncDecl
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return int Taint
 	 */
-	public function visitMethod( Decl $node ) : int {
+	public function visitMethod( Node $node ) : int {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		if (
 			$this->getBuiltinFuncTaint( $method->getFQSEN() ) === null &&
@@ -156,10 +171,10 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return int Taint
 	 */
-	public function visitClass( Decl $node ) : int {
+	public function visitClass( Node $node ) : int {
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
@@ -394,6 +409,12 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
 			$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
+
+			if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) ) {
+				$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
+				$this->setTaintedness( $globalVar, $rhsTaintedness, false );
+			}
+
 			try {
 				if ( !is_object( $node->children['expr'] ) ) {
 					continue;
@@ -722,7 +743,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	/**
 	 * A variable (e.g. $foo)
 	 *
-	 * This always considers superglobals as tainted
+	 * This always considers superglobals and superglobals-like as tainted
 	 *
 	 * @param Node $node
 	 * @return int Taint
@@ -740,9 +761,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
-			if ( Variable::isSuperglobalVariableWithName( $varName ) ) {
-				// Super globals are tainted.
-				// echo "$varName is superglobal. Marking tainted\n";
+			if ( Variable::isHardcodedGlobalVariableWithName( $varName ) ) {
+				// Superglobals-like are tainted.
+				// echo "$varName is superglobal-like. Marking tainted\n";
 				return SecurityCheckPlugin::YES_TAINT;
 			}
 			// Probably the var just isn't in scope yet.
@@ -750,6 +771,9 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$variableObj = $variableObj->getElement();
+		}
 		return $this->getTaintednessPhanObj( $variableObj );
 	}
 
@@ -767,24 +791,11 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 		}
 		$scope = $this->context->getScope();
-		if (
-			$scope->hasVariableWithName( $varName )
-			&& $scope->hasGlobalVariableWithName( $varName )
-		) {
-			$localVar = $scope->getVariableByName( $varName );
+		if ( $scope->hasGlobalVariableWithName( $varName ) ) {
 			$globalVar = $scope->getGlobalVariableByName( $varName );
-			if ( !property_exists( $globalVar, 'taintedness' ) ) {
-				// echo "Setting initial taintedness for global $varName of NO\n";
-				$globalVar->taintedness = SecurityCheckPlugin::NO_TAINT;
-			}
-			if ( property_exists( $localVar, 'taintedness' ) ) {
-				// This should not happen. FIXME this is probably wrong.
-				$this->debug( __METHOD__, "WARNING: local var already tainted at global time." );
-				$globalVar->taintedness |= $localVar->taintedness;
-			}
-
-			$localVar->taintedness =& $globalVar->taintedness;
+			$localVar = clone $globalVar;
 			$localVar->taintednessHasOuterScope = true;
+			$scope->addVariable( $localVar );
 		}
 		return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
@@ -842,13 +853,16 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @suppress PhanTypeMismatchForeach
 	 * @param Node $node
 	 * @return int Taint
 	 */
 	public function visitArray( Node $node ) : int {
 		$curTaint = SecurityCheckPlugin::NO_TAINT;
 		foreach ( $node->children as $child ) {
+			if ( $child === null ) {
+				// Happens for list( , $x ) = foo()
+				continue;
+			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$childTaint = $this->getTaintedness( $child );
 			$key = $child->children['key'];
@@ -951,7 +965,7 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	public function visitProp( Node $node ) : int {
 		try {
 			$props = $this->getPhanObjsForNode( $node );
-		} catch ( Exception $e ) {
+		} catch ( Exception $_ ) {
 			// $this->debug( __METHOD__, "Cannot understand class prop. "
 			// . get_class($e) . " - {$e->getMessage()}" );
 			// Debug::printNode( $node );
@@ -994,6 +1008,19 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 			}
 		}
 		$prop = $props[0];
+
+		$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
+		if ( property_exists( $variable, 'taintedness' ) ) {
+			// If the variable has taintedness set and its union type contains stdClass, it's
+			// because this is the result of casting an array to object. Share the taintedness
+			// of the variable with all its properties like we do for arrays.
+			$types = array_map( 'strval', $variable->getUnionType()->getTypeSet() );
+			if ( in_array( '\stdClass', $types ) ) {
+				$prop->taintedness = $this->mergeAddTaint( $prop->taintedness ?? 0, $variable->taintedness );
+				$this->mergeTaintError( $prop, $variable );
+			}
+		}
+
 		return $this->getTaintednessPhanObj( $prop );
 	}
 
@@ -1007,11 +1034,23 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 		$clazz = $this->context->getClassInScope( $this->code_base );
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
-		$prop = $clazz->getPropertyByNameInContext(
-			$this->code_base,
-			$node->children['name'],
-			$this->context
-		);
+		// @fixme Here we don't know if the property is static, so just try to guess. A future release
+		// will add a method to avoid this hack.
+		try {
+			$prop = $clazz->getPropertyByNameInContext(
+				$this->code_base,
+				$node->children['name'],
+				$this->context,
+				true
+			);
+		} catch ( IssueException $_ ) {
+			$prop = $clazz->getPropertyByNameInContext(
+				$this->code_base,
+				$node->children['name'],
+				$this->context,
+				false
+			);
+		}
 		// FIXME should this be NO?
 		// $this->debug( __METHOD__, "Setting taint preserve if not set"
 		// . " yet for \$" . $node->children['name'] . "" );
@@ -1102,7 +1141,6 @@ class TaintednessVisitor extends TaintednessBaseVisitor {
 	 *
 	 * @param Node $node
 	 * @return int the taint
-	 * @suppress PhanTypeMismatchForeach
 	 */
 	public function visitEncapsList( Node $node ) : int {
 		$taint = SecurityCheckPlugin::NO_TAINT;

@@ -1,0 +1,2 @@
+integration/linker/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linker/test.php +14)
+integration/linker/test.php:18 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: Builtin-\Linker::linkKnown; Builtin-\Linker::linkKnown; integration/linker/test.php +17)

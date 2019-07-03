@@ -32,46 +32,26 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName as FQSENFunc;
 use Phan\Language\FQSEN\FullyQualifiedMethodName as FQSENMethod;
-use ast\Node;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
+	/**
+	 * @inheritDoc
+	 */
+	public static function getPostAnalyzeNodeVisitorClassName(): string {
+		return MWVisitor::class;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function getPreAnalyzeNodeVisitorClassName(): string {
+		return MWPreVisitor::class;
+	}
 
 	/**
 	 * @var array A mapping from hook names to FQSEN that implement it
 	 */
 	protected $hookSubscribers = [];
-
-	/**
-	 * Override so we can check for hook registration
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param Node $node
-	 * @param Node|null $parentNode
-	 */
-	public function analyzeNode(
-		CodeBase $code_base,
-		Context $context,
-		Node $node,
-		Node $parentNode = null
-	) {
-		parent::analyzeNode( $code_base, $context, $node, $parentNode );
-
-		$visitor = new MWVisitor( $code_base, $context, $this );
-		$visitor( $node );
-	}
-
-	/**
-	 * Called on every node in the ast, but in pre-order
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param Node $node
-	 */
-	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
-		parent::preAnalyzeNode( $code_base, $context, $node );
-		( new MWPreVisitor( $code_base, $context, $this ) )( $node );
-	}
 
 	/**
 	 * @inheritDoc
@@ -332,16 +312,18 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::escaped' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::rawParams' => [
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
+				// @todo Add taint type to reflect that HTML escaping will be prevented
+				// using these parameters.
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
+				self::HTML_TAINT,
 				// meh, not sure how right the overall is.
 				'overall' => self::HTML_TAINT
 			],
@@ -499,7 +481,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\WebRequest::getHeader' => [ 'overall' => self::YES_TAINT, ],
 			'\WebRequest::getAcceptLang' => [ 'overall' => self::YES_TAINT, ],
 			'\HtmlArmor::__construct' => [
-				self::HTML_EXEC_TAINT,
+				// @todo Add taint type to reflect that HTML escaping will be prevented
+				// using this parameter.
+				self::HTML_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			// Due to limitations in how we handle list()
@@ -519,7 +503,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			// the url query parameters.
 			'\Linker::linkKnown' => [
 				self::NO_TAINT, /* target */
-				self::YES_TAINT | self::HTML_EXEC_TAINT, /* raw html text */
+				// @todo Add taint type to reflect that HTML escaping will be prevented
+				// using this parameter.
+				self::YES_TAINT, /* raw html text */
 				// The array keys for this aren't escaped (!)
 				self::NO_TAINT, /* customAttribs */
 				self::NO_TAINT, /* query */

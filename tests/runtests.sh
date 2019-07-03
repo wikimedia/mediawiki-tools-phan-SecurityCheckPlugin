@@ -11,8 +11,6 @@ tmpFile=`mktemp testtmp.XXXXXXXX`
 trap "rm $tmpFile" exit
 totalTests=0
 failedTests=0
-php=`which php7.0`
-php=${php:-`which php`}
 if [ "$1" = '-v' ]
 	then SECCHECK_DEBUG=/dev/stderr
 		shift
@@ -27,7 +25,7 @@ do
 	SECURITY_CHECK_EXT_PATH=`pwd`"/integration/$i/"
 	export SECURITY_CHECK_EXT_PATH
 	totalTests=$((totalTests+1))
-	$php ../vendor/phan/phan/phan \
+	php ../vendor/phan/phan/phan \
         	--project-root-directory "." \
         	--config-file "integration-test-config.php" \
         	--output "php://stdout" \

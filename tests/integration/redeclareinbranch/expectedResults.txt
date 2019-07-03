@@ -1,0 +1,2 @@
+integration/redeclareinbranch/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/redeclareinbranch/test.php +25)
+integration/redeclareinbranch/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/redeclareinbranch/test.php +25; integration/redeclareinbranch/test.php +28)

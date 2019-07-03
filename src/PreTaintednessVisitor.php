@@ -1,7 +1,10 @@
 <?php
 
 use ast\Node;
-use ast\Node\Decl;
+use Phan\CodeBase;
+use Phan\Language\Context;
+use Phan\Language\Element\PassByReferenceVariable;
+use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.
@@ -26,16 +29,15 @@ use ast\Node\Decl;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class PreTaintednessVisitor extends TaintednessBaseVisitor {
+class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
+	use TaintednessBaseVisitor;
 
 	/**
-	 * Handle any node not otherwise handled.
-	 *
-	 * Currently a no-op.
-	 *
-	 * @param Node $node
+	 * @inheritDoc
 	 */
-	public function visit( Node $node ) {
+	public function __construct( CodeBase $code_base, Context $context ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
 	}
 
 	/**
@@ -85,19 +87,19 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 
 	/**
 	 * @see visitMethod
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitFuncDecl( Decl $node ) {
+	public function visitFuncDecl( Node $node ) {
 		return $this->visitMethod( $node );
 	}
 
 	/**
 	 * @see visitMethod
-	 * @param Decl $node
+	 * @param Node $node
 	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitClosure( Decl $node ) {
+	public function visitClosure( Node $node ) {
 		return $this->visitMethod( $node );
 	}
 
@@ -112,14 +114,13 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 	 * to output a warning.
 	 *
 	 * Also handles FuncDecl and Closure
-	 * @param Decl $node
+	 * @param Node $node
 	 */
-	public function visitMethod( Decl $node ) {
+	public function visitMethod( Node $node ) {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 
 		$params = $node->children['params']->children;
-		$varObjs = [];
 		foreach ( $params as $i => $param ) {
 			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
@@ -128,6 +129,12 @@ class PreTaintednessVisitor extends TaintednessBaseVisitor {
 				continue;
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
+
+			if ( $varObj instanceof PassByReferenceVariable ) {
+				// PassByReferenceVariable objects are too ephemeral to store taintedness there.
+				$varObj = $varObj->getElement();
+			}
+
 			$paramTypeTaint = $this->getTaintByReturnType( $varObj->getUnionType() );
 			if ( $paramTypeTaint === SecurityCheckPlugin::NO_TAINT ) {
 				// The param is an integer or something, so skip.

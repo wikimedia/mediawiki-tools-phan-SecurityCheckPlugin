@@ -27,10 +27,16 @@ require_once __DIR__ . '/GetReturnObjsVisitor.php';
 use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Plugin\PluginImplementation;
-use ast\Node;
+use Phan\PluginV2;
+use Phan\PluginV2\PostAnalyzeNodeCapability;
+use Phan\PluginV2\PreAnalyzeNodeCapability;
 
-abstract class SecurityCheckPlugin extends PluginImplementation {
+/**
+ * @suppress PhanUnreferencedPublicClassConstant They're for use in custom plugins, too
+ */
+abstract class SecurityCheckPlugin extends PluginV2
+	implements PostAnalyzeNodeCapability, PreAnalyzeNodeCapability
+{
 
 	// Various taint flags. The _EXEC_ varieties mean
 	// that it is unsafe to assign that type of taint
@@ -101,49 +107,17 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	// due to special array handling.
 	const BACKPROP_TAINTS = self::ALL_EXEC_TAINT & ~self::SQL_NUMKEY_EXEC_TAINT;
 	const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
-	/**
-	 * Called on every node in the AST in post-order
-	 *
-	 * @param CodeBase $code_base The code base in which the node exists
-	 * @param Context $context The context in which the node exits.
-	 * @param Node $node The php-ast Node being analyzed.
-	 * @param Node|null $parent_node The parent node of the given node (if one exists).
-	 * @return void
-	 */
-	public function analyzeNode(
-		CodeBase $code_base,
-		Context $context,
-		Node $node,
-		Node $parent_node = null
-	) {
-		$oldMem = memory_get_peak_usage();
-		// This would also return the taint of the current node,
-		// but we don't need that here so we discard the return value.
-		$visitor = new TaintednessVisitor( $code_base, $context, $this );
-		$visitor( $node );
-		$newMem = memory_get_peak_usage();
-		$diff = floor( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
-		if ( $diff > 10 ) {
-			$cur = floor( ( memory_get_usage() / ( 1024 * 1024 ) ) );
-			$visitor->debug( __METHOD__, "Memory Spike! " . \ast\get_kind_name( $node->kind ) .
-				" diff=$diff MB; cur=$cur MB\n"
-			);
-		}
-	}
 
 	/**
-	 * Called on every node in the ast, but in pre-order
-	 *
-	 * We only need this for a couple things, namely
-	 * structural elements that cause a new variable to be
-	 * declared (e.g. method declarations, foreach loops)
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param Node $node
+	 * @var SecurityCheckPlugin Passed to the visitor for context
 	 */
-	public function preAnalyzeNode( CodeBase $code_base, Context $context, Node $node ) {
-		( new PreTaintednessVisitor( $code_base, $context, $this ) )( $node );
+	public static $pluginInstance;
+
+	/**
+	 * Save the subclass instance to make it accessible from the visitor
+	 */
+	public function __construct() {
+		self::$pluginInstance = $this;
 	}
 
 	/**
@@ -209,6 +183,7 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 * @param Context $context
 	 * @param CodeBase $code_base
 	 * @return bool Is this a false positive?
+	 * @suppress PhanUnusedPublicMethodParameter No param is used
 	 */
 	public function isFalsePositive(
 		int $lhsTaint,
@@ -242,7 +217,7 @@ abstract class SecurityCheckPlugin extends PluginImplementation {
 	 *     Note: escapes_html adds the exec_escaped flag, use
 	 *     escapes_htmlnoent if the value is safe to double encode.
 	 *  * onlysafefor_{type}
-	 *     Same as above, intended for "@return" statements.
+	 *     Same as above, intended for return type declarations.
 	 *     Only difference is that onlysafefor_html sets ESCAPED_TAINT instead
 	 *     of ESCAPED_EXEC_TAINT
 	 *  * none - self::NO_TAINT

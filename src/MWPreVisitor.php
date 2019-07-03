@@ -1,9 +1,6 @@
 <?php
 
-use Phan\Language\Context;
 use ast\Node;
-use ast\Node\Decl;
-use Phan\CodeBase;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\UnionType;
 
@@ -26,60 +23,22 @@ use Phan\Language\UnionType;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-class MWPreVisitor extends TaintednessBaseVisitor {
-
+class MWPreVisitor extends PreTaintednessVisitor {
 	/**
-	 * Ensure type of plugin is instance of MediaWikiSecurityCheckPlugin
-	 *
-	 * @param CodeBase $code_base
-	 * @param Context $context
-	 * @param MediaWikiSecurityCheckPlugin $plugin
+	 * Re-declared for better type inference
+	 * @suppress PhanReadOnlyProtectedProperty
+	 * @var MediaWikiSecurityCheckPlugin
 	 */
-	public function __construct(
-		CodeBase $code_base,
-		Context $context,
-		MediaWikiSecurityCheckPlugin $plugin
-	) {
-		parent::__construct( $code_base, $context, $plugin );
-		// Ensure phan knows plugin is right type
-		$this->plugin = $plugin;
-	}
-
-	/**
-	 * Handle any node not otherwise handled.
-	 *
-	 * Currently a no-op.
-	 *
-	 * @param Node $node
-	 */
-	public function visit( Node $node ) {
-	}
-
-	/**
-	 * @see visitMethod
-	 * @param Decl $node
-	 * @return void
-	 */
-	public function visitClosure( Decl $node ) {
-		return $this->visitMethod( $node );
-	}
-
-	/**
-	 * @see visitMethod
-	 * @param Decl $node
-	 * @return void Just has a return statement in case visitMethod changes
-	 */
-	public function visitFuncDecl( Decl $node ) {
-		return $this->visitMethod( $node );
-	}
-
+	protected $plugin;
 	/**
 	 * Set taint for certain hook types.
 	 *
 	 * Also handles FuncDecl
-	 * @param Decl $node
+	 * @param Node $node
 	 */
-	public function visitMethod( Decl $node ) {
+	public function visitMethod( Node $node ) {
+		parent::visitMethod( $node );
+
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		$hookType = $this->plugin->isSpecialHookSubscriber( $method->getFQSEN() );
 		if ( !$hookType ) {
@@ -107,7 +66,7 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	 *  PPFrame object
 	 *
 	 * @param array $params formal parameters of tag hook
-	 * @param FunctionInterface $method
+	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
 	private function setTagHookParamTaint( array $params, FunctionInterface $method ) {
 		// Only care about first 2 parameters.
@@ -159,7 +118,7 @@ class MWPreVisitor extends TaintednessBaseVisitor {
 	 *
 	 * @todo This is handling SFH_OBJECT type func hooks incorrectly.
 	 * @param Node[] $params Children of the AST_PARAM_LIST
-	 * @param FunctionInterface $method
+	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
 	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) {
 		// First make sure the first arg is set to be a Parser
