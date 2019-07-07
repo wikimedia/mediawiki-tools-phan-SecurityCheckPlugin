@@ -1,4 +1,4 @@
-integration/msg2/test.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +30; integration/msg2/test.php +32)
-integration/msg2/test.php:38 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +33; integration/msg2/test.php +34)
-integration/msg2/test.php:39 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +35; integration/msg2/test.php +36)
-integration/msg2/test.php:40 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +37; integration/msg2/test.php +38)
+integration/msg2/test.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +27; integration/msg2/test.php +29)
+integration/msg2/test.php:38 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +30; integration/msg2/test.php +31)
+integration/msg2/test.php:39 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +32; integration/msg2/test.php +33)
+integration/msg2/test.php:40 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/msg2/test.php +34; integration/msg2/test.php +35)
