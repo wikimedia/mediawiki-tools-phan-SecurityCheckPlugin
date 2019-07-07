@@ -111,28 +111,6 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Linker::makeExternalLink escaping depends on third argument
-	 *
-	 * @param Node $node
-	 */
-	private function checkExternalLink( Node $node ) {
-		$escapeArg = $node->children['args']->children[2] ?? true;
-		if ( is_object( $escapeArg ) && $escapeArg->kind === \ast\AST_CONST ) {
-			$escapeArg = $escapeArg->children['name']->children['name'] !== 'false';
-		}
-		$text = $node->children['args']->children[1] ?? null;
-		if ( !$escapeArg && $text instanceof Node ) {
-			$this->maybeEmitIssue(
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				$this->getTaintedness( $text ),
-				"Calling Linker::makeExternalLink with user controlled text " .
-				"and third argument set to false"
-					. $this->getOriginalTaintLine( $text )
-			);
-		}
-	}
-
-	/**
 	 * Special casing for complex format of IDatabase::select
 	 *
 	 * This handled the $options, and $join_cond. Other args are
