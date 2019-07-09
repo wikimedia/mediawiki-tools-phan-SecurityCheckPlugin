@@ -5,7 +5,7 @@ $baseCfg = require __DIR__ . '/base-config.php';
 $IP = getenv( 'MW_INSTALL_PATH' ) !== false
 	// Replace \\ by / for windows users to let exclude work correctly
 	? str_replace( '\\', '/', getenv( 'MW_INSTALL_PATH' ) )
-	: '../..';
+	: '../../';
 
 /**
  * Slow config. Include vendor in the analysis.
