@@ -4,6 +4,7 @@
  * Regression tests to check that the plugin keeps working as intended
  * phpcs:disable MediaWiki.Commenting.MissingCovers.MissingCovers
  * phpcs:disable MediaWiki.Usage.ForbiddenFunctions.shell_exec
+ * @fixme Make this work in CI!!!!!
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	/**
@@ -12,8 +13,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideScenarios
 	 */
 	public function testScenarios( $dirPath, $expected ) {
-		$here = __DIR__;
 		putenv( "SECURITY_CHECK_EXT_PATH=$dirPath" );
+		$here = __DIR__;
 		$cmd = "php $here/../vendor/phan/phan/phan" .
 			" --project-root-directory \"$here\"" .
 			" --config-file \"$here/integration-test-config.php\"" .

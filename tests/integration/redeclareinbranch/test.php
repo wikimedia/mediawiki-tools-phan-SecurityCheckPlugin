@@ -9,7 +9,7 @@ class Foo {
 	 * @return string
 	 */
 	private function bar() {
-		if( rand() ) {
+		if ( rand() ) {
 			// This is obviously safe due to reassigning, but we have to ensure
 			// that taintedness is overwritten in BranchScope.
 			$form = $_GET['bar'];
@@ -21,7 +21,7 @@ class Foo {
 
 	public function output() {
 		$form = '';
-		if( rand() ) {
+		if ( rand() ) {
 			$form = $_GET['bar'];
 			$form = 'foo';
 			echo $form; // Safe, but we're not yet smart enough

@@ -11,7 +11,7 @@ class MainClass {
 	 * @var string
 	 */
 	protected $name = null;
-	
+
 	/**
 	 * @param int $id
 	 * @return self
