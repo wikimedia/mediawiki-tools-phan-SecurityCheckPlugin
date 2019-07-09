@@ -274,14 +274,14 @@ trait TaintednessBaseVisitor {
 		// This variable is used to distinguish "implicit branches". These are bits of code
 		// having a BranchScope, but which aren't actual branches. An example is
 		// if ( !cond ) {
-		//     return val;
+		// return val;
 		// }
 		// doSomethingElse(); <-- Here we have a BranchScope
-		// Phan does this since https://github.com/phan/phan/commit/6301b3b5ac3938e43f63a76be04c481d0a071057
+		// Phan does this since commit 6301b3b5ac3938e43f63a76be04c481d0a071057
 		// @fixme Once we reach phan 2.2, this must be updated back to use $variableObj->getScope(),
 		// enabling the config option to keep Context inside Variables. Fix usages of $implicitBranch.
 		$implicitBranch = false;
-		$fixmeCanLinkVarToParent = function() use ( $variableObj ) {
+		$fixmeCanLinkVarToParent = function () use ( $variableObj ) {
 		// @fixme!!! This is a super hack: in the following if, we used to use
 		// $variableObj->getContext() to then get the parent scope, which is correct.
 		// However, phan stopped storing a Context object inside variables (replacing it
@@ -1203,9 +1203,9 @@ trait TaintednessBaseVisitor {
 			)
 		) {
 			// @todo This should be tweaked. The idea behind this check is:
-			//  - Let properties affect methods within the same class / the same file (depending
-			//     on whether we're currently in class scope), e.g. for getters/setters
-			//  - Forbid any other taintedness transfer. See the test 'user2' for the reason.
+			// - Let properties affect methods within the same class / the same file (depending
+			// on whether we're currently in class scope), e.g. for getters/setters
+			// - Forbid any other taintedness transfer. See the test 'user2' for the reason.
 			return;
 		}
 
