@@ -19,6 +19,7 @@
 
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
+use Phan\Debug;
 use Phan\Language\Context;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
@@ -69,7 +70,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// To see what kinds of nodes are passing through here,
 		// you can run `Debug::printNode($node)`.
 		# Debug::printNode( $node );
-		$this->debug( __METHOD__, "unhandled case " . \ast\get_kind_name( $node->kind ) );
+		$this->debug( __METHOD__, "unhandled case " . Debug::nodeName( $node ) );
 		return SecurityCheckPlugin::UNKNOWN_TAINT;
 	}
 
@@ -430,7 +431,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// sources of taint. Otherwise we can potentially
 				// misattribute where the taint is coming from
 				// See testcase dblescapefieldset.
-				$taintRHSObj = $this->getTaintedness( $rhsObj );
+				$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
 				if (
 					( ( ( $lhsTaintedness | $rhsTaintedness )
 					& ~$taintRHSObj ) & SecurityCheckPlugin::ALL_YES_EXEC_TAINT )
@@ -524,7 +525,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to backtick" );
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to backtick" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
 					SecurityCheckPlugin::SHELL_EXEC_TAINT
@@ -557,7 +558,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to require/eval" );
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to require/eval" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
 					SecurityCheckPlugin::MISC_EXEC_TAINT
@@ -601,7 +602,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting $phanObj exec due to echo" );
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to echo" );
 				// FIXME, maybe not do this for local variables
 				// since they don't have other code paths that can set them.
 				$this->markAllDependentMethodsExec(
@@ -1034,23 +1035,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$clazz = $this->context->getClassInScope( $this->code_base );
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
-		// @fixme Here we don't know if the property is static, so just try to guess. A future release
-		// will add a method to avoid this hack.
-		try {
-			$prop = $clazz->getPropertyByNameInContext(
-				$this->code_base,
-				$node->children['name'],
-				$this->context,
-				true
-			);
-		} catch ( IssueException $_ ) {
-			$prop = $clazz->getPropertyByNameInContext(
-				$this->code_base,
-				$node->children['name'],
-				$this->context,
-				false
-			);
-		}
+		$prop = $clazz->getPropertyByName( $this->code_base, $node->children['name'] );
 		// FIXME should this be NO?
 		// $this->debug( __METHOD__, "Setting taint preserve if not set"
 		// . " yet for \$" . $node->children['name'] . "" );
@@ -1089,6 +1074,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * This is e.g. for class X implements Name,List
+	 *
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitNameList( Node $node ) : int {
+		return SecurityCheckPlugin::NO_TAINT;
+	}
+
+	/**
 	 * @todo Is this right? The child condition should
 	 *  be visited when going in post order analysis anyways,
 	 *  and the taint of an If statement isn't really its condition.
@@ -1114,6 +1109,57 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return $this->getTaintedness( $node->children['expr'] );
 		}
 		return SecurityCheckPlugin::NO_TAINT;
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPostInc( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPreInc( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPostDec( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @return int Taint
+	 */
+	public function visitPreDec( Node $node ) : int {
+		return $this->analyzeIncOrDec( $node );
+	}
+
+	/**
+	 * Handles all post/pre-increment/decrement operators. They have no effect on the
+	 * taintedness of a variable.
+	 *
+	 * @param Node $node
+	 * @return int
+	 */
+	private function analyzeIncOrDec( Node $node ) : int {
+		$children = $this->getPhanObjsForNode( $node );
+		if ( count( $children ) === 1 ) {
+			return $this->getTaintednessPhanObj( reset( $children ) );
+		} elseif ( isset( $node->children['var'] ) ) {
+			// @fixme Stopgap to handle superglobals, which getPhanObjsForNode doesn't return
+			return $this->visitVar( $node->children['var'] );
+		} else {
+			return SecurityCheckPlugin::NO_TAINT;
+		}
 	}
 
 	/**

@@ -5,10 +5,10 @@ use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\Method;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
-use Phan\Language\Element\UnaddressableTypedElement;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
 use Phan\Language\Scope\BranchScope;
@@ -24,7 +24,6 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN;
 use ast\Node;
-// @phan-suppress-next-line PhanUnreferencedUseNormal Used in commented code
 use Phan\Debug;
 use Phan\Issue;
 use Phan\Language\Scope\FunctionLikeScope;
@@ -51,6 +50,10 @@ use Phan\Exception\IssueException;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+/**
+ * @property-read Context $context
+ * @property-read \Phan\CodeBase $code_base
+ */
 trait TaintednessBaseVisitor {
 	/** @var SecurityCheckPlugin */
 	protected $plugin;
@@ -76,7 +79,7 @@ trait TaintednessBaseVisitor {
 		$reason = null
 	) {
 		if (
-			$func instanceof ClassElement &&
+			$func instanceof Method &&
 			(string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
 		) {
 			$this->debug( __METHOD__, "Setting taint on function " . $func->getFQSEN() . " other than"
@@ -146,10 +149,10 @@ trait TaintednessBaseVisitor {
 	 * or its not a local variable).
 	 *
 	 * @note It is assumed you already checked that right is tainted in some way.
-	 * @param TypedElementInterface|UnaddressableTypedElement $left (LHS-ish variable)
-	 * @param TypedElementInterface|UnaddressableTypedElement $right (RHS-ish variable)
+	 * @param TypedElementInterface $left (LHS-ish variable)
+	 * @param TypedElementInterface $right (RHS-ish variable)
 	 */
-	protected function mergeTaintError( $left, $right ) {
+	protected function mergeTaintError( TypedElementInterface $left, TypedElementInterface $right ) {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
 			$left->taintedOriginalError = '';
 		}
@@ -159,7 +162,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( strlen( $left->taintedOriginalError ) > 254 ) {
-			$this->debug( __METHOD__, "Too long original error! for $left" );
+			$this->debug( __METHOD__, "Too long original error! for " . $left->getName() );
 			$left->taintedOriginalError = substr( $left->taintedOriginalError, 0, 250 ) . '... ';
 		}
 	}
@@ -170,13 +173,13 @@ trait TaintednessBaseVisitor {
 	 * This allows us to show users what line caused an issue.
 	 *
 	 * @param int $taintedness The taintedness in question
-	 * @param TypedElementInterface|UnaddressableTypedElement $elem Where to put it
+	 * @param TypedElementInterface $elem Where to put it
 	 * @param int $arg [Optional] For functions, which argument
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		int $taintedness,
-		$elem,
+		TypedElementInterface $elem,
 		int $arg = -1,
 		$reason = null
 	) {
@@ -221,14 +224,14 @@ trait TaintednessBaseVisitor {
 
 		if ( $arg === -1 ) {
 			if ( strlen( $elem->taintedOriginalError ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! $elem" );
+				$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
 				$elem->taintedOriginalError = substr(
 					$elem->taintedOriginalError, 0, 250
 				) . '... ';
 			}
 		} else {
 			if ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! $elem" );
+				$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
 				$elem->taintedOriginalErrorByArg[$arg] = substr(
 					$elem->taintedOriginalErrorByArg[$arg], 0, 250
 				) . '... ';
@@ -239,12 +242,12 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Change the taintedness of a variable
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $variableObj The variable in question
+	 * @param TypedElementInterface $variableObj The variable in question
 	 * @param int $taintedness One of the class constants
 	 * @param bool $override Override taintedness or just take max.
 	 */
 	protected function setTaintedness(
-		$variableObj,
+		TypedElementInterface $variableObj,
 		int $taintedness,
 		$override = true
 	) {
@@ -421,10 +424,7 @@ trait TaintednessBaseVisitor {
 	 * @return null|FunctionInterface
 	 */
 	private function getDefiningFunc( FunctionInterface $func ) {
-		if (
-			$func instanceof ClassElement
-			&& $func->hasDefiningFQSEN()
-		) {
+		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
 			// Our function has a parent, and potentially interface and traits.
 			if ( (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN() ) {
 				$definingFunc = $this->code_base->getMethodByFQSEN(
@@ -452,7 +452,7 @@ trait TaintednessBaseVisitor {
 		if ( $definingFunc ) {
 			$funcsToTry[] = $definingFunc;
 		}
-		if ( $func instanceof ClassElement ) {
+		if ( $func instanceof Method ) {
 			try {
 				$class = $func->getClass( $this->code_base );
 				$nonParents = $class->getNonParentAncestorFQSENList();
@@ -608,16 +608,19 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Obtain taint information from a docblock comment.
 	 *
-	 * @todo Possibly this should cache results.
-	 * @suppress PhanUndeclaredMethod
 	 * @param FunctionInterface $func The function to check
 	 * @return null|int[] null for no info, or a function taint array
 	 */
 	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) {
-		// hasNode/getNode is part of \Phan\Analysis\Analyzable trait
-		// which all implementations of FunctionInterface use, but
-		// is not actually part of the interface, so phan complains
-		// about this line.
+		static $cache = [];
+
+		// Note that we're not using the hashed docblock for caching, because the same docblock
+		// may have different meanings in different contexts. E.g. @return self
+		$fqsen = (string)$func->getFQSEN();
+		if ( isset( $cache[ $fqsen ] ) ) {
+			return $cache[ $fqsen ];
+		}
+		// @phan-suppress-next-line PhanUndeclaredMethod All FunctionInterface implementations have it
 		if ( !$func->hasNode() ) {
 			// No docblock available
 			return null;
@@ -645,18 +648,18 @@ trait TaintednessBaseVisitor {
 					if ( ( $taint & SecurityCheckPlugin::ESCAPES_HTML ) ===
 						SecurityCheckPlugin::ESCAPES_HTML
 					) {
-						// Special case to auto-set
-						// anything that escapes html to
-						// detect double escaping.
-						$funcTaint['overall'] |=
-							SecurityCheckPlugin::ESCAPED_TAINT;
+						// Special case to auto-set anything that escapes html to detect double escaping.
+						$funcTaint['overall'] |= SecurityCheckPlugin::ESCAPED_TAINT;
 					}
 				} else {
 					$this->debug( __METHOD__, "Could not " .
 						"understand taint line '$m[2]'" );
 				}
 			} elseif ( strpos( $line, '@return-taint' ) !== false ) {
-				$taintLine = substr( $line, strpos( $line, '@return-taint' ) + 14 );
+				$taintLine = substr(
+					$line,
+					strpos( $line, '@return-taint' ) + strlen( '@return-taint' ) + 1
+				);
 				$taint = SecurityCheckPlugin::parseTaintLine( $taintLine );
 				if ( $taint !== null ) {
 					$funcTaint['overall'] = $taint;
@@ -667,7 +670,16 @@ trait TaintednessBaseVisitor {
 				}
 			}
 		}
-		return $validTaintEncountered ? $funcTaint : null;
+
+		if ( !$validTaintEncountered ) {
+			return null;
+		}
+
+		$cache[ $fqsen ] = $funcTaint;
+		if ( count( $cache ) > 1000 ) {
+			array_shift( $cache );
+		}
+		return $funcTaint;
 	}
 
 	/**
@@ -703,7 +715,7 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
-		foreach ( $types->getTypeSet() as $type ) {
+		foreach ( $typelist as $type ) {
 			switch ( $type->getName() ) {
 			case 'int':
 			case 'float':
@@ -802,20 +814,13 @@ trait TaintednessBaseVisitor {
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
-			} elseif (
-				$expr instanceof TypedElementInterface ||
-				$expr instanceof UnaddressableTypedElement
-			) {
-				// echo __METHOD__ . "FIXME, do we want this interface here?\n";
-				return $this->getTaintednessPhanObj( $expr );
 			}
 			// fallthrough
 		case "resource":
 		case "unknown type":
 		case "array":
 		default:
-			throw new Exception( "wtf - $type" );
-
+			throw new Exception( __METHOD__ . " called with invalid type $type" );
 		}
 	}
 
@@ -837,10 +842,10 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given a phan object (not method/function) find its taint
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $variableObj
+	 * @param TypedElementInterface $variableObj
 	 * @return int The taint
 	 */
-	protected function getTaintednessPhanObj( $variableObj ) : int {
+	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : int {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new Exception( "This method cannot be used with methods" );
 		}
@@ -886,12 +891,11 @@ trait TaintednessBaseVisitor {
 	 * e.g. Should foo( $bar ) return the $bar variable object?
 	 *  What about the foo function object?
 	 *
-	 * @suppress PhanUndeclaredMethod it checks method_exists()
 	 * @param Node $node AST node in question
 	 * @param string[] $options Change type of objects returned
 	 *    * 'all' -> Given a method call, include the method and its args
 	 *    * 'return' -> Given a method call, include objects in its return.
-	 * @return array Array of various phan objects corresponding to $node
+	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
 	protected function getPhanObjsForNode( Node $node, $options = [] ) {
 		$cn = $this->getCtxN( $node );
@@ -930,6 +934,7 @@ trait TaintednessBaseVisitor {
 					$this->debug( __METHOD__, "Cannot determine " .
 						"property [3] (Maybe don't know what class) - " .
 						( method_exists( $e, 'getIssueInstance' )
+						// @phan-suppress-next-line PhanUndeclaredMethod it checks method_exists()
 						? $e->getIssueInstance()
 						: get_class( $e ) . $e->getMessage() )
 					);
@@ -1055,12 +1060,19 @@ trait TaintednessBaseVisitor {
 					// @todo Future todo might be to still return arguments in this case.
 					return [];
 				}
+			case \ast\AST_PRE_INC:
+			case \ast\AST_PRE_DEC:
+			case \ast\AST_POST_INC:
+			case \ast\AST_POST_DEC:
+				$children = $node->children;
+				assert( count( $children ) === 1 );
+				return $this->getPhanObjsForNode( reset( $children ) );
 			default:
 				// Debug::printNode( $node );
 				// This should really be a visitor that recurses into
 				// things.
 				$this->debug( __METHOD__, "FIXME unhandled case"
-					. \ast\get_kind_name( $node->kind ) . "\n"
+					. Debug::nodeName( $node ) . "\n"
 				);
 				return [];
 		}
@@ -1127,12 +1139,15 @@ trait TaintednessBaseVisitor {
 	 *
 	 * This also merges the information on what line caused the taint.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $lhs Source of method list
-	 * @param TypedElementInterface|UnaddressableTypedElement $rhs Destination of merged method list
+	 * @param TypedElementInterface $lhs Source of method list
+	 * @param TypedElementInterface $rhs Destination of merged method list
 	 */
-	protected function mergeTaintDependencies( $lhs, $rhs ) {
+	protected function mergeTaintDependencies(
+		TypedElementInterface $lhs,
+		TypedElementInterface $rhs
+	) {
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
-		$taintRHS = $this->getTaintedness( $rhs );
+		$taintRHS = $this->getTaintednessPhanObj( $rhs );
 
 		if ( $taintRHS &
 			( SecurityCheckPlugin::ALL_EXEC_TAINT | SecurityCheckPlugin::ALL_TAINT )
@@ -1158,6 +1173,7 @@ trait TaintednessBaseVisitor {
 			foreach ( $paramInfo as $index => $_ ) {
 				assert( property_exists( $method, 'taintedVarLinks' ) );
 				assert( isset( $method->taintedVarLinks[$index] ) );
+				assert( $method->taintedVarLinks[$index] instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$method->taintedVarLinks[$index]->attach( $lhs );
 			}
@@ -1175,11 +1191,11 @@ trait TaintednessBaseVisitor {
 	 * This method is called to make all things that set $this->foo
 	 * as TAINT_EXEC.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement $var The variable in question
+	 * @param TypedElementInterface $var The variable in question
 	 * @param int $taint What taint to mark them as.
 	 */
 	protected function markAllDependentMethodsExec(
-		$var,
+		TypedElementInterface $var,
 		int $taint = SecurityCheckPlugin::EXEC_TAINT
 	) {
 		// Ensure we only set exec bits, not normal taint bits.
@@ -1221,14 +1237,14 @@ trait TaintednessBaseVisitor {
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 		}
-		$curVarTaint = $this->getTaintedness( $var );
+		$curVarTaint = $this->getTaintednessPhanObj( $var );
 		$newTaint = $this->mergeAddTaint( $curVarTaint, $taint );
 		$this->setTaintedness( $var, $newTaint );
 
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for variable $var" );
+			$this->debug( __METHOD__, "Memory spike $diffMem for variable " . $var->getName() );
 		}
 	}
 
@@ -1260,7 +1276,8 @@ trait TaintednessBaseVisitor {
 		// have assumed the class member was not tainted.
 		$classesNeedRefresh = new Set;
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
-			$curVarTaint = $this->getTaintedness( $var );
+			assert( $var instanceof TypedElementInterface );
+			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, $taintAdjusted );
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
@@ -1371,7 +1388,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement|Node $element
+	 * @param TypedElementInterface|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
@@ -1388,7 +1405,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
-	 * @param TypedElementInterface|UnaddressableTypedElement|Node $element
+	 * @param TypedElementInterface|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
@@ -1396,10 +1413,7 @@ trait TaintednessBaseVisitor {
 		$line = '';
 		if ( !is_object( $element ) ) {
 			return '';
-		} elseif (
-			$element instanceof TypedElementInterface ||
-			$element instanceof UnaddressableTypedElement
-		) {
+		} elseif ( $element instanceof TypedElementInterface ) {
 			if ( $arg === -1 ) {
 				if ( $element instanceof PassByReferenceVariable ) {
 					$element = $element->getElement();
@@ -1476,7 +1490,7 @@ trait TaintednessBaseVisitor {
 
 		$pobjs = $this->getPhanObjsForNode( $node );
 		foreach ( $pobjs as $pobj ) {
-			$pobjTaintContribution = $this->getTaintedness( $pobj );
+			$pobjTaintContribution = $this->getTaintednessPhanObj( $pobj );
 			// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
 			$links = $pobj->taintedMethodLinks ?? null;
 			if ( !$links ) {
@@ -1559,7 +1573,10 @@ trait TaintednessBaseVisitor {
 		);
 
 		foreach ( $taint as $i => $t ) {
-			assert( is_int( $t ) && $t >= 0, "Taint index $i wrong $t" . $this->dbgInfo() );
+			if ( !( is_int( $t ) && $t >= 0 ) ) {
+				// Keep this inside the conditional to avoid computing dbgInfo lots of times.
+				assert( false, "Taint index $i wrong $t" . $this->dbgInfo() );
+			}
 		}
 	}
 
@@ -2137,7 +2154,7 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given a Node, is it a string? (And definitely not an array)
+	 * Given a Node, is it a string?
 	 *
 	 * @todo Unclear if this should return true for things that can
 	 *   autocast to a string (e.g. ints)
@@ -2158,18 +2175,8 @@ trait TaintednessBaseVisitor {
 				$this->context,
 				$node
 			);
-			// @todo The hasArrayLike check below would seem to make sense. However, prior to
-			// phan 0.8.7 (i.e. with seccheck 1.5), that function would deem an union type as
-			// array like if **all** of its types were array like. Starting from phan 0.8.7,
-			// instead, it checks that **any** type is array-like. That is obviously the correct
-			// choice, but makes the check below redundant because we check if the uniontype has
-			// string type inside.
-			if (
-				// !$type->hasArrayLike() &&
-				$type->hasType( StringType::instance( false ) )
-			) {
-				// FIXME TODO: Should having Mixed type
-				// result in returning false here?
+			if ( $type->hasType( StringType::instance( false ) ) ) {
+				// @todo Should having mixed type result in returning false here?
 				return true;
 			}
 		} catch ( Exception $e ) {
@@ -2236,9 +2243,9 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func The function/method. Must use Analyzable trait
 	 * @return array An array of phan objects
-	 * @suppress PhanUndeclaredMethod hasNode is not part of the interface
 	 */
 	public function getReturnObjsOfFunc( FunctionInterface $func ) {
+		// @phan-suppress-next-line PhanUndeclaredMethod hasNode is not part of the interface
 		if ( !$func->hasNode() ) {
 			// Can't do anything
 			return [];

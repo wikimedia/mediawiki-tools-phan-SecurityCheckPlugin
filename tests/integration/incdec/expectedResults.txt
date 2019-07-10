@@ -1,0 +1,6 @@
+integration/incdec/test.php:5 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/incdec/test.php +3)
+integration/incdec/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/incdec/test.php +3)
+integration/incdec/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/incdec/test.php +9)
+integration/incdec/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/incdec/test.php +9)
+integration/incdec/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/incdec/test.php:17 SecurityCheck-XSS Echoing expression that was not html escaped

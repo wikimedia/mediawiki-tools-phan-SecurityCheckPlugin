@@ -47,7 +47,7 @@ class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
 				continue;
 			}
 			// Note, this does not adjust the $context object...
-			// Future todo, this could be made more efficient by
+			// @todo, this could be made more efficient by
 			// recursing only when neccessary.
 			$results = array_merge( $results, $this( $child ) );
 		}
