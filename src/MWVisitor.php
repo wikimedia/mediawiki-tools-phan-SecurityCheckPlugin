@@ -1,5 +1,6 @@
 <?php
 
+use Phan\Exception\InvalidFQSENException;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
@@ -1023,10 +1024,16 @@ class MWVisitor extends TaintednessVisitor {
 				return;
 			}
 
-			$fqsen = FullyQualifiedClassName::fromStringInContext(
-				$className,
-				$this->context
-			);
+			try {
+				$fqsen = FullyQualifiedClassName::fromStringInContext(
+					$className,
+					$this->context
+				);
+			} catch ( InvalidFQSENException $_ ) {
+				// 'class' refers to something which is not a class, and this is probably not
+				// an HTMLForm
+				return;
+			}
 			if ( !$this->code_base->hasClassWithFQSEN( $fqsen ) ) {
 				return;
 			}
