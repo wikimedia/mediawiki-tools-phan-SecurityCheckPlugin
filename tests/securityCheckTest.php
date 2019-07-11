@@ -4,21 +4,21 @@
  * Regression tests to check that the plugin keeps working as intended
  * phpcs:disable MediaWiki.Commenting.MissingCovers.MissingCovers
  * phpcs:disable MediaWiki.Usage.ForbiddenFunctions.shell_exec
- * @fixme Make this work in CI!!!!!
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	/**
-	 * @param string $dirPath Path to the directory to analyze
+	 * @param string $name Test name, and name of the folder
 	 * @param string $expected Expected seccheck output for the directory
 	 * @dataProvider provideScenarios
 	 */
-	public function testScenarios( $dirPath, $expected ) {
-		putenv( "SECURITY_CHECK_EXT_PATH=$dirPath" );
-		$here = __DIR__;
-		$cmd = "php $here/../vendor/phan/phan/phan" .
-			" --project-root-directory \"$here\"" .
-			" --config-file \"$here/integration-test-config.php\"" .
-			" -l \"$dirPath\"";
+	public function testScenarios( $name, $expected ) {
+		// Ensure that we're in the main project folder
+		chdir( __DIR__ . '/../' );
+		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/integration/$name" );
+		$cmd = "php vendor/phan/phan/phan" .
+			" --project-root-directory \"tests/\"" .
+			" --config-file \"integration-test-config.php\"" .
+			" -l \"integration/$name\"";
 
 		$res = shell_exec( $cmd );
 		$this->assertEquals( $expected, $res );
@@ -37,8 +37,10 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 				continue;
 			}
 			$folder = $dir->getPathname();
-			$expected = glob( $folder . '/*.txt' )[0];
-			yield basename( $folder ) => [ $folder, file_get_contents( $expected ) ];
+			$testName = basename( $folder );
+			$expected = file_get_contents( $folder . '/expectedResults.txt' );
+
+			yield $testName => [ $testName, $expected ];
 		}
 	}
 }

@@ -39,16 +39,16 @@
 		"test": [
 			"parallel-lint . --exclude vendor",
 			"composer phpcs",
-			"composer integration-tests",
-			"./tests/run-phan-on-plugin.sh",
-			"composer minus-x"
+			"composer minus-x",
+			"./tests/run-phan-on-plugin.sh -p",
+			"phpunit"
 		],
 		"test-php7.0": [
 			"parallel-lint . --exclude vendor -p php7.0",
 			"composer phpcs",
-			"composer integration-tests",
+			"composer minus-x",
 			"./tests/run-phan-on-plugin.sh -p",
-			"composer minus-x"
+			"phpunit"
 		],
 		"phpcs": "phpcs -p -s",
 		"minus-x": "minus-x check .",
