@@ -1026,6 +1026,7 @@ trait TaintednessBaseVisitor {
 				return array_merge( $tObj, $fObj );
 			case \ast\AST_CONST:
 			case \ast\AST_CLASS_CONST:
+			case \ast\AST_CLASS_NAME:
 			case \ast\AST_MAGIC_CONST:
 			case \ast\AST_ISSET:
 			case \ast\AST_NEW:
@@ -1092,6 +1093,17 @@ trait TaintednessBaseVisitor {
 				);
 				return [];
 		}
+	}
+
+	/**
+	 * Whether a variable can be considered a superglobal. Phan doesn't consider $argv and $argc
+	 * as such, but for our use case, they should be.
+	 * @param string $varName
+	 * @return bool
+	 */
+	protected function isSuperGlobal( $varName ) {
+		return Variable::isSuperglobalVariableWithName( $varName ) ||
+			$varName === 'argv' || $varName === 'argc';
 	}
 
 	/**
@@ -1684,9 +1696,8 @@ trait TaintednessBaseVisitor {
 						return null;
 					}
 					break;
-				case \ast\AST_CLASS_CONST:
+				case \ast\AST_CLASS_NAME:
 					if (
-						$classNode->children['const'] === 'class' &&
 						$classNode->children['class']->kind === \ast\AST_NAME &&
 						is_string( $classNode->children['class']->children['name'] )
 					) {
@@ -1695,6 +1706,8 @@ trait TaintednessBaseVisitor {
 						return null;
 					}
 					break;
+				case \ast\AST_CLASS_CONST:
+					return null;
 				case \ast\AST_VAR:
 					$var = $this->getCtxN( $classNode )->getVariable();
 					$type = $var->getUnionType();

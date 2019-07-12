@@ -30,6 +30,8 @@ use ast\Node;
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * @suppress PhanUnreferencedClass https://github.com/phan/phan/issues/2945
  */
 class MWVisitor extends TaintednessVisitor {
 	/**
@@ -1011,8 +1013,7 @@ class MWVisitor extends TaintednessVisitor {
 			}
 			if (
 				$class instanceof Node &&
-				$class->kind === \ast\AST_CLASS_CONST &&
-				$class->children['const'] === 'class' &&
+				$class->kind === \ast\AST_CLASS_NAME &&
 				$class->children['class'] instanceof Node &&
 				$class->children['class']->kind === \ast\AST_NAME &&
 				is_string( $class->children['class']->children['name'] )

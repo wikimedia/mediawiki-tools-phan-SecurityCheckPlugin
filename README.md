@@ -17,9 +17,9 @@ Usage
 -----
 
 ### System requirements
-* php >= 7.0.0
-* Phan 1.3.2
-* php-ast >=1.0.0
+* php >= 7.2.0
+* Phan 2.0.0
+* php-ast >=1.0.1
 * Lots of memory. Scanning MediaWiki seems to take about 3 minutes
 and use about 2 GB of memory. Running out of memory may be a real issue
 if you try and scan something from within a VM that has limited
@@ -84,7 +84,7 @@ of plugins in your phan config.php file.
 
 Then run phan as you normally would:
 
-    $ php7 /path/to/phan/phan -p
+    $ php /path/to/phan/phan -p
 
 ### Docker
 The docker image used by Wikimedia's continuous integration for scanning extensions and skins

@@ -156,8 +156,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
 			// @phan-suppress-next-line PhanUndeclaredMethod all implementations have it
-			!$func->getHasYield() &&
-			!$func->getHasReturn() &&
+			!$func->hasYield() &&
+			!$func->hasReturn() &&
 			!property_exists( $func, 'funcTaint' )
 		) {
 			// At this point, if func exec's stuff, funcTaint
@@ -878,7 +878,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * A variable (e.g. $foo)
 	 *
-	 * This always considers superglobals and superglobals-like as tainted
+	 * This always considers superglobals as tainted
 	 *
 	 * @param Node $node
 	 * @return int Taint
@@ -895,12 +895,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// Debug::printNode( $node );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
-		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
-			if ( Variable::isHardcodedGlobalVariableWithName( $varName ) ) {
-				// Superglobals-like are tainted.
-				// echo "$varName is superglobal-like. Marking tainted\n";
-				return SecurityCheckPlugin::YES_TAINT;
-			}
+		if ( $this->isSuperGlobal( $varName ) ) {
+			// Superglobals are tainted, regardless of whether they're in the current scope:
+			// `function foo() use ($argv)` puts $argv in the local scope, but it retains its
+			// taintedness (see test closure2).
+			// echo "$varName is superglobal. Marking tainted\n";
+			return SecurityCheckPlugin::YES_TAINT;
+		} elseif ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
 			// Probably the var just isn't in scope yet.
 			// $this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
