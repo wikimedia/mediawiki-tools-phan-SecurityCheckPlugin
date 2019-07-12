@@ -11,7 +11,6 @@ use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
-use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type\ClosureType;
 use Phan\Language\UnionType;
 use Phan\Language\Type\CallableType;
@@ -26,7 +25,6 @@ use Phan\Language\FQSEN;
 use ast\Node;
 use Phan\Debug;
 use Phan\Issue;
-use Phan\Language\Scope\FunctionLikeScope;
 use Phan\Library\Set;
 use Phan\Exception\IssueException;
 
@@ -280,44 +278,19 @@ trait TaintednessBaseVisitor {
 
 		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
 		// . get_class( $this->context->getScope() ) . "" );
+
 		// If the current context is not a FunctionLikeScope, then
 		// it might be a class, or an if branch, or global. In any case
 		// its probably a non-local variable (or in the if case, code
 		// that may not be executed).
 
-		// This variable is used to distinguish "implicit branches". These are bits of code
-		// having a BranchScope, but which aren't actual branches. An example is
-		// if ( !cond ) {
-		// return val;
-		// }
-		// doSomethingElse(); <-- Here we have a BranchScope
-		// Phan does this since commit 6301b3b5ac3938e43f63a76be04c481d0a071057
-		// @fixme Once we reach phan 2.2, this must be updated back to use $variableObj->getScope(),
-		// enabling the config option to keep Context inside Variables. Fix usages of $implicitBranch.
-		$implicitBranch = false;
-		$fixmeCanLinkVarToParent = function () use ( $variableObj ) {
-		// @fixme!!! This is a super hack: in the following if, we used to use
-		// $variableObj->getContext() to then get the parent scope, which is correct.
-		// However, phan stopped storing a Context object inside variables (replacing it
-		// with a FileRef), so that cannot be done anymore. As a workaround, using
-		// $this->context->getScope()->getParentScope() will work most of the times.
-		// BUT not always, because the current context must be equal to the var's one, and there
-		// are situations where this isn't true; for instance, when setting taintedness of
-		// variables retrieved by taintedVarLinks, which could live very far to the current
-		// context. The proper solution is PR #2778 upstream, which restores the Context
-		// inside Variables. However, it is included in phan 2.0.0, which brings in too
-		// many changes to be included in our 2.0 release; it also drops PHP7.0 support.
-		// The check below should cover most of the cases where the var lives far from our
-		// current context, but it's really a stopgap to get rid of ASAP.
-			return $this->context->getFile() === $variableObj->getFileRef()->getFile() &&
-				$variableObj->getFileRef()->getLineNumberStart() <= $this->context->getLineNumberStart();
-		};
+		$varContext = $variableObj->getFileRef();
+		assert( $varContext instanceof Context, 'record_variable_context_and_scope must be enabled' );
+		$existsOutside = false;
 		if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
-			&& $fixmeCanLinkVarToParent()
-			&& ( $this->context->getScope() instanceof BranchScope )
-			// && ( $this->context->getScope()->getParentScope() instanceof FunctionLikeScope )
+			&& $varContext->getScope() !== $this->context->getScope()
 		) {
-			$parentScope = $this->context->getScope()->getParentScope();
+			$parentScope = $varContext->getScope();
 			// We are in a branch and this is a local variable
 			// (as opposed to a class member). Try to link this
 			// variable with its parent outside the branch in same func.
@@ -352,18 +325,13 @@ trait TaintednessBaseVisitor {
 				}
 				$variableObj->taintedOriginalError = $combinedOrig;
 				$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
-
+				$existsOutside = true;
 			} else {
-				$implicitBranch = true;
 				$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
 			}
 		}
 
-		// @fixme Update to !($variableObj->getContext()->getScope() instanceof BranchScope)
-		// once we reach phan 2.2
-		if ( property_exists( $variableObj, 'taintednessHasOuterScope' )
-			|| ( !( $this->context->getScope() instanceof FunctionLikeScope ) && !$implicitBranch )
-		) {
+		if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) || $existsOutside ) {
 			// Given we are either in a branch, or the variable has some
 			// sort of outer scope (is a global, is a class member), we
 			// try to merge the taint instead of overriding, as we have

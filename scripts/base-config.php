@@ -29,6 +29,12 @@ return [
 	'analyze_signature_compatibility' => false,
 
 	/**
+	 * Keep Context objects inside variables, needed by the plugin to link variables
+	 * inside a branch to their correspective object outside
+	 */
+	'record_variable_context_and_scope' => true,
+
+	/**
 	 * Do not emit false positives
 	 */
 	"minimum_severity" => 1,

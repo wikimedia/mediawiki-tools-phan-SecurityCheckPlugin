@@ -194,6 +194,12 @@ return [
 	'dead_code_detection_prefer_false_negative' => true,
 
 	/**
+	 * Keep Context objects inside variables, needed by the plugin to link variables
+	 * inside a branch to their correspective object outside
+	 */
+	'record_variable_context_and_scope' => true,
+
+	/**
 	 * If disabled, Phan will not read docblock type
 	 * annotation comments (such as for @return, @param,
 	 * @var, @suppress, @deprecated) and only rely on
