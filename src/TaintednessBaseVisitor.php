@@ -1339,7 +1339,7 @@ trait TaintednessBaseVisitor {
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for method $method" );
+			$this->debug( __METHOD__, "Memory spike $diffMem for method {$method->getName()}" );
 		}
 	}
 
@@ -2286,10 +2286,18 @@ trait TaintednessBaseVisitor {
 			// Can't do anything
 			return [];
 		}
+
+		if ( property_exists( $func, 'scopeAfterAnalysis' ) ) {
+			// This is a copy of the internal scope with the complete variables map, see phan issue #2963
+			$context = $func->getContext()->withScope( $func->scopeAfterAnalysis );
+		} else {
+			$context = $func->getContext();
+		}
+
 		$node = $func->getNode();
 		return ( new GetReturnObjsVisitor(
 			$this->code_base,
-			$func->getContext()
+			$context
 		) )( $node );
 	}
 }

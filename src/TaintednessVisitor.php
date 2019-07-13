@@ -153,6 +153,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	private function analyzeFunctionLike( FunctionInterface $func ) : int {
+		// Phan will remove the variable map after analysis, so save it for later
+		// use by GetReturnObjsVisitor. Ref phan issue #2963
+		$func->scopeAfterAnalysis = $this->context->getScope();
 		if (
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
