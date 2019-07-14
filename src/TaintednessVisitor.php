@@ -596,7 +596,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// Unsure about BITWISE ops, since
 			// "A" | "B" still is a string
 			// so skipping.
-			// Add is not included due to array addition.
 			\ast\flags\BINARY_BOOL_XOR,
 			\ast\flags\BINARY_DIV,
 			\ast\flags\BINARY_IS_EQUAL,
@@ -608,6 +607,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			\ast\flags\BINARY_MOD,
 			\ast\flags\BINARY_MUL,
 			\ast\flags\BINARY_POW,
+			// BINARY_ADD handled below due to array addition.
 			\ast\flags\BINARY_SUB,
 			\ast\flags\BINARY_BOOL_AND,
 			\ast\flags\BINARY_BOOL_OR,
@@ -616,6 +616,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		];
 
 		if ( in_array( $node->flags, $safeBinOps ) ) {
+			return SecurityCheckPlugin::NO_TAINT;
+		} elseif (
+			$node->flags === \ast\flags\BINARY_ADD && (
+				$this->nodeIsInt( $node->children['left'] ) ||
+				$this->nodeIsInt( $node->children['right'] )
+			)
+		) {
+			// This is used to avoid removing taintedness from array addition, and addition
+			// of unknown types. If at least one node is integer, either the result will be an
+			// integer, or PHP will throw a fatal.
 			return SecurityCheckPlugin::NO_TAINT;
 		}
 

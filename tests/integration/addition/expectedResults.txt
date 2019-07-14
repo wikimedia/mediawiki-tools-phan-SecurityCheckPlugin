@@ -1,0 +1,2 @@
+integration/addition/test.php:9 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/addition/test.php +8; integration/addition/test.php +7)
+integration/addition/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/addition/test.php +12; integration/addition/test.php +11)
