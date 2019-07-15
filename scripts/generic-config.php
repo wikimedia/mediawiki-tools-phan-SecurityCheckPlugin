@@ -31,11 +31,9 @@ $thisCfg = [
 	"exclude_analysis_directory_list" => [
 		'vendor'
 	],
-
-	// A list of plugin files to execute
-	'plugins' => [
-		__DIR__ . '/../GenericSecurityCheckPlugin.php',
-	],
 ];
 
-return $thisCfg + $baseCfg;
+$cfg = $thisCfg + $baseCfg;
+$cfg['plugins'][] = __DIR__ . '/../GenericSecurityCheckPlugin.php';
+
+return $cfg;

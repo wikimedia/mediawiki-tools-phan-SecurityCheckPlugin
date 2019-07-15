@@ -103,4 +103,13 @@ return [
 	 * class types.
 	 */
 	'generic_types_enabled' => true,
+
+	'plugins' => [
+		'UnusedSuppressionPlugin'
+	],
+
+	'plugin_config' => [
+		// Only report unused suppressions for security issues
+		'unused_suppression_whitelisted_only' => true
+	],
 ];

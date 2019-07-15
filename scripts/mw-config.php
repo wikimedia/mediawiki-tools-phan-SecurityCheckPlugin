@@ -47,11 +47,9 @@ $coreCfg = [
 		'includes/libs/jsminplus.php',
 		'includes/libs/objectcache/utils/MemcachedClient.php',
 	],
-
-	// A list of plugin files to execute
-	'plugins' => [
-		__DIR__ . '/../MediaWikiSecurityCheckPlugin.php',
-	],
 ];
 
-return $coreCfg + $baseCfg;
+$cfg = $coreCfg + $baseCfg;
+$cfg['plugins'][] = __DIR__ . '/../MediaWikiSecurityCheckPlugin.php';
+
+return $cfg;

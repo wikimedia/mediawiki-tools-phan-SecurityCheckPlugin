@@ -53,12 +53,10 @@ $MWExtConfig = [
 		'tests',
 		$IP
 	],
-
-	// A list of plugin files to execute
-	'plugins' => [
-		__DIR__ . '/../MediaWikiSecurityCheckPlugin.php',
-	],
 ];
-
 unset( $IP );
-return $MWExtConfig + $baseCfg;
+
+$cfg = $MWExtConfig + $baseCfg;
+$cfg['plugins'][] = __DIR__ . '/../MediaWikiSecurityCheckPlugin.php';
+
+return $cfg;
