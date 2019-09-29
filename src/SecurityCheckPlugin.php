@@ -321,7 +321,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 			case 'none':
 				return self::NO_TAINT;
 			default:
-				assert( false, "$name not valid taint" );
+				throw new AssertionError( "$name not valid taint" );
 		}
 	}
 

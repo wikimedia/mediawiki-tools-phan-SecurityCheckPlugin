@@ -663,11 +663,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param FQSEN $funcName
 	 */
 	private function visitReturnOfFunctionHook( Node $node, FQSEN $funcName ) {
-		if (
-			!( $node instanceof Node ) ||
-			$node->kind !== \ast\AST_ARRAY ||
-			count( $node->children ) < 2
-		) {
+		if ( $node->kind !== \ast\AST_ARRAY || count( $node->children ) < 2 ) {
 			return;
 		}
 		$isHTML = false;
@@ -959,11 +955,19 @@ class MWVisitor extends TaintednessVisitor {
 			$key = (string)$child->children['key'];
 			switch ( $key ) {
 				case 'type':
+					$type = $child->children['value'];
+					break;
 				case 'class':
+					$class = $child->children['value'];
+					break;
 				case 'label':
+					$label = $child->children['value'];
+					break;
 				case 'options':
+					$options = $child->children['value'];
+					break;
 				case 'default':
-					$$key = $child->children['value'];
+					$default = $child->children['value'];
 					break;
 				case 'label-raw':
 					$rawLabel = $child->children['value'];

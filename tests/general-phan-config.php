@@ -2,9 +2,6 @@
 
 use \Phan\Config;
 
-// If xdebug is enabled, we need to increase the nesting level for phan
-ini_set( 'xdebug.max_nesting_level', 1000 );
-
 /**
  * This configuration will be read and overlayed on top of the
  * default configuration. Command line arguments will be applied
@@ -122,17 +119,6 @@ return [
 	'quick_mode' => false,
 
 	/**
-	 * By default, Phan will not analyze all node types
-	 * in order to save time. If this config is set to true,
-	 * Phan will dig deeper into the AST tree and do an
-	 * analysis on all nodes, possibly finding more issues.
-	 *
-	 * See \Phan\Analysis::shouldVisit for the set of skipped
-	 * nodes.
-	 */
-	'should_visit_all_nodes' => true,
-
-	/**
 	 * If enabled, check all methods that override a
 	 * parent method to make sure its signature is
 	 * compatible with the parent's. This check
@@ -209,15 +195,6 @@ return [
 	'read_type_annotations' => true,
 
 	/**
-	 * If a file path is given, the code base will be
-	 * read from and written to the given location in
-	 * order to attempt to save some work from being
-	 * done. Only changed files will get analyzed if
-	 * the file is read
-	 */
-	'stored_state_file_path' => null,
-
-	/**
 	 * Set to true in order to ignore issue suppression.
 	 * This is useful for testing the state of your code, but
 	 * unlikely to be useful outside of that.
@@ -236,26 +213,10 @@ return [
 	 */
 	'dump_signatures_file' => null,
 
-	/**
-	 * If true (and if stored_state_file_path is set) we'll
-	 * look at the list of files passed in and expand the list
-	 * to include files that depend on the given files
-	 */
-	'expand_file_list' => false,
-
 	// Include a progress bar in the output
 	// Shell script determines this dynamically
 	// if stderr is a tty.
 	'progress_bar' => false,
-
-	/**
-	 * The probability of actually emitting any progress
-	 * bar update. Setting this to something very low
-	 * is good for reducing network IO and filling up
-	 * your terminal's buffer when running phan on a
-	 * remote host.
-	 */
-	'progress_bar_sample_rate' => 0.005,
 
 	/**
 	 * The number of processes to fork off during the analysis
@@ -301,4 +262,12 @@ return [
 		'UnusedSuppressionPlugin',
 		'DuplicateExpressionPlugin'
 	],
+
+	/**
+	 * Set to true in order to attempt to detect redundant and impossible conditions.
+	 *
+	 * This has some false positives involving loops,
+	 * variables set in branches of loops, and global variables.
+	 */
+	'redundant_condition_detection' => true
 ];

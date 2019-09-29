@@ -1609,8 +1609,7 @@ trait TaintednessBaseVisitor {
 
 		foreach ( $taint as $i => $t ) {
 			if ( !( is_int( $t ) && $t >= 0 ) ) {
-				// Keep this inside the conditional to avoid computing dbgInfo lots of times.
-				assert( false, "Taint index $i wrong $t" . $this->dbgInfo() );
+				throw new AssertionError( "Taint index $i wrong $t" . $this->dbgInfo() );
 			}
 		}
 	}

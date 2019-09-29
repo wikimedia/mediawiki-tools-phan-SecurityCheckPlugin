@@ -2,9 +2,6 @@
 
 // This is the base config, shared with all the others
 
-// If xdebug is enabled, we need to increase the nesting level for phan
-ini_set( 'xdebug.max_nesting_level', 1000 );
-
 return [
 	/**
 	 * Backwards Compatibility Checking. This is slow
@@ -29,8 +26,6 @@ return [
 
 	'quick_mode' => false,
 
-	'should_visit_all_nodes' => true,
-
 	'analyze_signature_compatibility' => false,
 
 	/**
@@ -53,10 +48,8 @@ return [
 	'disable_suppression' => false,
 	'dump_ast' => false,
 	'dump_signatures_file' => null,
-	'expand_file_list' => false,
 	// Include a progress bar in the output
 	'progress_bar' => true,
-	'progress_bar_sample_rate' => 0.005,
 
 	/**
 	 * The number of processes to fork off during the analysis
