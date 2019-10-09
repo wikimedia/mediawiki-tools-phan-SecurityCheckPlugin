@@ -19,7 +19,9 @@ Usage
 ### System requirements
 * php >= 7.2.0
 * Phan 2.0.0
-* php-ast >=1.0.1
+* Strongly suggested: php-ast >=1.0.1. While this is not enforced via composer,
+using the fallback parser is way slower and more memory-draining than using php-ast.
+See https://github.com/nikic/php-ast for instructions.
 * Lots of memory. Scanning MediaWiki seems to take about 3 minutes
 and use about 2 GB of memory. Running out of memory may be a real issue
 if you try and scan something from within a VM that has limited
