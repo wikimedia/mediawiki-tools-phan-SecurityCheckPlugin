@@ -15,6 +15,11 @@ return [
 	 */
 	'backward_compatibility_checks' => false,
 
+	'analyzed_file_extensions' => [
+		'php',
+		'inc'
+	],
+
 	/**
 	 * A set of fully qualified class-names for which
 	 * a call to parent::__construct() is required
