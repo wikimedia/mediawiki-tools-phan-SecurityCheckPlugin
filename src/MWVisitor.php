@@ -295,8 +295,6 @@ class MWVisitor extends TaintednessVisitor {
 
 	private function registerHook( string $hookType, FullyQualifiedFunctionLikeName $callback ) {
 		$alreadyRegistered = $this->plugin->registerHook( $hookType, $callback );
-		// @phan-suppress-next-next-line PhanTypeSuspiciousStringExpression Implementations of
-		// FullyQualifiedFunctionLikeName have a __toString method.
 		$this->debug( __METHOD__, "registering $callback for hook $hookType" );
 		if ( !$alreadyRegistered ) {
 			// If this is the first time seeing this, re-analyze the
