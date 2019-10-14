@@ -6,6 +6,7 @@ use Phan\BlockAnalysisVisitor;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
+use Phan\Language\Element\Parameter;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Variable;
 use Phan\Language\Element\TypedElementInterface;
@@ -296,8 +297,11 @@ trait TaintednessBaseVisitor {
 			// variable with its parent outside the branch in same func.
 			if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
 				$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
-				$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
-				$existsOutside = true;
+				if ( !( $parentVarObj instanceof Parameter ) || $parentVarObj->isPassByReference() ) {
+					// Parameters are handled separately, unless this is a pass-by-ref
+					$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
+					$existsOutside = true;
+				}
 			} else {
 				$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
 			}
@@ -1251,9 +1255,17 @@ trait TaintednessBaseVisitor {
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 		}
-		$curVarTaint = $this->getTaintednessPhanObj( $var );
-		$newTaint = $this->mergeAddTaint( $curVarTaint, $taint );
-		$this->setTaintedness( $var, $newTaint );
+
+		if ( $var instanceof Property || property_exists( $var, 'taintednessHasOuterScope' ) ) {
+			// For local variables, don't set the taint: the taintedness set here should only be used
+			// when examining a function call. Inside the function body, we'll already have all the
+			// info we need, and actually, this extra taint would cause false positives with variable
+			// names reuse.
+			// @fixme However, right now only local variables can be passed in.
+			$curVarTaint = $this->getTaintednessPhanObj( $var );
+			$newTaint = $this->mergeAddTaint( $curVarTaint, $taint );
+			$this->setTaintedness( $var, $newTaint );
+		}
 
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );

@@ -519,7 +519,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Otherwise, this could result in a variable basically tainting itself.
 		// TODO: Additionally, we maybe consider skipping this when in
 		// branch scope and variable is not pass by reference.
-		$adjustedRHS = $rhsTaintedness & ( $rhsTaintedness ^ $lhsTaintedness );
+		// @fixme Is this really necessary? It doesn't seem helpful for local variables,
+		// and it doesn't handle props or globals.
+		$adjustedRHS = $rhsTaintedness & ~$lhsTaintedness;
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
 			$adjustedRHS,
