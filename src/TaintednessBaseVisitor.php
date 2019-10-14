@@ -1866,6 +1866,10 @@ trait TaintednessBaseVisitor {
 	 * @param string $msg Issue description
 	 */
 	public function maybeEmitIssue( int $lhsTaint, int $rhsTaint, string $msg ) {
+		if ( ( $lhsTaint & SecurityCheckPlugin::RAW_PARAM ) === SecurityCheckPlugin::RAW_PARAM ) {
+			$msg .= ' (Param is raw)';
+			$lhsTaint = $this->yesToExecTaint( $lhsTaint & ~SecurityCheckPlugin::RAW_PARAM );
+		}
 		if ( $this->isSafeAssignment( $lhsTaint, $rhsTaint ) ) {
 			return;
 		}

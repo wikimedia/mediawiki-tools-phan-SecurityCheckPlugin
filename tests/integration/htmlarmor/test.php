@@ -1,12 +1,12 @@
 <?php
 
 class HtmlArmor {
-	/**
-	 * @param string|null $value
-	 */
 	public function __construct( $value ) {
+	}
+	public function __toString() {
+		return 'placeholder';
 	}
 }
 
-$arm1 = new HtmlArmor( $_GET['unsafe'] ); // Not a good idea, but still safe
+$arm1 = new HtmlArmor( $_GET['unsafe'] );
 $arm2 = new HtmlArmor( 'safe' );
