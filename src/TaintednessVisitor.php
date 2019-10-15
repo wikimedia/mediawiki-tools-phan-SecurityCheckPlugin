@@ -22,6 +22,7 @@ use Phan\Debug;
 use Phan\Exception\CodeBaseException;
 use Phan\Language\Context;
 use Phan\Language\Element\PassByReferenceVariable;
+use Phan\Language\Element\Property;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use ast\Node;
@@ -530,7 +531,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
 			$isGlobal = property_exists( $variableObj, 'taintednessHasOuterScope' );
-			if ( $override && $variableObj instanceof Variable && !$isGlobal ) {
+			if ( $override && !( $variableObj instanceof Property ) && !$isGlobal ) {
 				// Clear any error before setting taintedness if we're overriding taint.
 				// Don't do that for globals and props, as we don't handle them really well yet
 				$this->clearTaintError( $variableObj );

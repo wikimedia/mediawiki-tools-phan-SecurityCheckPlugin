@@ -296,35 +296,7 @@ trait TaintednessBaseVisitor {
 			// variable with its parent outside the branch in same func.
 			if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
 				$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
-
-				if ( !property_exists( $parentVarObj, 'taintedness' ) ) {
-					// $this->debug( __METHOD__,
-					// "parent scope for $variableObj has no taint. Setting $taintedness" );
-					$parentVarObj->taintedness = $taintedness;
-				} else {
-					// $this->debug( __METHOD__,
-					// "parent scope for $variableObj already has taint "
-					// . $parentVarObj->taintedness . " adding $taintedness " );
-					$parentVarObj->taintedness = $this->mergeAddTaint( $parentVarObj->taintedness, $taintedness );
-				}
-				$variableObj->taintedness =& $parentVarObj->taintedness;
-
-				$methodLinks = $parentVarObj->taintedMethodLinks ?? new Set;
-				$variableObjLinks = $variableObj->taintedMethodLinks ?? new Set;
-				$variableObj->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
-				$parentVarObj->taintedMethodLinks =& $variableObj->taintedMethodLinks;
-				$varError = $variableObj->taintedOriginalError ?? '';
-				$combinedOrig = $parentVarObj->taintedOriginalError ?? '';
-				if ( strpos( $combinedOrig, $varError ?: "\1\2" ) === false ) {
-					$combinedOrig .= $varError;
-				}
-
-				if ( strlen( $combinedOrig ) > 254 ) {
-					$this->debug( __METHOD__, "Too long original error! $variableObj" );
-					$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
-				}
-				$variableObj->taintedOriginalError = $combinedOrig;
-				$parentVarObj->taintedOriginalError =& $variableObj->taintedOriginalError;
+				$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
 				$existsOutside = true;
 			} else {
 				$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
@@ -357,6 +329,49 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
 			// ( $variableObj->taintedness ?? 'unset' ) );
 		$this->addTaintError( $taintedness, $variableObj );
+	}
+
+	/**
+	 * Given a variable object with some kind of outer scope, link its taintedness to the given
+	 * parent variable
+	 *
+	 * @param TypedElementInterface $inner
+	 * @param TypedElementInterface $outer
+	 * @param int $taintedness
+	 */
+	private function linkTaintednessToParent(
+		TypedElementInterface $inner,
+		TypedElementInterface $outer,
+		int $taintedness
+	) {
+		if ( !property_exists( $outer, 'taintedness' ) ) {
+			// $this->debug( __METHOD__,
+			// "parent scope for $inner has no taint. Setting $taintedness" );
+			$outer->taintedness = $taintedness;
+		} else {
+			// $this->debug( __METHOD__,
+			// "parent scope for $inner already has taint "
+			// . $outer->taintedness . " adding $taintedness " );
+			$outer->taintedness = $this->mergeAddTaint( $outer->taintedness, $taintedness );
+		}
+		$inner->taintedness =& $outer->taintedness;
+
+		$methodLinks = $outer->taintedMethodLinks ?? new Set;
+		$variableObjLinks = $inner->taintedMethodLinks ?? new Set;
+		$inner->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
+		$outer->taintedMethodLinks =& $inner->taintedMethodLinks;
+		$varError = $inner->taintedOriginalError ?? '';
+		$combinedOrig = $outer->taintedOriginalError ?? '';
+		if ( strpos( $combinedOrig, $varError ?: "\1\2" ) === false ) {
+			$combinedOrig .= $varError;
+		}
+
+		if ( strlen( $combinedOrig ) > 254 ) {
+			$this->debug( __METHOD__, "Too long original error! {$inner->getName()}" );
+			$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
+		}
+		$inner->taintedOriginalError = $combinedOrig;
+		$outer->taintedOriginalError =& $inner->taintedOriginalError;
 	}
 
 	/**
@@ -1202,7 +1217,8 @@ trait TaintednessBaseVisitor {
 		if (
 			$taint === 0 ||
 			$this->isIssueSuppressedOrFalsePositive( $taint ) ||
-			!property_exists( $var, 'taintedMethodLinks' )
+			!property_exists( $var, 'taintedMethodLinks' ) ||
+			!count( $var->taintedMethodLinks )
 		) {
 			return;
 		}
