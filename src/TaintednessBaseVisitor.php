@@ -566,11 +566,15 @@ trait TaintednessBaseVisitor {
 	public function analyzeFunc( FunctionInterface $func ) {
 		static $depth = 0;
 		$node = $func->getNode();
+		if ( !$node ) {
+			return;
+		}
 		// @todo Tune the max depth. Raw benchmarking shows very little difference between e.g.
 		// 5 and 10. However, while with higher values we can detect more issues and avoid more
 		// false positives, it becomes harder to tell where an issue is coming from.
 		// Thus, this value should be increased only when we'll have better error reporting.
-		if ( !$node || $depth > 5 ) {
+		if ( $depth > 5 ) {
+			$this->debug( __METHOD__, 'WARNING: aborting analysis earlier due to max depth' );
 			return;
 		}
 		if ( $node->kind === \ast\AST_CLOSURE && isset( $node->children['uses'] ) ) {
