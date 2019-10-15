@@ -168,6 +168,17 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Clears any previous error on the given element.
+	 *
+	 * @param TypedElementInterface $elem
+	 */
+	protected function clearTaintError( TypedElementInterface $elem ) {
+		if ( property_exists( $elem, 'taintedOriginalError' ) ) {
+			$elem->taintedOriginalError = '';
+		}
+	}
+
+	/**
 	 * Add the current context to taintedOriginalError book-keeping
 	 *
 	 * This allows us to show users what line caused an issue.

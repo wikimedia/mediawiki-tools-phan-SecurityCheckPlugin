@@ -473,6 +473,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// TODO, be more specific for different OPs
 			// Expand rhs to include implicit lhs ophand.
 			$rhsTaintedness = $this->mergeAddTaint( $rhsTaintedness, $lhsTaintedness );
+			$override = false;
 		}
 
 		// Special case for SQL_NUMKEY_TAINT
@@ -528,9 +529,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// echo $this->dbgInfo() . " " . $variableObj .
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
+			$isGlobal = property_exists( $variableObj, 'taintednessHasOuterScope' );
+			if ( $override && $variableObj instanceof Variable && !$isGlobal ) {
+				// Clear any error before setting taintedness if we're overriding taint.
+				// Don't do that for globals and props, as we don't handle them really well yet
+				$this->clearTaintError( $variableObj );
+			}
 			$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
 
-			if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) ) {
+			if ( $isGlobal ) {
 				$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
 				$this->setTaintedness( $globalVar, $rhsTaintedness, false );
 			}
