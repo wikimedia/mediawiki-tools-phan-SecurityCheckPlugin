@@ -1,0 +1,2 @@
+integration/clone/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/clone/test.php +3)
+integration/clone/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/clone/test.php +4)

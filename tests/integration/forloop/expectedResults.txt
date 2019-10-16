@@ -1,0 +1,2 @@
+integration/forloop/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/forloop/test.php +3)
+integration/forloop/test.php:12 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/forloop/test.php +11)
