@@ -18,6 +18,7 @@ $z = $_GET['baz'];
 // These _are_ double escaped
 getEscaped( htmlspecialchars( $z ) );
 getEscaped2( htmlspecialchars( $z ) );
+// This is safe because it doesn't use the arg
 getEscaped3( htmlspecialchars( $z ) );
 
 function getEscaped( $x ) {
@@ -35,4 +36,31 @@ function getEscaped3( $x ) {
 	$x = '';
 	$x = htmlspecialchars( $x ); // Safe assignment
 	return $x;
+}
+
+function logFormatter() {
+	makePageLink( htmlspecialchars( $_GET['baz'] ) );
+}
+
+function makePageLink( $html ) {
+	$html = $_GET['foo'];
+	echo htmlspecialchars( $html ); // Definitely safe
+}
+
+function logFormatter2() {
+	makePageLink2( htmlspecialchars( $_GET['baz'] ) );
+}
+
+function makePageLink2( $html ) {
+	$html = $html; // This must not clear the taint!
+	echo htmlspecialchars( $html );
+}
+
+function logFormatter3() {
+	makePageLink3( htmlspecialchars( $_GET['baz'] ) );
+}
+
+function makePageLink3( $html ) {
+	$html = rand() ? $html : ''; // This must not clear the taint!
+	echo htmlspecialchars( $html );
 }
