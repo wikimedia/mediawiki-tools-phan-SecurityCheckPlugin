@@ -616,6 +616,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			}
 		}
 	}
+
 	/**
 	 * Get a list of subscribers for hook
 	 *

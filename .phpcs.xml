@@ -5,8 +5,6 @@
 		<exclude name="MediaWiki.NamingConventions.ValidGlobalName.allowedPrefix" />
 		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment" />
 		<exclude name="Squiz.PHP.NonExecutableCode.Unreachable" />
-		<exclude name="MediaWiki.PHP70Features.ScalarTypeHintUsage.Found" />
-		<exclude name="MediaWiki.PHP70Features.ScalarTypeHintUsage.ReturnTypeFound" />
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.assert" />
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.escapeshellarg" />
 	</rule>
@@ -15,37 +13,6 @@
 	<arg name="encoding" value="UTF-8"/>
 
 	<exclude-pattern>./vendor</exclude-pattern>
-
-	<!-- Stuff we are only excluding in tests" -->
-	<rule ref="MediaWiki.Usage.SuperGlobalsUsage.SuperGlobals">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="Generic.Classes.DuplicateClassName.Found">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-
-	<rule ref="MediaWiki.Commenting.FunctionComment">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="MediaWiki.Files.ClassMatchesFilename.NotMatch">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="Generic.Files.OneObjectStructurePerFile">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="Generic.PHP.BacktickOperator.Found">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="Generic.PHP.NoSilencedErrors.Discouraged">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="Generic.CodeAnalysis.UnconditionalIfStatement.Found">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="MediaWiki.Files.ClassMatchesFilename.WrongCase">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
-	<rule ref="MediaWiki.Usage.DbrQueryUsage">
-		<exclude-pattern>./tests</exclude-pattern>
-	</rule>
+	<!-- No point in linting tests -->
+	<exclude-pattern>./tests</exclude-pattern>
 </ruleset>

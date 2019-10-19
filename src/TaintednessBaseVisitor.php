@@ -620,6 +620,7 @@ trait TaintednessBaseVisitor {
 		}
 		return $taint;
 	}
+
 	/**
 	 * Obtain taint information from a docblock comment.
 	 *
@@ -712,6 +713,7 @@ trait TaintednessBaseVisitor {
 		$this->debug( __METHOD__, $func->getName() . " does not have param $name" );
 		return null;
 	}
+
 	/**
 	 * Given a type, determine what type of taint
 	 *

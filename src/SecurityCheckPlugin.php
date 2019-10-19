@@ -42,38 +42,38 @@ abstract class SecurityCheckPlugin extends PluginV2
 	// that it is unsafe to assign that type of taint
 	// to the variable in question.
 
-	const NO_TAINT = 0;
+	public const NO_TAINT = 0;
 	// For declaration type things. Given a special value for
 	// debugging purposes, but inapplicable taint should not
 	// actually show up anywhere.
-	const INAPPLICABLE_TAINT = 1;
+	public const INAPPLICABLE_TAINT = 1;
 	// Flag to denote that we don't know
-	const UNKNOWN_TAINT = 2;
+	public const UNKNOWN_TAINT = 2;
 	// Flag for function parameters and the like, where it
 	// preserves whatever taint the function is given.
-	const PRESERVE_TAINT = 4;
+	public const PRESERVE_TAINT = 4;
 
 	// In future might separate out different types of html quoting.
 	// e.g. "<div data-foo='" . htmlspecialchars( $bar ) . "'>";
 	// is unsafe.
-	const HTML_TAINT = 8;
-	const HTML_EXEC_TAINT = 16;
-	const SQL_TAINT = 32;
-	const SQL_EXEC_TAINT = 64;
-	const SHELL_TAINT = 128;
-	const SHELL_EXEC_TAINT = 256;
-	const SERIALIZE_TAINT = 512;
-	const SERIALIZE_EXEC_TAINT = 1024;
+	public const HTML_TAINT = 8;
+	public const HTML_EXEC_TAINT = 16;
+	public const SQL_TAINT = 32;
+	public const SQL_EXEC_TAINT = 64;
+	public const SHELL_TAINT = 128;
+	public const SHELL_EXEC_TAINT = 256;
+	public const SERIALIZE_TAINT = 512;
+	public const SERIALIZE_EXEC_TAINT = 1024;
 	// To allow people to add other application specific
 	// taints.
-	const CUSTOM1_TAINT = 2048;
-	const CUSTOM1_EXEC_TAINT = 4096;
-	const CUSTOM2_TAINT = 8192;
-	const CUSTOM2_EXEC_TAINT = 16384;
+	public const CUSTOM1_TAINT = 2048;
+	public const CUSTOM1_EXEC_TAINT = 4096;
+	public const CUSTOM2_TAINT = 8192;
+	public const CUSTOM2_EXEC_TAINT = 16384;
 	// For stuff that doesn't fit another
 	// category (For the moment, this is stuff like `require $foo`)
-	const MISC_TAINT = 32768;
-	const MISC_EXEC_TAINT = 65536;
+	public const MISC_TAINT = 32768;
+	public const MISC_EXEC_TAINT = 65536;
 	// Special purpose for supporting MediaWiki's IDatabase::select
 	// and friends. Like SQL_TAINT, but only applies to the numeric
 	// keys of an array. Note: These are not included in YES_TAINT/EXEC_TAINT.
@@ -82,31 +82,32 @@ abstract class SecurityCheckPlugin extends PluginV2
 	// The associative keys also have this flag if they are tainted.
 	// It is also assumed anything with this flag will also have
 	// the SQL_TAINT flag set.
-	const SQL_NUMKEY_TAINT = 131072;
-	const SQL_NUMKEY_EXEC_TAINT = 262144;
+	public const SQL_NUMKEY_TAINT = 131072;
+	public const SQL_NUMKEY_EXEC_TAINT = 262144;
 	// For double escaped variables
-	const ESCAPED_TAINT = 524288;
-	const ESCAPED_EXEC_TAINT = 1048576;
+	public const ESCAPED_TAINT = 524288;
+	public const ESCAPED_EXEC_TAINT = 1048576;
 
 	// Special purpose flags(Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
-	const ARRAY_OK = 268435456;
+	public const ARRAY_OK = 268435456;
 	// Do not allow autodetected taint info override given taint.
-	const NO_OVERRIDE = 0x20000000;
+	public const NO_OVERRIDE = 0x20000000;
 
 	// Combination flags.
 	// YES_TAINT denotes all taint a user controlled variable would have
-	const YES_TAINT = 43688;
-	const EXEC_TAINT = 87376;
-	const YES_EXEC_TAINT = 131064;
+	public const YES_TAINT = 43688;
+	public const EXEC_TAINT = 87376;
+	public const YES_EXEC_TAINT = 131064;
 	// ALL taint is YES + special purpose taints, but not including special flags.
-	const ALL_TAINT = self::YES_TAINT | self::SQL_NUMKEY_TAINT | self::ESCAPED_TAINT;
-	const ALL_EXEC_TAINT = self::EXEC_TAINT | self::SQL_NUMKEY_EXEC_TAINT | self::ESCAPED_EXEC_TAINT;
-	const ALL_YES_EXEC_TAINT = self::ALL_TAINT | self::ALL_EXEC_TAINT;
+	public const ALL_TAINT = self::YES_TAINT | self::SQL_NUMKEY_TAINT | self::ESCAPED_TAINT;
+	public const ALL_EXEC_TAINT =
+		self::EXEC_TAINT | self::SQL_NUMKEY_EXEC_TAINT | self::ESCAPED_EXEC_TAINT;
+	public const ALL_YES_EXEC_TAINT = self::ALL_TAINT | self::ALL_EXEC_TAINT;
 	// Taints that support backpropagation. Does not include numkey
 	// due to special array handling.
-	const BACKPROP_TAINTS = self::ALL_EXEC_TAINT & ~self::SQL_NUMKEY_EXEC_TAINT;
-	const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
+	public const BACKPROP_TAINTS = self::ALL_EXEC_TAINT & ~self::SQL_NUMKEY_EXEC_TAINT;
+	public const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
 
 	/**
 	 * @var SecurityCheckPlugin Passed to the visitor for context
@@ -323,6 +324,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 				assert( false, "$name not valid taint" );
 		}
 	}
+
 	/**
 	 * Taints for builtin php functions
 	 *

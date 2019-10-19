@@ -32,6 +32,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * @var MediaWikiSecurityCheckPlugin
 	 */
 	protected $plugin;
+
 	/**
 	 * Set taint for certain hook types.
 	 *

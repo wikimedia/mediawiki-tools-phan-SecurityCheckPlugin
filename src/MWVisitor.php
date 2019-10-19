@@ -1137,6 +1137,7 @@ class MWVisitor extends TaintednessVisitor {
 			}
 		}
 	}
+
 	/**
 	 * Try to detect HTMLForm specifiers
 	 *
