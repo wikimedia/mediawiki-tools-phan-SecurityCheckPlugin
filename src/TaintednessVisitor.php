@@ -865,7 +865,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				. " Maybe func not defined. " . $this->getDebugInfo( $e ) );
 			$func = null;
 			$funcName = '[UNKNOWN FUNC]';
-			$taint = [ 'overall' => SecurityCheckPlugin::UNKNOWN_TAINT ];
+			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 
 		return $this->handleMethodCall( $func, $funcName, $taint, $node->children['args']->children );
