@@ -18,3 +18,10 @@ list( $safe, $unsafe ) = $mixed;
 // This is safe, but is not reported as such because array elements share taintedness
 echo $safe;
 echo $unsafe;
+
+evil( $_GET['baz'] );
+
+function evil( $ev ) {
+	list( $stillevil ) = [ $ev ];
+	echo $stillevil;
+}

@@ -64,3 +64,30 @@ function makePageLink3( $html ) {
 	$html = rand() ? $html : ''; // This must not clear the taint!
 	echo htmlspecialchars( $html );
 }
+
+function logFormatter4() {
+	makePageLink4( htmlspecialchars( $_GET['baz'] ) );
+}
+
+function makePageLink4( $html ) {
+	list( $html ) = [ $html ]; // This must not clear the taint!
+	echo htmlspecialchars( $html );
+}
+
+function logFormatter5() {
+	makePageLink5( htmlspecialchars( $_GET['baz'] ) );
+}
+
+function makePageLink5( $html ) {
+	list( $_, $html, $_ ) = [ 'foo', $html, 'bar' ]; // This must not clear the taint!
+	echo htmlspecialchars( $html );
+}
+
+function logFormatter6() {
+	makePageLink6( htmlspecialchars( $_GET['baz'] ) );
+}
+
+function makePageLink6( $html ) {
+	list( $_, $html, $_ ) = rand() ? [ 'foo', $html, 'bar' ] : [ '', '', '' ]; // This must not clear the taint!
+	echo htmlspecialchars( $html );
+}
