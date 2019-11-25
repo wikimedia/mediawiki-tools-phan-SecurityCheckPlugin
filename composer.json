@@ -25,7 +25,6 @@
 	"require": {
 		"phan/phan": "2.0.0",
 		"php": "^7.2.0",
-		"ext-ast": "~1.0.1",
 		"ext-json": "*"
 	},
 	"require-dev": {
