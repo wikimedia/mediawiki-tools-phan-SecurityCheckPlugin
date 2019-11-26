@@ -178,6 +178,15 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Clears any taintedness links on this object
+	 *
+	 * @param TypedElementInterface $elem
+	 */
+	protected function clearTaintLinks( TypedElementInterface $elem ) {
+		unset( $elem->taintedMethodLinks, $elem->taintedVarLinks );
+	}
+
+	/**
 	 * Add the current context to taintedOriginalError book-keeping
 	 *
 	 * This allows us to show users what line caused an issue.

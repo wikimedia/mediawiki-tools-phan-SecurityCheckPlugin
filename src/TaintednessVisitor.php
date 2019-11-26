@@ -459,7 +459,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		try {
 			$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
 		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "FIXME Cannot understand RHS. "
+			$this->debug( __METHOD__, "FIXME Cannot understand LHS. "
 				. get_class( $e ) . " - {$e->getMessage()}"
 			);
 			// Debug::printNode( $node );
@@ -528,15 +528,36 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			"Assigning a tainted value to a variable that later does something unsafe with it"
 				. $this->getOriginalTaintLine( $node->children['var'] )
 		);
+
+		$rhsObjs = [];
+		if ( is_object( $node->children['expr'] ) ) {
+			try {
+				$rhsObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			} catch ( Exception $e ) {
+				$this->debug( __METHOD__, "Cannot get phan object for RHS of assign "
+					. get_class( $e ) . $e->getMessage() );
+			}
+		}
+
 		foreach ( $variableObjs as $variableObj ) {
 			// echo $this->dbgInfo() . " " . $variableObj .
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
 			$isGlobal = property_exists( $variableObj, 'taintednessHasOuterScope' );
-			if ( $override && !( $variableObj instanceof Property ) && !$isGlobal ) {
+			if (
+				$override &&
+				!( $variableObj instanceof Property ) &&
+				!$isGlobal &&
+				!in_array( $variableObj, $rhsObjs, true )
+			) {
 				// Clear any error before setting taintedness if we're overriding taint.
-				// Don't do that for globals and props, as we don't handle them really well yet
+				// Don't do that for globals and props, as we don't handle them really well yet.
+				// Also don't do that if one of the objects in the RHS is the same as this object
+				// in the LHS. This is especially important in conditionals e.g.
+				// tainted = tainted ?: null.
 				$this->clearTaintError( $variableObj );
+				// Ditto for links. Beyond this point the object is free of links.
+				$this->clearTaintLinks( $variableObj );
 			}
 			$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
 
@@ -545,16 +566,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->setTaintedness( $globalVar, $rhsTaintedness, false );
 			}
 
-			try {
-				if ( !is_object( $node->children['expr'] ) ) {
-					continue;
-				}
-				$rhsObjs = $this->getPhanObjsForNode( $node->children['expr'] );
-			} catch ( Exception $e ) {
-				$this->debug( __METHOD__, "Cannot get phan object for RHS of assign "
-					. get_class( $e ) . $e->getMessage() );
-				continue;
-			}
 			foreach ( $rhsObjs as $rhsObj ) {
 				// Only merge dependencies if there are no other
 				// sources of taint. Otherwise we can potentially
