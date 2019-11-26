@@ -311,11 +311,20 @@ class MWVisitor extends TaintednessVisitor {
 				if ( $this->context->isInFunctionLikeScope() ) {
 					$func = $this->context->getFunctionLikeInScope( $this->code_base );
 				}
-			} elseif ( $callback instanceof FullyQualifiedMethodName ) {
+			} elseif (
+				$callback instanceof FullyQualifiedMethodName &&
+				$this->code_base->hasMethodWithFQSEN( $callback )
+			) {
 				$func = $this->code_base->getMethodByFQSEN( $callback );
-			} else {
-				assert( $callback instanceof FullyQualifiedFunctionName );
+			} elseif (
+				$callback instanceof FullyQualifiedFunctionName &&
+				$this->code_base->hasFunctionWithFQSEN( $callback )
+			) {
 				$func = $this->code_base->getFunctionByFQSEN( $callback );
+			} else {
+				// Probably the handler doesn't exist; ignore it.
+				$this->debug( __METHOD__, "No handler found for $callback" );
+				return;
 			}
 			// Make sure we reanalyze the hook function now that
 			// we know what it is, in case its already been
@@ -372,7 +381,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @note This will only work where the return
 	 *  statement is an array literal.
-	 * @param Node|Mixed $node Node from ast tree
+	 * @param Node|mixed $node Node from ast tree
 	 */
 	private function handleGetQueryInfoReturn( $node ) {
 		if (
@@ -402,6 +411,11 @@ class MWVisitor extends TaintednessVisitor {
 		$selectFQSEN = FullyQualifiedMethodName::fromFullyQualifiedString(
 			'\Wikimedia\Rdbms\IDatabase::select'
 		);
+		if ( !$this->code_base->hasMethodWithFQSEN( $selectFQSEN ) ) {
+			// Huh. Core wasn't parsed. That's bad, but don't fail hard.
+			$this->debug( __METHOD__, 'Database::select does not exist.' );
+			return;
+		}
 		$select = $this->code_base->getMethodByFQSEN( $selectFQSEN );
 		$taint = $this->getTaintOfFunction( $select );
 		$this->handleMethodCall( $select, $selectFQSEN, $taint, $args );
