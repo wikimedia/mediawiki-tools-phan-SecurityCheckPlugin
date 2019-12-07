@@ -18,7 +18,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$cmd = "php vendor/phan/phan/phan" .
 			" --project-root-directory \"tests/\"" .
 			" --config-file \"integration-test-config.php\"" .
-			" -l \"integration/$name\"";
+			" -l \"integration/$name\"" .
+			' --no-progress-bar';
 
 		$res = shell_exec( $cmd );
 		$this->assertEquals( $expected, $res );

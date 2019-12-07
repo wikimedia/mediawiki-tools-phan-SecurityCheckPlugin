@@ -157,7 +157,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if (
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
-			// @phan-suppress-next-line PhanUndeclaredMethod all implementations have it
 			!$func->hasYield() &&
 			!$func->hasReturn() &&
 			!property_exists( $func, 'funcTaint' )

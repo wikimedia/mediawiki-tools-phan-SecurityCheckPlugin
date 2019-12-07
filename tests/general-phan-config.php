@@ -231,7 +231,9 @@ return [
 	'suppress_issue_types' => [
 		'PhanDeprecatedClass',
 		'PhanDeprecatedFunction',
-		'PhanDeprecatedInterface'
+		'PhanDeprecatedInterface',
+		// As noted in phan's own cfg file: "The types of ast\Node->children are all possibly unset"
+		'PhanTypePossiblyInvalidDimOffset',
 	],
 
 	/**

@@ -23,7 +23,7 @@
 		"irc": "irc://freenode.net/wikimedia-dev"
 	},
 	"require": {
-		"phan/phan": "2.4.0",
+		"phan/phan": "2.6.1",
 		"php": "^7.2.0",
 		"ext-json": "*"
 	},

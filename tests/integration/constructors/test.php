@@ -51,7 +51,7 @@ $b1->printArg( $unsafe ); // Unsafe
 $a2->printArg( $safe );
 $a2->printArg( $unsafe );
 $b2->printArg( $safe );
-$b2->printArg( $unsafe ); // NOTE This is unsafe but isn't reported due to wrong type being inferred for $b2, https://github.com/phan/phan/issues/2718
+$b2->printArg( $unsafe ); // Unsafe
 $a3->printArg( $safe );
 $a3->printArg( $unsafe );
 
