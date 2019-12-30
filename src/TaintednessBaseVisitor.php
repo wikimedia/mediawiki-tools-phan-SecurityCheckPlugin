@@ -731,29 +731,35 @@ trait TaintednessBaseVisitor {
 		foreach ( $typelist as $type ) {
 			switch ( $type->getName() ) {
 			case 'int':
+			case 'non-zero-int':
 			case 'float':
 			case 'bool':
+			case 'false':
 			case 'true':
 			case 'null':
 			case 'void':
 			case 'class-string':
 			case 'callable-string':
+			case 'callable-object':
+			case 'callable-array':
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::NO_TAINT );
 				break;
 			case 'string':
+			case 'non-empty-string':
 			case 'Closure':
 			case 'callable':
 			case 'array':
+			case 'iterable':
 			case 'object':
 			case 'resource':
 			case 'mixed':
+			case 'non-empty-mixed':
 				// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
 				$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::UNKNOWN_TAINT );
 				break;
 			default:
-				// This means specific class.
-				// TODO - maybe look up __toString() method.
-				$fqsen = $type->asFQSEN();
+				// This means specific class or a type not listed above (likely phan-specific)
+				$fqsen = $type->isObjectWithKnownFQSEN() ? $type->asFQSEN() : $type->__toString();
 				if ( !( $fqsen instanceof FullyQualifiedClassName ) ) {
 					$this->debug( __METHOD__, " $type not a class?" );
 					$taint = $this->mergeAddTaint( $taint, SecurityCheckPlugin::UNKNOWN_TAINT );
