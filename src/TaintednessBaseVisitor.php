@@ -740,7 +740,10 @@ trait TaintednessBaseVisitor {
 		// don't set the unknown flag if not taint annotation on
 		// @return.
 		$funcTaint = [ 'overall' => SecurityCheckPlugin::NO_TAINT ];
-		$docBlock = $func->getNode()->children['docComment'] ?? '';
+		$docBlock = $func->getDocComment();
+		if ( $docBlock === null ) {
+			return null;
+		}
 		$lines = explode( "\n", $docBlock );
 		$validTaintEncountered = false;
 
