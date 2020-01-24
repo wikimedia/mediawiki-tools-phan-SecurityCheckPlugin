@@ -17,19 +17,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+use ast\Node;
 use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
+use Phan\Exception\IssueException;
 use Phan\Language\Context;
+use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
-use ast\Node;
-use Phan\Exception\IssueException;
 use Phan\Language\Type\ClosureType;
 use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
-use Phan\Language\Element\FunctionInterface;
 
 /**
  * This class visits all the nodes in the ast. It has two jobs:
@@ -131,8 +131,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * Visit a method decleration
-	 *
-
 	 *
 	 * @param Node $node
 	 * @return int Taint

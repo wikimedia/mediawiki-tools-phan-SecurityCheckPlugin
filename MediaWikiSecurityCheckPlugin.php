@@ -28,8 +28,8 @@ require_once __DIR__ . "/src/MWPreVisitor.php";
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
-use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName as FQSENFunc;
 use Phan\Language\FQSEN\FullyQualifiedMethodName as FQSENMethod;
 

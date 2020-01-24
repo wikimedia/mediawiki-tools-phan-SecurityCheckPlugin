@@ -1,33 +1,33 @@
 <?php
 
+use ast\Node;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;
+use Phan\Debug;
+use Phan\Exception\IssueException;
+use Phan\Issue;
 use Phan\Language\Context;
+use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
 use Phan\Language\Element\Parameter;
 use Phan\Language\Element\PassByReferenceVariable;
-use Phan\Language\Element\Variable;
-use Phan\Language\Element\TypedElementInterface;
-use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\Property;
-use Phan\Language\Type\ClosureType;
-use Phan\Language\UnionType;
-use Phan\Language\Type\CallableType;
-use Phan\Language\Type\MixedType;
-use Phan\Language\Type\IntType;
-use Phan\Language\Type\StringType;
+use Phan\Language\Element\TypedElementInterface;
+use Phan\Language\Element\Variable;
+use Phan\Language\FQSEN;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
-use Phan\Language\FQSEN\FullyQualifiedClassName;
-use Phan\Language\FQSEN;
-use ast\Node;
-use Phan\Debug;
-use Phan\Issue;
+use Phan\Language\Type\CallableType;
+use Phan\Language\Type\ClosureType;
+use Phan\Language\Type\IntType;
+use Phan\Language\Type\MixedType;
+use Phan\Language\Type\StringType;
+use Phan\Language\UnionType;
 use Phan\Library\Set;
-use Phan\Exception\IssueException;
 
 /**
  * Trait for the Tainedness visitor subclasses. Mostly contains

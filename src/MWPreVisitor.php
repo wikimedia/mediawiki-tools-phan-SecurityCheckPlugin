@@ -150,7 +150,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$this->setTaintedness( $varObj, SecurityCheckPlugin::YES_TAINT );
-			/*** Is this needed ? Disabling for now.
+			/* Is this needed ? Disabling for now.
 			$funcTaint = $this->getTaintOfFunction( $method );
 			if ( isset( $funcTaint[$i] ) ) {
 				if ( !$this->isSafeAssignment(

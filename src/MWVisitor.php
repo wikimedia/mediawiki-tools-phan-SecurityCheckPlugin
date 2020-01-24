@@ -1,16 +1,16 @@
 <?php
 
+use ast\Node;
 use Phan\Exception\InvalidFQSENException;
-use Phan\Language\FQSEN\FullyQualifiedClassName;
-use Phan\Language\FQSEN\FullyQualifiedMethodName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Language\FQSEN;
 use Phan\Language\Element\Method;
+use Phan\Language\FQSEN;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionName;
+use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
 use Phan\Language\UnionType;
-use ast\Node;
 
 /**
  * MediaWiki specific node visitor
@@ -293,6 +293,10 @@ class MWVisitor extends TaintednessVisitor {
 		}
 	}
 
+	/**
+	 * @param string $hookType
+	 * @param FullyQualifiedFunctionLikeName $callback
+	 */
 	private function registerHook( string $hookType, FullyQualifiedFunctionLikeName $callback ) {
 		$alreadyRegistered = $this->plugin->registerHook( $hookType, $callback );
 		$this->debug( __METHOD__, "registering $callback for hook $hookType" );
