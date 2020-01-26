@@ -1,7 +1,10 @@
 <phpunit
 	convertErrorsToExceptions="true"
 	convertNoticesToExceptions="true"
-	convertWarningsToExceptions="true">
+	convertWarningsToExceptions="true"
+	backupStaticAttributes="true"
+	bootstrap="./tests/bootstrap.php"
+>
 	<testsuites>
 		<testsuite name="SecurityCheckPlugin Tests">
 			<directory>./tests</directory>

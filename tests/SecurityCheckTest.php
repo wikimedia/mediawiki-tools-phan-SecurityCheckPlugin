@@ -1,27 +1,76 @@
 <?php
 
+use Phan\CLIBuilder;
+use Phan\Output\Printer\PlainTextPrinter;
+use Phan\Phan;
+use Symfony\Component\Console\Output\BufferedOutput;
+
 /**
  * Regression tests to check that the plugin keeps working as intended
  * phpcs:disable MediaWiki.Commenting.MissingCovers.MissingCovers
- * phpcs:disable MediaWiki.Usage.ForbiddenFunctions.shell_exec
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
+	/**
+	 * Taken from phan's BaseTest class
+	 * @inheritDoc
+	 */
+	protected $backupStaticAttributesBlacklist = [
+		'Phan\Language\Type' => [
+			'canonical_object_map',
+			'internal_fn_cache',
+		],
+		'Phan\Language\Type\LiteralFloatType' => [
+			'nullable_float_type',
+			'non_nullable_float_type',
+		],
+		'Phan\Language\Type\LiteralIntType' => [
+			'nullable_int_type',
+			'non_nullable_int_type',
+		],
+		'Phan\Language\Type\LiteralStringType' => [
+			'nullable_string_type',
+			'non_nullable_string_type',
+		],
+		'Phan\Language\UnionType' => [
+			'empty_instance',
+		],
+		'SecurityCheckPlugin' => [
+			'pluginInstance'
+		]
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	public function tearDown() : void {
+		MediaWikiHooksHelper::getInstance()->clearCache();
+	}
+
 	/**
 	 * @param string $folderName
 	 * @param string $cfgFile
 	 * @return string|null
 	 */
 	private function runPhan( string $folderName, string $cfgFile ) : ?string {
-		// Ensure that we're in the main project folder
-		chdir( __DIR__ . '/../' );
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
-		$cmd = "php vendor/phan/phan/phan" .
-			" --project-root-directory \"tests/\"" .
-			" --config-file \"$cfgFile\"" .
-			" -l \"$folderName\"" .
-			' --no-progress-bar';
+		$codeBase = require __DIR__ . '/../vendor/phan/phan/src/codebase.php';
+		$cliBuilder = new CLIBuilder();
+		$cliBuilder->setOption( 'project-root-directory', __DIR__ );
+		$cliBuilder->setOption( 'config-file', "./$cfgFile" );
+		$cliBuilder->setOption( 'directory', "./$folderName" );
+		$cliBuilder->setOption( 'no-progress-bar', true );
+		$cli = $cliBuilder->build();
 
-		return shell_exec( $cmd );
+		$stream = new BufferedOutput();
+		$printer = new PlainTextPrinter();
+		$printer->configureOutput( $stream );
+		Phan::setPrinter( $printer );
+
+		Phan::analyzeFileList( $codeBase, function () use ( $cli ) {
+			return $cli->getFileList();
+		} );
+
+		return $stream->fetch();
 	}
 
 	/**

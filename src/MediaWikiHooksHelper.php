@@ -46,6 +46,15 @@ class MediaWikiHooksHelper {
 	}
 
 	/**
+	 * Clear the extension.json cache, for testing purpose
+	 *
+	 * @suppress PhanUnreferencedPublicMethod
+	 */
+	public function clearCache() : void {
+		$this->extensionJsonLoaded = false;
+	}
+
+	/**
 	 * Add a hook implementation to our list.
 	 *
 	 * This also handles parser hooks which aren't normal hooks.

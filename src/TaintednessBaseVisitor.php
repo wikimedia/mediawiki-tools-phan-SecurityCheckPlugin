@@ -647,13 +647,11 @@ trait TaintednessBaseVisitor {
 	 * @return null|int[] null for no info, or a function taint array
 	 */
 	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) : ?array {
-		static $cache = [];
-
 		// Note that we're not using the hashed docblock for caching, because the same docblock
 		// may have different meanings in different contexts. E.g. @return self
 		$fqsen = (string)$func->getFQSEN();
-		if ( isset( $cache[ $fqsen ] ) ) {
-			return $cache[ $fqsen ];
+		if ( isset( SecurityCheckPlugin::$docblockCache[ $fqsen ] ) ) {
+			return SecurityCheckPlugin::$docblockCache[ $fqsen ];
 		}
 		// @phan-suppress-next-line PhanUndeclaredMethod All FunctionInterface implementations have it
 		if ( !$func->hasNode() ) {
@@ -710,9 +708,9 @@ trait TaintednessBaseVisitor {
 			return null;
 		}
 
-		$cache[ $fqsen ] = $funcTaint;
-		if ( count( $cache ) > 1000 ) {
-			array_shift( $cache );
+		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $funcTaint;
+		if ( count( SecurityCheckPlugin::$docblockCache ) > 1000 ) {
+			array_shift( SecurityCheckPlugin::$docblockCache );
 		}
 		return $funcTaint;
 	}

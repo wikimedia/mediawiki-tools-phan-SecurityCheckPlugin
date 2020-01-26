@@ -120,6 +120,12 @@ abstract class SecurityCheckPlugin extends PluginV2
 	public static $pluginInstance;
 
 	/**
+	 * @var array Cache of parsed docblocks. This is declared here (as opposed to the BaseVisitor)
+	 *  so that PHPUnit can snapshot and restore it.
+	 */
+	public static $docblockCache = [];
+
+	/**
 	 * Save the subclass instance to make it accessible from the visitor
 	 */
 	public function __construct() {

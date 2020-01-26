@@ -1,6 +1,6 @@
 <?php
 
-use \Phan\Config;
+use Phan\Config;
 
 /**
  * This configuration will be read and overlayed on top of the

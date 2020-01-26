@@ -43,13 +43,13 @@
 			"parallel-lint . --exclude vendor",
 			"composer phpcs",
 			"composer minus-x",
-			"./tests/run-phan-on-plugin.sh -p",
+			"composer phan-for-plugin",
 			"phpunit"
 		],
 		"phpcs": "phpcs -p -s",
 		"minus-x": "minus-x check .",
 		"integration-tests": "./tests/runtests.sh",
-		"phan-for-plugin": "./tests/run-phan-on-plugin.sh -p",
+		"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
 		"fix": [
 			"minus-x fix .",
 			"phpcbf"
