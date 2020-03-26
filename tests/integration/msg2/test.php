@@ -22,19 +22,13 @@ class Message {
 
 $msg = new Message;
 
-// These are safe because nothing is output here
-// Note these are not inlined because the plugin is not that smart yet.
-$safe1 = $msg->rawParams( $_GET['baz'] );
-$safe1 = $safe1->params( 'foo' );
-$safe1 = $safe1->parse();
-$safe2 = $msg->rawParams( $_GET['baz'] );
-$safe2 = $safe2->parse();
-$safe3 = $msg->rawParams( $_GET['baz'] );
-$safe3 = $safe3->escaped();
-$safe4 = $msg->rawParams( $_GET['baz'] );
-$safe4 = $safe4->text();
-// And these are unsafe because the raw param is output as-is
-echo $safe1;
-echo $safe2;
-echo $safe3;
-echo $safe4;
+// We emit an issue here due to the use of rawparams
+$unsafe1 = $msg->rawParams( $_GET['baz'] )->params( 'foo' )->parse();
+$unsafe2 = $msg->rawParams( $_GET['baz'] )->parse();
+$unsafe3 = $msg->rawParams( $_GET['baz'] )->escaped();
+$unsafe4 = $msg->rawParams( $_GET['baz'] )->text();
+// These are still unsafe but we don't emit any issue (yet). Should we?
+echo $unsafe1;
+echo $unsafe2;
+echo $unsafe3;
+echo $unsafe4; // This one is super-unsafe, and we also emit a separate XSS notice for text()

@@ -91,6 +91,10 @@ abstract class SecurityCheckPlugin extends PluginV2
 	// Special purpose flags(Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
 	public const ARRAY_OK = 268435456;
+	// Represents a parameter expecting a raw value, for which escaping should have already
+	// taken place. E.g. in MW this happens for Message::rawParams. In practice, this turns
+	// the func taint into EXEC, but without propagation.
+	public const RAW_PARAM = 1073741824;
 	// Do not allow autodetected taint info override given taint.
 	public const NO_OVERRIDE = 0x20000000;
 
@@ -236,7 +240,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 	 */
 	public static function parseTaintLine( string $line ) {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
-			. 'custom2|misc|sql_numkey|escaped|none|tainted)';
+			. 'custom2|misc|sql_numkey|escaped|none|tainted|raw_param)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
 		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override)$/";
 
@@ -320,6 +324,8 @@ abstract class SecurityCheckPlugin extends PluginV2
 				return self::YES_TAINT;
 			case 'none':
 				return self::NO_TAINT;
+			case 'raw_param':
+				return self::RAW_PARAM;
 			default:
 				throw new AssertionError( "$name not valid taint" );
 		}
