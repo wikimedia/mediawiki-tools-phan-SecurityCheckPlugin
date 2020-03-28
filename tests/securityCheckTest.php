@@ -7,31 +7,29 @@
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	/**
-	 * @param string $name Test name, and name of the folder
-	 * @param string $expected Expected seccheck output for the directory
-	 * @dataProvider provideScenarios
+	 * @param string $folderName
+	 * @param string $cfgFile
+	 * @return string|null
 	 */
-	public function testScenarios( $name, $expected ) {
+	private function runPhan( string $folderName, string $cfgFile ) : ?string {
 		// Ensure that we're in the main project folder
 		chdir( __DIR__ . '/../' );
-		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/integration/$name" );
+		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
 		$cmd = "php vendor/phan/phan/phan" .
 			" --project-root-directory \"tests/\"" .
-			" --config-file \"integration-test-config.php\"" .
-			" -l \"integration/$name\"" .
+			" --config-file \"$cfgFile\"" .
+			" -l \"$folderName\"" .
 			' --no-progress-bar';
 
-		$res = shell_exec( $cmd );
-		$this->assertEquals( $expected, $res );
+		return shell_exec( $cmd );
 	}
 
 	/**
-	 * Data provider for testScenarios
-	 *
+	 * @param string $folder
 	 * @return Generator
 	 */
-	public function provideScenarios() {
-		$iterator = new DirectoryIterator( __DIR__ . '/integration' );
+	private function extractTestCases( string $folder ) {
+		$iterator = new DirectoryIterator( __DIR__ . "/$folder" );
 
 		foreach ( $iterator as $dir ) {
 			if ( $dir->isDot() ) {
@@ -43,5 +41,43 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 
 			yield $testName => [ $testName, $expected ];
 		}
+	}
+
+	/**
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider provideIntegrationTests
+	 */
+	public function testIntegration( $name, $expected ) {
+		$res = $this->runPhan( "integration/$name", 'integration-test-config.php' );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
+	 * Data provider for testIntegration
+	 *
+	 * @return Generator
+	 */
+	public function provideIntegrationTests() {
+		return $this->extractTestCases( 'integration' );
+	}
+
+	/**
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider providePhanInteractionTests
+	 */
+	public function testPhanInteraction( string $name, string $expected ) {
+		$res = $this->runPhan( "phan-interaction/$name", 'phan-interaction-test-config.php' );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
+	 * Data provider for testPhanInteraction
+	 *
+	 * @return Generator
+	 */
+	public function providePhanInteractionTests() {
+		return $this->extractTestCases( 'phan-interaction' );
 	}
 }

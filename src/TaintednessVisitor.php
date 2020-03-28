@@ -1169,15 +1169,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$prop = $props[0];
 
-		$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
-		if ( property_exists( $variable, 'taintedness' ) ) {
-			// If the variable has taintedness set and its union type contains stdClass, it's
-			// because this is the result of casting an array to object. Share the taintedness
-			// of the variable with all its properties like we do for arrays.
-			$types = array_map( 'strval', $variable->getUnionType()->getTypeSet() );
-			if ( in_array( '\stdClass', $types ) ) {
-				$prop->taintedness = $this->mergeAddTaint( $prop->taintedness ?? 0, $variable->taintedness );
-				$this->mergeTaintError( $prop, $variable );
+		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
+			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
+			if ( property_exists( $variable, 'taintedness' ) ) {
+				// If the variable has taintedness set and its union type contains stdClass, it's
+				// because this is the result of casting an array to object. Share the taintedness
+				// of the variable with all its properties like we do for arrays.
+				$types = array_map( 'strval', $variable->getUnionType()->getTypeSet() );
+				if ( in_array( '\stdClass', $types ) ) {
+					$prop->taintedness = $this->mergeAddTaint( $prop->taintedness ?? 0, $variable->taintedness );
+					$this->mergeTaintError( $prop, $variable );
+				}
 			}
 		}
 
