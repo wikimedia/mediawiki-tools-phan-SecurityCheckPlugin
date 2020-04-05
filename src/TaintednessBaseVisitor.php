@@ -952,10 +952,7 @@ trait TaintednessBaseVisitor {
 					}
 					$this->debug( __METHOD__, "Cannot determine " .
 						"property [3] (Maybe don't know what class) - " .
-						( method_exists( $e, 'getIssueInstance' )
-						// @phan-suppress-next-line PhanUndeclaredMethod it checks method_exists()
-						? $e->getIssueInstance()
-						: get_class( $e ) . $e->getMessage() )
+						$this->getDebugInfo( $e )
 					);
 					return [];
 				}
@@ -968,11 +965,8 @@ trait TaintednessBaseVisitor {
 						return [ $cn->getVariable() ];
 						// return [];
 					}
-				} catch ( IssueException $e ) {
-					$this->debug( __METHOD__, "variable not in scope?? " . $e->getIssueInstance() );
-					return [];
 				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "variable not in scope?? " . get_class( $e ) . $e->getMessage() );
+					$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
 					return [];
 				}
 			case \ast\AST_LIST:
@@ -1097,6 +1091,17 @@ trait TaintednessBaseVisitor {
 				);
 				return [];
 		}
+	}
+
+	/**
+	 * Extract some useful debug data from an exception
+	 * @param Exception $e
+	 * @return \Phan\IssueInstance|string
+	 */
+	protected function getDebugInfo( Exception $e ) {
+		return $e instanceof IssueException
+			? $e->getIssueInstance()
+			: ( get_class( $e ) . " {$e->getMessage()}" );
 	}
 
 	/**
