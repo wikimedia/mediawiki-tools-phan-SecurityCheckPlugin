@@ -901,8 +901,6 @@ trait TaintednessBaseVisitor {
 	 * corespond to that node. Note, this will ignore
 	 * things like method calls (for now at least).
 	 *
-	 * @throws Exception (Not sure what circumstances)
-	 *
 	 * TODO: Maybe this should be a visitor class instead(?)
 	 *
 	 * This method is a little confused, because sometimes we only
@@ -926,30 +924,15 @@ trait TaintednessBaseVisitor {
 				try {
 					return [ $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP ) ];
 				} catch ( Exception $e ) {
-					try {
-						// There won't be an expr for static prop.
-						if ( isset( $node->children['expr'] ) ) {
-							$cnClass = $this->getCtxN( $node->children['expr'] );
-							if ( $cnClass->getVariableName() === 'row' ) {
-								// Its probably a db row, so ignore.
-								// FIXME, we should handle the
-								// db row situation much better.
-								return [];
-							}
+					// There won't be an expr for static prop.
+					if ( isset( $node->children['expr'] ) ) {
+						$cnClass = $this->getCtxN( $node->children['expr'] );
+						if ( $cnClass->getVariableName() === 'row' ) {
+							// Its probably a db row, so ignore.
+							// FIXME, we should handle the
+							// db row situation much better.
+							return [];
 						}
-					} catch ( IssueException $e ) {
-						$this->debug( __METHOD__,
-							"Cannot determine property or var " .
-							"name [1] (Maybe don't know what class) - "
-							. $e->getIssueInstance()
-						);
-						return [];
-					} catch ( Exception $e ) {
-						$this->debug( __METHOD__,
-							"Cannot determine property or var " .
-							"name [2] (Maybe don't know what class) - "
-							. get_class( $e ) . $e->getMessage() );
-						return [];
 					}
 					$this->debug( __METHOD__, "Cannot determine " .
 						"property [3] (Maybe don't know what class) - " .
@@ -2089,8 +2072,8 @@ trait TaintednessBaseVisitor {
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( $this->isExecTaint( $taint[$i] ?? 0 ) ) {
 				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
+				$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
 				try {
-					$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
 					foreach ( $phanObjs as $phanObj ) {
 						$this->markAllDependentMethodsExec(
 							$phanObj,

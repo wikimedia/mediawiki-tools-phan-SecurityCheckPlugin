@@ -21,7 +21,6 @@ use ast\Node;
 use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
-use Phan\Exception\IssueException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
@@ -456,15 +455,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Ditto for $this->bar, or props in general just in case.
 		$override = $node->children['var']->kind !== \ast\AST_DIM
 			&& $node->children['var']->kind !== \ast\AST_PROP;
-		try {
-			$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "FIXME Cannot understand LHS. "
-				. get_class( $e ) . " - {$e->getMessage()}"
-			);
-			// Debug::printNode( $node );
-			return SecurityCheckPlugin::UNKNOWN_TAINT;
-		}
+
+		$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
+
 		$lhsTaintedness = $this->getTaintedness( $node->children['var'] );
 		# $this->debug( __METHOD__, "Getting taint LHS = $lhsTaintedness:" );
 		$rhsTaintedness = $this->getTaintedness( $node->children['expr'] );
@@ -531,12 +524,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$rhsObjs = [];
 		if ( is_object( $node->children['expr'] ) ) {
-			try {
-				$rhsObjs = $this->getPhanObjsForNode( $node->children['expr'] );
-			} catch ( Exception $e ) {
-				$this->debug( __METHOD__, "Cannot get phan object for RHS of assign "
-					. get_class( $e ) . $e->getMessage() );
-			}
+			$rhsObjs = $this->getPhanObjsForNode( $node->children['expr'] );
 		}
 
 		foreach ( $variableObjs as $variableObj ) {
@@ -902,12 +890,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	public function visitVar( Node $node ) : int {
-		try {
-			$varName = $this->getCtxN( $node )->getVariableName();
-		} catch ( IssueException $e ) {
-			$this->debug( __METHOD__, "Variable is not in scope?? - " . $e->getIssueInstance() );
-			return SecurityCheckPlugin::UNKNOWN_TAINT;
-		}
+		$varName = $this->getCtxN( $node )->getVariableName();
 		if ( $varName === '' ) {
 			$this->debug( __METHOD__, "FIXME: Complex variable case not handled." );
 			// Debug::printNode( $node );
@@ -1090,16 +1073,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	public function visitStaticProp( Node $node ) : int {
-		try {
-			$props = $this->getPhanObjsForNode( $node );
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Cannot understand static class prop. "
-				. get_class( $e ) . " - {$e->getMessage()}"
-			);
-			// Debug::printNode( $node );
-			return SecurityCheckPlugin::UNKNOWN_TAINT;
-		}
-
+		$props = $this->getPhanObjsForNode( $node );
 		if ( count( $props ) > 1 ) {
 			// This is unexpected.
 			$this->debug( __METHOD__, "static prop has many objects" );
@@ -1117,14 +1091,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	public function visitProp( Node $node ) : int {
-		try {
-			$props = $this->getPhanObjsForNode( $node );
-		} catch ( Exception $_ ) {
-			// $this->debug( __METHOD__, "Cannot understand class prop. "
-			// . get_class($e) . " - {$e->getMessage()}" );
-			// Debug::printNode( $node );
-			return SecurityCheckPlugin::UNKNOWN_TAINT;
-		}
+		$props = $this->getPhanObjsForNode( $node );
 		if ( count( $props ) !== 1 ) {
 			if (
 				is_object( $node->children['expr'] ) &&
