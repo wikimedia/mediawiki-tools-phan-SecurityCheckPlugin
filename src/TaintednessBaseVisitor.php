@@ -180,13 +180,18 @@ trait TaintednessBaseVisitor {
 	 * @note Use strict comparisons with the return value!
 	 */
 	private static function getArraySubsetIdx( array $haystack, array $needle ) {
-		if ( !$needle ) {
+		if ( !$needle || !$haystack ) {
 			// For our needs, the empty array is not a subset of anything
 			return false;
 		}
+
 		$curIdx = 0;
 		$haystack = array_values( $haystack );
+		$needle = array_values( $needle );
+		// TODO: array_key_last + 1 once we're PHP 7.3+
 		$needleLength = count( $needle );
+		// TODO: With array_key_last we can optimize straight away (in O(1)) when $haystack is shorter than needle;
+		// This only happens 10% of the times when running tests, so probably not an important optimization.
 		foreach ( $haystack as $i => $el ) {
 			if ( $el === $needle[ $curIdx ] ) {
 				$curIdx++;
@@ -206,12 +211,12 @@ trait TaintednessBaseVisitor {
 	 * 1 - if $new is a subset of $base, return $base;
 	 * 2 - update taintedness values in $base if the *lines* (not taint values) in $new
 	 *   are a subset of the lines in $base;
-	 * 3 - array_merge otherwise;
+	 * 3 - if an upper set of $base *lines* is also a lower set of $new *lines*, remove that upper
+	 *   set from $base and merge the rest with $new;
+	 * 4 - array_merge otherwise;
 	 *
 	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
 	 * even a single taintedness value in $base changes.
-	 *
-	 * @todo Handle overlaps, i.e. merge( [1,2], [2,3] ) should give [1,2,3], not [1,2,2,3]
 	 *
 	 * @param array[] $base
 	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
@@ -221,19 +226,50 @@ trait TaintednessBaseVisitor {
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
 	public static function mergeCausedByLines( array $base, array $new ) : array {
-		if ( self::getArraySubsetIdx( $base, $new ) !== false ) {
+		if ( !$base ) {
+			return $new;
+		}
+		if ( !$new || self::getArraySubsetIdx( $base, $new ) !== false ) {
 			return $base;
 		}
 
-		$subsIdx = self::getArraySubsetIdx( array_column( $base, 1 ), array_column( $new, 1 ) );
+		$baseLines = array_column( $base, 1 );
+		$newLines = array_column( $new, 1 );
+		$subsIdx = self::getArraySubsetIdx( $baseLines, $newLines );
 		if ( $subsIdx !== false ) {
 			foreach ( $new as $i => $cur ) {
 				$base[ $i + $subsIdx ][0]->addObj( $cur[0] );
 			}
 			return $base;
 		}
+
+		$ret = null;
+		$baseLen = count( $base );
+		$newLen = count( $new );
+		// NOTE: array_shift is O(n), and O(n^2) over all iterations, because it reindexes the whole array.
+		// So reverse the arrays, that is O(n) twice, and use array_pop which is O(1) (O(n) for all iterations)
+		$remaining = array_reverse( $baseLines );
+		$newRev = array_reverse( $newLines );
+		// Assuming the lines as posets with the "natural" order used by PHP (that is, not the keys):
+		// since we're working with reversed arrays, remaining lines should be an upper set of the reversed
+		// new lines; which is to say, a lower set of the non-reversed new lines.
+		$expectedIndex = $newLen - $baseLen;
+		do {
+			if ( $expectedIndex >= 0 && self::getArraySubsetIdx( $newRev, $remaining ) === $expectedIndex ) {
+				$startIdx = $baseLen - $newLen + $expectedIndex;
+				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
+					$base[$j][0]->addObj( $new[$j - $startIdx][0] );
+				}
+				$ret = array_merge( $base, array_slice( $new, $newLen - $expectedIndex ) );
+				break;
+			}
+			array_pop( $remaining );
+			$expectedIndex++;
+		} while ( $remaining );
+		$ret = $ret ?? array_merge( $base, $new );
+
 		// HACK: Set a hard limit, or this may time out
-		return array_slice( array_merge( $base, $new ), 0, 25 );
+		return array_slice( $ret, 0, 25 );
 	}
 
 	/**

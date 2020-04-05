@@ -8,6 +8,9 @@
 * Improved caused-by lines for setters and some functions that pass their parameters through
 * Added support backpropagating NUMKEY taint, preferring false negatives until real type inference is improved
 
+### Bug fixes
+* Improved merging caused-by lines to avoid duplicates
+
 ### Internal changes
 * Bumped phan/phan to 4.0.2
 
