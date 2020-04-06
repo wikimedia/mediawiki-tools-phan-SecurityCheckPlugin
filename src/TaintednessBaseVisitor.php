@@ -21,6 +21,7 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
+use Phan\Language\Scope;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
 use Phan\Language\Type\IntType;
@@ -2257,6 +2258,32 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Relatively stable workaround for phan issue #2963: preserve the variable map.
+	 *
+	 * @param FunctionInterface $func
+	 * @return Scope
+	 */
+	private function restoreOriginalScope( FunctionInterface $func ) : Scope {
+		if ( property_exists( $func, 'scopeAfterAnalysis' ) ) {
+			return $func->scopeAfterAnalysis;
+		}
+
+		if ( !$func instanceof Method ) {
+			// No original context is available, stop.
+			return $func->getContext()->getScope();
+		}
+
+		if ( $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
+			// A subclass calling a parent's method which is NOT redeclared in the subclass.
+			// Make sure to copy the parent's scope, see also T249491
+			$definingFunc = $this->code_base->getMethodByFQSEN( $func->getDefiningFQSEN() );
+			return $definingFunc->scopeAfterAnalysis ?? $func->getContext()->getScope();
+		}
+
+		return $func->getContext()->getScope();
+	}
+
+	/**
 	 * Get the phan objects from the return line of a Func/Method
 	 *
 	 * This is primarily used to handle the case where a method
@@ -2288,12 +2315,7 @@ trait TaintednessBaseVisitor {
 			return [];
 		}
 
-		if ( property_exists( $func, 'scopeAfterAnalysis' ) ) {
-			// This is a copy of the internal scope with the complete variables map, see phan issue #2963
-			$context = $func->getContext()->withScope( $func->scopeAfterAnalysis );
-		} else {
-			$context = $func->getContext();
-		}
+		$context = $func->getContext()->withScope( $this->restoreOriginalScope( $func ) );
 
 		$node = $func->getNode();
 		return ( new GetReturnObjsVisitor(
