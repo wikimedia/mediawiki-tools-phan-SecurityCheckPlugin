@@ -872,15 +872,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 			$funcName = $func->getFQSEN();
 			$taint = $this->getTaintOfFunction( $func );
-		} catch ( IssueException $e ) {
-			$this->debug( __METHOD__, "FIXME complicated case not handled. "
-				. "Maybe func not defined." . $e->getIssueInstance() );
-			$func = null;
-			$funcName = '[UNKNOWN FUNC]';
-			$taint = [ 'overall' => SecurityCheckPlugin::UNKNOWN_TAINT ];
 		} catch ( Exception $e ) {
 			$this->debug( __METHOD__, "FIXME complicated case not handled."
-				. " Maybe func not defined. " . get_class( $e ) . $e->getMessage() );
+				. " Maybe func not defined. " . $this->getDebugInfo( $e ) );
 			$func = null;
 			$funcName = '[UNKNOWN FUNC]';
 			$taint = [ 'overall' => SecurityCheckPlugin::UNKNOWN_TAINT ];

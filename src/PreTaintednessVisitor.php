@@ -81,8 +81,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				$this->setTaintedness( $variableObj, $lhsTaintedness );
 			}
 		} catch ( Exception $e ) {
-			// getVariable can throw an IssueException if var doesn't exist.
-			$this->debug( __METHOD__, "Exception " . get_class( $e ) . $e->getMessage() . "" );
+			$this->debug( __METHOD__, "Exception " . $this->getDebugInfo( $e ) );
 		}
 	}
 
