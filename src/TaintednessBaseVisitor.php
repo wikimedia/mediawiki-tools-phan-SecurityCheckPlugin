@@ -2232,9 +2232,13 @@ trait TaintednessBaseVisitor {
 	 * Relatively stable workaround for phan issue #2963: preserve the variable map.
 	 *
 	 * @param FunctionInterface $func
+	 * @param bool $allowAnalysis Whether $func can be analyzed (if it wasn't already)
 	 * @return Scope
 	 */
-	private function restoreOriginalScope( FunctionInterface $func ) : Scope {
+	private function restoreOriginalScope(
+		FunctionInterface $func,
+		bool $allowAnalysis = true
+	) : Scope {
 		if ( property_exists( $func, 'scopeAfterAnalysis' ) ) {
 			return $func->scopeAfterAnalysis;
 		}
@@ -2251,6 +2255,12 @@ trait TaintednessBaseVisitor {
 			return $definingFunc->scopeAfterAnalysis ?? $func->getContext()->getScope();
 		}
 
+		if ( $allowAnalysis ) {
+			// We may still have to analyze the function (it depends on the order in which things
+			// are laid out in the source code).
+			$this->analyzeFunc( $func );
+			return $this->restoreOriginalScope( $func, false );
+		}
 		return $func->getContext()->getScope();
 	}
 
