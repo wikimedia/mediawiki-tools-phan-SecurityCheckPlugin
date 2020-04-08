@@ -2227,7 +2227,9 @@ trait TaintednessBaseVisitor {
 			$type = UnionTypeVisitor::unionTypeFromNode(
 				$this->code_base,
 				$this->context,
-				$node
+				$node,
+				// Don't check types, as this might be called e.g. on the LHS (see T249647)
+				false
 			);
 			if ( $type->hasType( StringType::instance( false ) ) ) {
 				// @todo Should having mixed type result in returning false here?
@@ -2259,7 +2261,9 @@ trait TaintednessBaseVisitor {
 			$type = UnionTypeVisitor::unionTypeFromNode(
 				$this->code_base,
 				$this->context,
-				$node
+				$node,
+				// Don't check types, as this might be called e.g. on the LHS (see T249647)
+				false
 			);
 			if (
 				$type->hasType( IntType::instance( false ) ) &&
