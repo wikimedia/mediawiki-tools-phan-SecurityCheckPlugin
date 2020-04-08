@@ -2270,39 +2270,44 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Relatively stable workaround for phan issue #2963: preserve the variable map.
+	 * Relatively stable workaround for phan issue #2963: get the original scope (and hence the
+	 * variable map) that a method had after analysis. Phan deletes this data between the first
+	 * analysis and the time we call this method later on. Attempting to collect the return values
+	 * of a method with the wrong scope means that: 1-we'll miss stuff, 2-we'll raise various
+	 * UndeclaredThis issue, if one of the returned objects is $this->foo (see e.g. T249619).
 	 *
 	 * @param FunctionInterface $func
 	 * @param bool $allowAnalysis Whether $func can be analyzed (if it wasn't already)
 	 * @return Scope
+	 * @throws Exception
 	 */
-	private function restoreOriginalScope(
+	private function getOriginalScope(
 		FunctionInterface $func,
 		bool $allowAnalysis = true
 	) : Scope {
 		if ( property_exists( $func, 'scopeAfterAnalysis' ) ) {
+			// Case 1 - The scope is already there, easy task.
 			return $func->scopeAfterAnalysis;
 		}
 
-		if ( !$func instanceof Method ) {
-			// No original context is available, stop.
-			return $func->getContext()->getScope();
-		}
-
-		if ( $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
-			// A subclass calling a parent's method which is NOT redeclared in the subclass.
-			// Make sure to copy the parent's scope, see also T249491
+		if ( $func instanceof Method && $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
+			// Case 2 - A subclass calling a parent's method which is NOT redeclared in the subclass.
+			// Make sure to retry with the parent, see also T249491.
 			$definingFunc = $this->code_base->getMethodByFQSEN( $func->getDefiningFQSEN() );
-			return $definingFunc->scopeAfterAnalysis ?? $func->getContext()->getScope();
+			return $this->getOriginalScope( $definingFunc );
 		}
 
 		if ( $allowAnalysis ) {
-			// We may still have to analyze the function (it depends on the order in which things
-			// are laid out in the source code).
+			// Case 3 - We may still have to analyze the function (it depends on the order in which
+			// things are laid out in the source code). Analyze the function now, making sure not
+			// to enter infinite loops if something goes wrong.
 			$this->analyzeFunc( $func );
-			return $this->restoreOriginalScope( $func, false );
+			return $this->getOriginalScope( $func, false );
 		}
-		return $func->getContext()->getScope();
+
+		// Case 4 - Mission failed. No scope could be restored. This will especially happen when
+		// we enter case 3, but the maximum analysis depth is reached, hence aborting analysis.
+		throw new Exception( 'Could not restore original scope' );
 	}
 
 	/**
@@ -2337,7 +2342,14 @@ trait TaintednessBaseVisitor {
 			return [];
 		}
 
-		$context = $func->getContext()->withScope( $this->restoreOriginalScope( $func ) );
+		try {
+			$context = $func->getContext()->withScope( $this->getOriginalScope( $func ) );
+		} catch ( Exception $_ ) {
+			// Don't even try diggin inside a function with the wrong scope -- in the best case
+			// it won't work and/or provide incomplete info. In the worst case, it will trigger
+			// other issues like PhanUndeclaredThis.
+			return [];
+		}
 
 		$node = $func->getNode();
 		return ( new GetReturnObjsVisitor(
