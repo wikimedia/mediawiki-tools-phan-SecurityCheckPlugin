@@ -538,12 +538,16 @@ trait TaintednessBaseVisitor {
 			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
 		) {
 			$this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
-			try {
-				$this->analyzeFunc( $definingFunc );
-			} catch ( Exception $e ) {
-				$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
+			if ( !property_exists( $definingFunc, 'funcTaint' ) ) {
+				// Optim: don't reanalyze if we already have taint data. This might rarely hide
+				// some issues, see T203651#6046483.
+				try {
+					$this->analyzeFunc( $definingFunc );
+				} catch ( Exception $e ) {
+					$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
+				}
+				$this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
 			}
-			$this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
 			// var_dump( $definingFunc->funcTaint ?? "NO INFO" );
 			if ( property_exists( $definingFunc, 'funcTaint' ) ) {
 				$this->checkFuncTaint( $definingFunc->funcTaint );
