@@ -571,6 +571,7 @@ trait TaintednessBaseVisitor {
 	 * used by phan for performance. Phan doesn't know about taintedness, so it may decide to skip
 	 * a re-analysis which we need.
 	 * @todo This is a bit hacky.
+	 * @see \Phan\Analysis\Analyzable::analyze()
 	 *
 	 * @param FunctionInterface $func
 	 */
@@ -592,8 +593,19 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 		$depth++;
+
+		// Like Analyzable::analyze, clone the context to avoid overriding anything
+		$context = clone $func->getContext();
+		// @phan-suppress-next-line PhanUndeclaredMethod All implementations have it
+		if ( $func->getRecursionDepth() !== 0 ) {
+			// Add the arguments types to the internal scope of the function, see
+			// https://github.com/phan/phan/issues/3848
+			foreach ( $func->getParameterList() as $parameter ) {
+				$context->addScopeVariable( $parameter->cloneAsNonVariadic() );
+			}
+		}
 		try {
-			( new BlockAnalysisVisitor( $this->code_base, clone $func->getContext() ) )(
+			( new BlockAnalysisVisitor( $this->code_base, $context ) )(
 				$node
 			);
 		} finally {
