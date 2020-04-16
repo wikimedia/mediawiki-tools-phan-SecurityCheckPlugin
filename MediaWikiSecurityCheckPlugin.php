@@ -619,10 +619,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 */
 	public function getHookSubscribers( string $hookName ) : array {
 		$this->loadExtensionJson();
-		if ( isset( $this->hookSubscribers[$hookName] ) ) {
-			return $this->hookSubscribers[$hookName];
-		}
-		return [];
+		return $this->hookSubscribers[$hookName] ?? [];
 	}
 
 	/**

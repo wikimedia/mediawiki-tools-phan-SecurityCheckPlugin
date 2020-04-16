@@ -26,6 +26,7 @@ use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
 use Phan\Language\Element\Variable;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\ClosureType;
 use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
@@ -154,11 +155,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// use by GetReturnObjsVisitor. Ref phan issue #2963
 		$func->scopeAfterAnalysis = $this->context->getScope();
 		if (
+			!property_exists( $func, 'funcTaint' ) &&
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
 			!$func->hasYield() &&
-			!$func->hasReturn() &&
-			!property_exists( $func, 'funcTaint' )
+			!$func->hasReturn()
 		) {
 			// At this point, if func exec's stuff, funcTaint
 			// should already be set.
@@ -489,8 +490,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// $foo[] = [ $sqlTainted ];
 				// $foo[2] = [ $sqlTainted ];
 				if (
-					( $dim === null ||
-					$this->nodeIsInt( $dim ) )
+					( $dim === null || $this->nodeIsInt( $dim ) )
 					&& !$this->nodeIsArray( $node->children['expr'] )
 					&& !( $var->children['expr'] instanceof Node
 						&& $var->children['expr']->kind === \ast\AST_DIM
@@ -602,7 +602,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			\ast\flags\BINARY_IS_GREATER_OR_EQUAL
 		];
 
-		if ( in_array( $node->flags, $safeBinOps ) ) {
+		if ( in_array( $node->flags, $safeBinOps, true ) ) {
 			return SecurityCheckPlugin::NO_TAINT;
 		} elseif (
 			$node->flags === \ast\flags\BINARY_ADD && (
@@ -619,8 +619,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Otherwise combine the ophand taint.
 		$leftTaint = $this->getTaintedness( $node->children['left'] );
 		$rightTaint = $this->getTaintedness( $node->children['right'] );
-		$res = $this->mergeAddTaint( $leftTaint, $rightTaint );
-		return $res;
+		return $this->mergeAddTaint( $leftTaint, $rightTaint );
 	}
 
 	/**
@@ -666,8 +665,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		);
 
 		if (
-			$this->isSafeAssignment( SecurityCheckPlugin::SHELL_EXEC_TAINT, $taintedness ) &&
-			is_object( $node->children['expr'] )
+			$node->children['expr'] instanceof Node &&
+			$this->isSafeAssignment( SecurityCheckPlugin::SHELL_EXEC_TAINT, $taintedness )
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
@@ -699,8 +698,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		);
 
 		if (
-			$this->isSafeAssignment( SecurityCheckPlugin::MISC_EXEC_TAINT, $taintedness ) &&
-			is_object( $node->children['expr'] )
+			$node->children['expr'] instanceof Node &&
+			$this->isSafeAssignment( SecurityCheckPlugin::MISC_EXEC_TAINT, $taintedness )
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
@@ -742,7 +741,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				. $this->getOriginalTaintLine( $echoedExpr )
 		);
 
-		if ( $this->isSafeAssignment( $echoTaint, $taintedness ) && is_object( $echoedExpr ) ) {
+		if ( $echoedExpr instanceof Node && $this->isSafeAssignment( $echoTaint, $taintedness ) ) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $echoedExpr, [ 'return' ] );
@@ -863,8 +862,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		} catch ( Exception $e ) {
 			$this->debug( __METHOD__, "FIXME complicated case not handled."
 				. " Maybe func not defined. " . $this->getDebugInfo( $e ) );
-			$func = null;
-			$funcName = '[UNKNOWN FUNC]';
 			return SecurityCheckPlugin::UNKNOWN_TAINT;
 		}
 
@@ -976,7 +973,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$taintSource .= $pobj->taintedOriginalError ?? '';
 			}
 			if ( strlen( $taintSource ) < 200 ) {
-				if ( !isset( $curFunc->taintedOriginalError ) ) {
+				if ( !property_exists( $curFunc, 'taintedOriginalError' ) ) {
 					$curFunc->taintedOriginalError = '';
 				}
 				$curFunc->taintedOriginalError = substr(
@@ -1137,7 +1134,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// because this is the result of casting an array to object. Share the taintedness
 				// of the variable with all its properties like we do for arrays.
 				$types = array_map( 'strval', $variable->getUnionType()->getTypeSet() );
-				if ( in_array( '\stdClass', $types ) ) {
+				if ( in_array( FullyQualifiedClassName::getStdClassFQSEN()->__toString(), $types, true ) ) {
 					$prop->taintedness = $this->mergeAddTaint( $prop->taintedness ?? 0, $variable->taintedness );
 					$this->mergeTaintError( $prop, $variable );
 				}
@@ -1227,7 +1224,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			\ast\flags\UNARY_BITWISE_NOT,
 			\ast\flags\UNARY_SILENCE
 		];
-		if ( in_array( $node->flags, $unsafe ) ) {
+		if ( in_array( $node->flags, $unsafe, true ) ) {
 			return $this->getTaintedness( $node->children['expr'] );
 		}
 		return SecurityCheckPlugin::NO_TAINT;
@@ -1298,7 +1295,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			ast\flags\TYPE_OBJECT
 		];
 
-		if ( !in_array( $node->flags, $dangerousCasts ) ) {
+		if ( !in_array( $node->flags, $dangerousCasts, true ) ) {
 			return SecurityCheckPlugin::NO_TAINT;
 		}
 		return $this->getTaintedness( $node->children['expr'] );

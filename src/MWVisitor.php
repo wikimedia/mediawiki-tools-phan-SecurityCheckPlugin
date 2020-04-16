@@ -906,7 +906,7 @@ class MWVisitor extends TaintednessVisitor {
 		// are many ways to construct htmlform specifiers this
 		// won't catch, and it may also have some false positives.
 
-		$validHTMLFormTypes = [
+		static $validHTMLFormTypes = [
 			'api',
 			'text',
 			'textwithbutton',
@@ -1021,7 +1021,7 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 
-		if ( $type !== null && !in_array( $type, $validHTMLFormTypes ) ) {
+		if ( $type !== null && !in_array( $type, $validHTMLFormTypes, true ) ) {
 			// Not a valid HTMLForm field
 			// (Or someone just added a new field type)
 			return;
@@ -1220,7 +1220,7 @@ class MWVisitor extends TaintednessVisitor {
 			}
 			if ( $typeName !== false ) {
 				$variable->setUnionType(
-					UnionType::fromFullyQualifiedString( $typeName )
+					UnionType::fromFullyQualifiedPHPDocString( $typeName )
 				);
 			}
 		} else {
