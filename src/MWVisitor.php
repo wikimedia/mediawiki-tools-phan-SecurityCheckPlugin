@@ -96,7 +96,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node
 	 */
-	private function checkExternalLink( Node $node ) {
+	private function checkExternalLink( Node $node ) : void {
 		$escapeArg = $node->children['args']->children[2] ?? true;
 		if ( is_object( $escapeArg ) && $escapeArg->kind === \ast\AST_CONST ) {
 			$escapeArg = $escapeArg->children['name']->children['name'] !== 'false';
@@ -122,7 +122,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node Either an AST_METHOD_CALL or AST_STATIC_CALL
 	 * @param Method $method
 	 */
-	private function doSelectWrapperSpecialHandling( Node $node, Method $method ) {
+	private function doSelectWrapperSpecialHandling( Node $node, Method $method ) : void {
 		$clazz = $method->getClass( $this->code_base );
 
 		$implementIDB = false;
@@ -176,7 +176,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The Hooks::run AST_STATIC_CALL
 	 */
-	private function triggerHook( Node $node ) {
+	private function triggerHook( Node $node ) : void {
 		$args = [];
 		$argList = $node->children['args']->children;
 		if ( count( $argList ) === 0 ) {
@@ -238,7 +238,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $method The method name of the registration function
 	 * @return string The name of the hook that gets registered
 	 */
-	private function getHookTypeForRegistrationMethod( string $method ) {
+	private function getHookTypeForRegistrationMethod( string $method ) : string {
 		switch ( $method ) {
 		case '\Parser::setFunctionHook':
 			return '!ParserFunctionHook';
@@ -255,7 +255,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The node representing the AST_STATIC_CALL
 	 */
-	private function handleNormalHookRegistration( Node $node ) {
+	private function handleNormalHookRegistration( Node $node ) : void {
 		assert( $node->kind === \ast\AST_STATIC_CALL );
 		$params = $node->children['args']->children;
 		if ( count( $params ) < 2 ) {
@@ -282,7 +282,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node The AST_METHOD_CALL node
 	 * @param string $hookType The name of the hook
 	 */
-	private function handleParserHookRegistration( Node $node, string $hookType ) {
+	private function handleParserHookRegistration( Node $node, string $hookType ) : void {
 		$args = $node->children['args']->children;
 		if ( count( $args ) < 2 ) {
 			return;
@@ -297,7 +297,10 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $hookType
 	 * @param FullyQualifiedFunctionLikeName $callback
 	 */
-	private function registerHook( string $hookType, FullyQualifiedFunctionLikeName $callback ) {
+	private function registerHook(
+		string $hookType,
+		FullyQualifiedFunctionLikeName $callback
+	) : void {
 		$alreadyRegistered = $this->plugin->registerHook( $hookType, $callback );
 		$this->debug( __METHOD__, "registering $callback for hook $hookType" );
 		if ( !$alreadyRegistered ) {
@@ -385,7 +388,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *  statement is an array literal.
 	 * @param Node|mixed $node Node from ast tree
 	 */
-	private function handleGetQueryInfoReturn( $node ) {
+	private function handleGetQueryInfoReturn( $node ) : void {
 		if (
 			!( $node instanceof Node ) ||
 			$node->kind !== \ast\AST_ARRAY
@@ -443,7 +446,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * how this function is interpreted.
 	 * @param Node $node
 	 */
-	private function checkMakeList( Node $node ) {
+	private function checkMakeList( Node $node ) : void {
 		$args = $node->children['args'];
 		// First determine which IDatabase::LIST_*
 		// 0 = IDatabase::LIST_COMMA is default value.
@@ -556,7 +559,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *  IGNORE INDEX ditto
 	 * @param Node|mixed $node The node from the AST tree
 	 */
-	private function checkSQLOptions( $node ) {
+	private function checkSQLOptions( $node ) : void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -602,7 +605,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node|mixed $node
 	 */
-	private function checkJoinCond( $node ) {
+	private function checkJoinCond( $node ) : void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -662,7 +665,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node The expr child of the return. NOT the return itself
 	 * @param FQSEN $funcName
 	 */
-	private function visitReturnOfFunctionHook( Node $node, FQSEN $funcName ) {
+	private function visitReturnOfFunctionHook( Node $node, FQSEN $funcName ) : void {
 		if ( $node->kind !== \ast\AST_ARRAY || count( $node->children ) < 2 ) {
 			return;
 		}
@@ -719,7 +722,10 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $hookName
 	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
 	 */
-	private function getCallableFromHookRegistration( $node, $hookName ) {
+	private function getCallableFromHookRegistration(
+		$node,
+		$hookName
+	) : ?FullyQualifiedFunctionLikeName {
 		// "wfSomething", "Class::Method", closure
 		if ( !is_object( $node ) || $node->kind === \ast\AST_CLOSURE ) {
 			return $this->getFQSENFromCallable( $node );
@@ -802,7 +808,10 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $defaultMethod If the var is an object, what method to use
 	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
 	 */
-	private function getCallbackForVar( Node $node, $defaultMethod = '' ) {
+	private function getCallbackForVar(
+		Node $node,
+		$defaultMethod = ''
+	) : ?FullyQualifiedFunctionLikeName {
 		$cnode = $this->getCtxN( $node );
 		$var = $cnode->getVariable();
 		$types = $var->getUnionType()->getTypeSet();
@@ -875,7 +884,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node
 	 */
-	private function doVisitArray( Node $node ) {
+	private function doVisitArray( Node $node ) : void {
 		$authReqFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
 			'MediaWiki\Auth\AuthenticationRequest'
 		);

@@ -71,7 +71,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * @param array $params formal parameters of tag hook
 	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
-	private function setTagHookParamTaint( array $params, FunctionInterface $method ) {
+	private function setTagHookParamTaint( array $params, FunctionInterface $method ) : void {
 		// Only care about first 2 parameters.
 		$scope = $this->context->getScope();
 		for ( $i = 0; $i < 2 && $i < count( $params ); $i++ ) {
@@ -123,7 +123,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * @param Node[] $params Children of the AST_PARAM_LIST
 	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
-	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) {
+	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) : void {
 		// First make sure the first arg is set to be a Parser
 		$scope = $this->context->getScope();
 		if ( isset( $params[0] ) ) {
