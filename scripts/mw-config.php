@@ -20,8 +20,9 @@ $coreCfg = [
 	),
 
 	'exclude_file_list' => [
-		// This file has invalid PHP syntax
+		// These files have invalid PHP syntax
 		'vendor/squizlabs/php_codesniffer/src/Standards/PSR2/Tests/Methods/MethodDeclarationUnitTest.inc',
+		'vendor/microsoft/tolerant-php-parser/tests/cases/parser/abstractMethodDeclaration7.php',
 	],
 
 	'directory_list' => [
