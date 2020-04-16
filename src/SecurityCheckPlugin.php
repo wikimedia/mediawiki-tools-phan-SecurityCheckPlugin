@@ -152,7 +152,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 	 *   [ 'overall' => self::YES_TAINT ]
 	 *   Means that it returns a tainted value (e.g. return $_POST['foo']; )
 	 */
-	public function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) {
+	public function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?array {
 		$funcTaints = $this->getCustomFuncTaints() + $this->getPHPFuncTaints();
 		$name = (string)$fqsen;
 
@@ -238,7 +238,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 	 * @param string $line A line from the docblock
 	 * @return null|int null on no info, or taint info integer.
 	 */
-	public static function parseTaintLine( string $line ) {
+	public static function parseTaintLine( string $line ) : ?int {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|sql_numkey|escaped|none|tainted|raw_param)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';

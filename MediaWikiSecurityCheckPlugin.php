@@ -551,7 +551,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @param FullyQualifiedFunctionLikeName $fqsen The implementing method
 	 * @return bool true if already registered, false otherwise
 	 */
-	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ) {
+	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ) : bool {
 		if ( !isset( $this->hookSubscribers[$hookName] ) ) {
 			$this->hookSubscribers[$hookName] = [];
 		}
@@ -571,7 +571,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * Assumes extension.json/skin.json is in project root directory
 	 * unless SECURITY_CHECK_EXT_PATH is set
 	 */
-	protected function loadExtensionJson() {
+	protected function loadExtensionJson() : void {
 		static $done;
 		if ( $done ) {
 			return;
@@ -633,7 +633,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * @param FullyQualifiedFunctionLikeName $fqsen The function to check
 	 * @return string|null The hook it is implementing or null if no hook
 	 */
-	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) {
+	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) : ?string {
 		$this->loadExtensionJson();
 		$specialHooks = [
 			'!ParserFunctionHook',

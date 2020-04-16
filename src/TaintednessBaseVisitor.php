@@ -76,7 +76,7 @@ trait TaintednessBaseVisitor {
 		array $taint,
 		bool $override = false,
 		$reason = null
-	) {
+	) : void {
 		if (
 			$func instanceof Method &&
 			(string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
@@ -151,7 +151,10 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $left (LHS-ish variable)
 	 * @param TypedElementInterface $right (RHS-ish variable)
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, TypedElementInterface $right ) {
+	protected function mergeTaintError(
+		TypedElementInterface $left,
+		TypedElementInterface $right
+	) : void {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
 			$left->taintedOriginalError = '';
 		}
@@ -171,7 +174,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $elem
 	 */
-	protected function clearTaintError( TypedElementInterface $elem ) {
+	protected function clearTaintError( TypedElementInterface $elem ) : void {
 		if ( property_exists( $elem, 'taintedOriginalError' ) ) {
 			$elem->taintedOriginalError = '';
 		}
@@ -182,7 +185,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $elem
 	 */
-	protected function clearTaintLinks( TypedElementInterface $elem ) {
+	protected function clearTaintLinks( TypedElementInterface $elem ) : void {
 		unset( $elem->taintedMethodLinks, $elem->taintedVarLinks );
 	}
 
@@ -201,7 +204,7 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $elem,
 		int $arg = -1,
 		$reason = null
-	) {
+	) : void {
 		if ( !$this->isExecTaint( $taintedness ) && !$this->isAllTaint( $taintedness ) ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
@@ -269,7 +272,7 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $variableObj,
 		int $taintedness,
 		$override = true
-	) {
+	) : void {
 		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
 			// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' )
 			// . ' Caller: ' . ( debug_backtrace()[1]['function'] ?? 'n/a' )
@@ -356,7 +359,7 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $inner,
 		TypedElementInterface $outer,
 		int $taintedness
-	) {
+	) : void {
 		if ( !property_exists( $outer, 'taintedness' ) ) {
 			// $this->debug( __METHOD__,
 			// "parent scope for $inner has no taint. Setting $taintedness" );
@@ -394,7 +397,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $newTaint One of the class constants
 	 * @return int The merged taint value
 	 */
-	protected function mergeAddTaint( int $oldTaint, int $newTaint ) {
+	protected function mergeAddTaint( int $oldTaint, int $newTaint ) : int {
 		// TODO: Should this clear UNKNOWN_TAINT if its present
 		// only in one of the args?
 		return $oldTaint | $newTaint;
@@ -409,7 +412,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func A builtin Function/Method
 	 * @return array The function taint.
 	 */
-	private function getTaintOfFunctionPHP( FunctionInterface $func ) {
+	private function getTaintOfFunctionPHP( FunctionInterface $func ) : array {
 		$taint = $this->getBuiltinFuncTaint( $func->getFQSEN() );
 		if ( $taint !== null ) {
 			return $taint;
@@ -430,7 +433,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 * @return null|FunctionInterface
 	 */
-	private function getDefiningFunc( FunctionInterface $func ) {
+	private function getDefiningFunc( FunctionInterface $func ) : ?FunctionInterface {
 		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
 			// Our function has a parent, and potentially interface and traits.
 			if ( (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN() ) {
@@ -450,7 +453,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 * @return FunctionInterface[]
 	 */
-	private function getPossibleFuncDefinitions( FunctionInterface $func ) {
+	private function getPossibleFuncDefinitions( FunctionInterface $func ) : array {
 		$funcsToTry = [ $func ];
 
 		// If we don't have a defining func, stay with the same func.
@@ -488,6 +491,7 @@ trait TaintednessBaseVisitor {
 	 * This is also for methods and other function like things
 	 *
 	 * @param FunctionInterface $func What function/method to look up
+	 * @param bool $clearOverride Include SecurityCheckPlugin::NO_OVERRIDE
 	 * @return int[] Array with "overall" key, and numeric keys.
 	 *   The overall key specifies what taint the function returns
 	 *   irrespective of its arguments. The numeric keys are how
@@ -499,9 +503,8 @@ trait TaintednessBaseVisitor {
 	 *                     TAINT flags for what taint gets passed through func.
 	 *   If func has an arg that is missing from array, then it should be
 	 *   treated as TAINT_NO if its a number or bool. TAINT_YES otherwise.
-	 * @param bool $clearOverride Include SecurityCheckPlugin::NO_OVERRIDE
 	 */
-	protected function getTaintOfFunction( FunctionInterface $func, $clearOverride = true ) {
+	protected function getTaintOfFunction( FunctionInterface $func, $clearOverride = true ) : array {
 		// Fast case, either a builtin to php function or we already
 		// know taint:
 		if ( $func->isPHPInternal() ) {
@@ -575,7 +578,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func
 	 */
-	public function analyzeFunc( FunctionInterface $func ) {
+	public function analyzeFunc( FunctionInterface $func ) : void {
 		static $depth = 0;
 		$node = $func->getNode();
 		if ( !$node ) {
@@ -623,7 +626,7 @@ trait TaintednessBaseVisitor {
 	 * @param bool $clear Whether to clear it or not
 	 * @return array Function taint
 	 */
-	private function maybeClearNoOverride( array $taint, bool $clear ) {
+	private function maybeClearNoOverride( array $taint, bool $clear ) : array {
 		if ( !$clear ) {
 			return $taint;
 		}
@@ -639,7 +642,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func The function to check
 	 * @return null|int[] null for no info, or a function taint array
 	 */
-	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) {
+	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) : ?array {
 		static $cache = [];
 
 		// Note that we're not using the hashed docblock for caching, because the same docblock
@@ -715,7 +718,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $name The name of parameter, no $ or & prefixed
 	 * @return null|int null on no such parameter
 	 */
-	private function getParamNumberGivenName( FunctionInterface $func, string $name ) {
+	private function getParamNumberGivenName( FunctionInterface $func, string $name ) : ?int {
 		$parameters = $func->getParameterList();
 		foreach ( $parameters as $i => $param ) {
 			if ( $name === $param->getName() ) {
@@ -808,7 +811,7 @@ trait TaintednessBaseVisitor {
 	 * @param FullyQualifiedFunctionLikeName $fqsen Function to check
 	 * @return null|array Null if no info, otherwise the taint for the function
 	 */
-	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) {
+	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?array {
 		$taint = $this->plugin->getBuiltinFuncTaint( $fqsen );
 		if ( $taint !== null ) {
 			$this->checkFuncTaint( $taint );
@@ -821,7 +824,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @return string Name of method or "[no method]"
 	 */
-	protected function getCurrentMethod() {
+	protected function getCurrentMethod() : string {
 		return $this->context->isInFunctionLikeScope() ?
 			(string)$this->context->getFunctionLikeFQSEN() : '[no method]';
 	}
@@ -903,7 +906,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return ContextNode
 	 */
-	protected function getCtxN( Node $node ) {
+	protected function getCtxN( Node $node ) : ContextNode {
 		return new ContextNode(
 			$this->code_base,
 			$this->context,
@@ -930,7 +933,7 @@ trait TaintednessBaseVisitor {
 	 *    * 'return' -> Given a method call, include objects in its return.
 	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
-	protected function getPhanObjsForNode( Node $node, $options = [] ) {
+	protected function getPhanObjsForNode( Node $node, $options = [] ) : array {
 		$cn = $this->getCtxN( $node );
 
 		switch ( $node->kind ) {
@@ -1096,11 +1099,11 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Extract some useful debug data from an exception
 	 * @param Exception $e
-	 * @return \Phan\IssueInstance|string
+	 * @return string
 	 */
-	protected function getDebugInfo( Exception $e ) {
+	protected function getDebugInfo( Exception $e ) : string {
 		return $e instanceof IssueException
-			? $e->getIssueInstance()
+			? $e->getIssueInstance()->__toString()
 			: ( get_class( $e ) . " {$e->getMessage()}" );
 	}
 
@@ -1110,7 +1113,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $varName
 	 * @return bool
 	 */
-	protected function isSuperGlobal( $varName ) {
+	protected function isSuperGlobal( $varName ) : bool {
 		return Variable::isSuperglobalVariableWithName( $varName ) ||
 			$varName === 'argv' || $varName === 'argc';
 	}
@@ -1121,7 +1124,7 @@ trait TaintednessBaseVisitor {
 	 * @param Context|null $context Override the context to make debug info for
 	 * @return string path/to/file +linenumber
 	 */
-	protected function dbgInfo( Context $context = null ) {
+	protected function dbgInfo( Context $context = null ) : string {
 		$ctx = $context ?: $this->context;
 		// Using a + instead of : so that I can just copy and paste
 		// into a vim command line.
@@ -1139,7 +1142,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func The function/method in question
 	 * @param int $i Which argument number is $param
 	 */
-	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) {
+	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) : void {
 		// $this->debug( __METHOD__, "Linking '$param' to '$func' arg $i" );
 
 		if ( !property_exists( $func, 'taintedVarLinks' ) ) {
@@ -1182,7 +1185,7 @@ trait TaintednessBaseVisitor {
 	protected function mergeTaintDependencies(
 		TypedElementInterface $lhs,
 		TypedElementInterface $rhs
-	) {
+	) : void {
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
 		$taintRHS = $this->getTaintednessPhanObj( $rhs );
 
@@ -1234,7 +1237,7 @@ trait TaintednessBaseVisitor {
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
 		int $taint = SecurityCheckPlugin::EXEC_TAINT
-	) {
+	) : void {
 		// Ensure we only set exec bits, not normal taint bits.
 		$taint = $taint & SecurityCheckPlugin::BACKPROP_TAINTS;
 
@@ -1304,7 +1307,11 @@ trait TaintednessBaseVisitor {
 	 * @param int $i The number of the argument in question.
 	 * @param int $taint The taint to apply.
 	 */
-	protected function markAllDependentVarsYes( FunctionInterface $method, int $i, int $taint ) {
+	protected function markAllDependentVarsYes(
+		FunctionInterface $method,
+		int $i,
+		int $taint
+	) : void {
 		$taintAdjusted = $taint & SecurityCheckPlugin::ALL_TAINT;
 		if ( $method->isPHPInternal() ) {
 			return;
@@ -1360,7 +1367,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $taint
 	 * @return bool If the variable has known (non-execute taint)
 	 */
-	protected function isAllTaint( $taint ) {
+	protected function isAllTaint( $taint ) : bool {
 		return ( $taint & SecurityCheckPlugin::ALL_TAINT ) !== 0;
 	}
 
@@ -1370,7 +1377,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $taint
 	 * @return bool If the variable has any exec taint
 	 */
-	protected function isExecTaint( $taint ) {
+	protected function isExecTaint( $taint ) : bool {
 		return ( $taint & SecurityCheckPlugin::ALL_EXEC_TAINT ) !== 0;
 	}
 
@@ -1406,7 +1413,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $rhs Taint of right hand side
 	 * @return bool Is it safe
 	 */
-	protected function isSafeAssignment( $lhs, $rhs ) {
+	protected function isSafeAssignment( $lhs, $rhs ) : bool {
 		$adjustRHS = $this->yesToExecTaint( $rhs );
 		// $this->debug( __METHOD__, "lhs=$lhs; rhs=$rhs, adjustRhs=$adjustRHS" );
 		return ( $adjustRHS & $lhs ) === 0 &&
@@ -1438,7 +1445,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	protected function getOriginalTaintLine( $element, $arg = -1 ) {
+	protected function getOriginalTaintLine( $element, $arg = -1 ) : string {
 		$line = $this->getOriginalTaintLineRaw( $element, $arg );
 		if ( $line ) {
 			$line = substr( $line, 0, strlen( $line ) - 1 );
@@ -1455,7 +1462,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	private function getOriginalTaintLineRaw( $element, $arg = - 1 ) {
+	private function getOriginalTaintLineRaw( $element, $arg = - 1 ) : string {
 		$line = '';
 		if ( !is_object( $element ) ) {
 			return '';
@@ -1580,7 +1587,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $method __METHOD__ in question
 	 * @param string $msg debug message
 	 */
-	public function debug( $method, $msg ) {
+	public function debug( $method, $msg ) : void {
 		if ( $this->debugOutput === null ) {
 			$errorOutput = getenv( "SECCHECK_DEBUG" );
 			if ( $errorOutput && $errorOutput !== '-' ) {
@@ -1608,9 +1615,8 @@ trait TaintednessBaseVisitor {
 	 * @warning Will cause an assertion failure if not well formed.
 	 *
 	 * @param array $taint the taint of a function
-	 * @return void
 	 */
-	protected function checkFuncTaint( array $taint ) {
+	protected function checkFuncTaint( array $taint ) : void {
 		assert(
 			isset( $taint['overall'] )
 			&& is_int( $taint['overall'] )
@@ -1859,7 +1865,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $rhsTaint Taint of right hand side (or equivalent)
 	 * @param string $msg Issue description
 	 */
-	public function maybeEmitIssue( int $lhsTaint, int $rhsTaint, string $msg ) {
+	public function maybeEmitIssue( int $lhsTaint, int $rhsTaint, string $msg ) : void {
 		if ( ( $lhsTaint & SecurityCheckPlugin::RAW_PARAM ) === SecurityCheckPlugin::RAW_PARAM ) {
 			$msg .= ' (Param is raw)';
 			$lhsTaint = $this->yesToExecTaint( $lhsTaint & ~SecurityCheckPlugin::RAW_PARAM );
@@ -1923,7 +1929,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $lhsTaint Must have at least one EXEC flag set
 	 * @return bool
 	 */
-	public function isIssueSuppressedOrFalsePositive( $lhsTaint ) {
+	public function isIssueSuppressedOrFalsePositive( $lhsTaint ) : bool {
 		assert( ( $lhsTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) !== 0 );
 		$context = $this->overrideContext ?: $this->context;
 		$adjustLHS = $this->execToYesTaint( $lhsTaint );
@@ -2082,7 +2088,7 @@ trait TaintednessBaseVisitor {
 		int $i,
 		int $curArgTaintedness,
 		FullyQualifiedFunctionLikeName $funcName
-	) {
+	) : array {
 		if (
 			isset( $funcTaint[$i] )
 			&& ( $funcTaint[$i] & SecurityCheckPlugin::ARRAY_OK )
@@ -2145,7 +2151,7 @@ trait TaintednessBaseVisitor {
 		Parameter $param,
 		Node $argument,
 		int $i
-	) {
+	) : void {
 		if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
 			$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
 			return;
@@ -2355,7 +2361,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func The function/method. Must use Analyzable trait
 	 * @return array An array of phan objects
 	 */
-	public function getReturnObjsOfFunc( FunctionInterface $func ) {
+	public function getReturnObjsOfFunc( FunctionInterface $func ) : array {
 		// @phan-suppress-next-line PhanUndeclaredMethod hasNode is not part of the interface
 		if ( !$func->hasNode() ) {
 			// Can't do anything
