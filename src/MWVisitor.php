@@ -182,9 +182,17 @@ class MWVisitor extends TaintednessVisitor {
 		$subscribers = MediaWikiHooksHelper::getInstance()->getHookSubscribers( $hookName );
 		foreach ( $subscribers as $subscriber ) {
 			if ( $subscriber instanceof FullyQualifiedMethodName ) {
+				if ( !$this->code_base->hasMethodWithFQSEN( $subscriber ) ) {
+					$this->debug( __METHOD__, "Hook subscriber $subscriber not found!" );
+					continue;
+				}
 				$func = $this->code_base->getMethodByFQSEN( $subscriber );
 			} else {
 				assert( $subscriber instanceof FullyQualifiedFunctionName );
+				if ( !$this->code_base->hasFunctionWithFQSEN( $subscriber ) ) {
+					$this->debug( __METHOD__, "Hook subscriber $subscriber not found!" );
+					continue;
+				}
 				$func = $this->code_base->getFunctionByFQSEN( $subscriber );
 			}
 
@@ -841,7 +849,7 @@ class MWVisitor extends TaintednessVisitor {
 	) : ?FullyQualifiedFunctionLikeName {
 		$cnode = $this->getCtxN( $node );
 		$var = $cnode->getVariable();
-		$types = $var->getUnionType()->getTypeSet();
+		$types = $var->getUnionType()->withStaticResolvedInContext( $this->context )->getTypeSet();
 		foreach ( $types as $type ) {
 			if ( $type instanceof CallableType || $type instanceof ClosureType ) {
 				return $this->getFQSENFromCallable( $node );
@@ -871,7 +879,7 @@ class MWVisitor extends TaintednessVisitor {
 		$var = $node->children['var'];
 		assert( $var instanceof Node );
 		$hookName = null;
-		$cbExpr = $node->children['expr'];
+		$expr = $node->children['expr'];
 		// The $wgHooks['foo'][] case
 		if (
 			$var->kind === \ast\AST_DIM &&
@@ -893,7 +901,7 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		if ( $hookName !== null ) {
-			$cb = $this->getCallableFromHookRegistration( $cbExpr, $hookName );
+			$cb = $this->getCallableFromHookRegistration( $expr, $hookName );
 			if ( $cb ) {
 				$this->registerHook( $hookName, $cb );
 			} else {
