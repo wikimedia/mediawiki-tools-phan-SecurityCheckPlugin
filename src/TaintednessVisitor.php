@@ -528,6 +528,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		foreach ( $variableObjs as $variableObj ) {
+			if (
+				$variableObj instanceof Property &&
+				$variableObj->getClass( $this->code_base )->getFQSEN() ===
+					FullyQualifiedClassName::getStdClassFQSEN()
+			) {
+				// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
+				// Avoid doing the same with taintedness, as that would cause weird issues (see
+				// 'stdclassconflation' test).
+				// @todo Is it possible to store prop taintedness in the Variable object?
+				// that would be similar to a fine-grained handling of arrays.
+				continue;
+			}
 			// echo $this->dbgInfo() . " " . $variableObj .
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
