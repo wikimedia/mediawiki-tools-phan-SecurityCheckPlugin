@@ -28,14 +28,14 @@ use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\PluginV2;
-use Phan\PluginV2\PostAnalyzeNodeCapability;
-use Phan\PluginV2\PreAnalyzeNodeCapability;
+use Phan\PluginV3;
+use Phan\PluginV3\PostAnalyzeNodeCapability;
+use Phan\PluginV3\PreAnalyzeNodeCapability;
 
 /**
  * @suppress PhanUnreferencedPublicClassConstant They're for use in custom plugins, too
  */
-abstract class SecurityCheckPlugin extends PluginV2
+abstract class SecurityCheckPlugin extends PluginV3
 	implements PostAnalyzeNodeCapability, PreAnalyzeNodeCapability
 {
 

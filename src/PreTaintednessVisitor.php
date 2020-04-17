@@ -3,7 +3,7 @@
 use ast\Node;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
-use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
+use Phan\PluginV3\PluginAwarePreAnalysisVisitor;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.
@@ -41,7 +41,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitForeach( Node $node ) {
+	public function visitForeach( Node $node ) : void {
 		// TODO: Could we do something better here detecting the array
 		// type
 		$lhsTaintedness = $this->getTaintedness( $node->children['expr'] );
@@ -78,19 +78,17 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	/**
 	 * @see visitMethod
 	 * @param Node $node
-	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitFuncDecl( Node $node ) {
-		return $this->visitMethod( $node );
+	public function visitFuncDecl( Node $node ) : void {
+		$this->visitMethod( $node );
 	}
 
 	/**
 	 * @see visitMethod
 	 * @param Node $node
-	 * @return void Just has a return statement in case visitMethod changes
 	 */
-	public function visitClosure( Node $node ) {
-		return $this->visitMethod( $node );
+	public function visitClosure( Node $node ) : void {
+		$this->visitMethod( $node );
 	}
 
 	/**
@@ -106,7 +104,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * Also handles FuncDecl and Closure
 	 * @param Node $node
 	 */
-	public function visitMethod( Node $node ) {
+	public function visitMethod( Node $node ) : void {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 

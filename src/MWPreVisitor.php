@@ -32,7 +32,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * Also handles FuncDecl
 	 * @param Node $node
 	 */
-	public function visitMethod( Node $node ) {
+	public function visitMethod( Node $node ) : void {
 		parent::visitMethod( $node );
 
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );

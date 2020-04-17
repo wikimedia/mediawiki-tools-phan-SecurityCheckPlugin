@@ -1,7 +1,9 @@
 <?php
 
 use ast\Node;
-use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
+use Phan\CodeBase;
+use Phan\Language\Context;
+use Phan\PluginV3\PluginAwarePostAnalysisVisitor;
 
 /**
  * Get the returned things of a method
@@ -25,13 +27,22 @@ use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
+	/** @var array Phan objects related to elements in return line */
+	private $objects;
+
+	/**
+	 * @inheritDoc
+	 */
+	public function __construct( CodeBase $code_base, Context $context, array &$objects ) {
+		parent::__construct( $code_base, $context );
+		$this->plugin = SecurityCheckPlugin::$pluginInstance;
+		$this->objects = &$objects;
+	}
+
 	/**
 	 * @param Node $node
-	 * @return array Phan objects related to elements in return line
-	 * @suppress PhanParamSignatureMismatch
 	 */
-	public function visit( Node $node ) {
-		$results = [];
+	public function visit( Node $node ) : void {
 		foreach ( $node->children as $child ) {
 			if ( !$child instanceof Node ) {
 				continue;
@@ -39,21 +50,20 @@ class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
 			// Note, this does not adjust the $context object...
 			// @todo, this could be made more efficient by
 			// recursing only when neccessary.
-			$results = array_merge( $results, $this( $child ) );
+			$this( $child );
 		}
-		return $results;
 	}
 
 	/**
 	 * @param Node $node
-	 * @return array
 	 */
-	public function visitReturn( Node $node ) {
+	public function visitReturn( Node $node ) : void {
 		if ( $node->children['expr'] instanceof Node ) {
-			return $this->getPhanObjsForNode( $node->children['expr'] );
-		} else {
-			// Returning a literal e.g. return 'foo';
-			return [];
+			// Ignore literals e.g. return 'foo';
+			$this->objects = array_merge(
+				$this->objects,
+				$this->getPhanObjsForNode( $node->children['expr'] )
+			);
 		}
 	}
 }
