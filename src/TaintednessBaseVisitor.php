@@ -58,10 +58,10 @@ trait TaintednessBaseVisitor {
 	protected $plugin;
 
 	/** @var null|string|bool|resource filehandle to output debug messages */
-	private $debugOutput = null;
+	private $debugOutput;
 
 	/** @var Context Override the file/line number to emit issues */
-	protected $overrideContext = null;
+	protected $overrideContext;
 
 	/**
 	 * Change taintedness of a function/method
@@ -237,10 +237,8 @@ trait TaintednessBaseVisitor {
 				if ( strpos( $elem->taintedOriginalError, $newError ) === false ) {
 					$elem->taintedOriginalError .= $newError;
 				}
-			} else {
-				if ( strpos( $elem->taintedOriginalErrorByArg[$arg], $newError ) === false ) {
-					$elem->taintedOriginalErrorByArg[$arg] .= $newError;
-				}
+			} elseif ( strpos( $elem->taintedOriginalErrorByArg[$arg], $newError ) === false ) {
+				$elem->taintedOriginalErrorByArg[$arg] .= $newError;
 			}
 		}
 
@@ -251,13 +249,10 @@ trait TaintednessBaseVisitor {
 					$elem->taintedOriginalError, 0, 250
 				) . '... ';
 			}
-		} else {
-			if ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
-				$elem->taintedOriginalErrorByArg[$arg] = substr(
-					$elem->taintedOriginalErrorByArg[$arg], 0, 250
-				) . '... ';
-			}
+		} elseif ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
+			$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
+			$elem->taintedOriginalErrorByArg[ $arg ] =
+				substr( $elem->taintedOriginalErrorByArg[ $arg ], 0, 250 ) . '... ';
 		}
 	}
 
@@ -437,10 +432,9 @@ trait TaintednessBaseVisitor {
 		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
 			// Our function has a parent, and potentially interface and traits.
 			if ( (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN() ) {
-				$definingFunc = $this->code_base->getMethodByFQSEN(
+				return $this->code_base->getMethodByFQSEN(
 					$func->getDefiningFQSEN()
 				);
-				return $definingFunc;
 			}
 		}
 		return null;
@@ -631,7 +625,7 @@ trait TaintednessBaseVisitor {
 			return $taint;
 		}
 		foreach ( $taint as &$t ) {
-			$t = $t & ( ~SecurityCheckPlugin::NO_OVERRIDE );
+			$t &= ~SecurityCheckPlugin::NO_OVERRIDE;
 		}
 		return $taint;
 	}
@@ -1160,6 +1154,7 @@ trait TaintednessBaseVisitor {
 		if ( $param->taintedMethodLinks->contains( $func ) ) {
 			$data = $param->taintedMethodLinks[$func];
 			$data[$i] = true;
+			$param->taintedMethodLinks[$func] = $data;
 		} else {
 			$param->taintedMethodLinks[$func] = [ $i => true ];
 		}
@@ -1219,8 +1214,9 @@ trait TaintednessBaseVisitor {
 			}
 			if ( isset( $lhs->taintedMethodLinks[$method] ) ) {
 				$lhs->taintedMethodLinks[$method] += $paramInfo;
+			} else {
+				$lhs->taintedMethodLinks[ $method ] = $paramInfo;
 			}
-			$lhs->taintedMethodLinks[$method] = $paramInfo;
 		}
 	}
 
@@ -1239,7 +1235,7 @@ trait TaintednessBaseVisitor {
 		int $taint = SecurityCheckPlugin::EXEC_TAINT
 	) : void {
 		// Ensure we only set exec bits, not normal taint bits.
-		$taint = $taint & SecurityCheckPlugin::BACKPROP_TAINTS;
+		$taint &= SecurityCheckPlugin::BACKPROP_TAINTS;
 
 		if (
 			$taint === 0 ||
@@ -1348,9 +1344,9 @@ trait TaintednessBaseVisitor {
 			}
 		}
 		foreach ( $classesNeedRefresh as $class ) {
-			foreach ( $class->getMethodMap( $this->code_base ) as $method ) {
-				$this->debug( __METHOD__, "reanalyze $method" );
-				$this->analyzeFunc( $method );
+			foreach ( $class->getMethodMap( $this->code_base ) as $classMethod ) {
+				$this->debug( __METHOD__, "reanalyze $classMethod" );
+				$this->analyzeFunc( $classMethod );
 			}
 		}
 		// Maybe delete links??
@@ -1448,7 +1444,7 @@ trait TaintednessBaseVisitor {
 	protected function getOriginalTaintLine( $element, $arg = -1 ) : string {
 		$line = $this->getOriginalTaintLineRaw( $element, $arg );
 		if ( $line ) {
-			$line = substr( $line, 0, strlen( $line ) - 1 );
+			$line = substr( $line, 0, - 1 );
 			return " (Caused by:$line)";
 		} else {
 			return '';
@@ -1463,10 +1459,12 @@ trait TaintednessBaseVisitor {
 	 * @return string
 	 */
 	private function getOriginalTaintLineRaw( $element, $arg = - 1 ) : string {
-		$line = '';
 		if ( !is_object( $element ) ) {
 			return '';
-		} elseif ( $element instanceof TypedElementInterface ) {
+		}
+
+		$line = '';
+		if ( $element instanceof TypedElementInterface ) {
 			if ( $arg === -1 ) {
 				if ( $element instanceof PassByReferenceVariable ) {
 					$element = $element->getElement();
@@ -1474,11 +1472,11 @@ trait TaintednessBaseVisitor {
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
 					$line = $element->taintedOriginalError;
 				}
-				foreach ( $element->taintedOriginalErrorByArg ?? [] as $arg ) {
+				foreach ( $element->taintedOriginalErrorByArg ?? [] as $origArg ) {
 					// FIXME is this right? In the generic
 					// case should we include all arguments as
 					// well?
-					$line .= $arg;
+					$line .= $origArg;
 				}
 			} else {
 				assert( $element instanceof FunctionInterface );
@@ -1564,9 +1562,6 @@ trait TaintednessBaseVisitor {
 				$paramInfo = $links[$func];
 				if ( (string)( $func->getFQSEN() ) === (string)( $curFunc->getFQSEN() ) ) {
 					foreach ( $paramInfo as $i => $_ ) {
-						if ( !isset( $paramTaint[$i] ) ) {
-							$paramTaint[$i] = 0;
-						}
 						$paramTaint[$i] = $pobjTaintContribution;
 						$taintRemaining &= ~$pobjTaintContribution;
 					}
@@ -1732,28 +1727,10 @@ trait TaintednessBaseVisitor {
 				case \ast\AST_CLASS_CONST:
 					return null;
 				case \ast\AST_VAR:
-					$var = $this->getCtxN( $classNode )->getVariable();
-					$type = $var->getUnionType();
-					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
-						return null;
-					}
-					$cl = $type->asClassList(
-						$this->code_base,
-						$this->context
-					);
-					$clazz = false;
-					foreach ( $cl as $item ) {
-						$clazz = $item;
-						break;
-					}
-					if ( !$clazz ) {
-						return null;
-					}
-					$className = (string)$clazz->getFQSEN();
-					break;
 				case \ast\AST_PROP:
-					$var = $this->getCtxN( $classNode )
-						->getProperty( false );
+					$var = $classNode->kind === \ast\AST_VAR
+						? $this->getCtxN( $classNode )->getVariable()
+						: $this->getCtxN( $classNode )->getProperty( false );
 					$type = $var->getUnionType();
 					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
 						return null;
@@ -2101,8 +2078,8 @@ trait TaintednessBaseVisitor {
 		} elseif ( isset( $funcTaint[$i] ) ) {
 			if (
 				( $funcTaint[$i] & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
-				&& $this->nodeIsString( $argument )
 				&& ( $curArgTaintedness & SecurityCheckPlugin::SQL_TAINT )
+				&& $this->nodeIsString( $argument )
 			) {
 				// Special case to make NUMKEY work right for non-array
 				// values. Should consider if this is really best

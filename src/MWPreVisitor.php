@@ -95,7 +95,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			} else {
 				$varObj = $scope->getVariableByName( $param->children['name'] );
 				$varObj->setUnionType(
-					UnionType::fromFullyQualifiedString( '\\Parser' )
+					UnionType::fromFullyQualifiedPHPDocString( '\\Parser' )
 				);
 			}
 		}
@@ -107,7 +107,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			} else {
 				$varObj = $scope->getVariableByName( $param->children['name'] );
 				$varObj->setUnionType(
-					UnionType::fromFullyQualifiedString( '\\PPFrame' )
+					UnionType::fromFullyQualifiedPHPDocString( '\\PPFrame' )
 				);
 			}
 		}
@@ -134,7 +134,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			} else {
 				$varObj = $scope->getVariableByName( $param->children['name'] );
 				$varObj->setUnionType(
-					UnionType::fromFullyQualifiedString( '\\Parser' )
+					UnionType::fromFullyQualifiedPHPDocString( '\\Parser' )
 				);
 			}
 		}

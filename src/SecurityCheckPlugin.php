@@ -260,7 +260,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 				continue;
 			}
 			if ( $taintParts['taint'] === 'allow_override' ) {
-				$overallTaint = $overallTaint & ( ~self::NO_OVERRIDE );
+				$overallTaint &= ~self::NO_OVERRIDE;
 				continue;
 			}
 			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );
