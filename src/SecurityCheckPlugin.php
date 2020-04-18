@@ -25,6 +25,7 @@ require_once __DIR__ . '/TaintednessVisitor.php';
 require_once __DIR__ . '/GetReturnObjsVisitor.php';
 
 use Phan\CodeBase;
+use Phan\Config;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\PluginV2;
@@ -122,7 +123,22 @@ abstract class SecurityCheckPlugin extends PluginV2
 	 * Save the subclass instance to make it accessible from the visitor
 	 */
 	public function __construct() {
+		$this->assertRequiredConfig();
 		self::$pluginInstance = $this;
+	}
+
+	/**
+	 * Ensure that the options we need are enabled.
+	 */
+	private function assertRequiredConfig() : void {
+		if ( Config::get_quick_mode() ) {
+			throw new AssertionError( 'Quick mode must be disabled to run taint-check' );
+		}
+		if ( !Config::getValue( 'record_variable_context_and_scope' ) ) {
+			throw new AssertionError(
+				'"record_variable_context_and_scope" must be enabled to run taint-check'
+			);
+		}
 	}
 
 	/**
