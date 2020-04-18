@@ -1,0 +1,1 @@
+integration/proptracking2/test.php:19 SecurityCheck-XSS Calling method \TrivialGetter::setFoo() in \setEvil that outputs using tainted argument $[arg #1]. (Caused by: integration/proptracking2/test.php +14)

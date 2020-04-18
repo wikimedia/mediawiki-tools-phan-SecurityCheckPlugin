@@ -156,9 +156,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @return int Taint
 	 */
 	private function analyzeFunctionLike( FunctionInterface $func ) : int {
-		// Phan will remove the variable map after analysis, so save it for later
-		// use by GetReturnObjsVisitor. Ref phan issue #2963
-		$func->scopeAfterAnalysis = $this->context->getScope();
 		if (
 			!property_exists( $func, 'funcTaint' ) &&
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
@@ -948,21 +945,29 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->checkFuncTaint( $funcTaint );
 		$this->setFuncTaint( $curFunc, $funcTaint );
 
-		if ( $funcTaint['overall'] & SecurityCheckPlugin::YES_EXEC_TAINT ) {
-			$taintSource = '';
-			$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
-			foreach ( $pobjs as $pobj ) {
-				$taintSource .= $pobj->taintedOriginalError ?? '';
-			}
-			if ( strlen( $taintSource ) < 200 ) {
-				if ( !property_exists( $curFunc, 'taintedOriginalError' ) ) {
-					$curFunc->taintedOriginalError = '';
+		if ( $node->children['expr'] instanceof Node ) {
+			// Save this object in the Function object
+			$retObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			$curFunc->retObjs = array_merge(
+				$curFunc->retObjs ?? [],
+				$retObjs
+			);
+
+			if ( $funcTaint['overall'] & SecurityCheckPlugin::YES_EXEC_TAINT ) {
+				$taintSource = '';
+				foreach ( $retObjs as $pobj ) {
+					$taintSource .= $pobj->taintedOriginalError ?? '';
 				}
-				$curFunc->taintedOriginalError = substr(
-					$curFunc->taintedOriginalError . $taintSource,
-					0,
-					250
-				);
+				if ( strlen( $taintSource ) < 200 ) {
+					if ( !property_exists( $curFunc, 'taintedOriginalError' ) ) {
+						$curFunc->taintedOriginalError = '';
+					}
+					$curFunc->taintedOriginalError = substr(
+						$curFunc->taintedOriginalError . $taintSource,
+						0,
+						250
+					);
+				}
 			}
 		}
 		$this->curTaint = SecurityCheckPlugin::INAPPLICABLE_TAINT;

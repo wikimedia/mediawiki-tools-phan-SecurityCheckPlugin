@@ -23,7 +23,6 @@ require_once __DIR__ . '/TaintednessBaseVisitor.php';
 require_once __DIR__ . '/TaintednessLoopVisitor.php';
 require_once __DIR__ . '/PreTaintednessVisitor.php';
 require_once __DIR__ . '/TaintednessVisitor.php';
-require_once __DIR__ . '/GetReturnObjsVisitor.php';
 
 use Phan\CodeBase;
 use Phan\Config;

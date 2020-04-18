@@ -21,7 +21,6 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
-use Phan\Language\Scope;
 use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
@@ -2290,47 +2289,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Relatively stable workaround for phan issue #2963: get the original scope (and hence the
-	 * variable map) that a method had after analysis. Phan deletes this data between the first
-	 * analysis and the time we call this method later on. Attempting to collect the return values
-	 * of a method with the wrong scope means that: 1-we'll miss stuff, 2-we'll raise various
-	 * UndeclaredThis issue, if one of the returned objects is $this->foo (see e.g. T249619).
-	 *
-	 * @param FunctionInterface $func
-	 * @param bool $allowAnalysis Whether $func can be analyzed (if it wasn't already)
-	 * @return Scope
-	 * @throws Exception
-	 */
-	private function getOriginalScope(
-		FunctionInterface $func,
-		bool $allowAnalysis = true
-	) : Scope {
-		if ( property_exists( $func, 'scopeAfterAnalysis' ) ) {
-			// Case 1 - The scope is already there, easy task.
-			return $func->scopeAfterAnalysis;
-		}
-
-		if ( $func instanceof Method && $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
-			// Case 2 - A subclass calling a parent's method which is NOT redeclared in the subclass.
-			// Make sure to retry with the parent, see also T249491.
-			$definingFunc = $this->code_base->getMethodByFQSEN( $func->getDefiningFQSEN() );
-			return $this->getOriginalScope( $definingFunc );
-		}
-
-		if ( $allowAnalysis ) {
-			// Case 3 - We may still have to analyze the function (it depends on the order in which
-			// things are laid out in the source code). Analyze the function now, making sure not
-			// to enter infinite loops if something goes wrong.
-			$this->analyzeFunc( $func );
-			return $this->getOriginalScope( $func, false );
-		}
-
-		// Case 4 - Mission failed. No scope could be restored. This will especially happen when
-		// we enter case 3, but the maximum analysis depth is reached, hence aborting analysis.
-		throw new Exception( 'Could not restore original scope' );
-	}
-
-	/**
 	 * Get the phan objects from the return line of a Func/Method
 	 *
 	 * This is primarily used to handle the case where a method
@@ -2356,29 +2314,22 @@ trait TaintednessBaseVisitor {
 	 * @return array An array of phan objects
 	 */
 	public function getReturnObjsOfFunc( FunctionInterface $func ) : array {
-		// @phan-suppress-next-line PhanUndeclaredMethod hasNode is not part of the interface
-		if ( !$func->hasNode() ) {
-			// Can't do anything
+		if ( !property_exists( $func, 'retObjs' ) ) {
+			// We still have to see the function. Analyze it now.
+			$this->analyzeFunc( $func );
+		}
+
+		if ( !property_exists( $func, 'retObjs' ) ) {
+			// If it still doesn't exist, perhaps we reached the recursion limit, or it might be
+			// a kind of function that we can't handle.
 			return [];
 		}
 
-		try {
-			$context = $func->getContext()->withScope( $this->getOriginalScope( $func ) );
-		} catch ( Exception $_ ) {
-			// Don't even try diggin inside a function with the wrong scope -- in the best case
-			// it won't work and/or provide incomplete info. In the worst case, it will trigger
-			// other issues like PhanUndeclaredThis.
-			return [];
-		}
-
-		$node = $func->getNode();
-		$objs = [];
-		( new GetReturnObjsVisitor(
-			$this->code_base,
-			$context,
-			$objs
-		) )( $node );
-		return $objs;
+		// Note that if a function is recursively calling itself, this list might be incomplete.
+		// This could be remediated with another dynamic property (e.g. retObjsCollected), initialized
+		// inside visitMethod in preorder, and set to true inside visitMethod in postorder.
+		// It would be pointless, though, as returning a partial list is better than returning no list.
+		return $func->retObjs;
 	}
 
 	/**
