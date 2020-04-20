@@ -166,7 +166,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			$varName = $variable->getName();
 
 			$methodLinks = new Set();
-			$error = '';
+			$error = [];
 			$taintedness = 0;
 
 			foreach ( $scopeList as $scope ) {
@@ -180,13 +180,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$variableObjLinks = $localVar->taintedMethodLinks ?? new Set;
 				$methodLinks->addAll( $variableObjLinks );
 
-				$varError = $localVar->taintedOriginalError ?? '';
-				if ( strpos( $error, $varError ?: "\1\2" ) === false ) {
-					$error .= $varError;
-				}
-				if ( strlen( $error ) > 254 ) {
-					$error = substr( $error, 0, 250 ) . '... ';
-				}
+				$varError = $localVar->taintedOriginalError ?? [];
+				$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varError );
 			}
 
 			$variable->taintedness = $taintedness;
