@@ -27,10 +27,16 @@ and use about 2 GB of memory. Running out of memory may be a real issue
 if you try and scan something from within a VM that has limited
 memory. Small projects do not require so much memory
 
-### Composer
+### Install
 
     $ `composer require --dev mediawiki/phan-taint-check-plugin`
 
+### Usage
+The plugin can be used in both "standalone" and "manual" mode. The former is the best
+choice if your project isn't already running phan, as it provides its own config file.
+The second will simply use an already existing config file for phan.
+
+#### Standalone
 * For MediaWiki core, add the following to composer.json:
 
 ```json
@@ -60,7 +66,10 @@ You can then run:
 
     $ `composer seccheck`
 
-to run the security check. Note that false positives are disabled by default.
+to run the security check.
+
+Note that false positives are disabled by default.
+
 For MediaWiki extensions/skins, this assumes the extension/skin is installed in the
 normal `extensions` or `skins` directory, and thus MediaWiki is in `../../`. If this is not
 the case, then you need to specify the `MW_INSTALL_PATH` environment variable.
@@ -74,19 +83,30 @@ Additionally, if you want to do a really quick check, you can run the
 seccheck-generic script from a mediawiki extension/skin which will ignore all
 MediaWiki stuff, making the check much faster (but misses many issues).
 
-If you want to do custom configuration (to say exclude some directories), follow the instructions below unser Manually.
+#### Manual
+You simply have to add taint-check to the `plugins` section of your phan config. Assuming
+that taint-check is in the standard vendor location, e.g.
+` $seccheckPath = 'vendor/mediawiki/phan-taint-check-plugin/';`, the file to include is
+`"$seccheckPath/MediaWikiSecurityCheckPlugin.php"` for a MediaWiki-related project, and
+`"$seccheckPath/GenericSecurityCheckPlugin.php"` for a generic project.
 
-### Manual
+Also, make sure that you have the following settings, or the plugin won't work:
+```
+   'quick_mode' => false,
+   'record_variable_context_and_scope' => true
+```
 
-For MediaWiki mode, add MediaWikiSecurityCheckPlugin.php to the
-list of plugins in your Phan config.php file.
-
-For generic mode, add GenericSecurityCheckPlugin.php to the list
-of plugins in your phan config.php file.
+You may also want to add `SecurityCheck-LikelyFalsePositive` and
+`SecurityCheck-PHPSerializeInjection` to the list of suppressed issues (the latter
+has a high rate of false positives).
 
 Then run phan as you normally would:
 
-    $ php /path/to/phan/phan -p
+    $ vendor/bin/phan -d . --long-progress-bar
+
+**Note**: Taint-check is bundled in https://github.com/wikimedia/mediawiki-tools-phan
+version 0.10.2 and above, so you don't have to add it manually if you're already using
+mediawiki-tools-phan.
 
 ### Docker
 The docker image used by Wikimedia's continuous integration for scanning extensions and skins
