@@ -18,10 +18,8 @@
  */
 
 use ast\Node;
-use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
-use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
@@ -50,14 +48,6 @@ use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
  */
 class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
-
-	/**
-	 * @inheritDoc
-	 */
-	public function __construct( CodeBase $code_base, Context $context ) {
-		parent::__construct( $code_base, $context );
-		$this->plugin = SecurityCheckPlugin::$pluginInstance;
-	}
 
 	/**
 	 * Generic visitor when we haven't defined a more specific one.

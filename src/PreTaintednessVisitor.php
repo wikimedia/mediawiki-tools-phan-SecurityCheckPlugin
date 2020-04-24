@@ -1,8 +1,6 @@
 <?php
 
 use ast\Node;
-use Phan\CodeBase;
-use Phan\Language\Context;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
 use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
@@ -32,14 +30,6 @@ use Phan\PluginV2\PluginAwarePreAnalysisVisitor;
  */
 class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	use TaintednessBaseVisitor;
-
-	/**
-	 * @inheritDoc
-	 */
-	public function __construct( CodeBase $code_base, Context $context ) {
-		parent::__construct( $code_base, $context );
-		$this->plugin = SecurityCheckPlugin::$pluginInstance;
-	}
 
 	/**
 	 * Visit a foreach loop

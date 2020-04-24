@@ -115,7 +115,7 @@ abstract class SecurityCheckPlugin extends PluginV2
 	public const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
 
 	/**
-	 * @var SecurityCheckPlugin Passed to the visitor for context
+	 * @var self Passed to the visitor for context
 	 */
 	public static $pluginInstance;
 

@@ -24,14 +24,11 @@
 require_once __DIR__ . "/src/SecurityCheckPlugin.php";
 require_once __DIR__ . "/src/MWVisitor.php";
 require_once __DIR__ . "/src/MWPreVisitor.php";
+require_once __DIR__ . "/src/MediaWikiHooksHelper.php";
 
 use Phan\CodeBase;
-use Phan\Config;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionName as FQSENFunc;
-use Phan\Language\FQSEN\FullyQualifiedMethodName as FQSENMethod;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
@@ -47,11 +44,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	public static function getPreAnalyzeNodeVisitorClassName(): string {
 		return MWPreVisitor::class;
 	}
-
-	/**
-	 * @var array A mapping from hook names to FQSEN that implement it
-	 */
-	protected $hookSubscribers = [];
 
 	/**
 	 * @inheritDoc
@@ -539,116 +531,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::ESCAPED_TAINT
 			],
 		];
-	}
-
-	/**
-	 * Add a hook implementation to our list.
-	 *
-	 * This also handles parser hooks which aren't normal hooks.
-	 * Non-normal hooks start their name with a "!"
-	 *
-	 * @param string $hookName Name of hook
-	 * @param FullyQualifiedFunctionLikeName $fqsen The implementing method
-	 * @return bool true if already registered, false otherwise
-	 */
-	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ) : bool {
-		if ( !isset( $this->hookSubscribers[$hookName] ) ) {
-			$this->hookSubscribers[$hookName] = [];
-		}
-		foreach ( $this->hookSubscribers[$hookName] as $subscribe ) {
-			if ( (string)$subscribe === (string)$fqsen ) {
-				// dupe
-				return true;
-			}
-		}
-		$this->hookSubscribers[$hookName][] = $fqsen;
-		return false;
-	}
-
-	/**
-	 * Register hooks from extension.json/skin.json
-	 *
-	 * Assumes extension.json/skin.json is in project root directory
-	 * unless SECURITY_CHECK_EXT_PATH is set
-	 */
-	protected function loadExtensionJson() : void {
-		static $done;
-		if ( $done ) {
-			return;
-		}
-		$done = true;
-		foreach ( [ 'extension.json', 'skin.json' ] as $filename ) {
-			$envPath = getenv( 'SECURITY_CHECK_EXT_PATH' );
-			if ( $envPath ) {
-				$jsonPath = $envPath . '/' . $filename;
-			} else {
-				$jsonPath = Config::projectPath( $filename );
-			}
-			if ( file_exists( $jsonPath ) ) {
-				$json = json_decode( file_get_contents( $jsonPath ), true );
-				if ( !is_array( $json ) ) {
-					continue;
-				}
-				if ( isset( $json['Hooks'] ) && is_array( $json['Hooks'] ) ) {
-					foreach ( $json['Hooks'] as $hookName => $cbList ) {
-						foreach ( (array)$cbList as $cb ) {
-							// All callbacks here are simple
-							// "someFunction" or "Class::SomeMethod"
-							if ( strpos( $cb, '::' ) === false ) {
-								$callback = FQSENFunc::fromFullyQualifiedString(
-									$cb
-								);
-							} else {
-								$callback = FQSENMethod::fromFullyQualifiedString(
-									$cb
-								);
-							}
-							$this->registerHook( $hookName, $callback );
-						}
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * Get a list of subscribers for hook
-	 *
-	 * @param string $hookName Hook in question. Hooks starting with ! are special.
-	 * @return FullyQualifiedFunctionLikeName[]
-	 */
-	public function getHookSubscribers( string $hookName ) : array {
-		$this->loadExtensionJson();
-		return $this->hookSubscribers[$hookName] ?? [];
-	}
-
-	/**
-	 * Is a particular function implementing a special hook.
-	 *
-	 * @note This assumes that any given func will only implement
-	 *   one hook
-	 * @param FullyQualifiedFunctionLikeName $fqsen The function to check
-	 * @return string|null The hook it is implementing or null if no hook
-	 */
-	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) : ?string {
-		$this->loadExtensionJson();
-		$specialHooks = [
-			'!ParserFunctionHook',
-			'!ParserHook'
-		];
-
-		// @todo This is probably not the most efficient thing.
-		foreach ( $specialHooks as $hook ) {
-			if ( !isset( $this->hookSubscribers[$hook] ) ) {
-				continue;
-			}
-			foreach ( $this->hookSubscribers[$hook] as $implFQSEN ) {
-				if ( (string)$implFQSEN === (string)$fqsen ) {
-					return $hook;
-				}
-			}
-		}
-		return null;
 	}
 
 	/**
