@@ -482,7 +482,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$lhsTaintedness,
 			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it"
-				. $this->getOriginalTaintLine( $lhs )
+				. $this->getOriginalTaintLine( $lhs, null )
 		);
 
 		$rhsObjs = [];
@@ -628,17 +628,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitShellExec( Node $node ) : void {
 		$taintedness = $this->getTaintedness( $node->children['expr'] );
+		$shellExecTaint = SecurityCheckPlugin::SHELL_EXEC_TAINT;
 
 		$this->maybeEmitIssue(
-			SecurityCheckPlugin::SHELL_EXEC_TAINT,
+			$shellExecTaint,
 			$taintedness,
 			"Backtick shell execution operator contains user controlled arg"
-				. $this->getOriginalTaintLine( $node->children['expr'] )
+				. $this->getOriginalTaintLine( $node->children['expr'], $shellExecTaint )
 		);
 
 		if (
 			$node->children['expr'] instanceof Node &&
-			$this->isSafeAssignment( SecurityCheckPlugin::SHELL_EXEC_TAINT, $taintedness )
+			$this->isSafeAssignment( $shellExecTaint, $taintedness )
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
@@ -647,7 +648,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to backtick" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
-					SecurityCheckPlugin::SHELL_EXEC_TAINT
+					$shellExecTaint
 				);
 			}
 		}
@@ -660,17 +661,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitIncludeOrEval( Node $node ) : void {
 		$taintedness = $this->getTaintedness( $node->children['expr'] );
+		$includeOrEvalTaint = SecurityCheckPlugin::MISC_EXEC_TAINT;
 
 		$this->maybeEmitIssue(
-			SecurityCheckPlugin::MISC_EXEC_TAINT,
+			$includeOrEvalTaint,
 			$taintedness,
 			"Argument to require, include or eval is user controlled"
-				. $this->getOriginalTaintLine( $node->children['expr'] )
+				. $this->getOriginalTaintLine( $node->children['expr'], $includeOrEvalTaint )
 		);
 
 		if (
 			$node->children['expr'] instanceof Node &&
-			$this->isSafeAssignment( SecurityCheckPlugin::MISC_EXEC_TAINT, $taintedness )
+			$this->isSafeAssignment( $includeOrEvalTaint, $taintedness )
 		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
@@ -679,7 +681,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to require/eval" );
 				$this->markAllDependentMethodsExec(
 					$phanObj,
-					SecurityCheckPlugin::MISC_EXEC_TAINT
+					$includeOrEvalTaint
 				);
 			}
 		}
@@ -708,7 +710,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$echoTaint,
 			$taintedness,
 			"Echoing expression that was not html escaped"
-				. $this->getOriginalTaintLine( $echoedExpr )
+				. $this->getOriginalTaintLine( $echoedExpr, $echoTaint )
 		);
 
 		if ( $echoedExpr instanceof Node && $this->isSafeAssignment( $echoTaint, $taintedness ) ) {

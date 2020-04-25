@@ -1,0 +1,1 @@
+integration/concatcausedby/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/concatcausedby/test.php +32; integration/concatcausedby/test.php +39)

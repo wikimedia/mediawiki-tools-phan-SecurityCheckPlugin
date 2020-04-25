@@ -174,7 +174,15 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Merge the caused-by lines of $new into $base.
+	 * Merge the caused-by lines of $new into $base. Note that this isn't a merge operation like
+	 * array_merge. What this method does is:
+	 * 1 - if $new is a subset of $base, return $base;
+	 * 2 - update taintedness values in $base if the *lines* (not taint values) in $new
+	 *   are a subset of the lines in $base;
+	 * 3 - array_merge otherwise;
+	 *
+	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
+	 * even a single taintedness value in $base changes.
 	 *
 	 * @param array[] $base
 	 * @param array[] $new
@@ -185,6 +193,13 @@ trait TaintednessBaseVisitor {
 			return $base;
 		}
 
+		$subsIdx = self::getArraySubsetIdx( array_column( $base, 1 ), array_column( $new, 1 ) );
+		if ( $subsIdx !== false ) {
+			foreach ( $new as $i => $cur ) {
+				$base[ $i + $subsIdx ][0] |= $cur[0];
+			}
+			return $base;
+		}
 		return array_merge( $base, $new );
 	}
 
@@ -280,7 +295,10 @@ trait TaintednessBaseVisitor {
 		foreach ( $newErrors as $newError ) {
 			if ( $arg === -1 ) {
 				if ( !in_array( $newError, $elem->taintedOriginalError, true ) ) {
-					$elem->taintedOriginalError[] = $newError;
+					$elem->taintedOriginalError = $this->mergeCausedByLines(
+						$elem->taintedOriginalError,
+						[ [ $taintedness, $newError ] ]
+					);
 				}
 			} elseif ( !in_array( $newError, $elem->taintedOriginalErrorByArg[$arg], true ) ) {
 				$elem->taintedOriginalErrorByArg[$arg][] = $newError;
@@ -1525,11 +1543,13 @@ trait TaintednessBaseVisitor {
 	 * Get the line number of the original cause of taint.
 	 *
 	 * @param TypedElementInterface|Node $element
+	 * @param int|null $taintedness Only consider caused-by lines having (at least) these bits, null
+	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	protected function getOriginalTaintLine( $element, $arg = -1 ) : string {
-		$lines = $this->getOriginalTaintArray( $element, $arg );
+	protected function getOriginalTaintLine( $element, ?int $taintedness, $arg = -1 ) : string {
+		$lines = $this->getOriginalTaintArray( $element, $taintedness, $arg );
 		if ( $lines ) {
 			return ' (Caused by: ' . $this->stringifyCausedByLines( $lines ) . ')';
 		} else {
@@ -1538,13 +1558,55 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Normalize a taintedness value for caused-by lookup
+	 *
+	 * @param int $taintedness
+	 * @return int
+	 */
+	private function normalizeTaintForCausedBy( int $taintedness ) : int {
+		// Convert EXEC to YES, but keep existing YES in place.
+		$normTaints = $taintedness & SecurityCheckPlugin::ALL_TAINT;
+		$taintedness = $this->execToYesTaint( $taintedness ) | $normTaints;
+
+		if ( $taintedness & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
+			// Special case: we assume the bad case, preferring false positives over false negatives
+			$taintedness |= SecurityCheckPlugin::SQL_TAINT;
+		}
+
+		return $taintedness;
+	}
+
+	/**
+	 * @param array $allLines
+	 * @param int|null $taintedness
+	 * @return array
+	 */
+	private function extractInterestingCausedbyLines( array $allLines, ?int $taintedness ) : array {
+		if ( $taintedness === null ) {
+			return array_column( $allLines, 1 );
+		}
+
+		$taintedness = $this->normalizeTaintForCausedBy( $taintedness );
+		$ret = [];
+		foreach ( $allLines as [ $lineTaint, $lineText ] ) {
+			// Don't check for equality, as that would fail with MultiTaint
+			if ( ( $lineTaint & $taintedness ) !== SecurityCheckPlugin::NO_TAINT ) {
+				$ret[] = $lineText;
+			}
+		}
+		return $ret;
+	}
+
+	/**
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
 	 * @param TypedElementInterface|Node $element
+	 * @param int|null $taintedness Only consider caused-by lines having (at least) these bits, null
+	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string[]
 	 */
-	private function getOriginalTaintArray( $element, $arg = -1 ) : array {
+	private function getOriginalTaintArray( $element, ?int $taintedness, $arg = -1 ) : array {
 		if ( !is_object( $element ) ) {
 			return [];
 		}
@@ -1556,7 +1618,10 @@ trait TaintednessBaseVisitor {
 					$element = $this->extractReferenceArgument( $element );
 				}
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
-					$lines = array_merge( $lines, $element->taintedOriginalError );
+					$lines = array_merge(
+						$lines,
+						$this->extractInterestingCausedbyLines( $element->taintedOriginalError, $taintedness )
+					);
 				}
 				foreach ( $element->taintedOriginalErrorByArg ?? [] as $origArg ) {
 					// FIXME is this right? In the generic
@@ -1571,15 +1636,14 @@ trait TaintednessBaseVisitor {
 		} elseif ( $element instanceof Node ) {
 			$pobjs = $this->getPhanObjsForNode( $element );
 			foreach ( $pobjs as $elem ) {
-				$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem ) );
+				$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem, $taintedness ) );
 			}
 			if ( $lines === [] ) {
 				// try to dig deeper.
 				// This will also include method calls and whatnot.
-				// FIXME should we always do this? Is it too spammy.
 				$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
 				foreach ( $pobjs as $elem ) {
-					$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem ) );
+					$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem, $taintedness ) );
 				}
 			}
 		} else {
@@ -1920,6 +1984,30 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Simplified version of maybeEmitIssue which makes the following assumptions:
+	 *  - The caller would compute the RHS taint only to feed it to maybeEmitIssue
+	 *  - The message should be followed by caused-by lines
+	 *  - These caused-by lines should be taken from the same object passed as RHS
+	 *  - Only caused-by lines having the LHS taint should be included
+	 * If these conditions hold true, then this method should be preferred.
+	 *
+	 * @warning DO NOT use this method if the caller already needs to compute the RHS
+	 * taintedness! The taint would be computed twice!
+	 *
+	 * @param int $lhsTaint
+	 * @param mixed $rhsElement
+	 * @param string $msg
+	 * @throws Exception
+	 */
+	public function maybeEmitIssueSimplified( int $lhsTaint, $rhsElement, string $msg ) : void {
+		$this->maybeEmitIssue(
+			$lhsTaint,
+			$this->getTaintedness( $rhsElement ),
+			$msg . $this->getOriginalTaintLine( $rhsElement, $lhsTaint )
+		);
+	}
+
+	/**
 	 * Emit an issue using the appropriate issue type
 	 *
 	 * If $this->overrideContext is set, it will use that for the
@@ -2101,13 +2189,14 @@ trait TaintednessBaseVisitor {
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
 			$containingMethod = $this->getCurrentMethod();
+			$thisTaint = $taint[$i] ?? 0;
 			$this->maybeEmitIssue(
-				$taint[$i] ?? 0,
+				$thisTaint,
 				$curArgTaintedness,
 				"Calling method $funcName() in $containingMethod" .
 				" that outputs using tainted argument \$$taintedArg." .
-				$this->getOriginalTaintLine( $func, $i ) .
-				$this->getOriginalTaintLine( $argument )
+				$this->getOriginalTaintLine( $func, $thisTaint, $i ) .
+				$this->getOriginalTaintLine( $argument, $thisTaint )
 			);
 
 			$overallArgTaint |= $effectiveArgTaintedness;
@@ -2119,7 +2208,7 @@ trait TaintednessBaseVisitor {
 			$this->execToYesTaint( $taint['overall'] ),
 			"Calling method $funcName in $containingMethod that "
 			. "is always unsafe " .
-			$this->getOriginalTaintLine( $func )
+			$this->getOriginalTaintLine( $func, $taint['overall'] )
 		);
 
 		$newMem = memory_get_peak_usage();

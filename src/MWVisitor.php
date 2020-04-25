@@ -98,12 +98,11 @@ class MWVisitor extends TaintednessVisitor {
 		}
 		$text = $node->children['args']->children[1] ?? null;
 		if ( !$escapeArg && $text instanceof Node ) {
-			$this->maybeEmitIssue(
+			$this->maybeEmitIssueSimplified(
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				$this->getTaintedness( $text ),
+				$text,
 				"Calling Linker::makeExternalLink with user controlled text " .
 				"and third argument set to false"
-					. $this->getOriginalTaintLine( $text )
 			);
 		}
 	}
@@ -402,12 +401,10 @@ class MWVisitor extends TaintednessVisitor {
 			break;
 		case '!ParserHook':
 			$ret = $node->children['expr'];
-			$taintedness = $this->getTaintedness( $ret );
-			$this->maybeEmitIssue(
+			$this->maybeEmitIssueSimplified(
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				$taintedness,
+				$ret,
 				"Outputting user controlled HTML from Parser tag hook $funcFQSEN"
-					. $this->getOriginalTaintLine( $ret )
 			);
 			break;
 		}
@@ -524,13 +521,12 @@ class MWVisitor extends TaintednessVisitor {
 				$this->debug( __METHOD__, "Could not determine 2nd arg makeList()" );
 				// Since LIST_NAMES is very rare, and LIST_COMMA is default,
 				// assume its LIST_AND or LIST_OR
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
-					$this->getTaintedness( $args->children[0] ),
+					$args->children[0],
 					"IDatabase::makeList with unknown type arg is " .
 					"given an array with unescaped keynames or " .
 					"values for numeric keys (May be false positive)"
-						. $this->getOriginalTaintLine( $args->children[0] )
 				);
 				return;
 			}
@@ -561,23 +557,21 @@ class MWVisitor extends TaintednessVisitor {
 				break;
 			case 'cond':
 				// exec_sql_numkey
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
-					$this->getTaintedness( $args->children[0] ),
+					$args->children[0],
 					"IDatabase::makeList with LIST_AND, LIST_OR or "
 						. "LIST_SET must sql escape string "
 						. "key names and values of numeric keys"
-						. $this->getOriginalTaintLine( $args->children[0] )
 				);
 				break;
 			case 'name':
 				// Like comma but with no escaping.
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					SecurityCheckPlugin::SQL_EXEC_TAINT,
-					$this->getTaintedness( $args->children[0] ),
+					$args->children[0],
 					"IDatabase::makeList with LIST_NAMES needs "
 						. "to escape for SQL"
-						. $this->getOriginalTaintLine( $args->children[0] )
 				);
 				break;
 		}
@@ -620,11 +614,10 @@ class MWVisitor extends TaintednessVisitor {
 				$this->overrideContext = $ctx->withLineNumberStart(
 					$val->lineno ?? $ctx->getLineNumberStart()
 				);
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					$taintType,
-					$this->getTaintedness( $val ),
+					$val,
 					"$key clause is user controlled"
-						. $this->getOriginalTaintLine( $val )
 				);
 				$this->overrideContext = null;
 			}
@@ -666,11 +659,10 @@ class MWVisitor extends TaintednessVisitor {
 				}
 				$joinType = $joinInfo->children[0]->children['value'];
 				// join type does not get escaped.
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					SecurityCheckPlugin::SQL_EXEC_TAINT,
-					$this->getTaintedness( $joinType ),
+					$joinType,
 					"join type for $tableName is user controlled"
-						. $this->getOriginalTaintLine( $joinType )
 				);
 				// On to the join ON conditions.
 				if (
@@ -685,11 +677,10 @@ class MWVisitor extends TaintednessVisitor {
 				$this->overrideContext = $ctx->withLineNumberStart(
 					$onCond->lineno ?? $ctx->getLineNumberStart()
 				);
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
-					$this->getTaintedness( $onCond ),
+					$onCond,
 					"The ON conditions are not properly escaped for the join to `$tableName`"
-						. $this->getOriginalTaintLine( $onCond )
 				);
 				$this->overrideContext = null;
 			}
@@ -727,12 +718,11 @@ class MWVisitor extends TaintednessVisitor {
 		if ( !$isHTML ) {
 			return;
 		}
-		$taintedness = $this->getTaintedness( $node->children[0] );
-		$this->maybeEmitIssue(
+
+		$this->maybeEmitIssueSimplified(
 			SecurityCheckPlugin::HTML_EXEC_TAINT,
-			$taintedness,
+			$node->children[0],
 			"Outputting user controlled HTML from Parser function hook $funcName"
-				. $this->getOriginalTaintLine( $node->children[0] )
 		);
 	}
 
@@ -1126,36 +1116,32 @@ class MWVisitor extends TaintednessVisitor {
 
 		if ( $label !== null ) {
 			// double escape check for label.
-			$this->maybeEmitIssue(
+			$this->maybeEmitIssueSimplified(
 				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
-				$this->getTaintedness( $label ),
-				'HTMLForm label key escapes its input' .
-				$this->getOriginalTaintLine( $label )
+				$label,
+				'HTMLForm label key escapes its input'
 			);
 		}
 		if ( $rawLabel !== null ) {
 			// double escape check for label.
-			$this->maybeEmitIssue(
+			$this->maybeEmitIssueSimplified(
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				$this->getTaintedness( $rawLabel ),
-				'HTMLForm label-raw needs to escape input' .
-				$this->getOriginalTaintLine( $rawLabel )
+				$rawLabel,
+				'HTMLForm label-raw needs to escape input'
 			);
 		}
 		if ( $isInfo === true && $raw === true ) {
-			$this->maybeEmitIssue(
+			$this->maybeEmitIssueSimplified(
 				SecurityCheckPlugin::HTML_EXEC_TAINT,
-				$this->getTaintedness( $default ),
-				'HTMLForm info field in raw mode needs to escape default key' .
-				$this->getOriginalTaintLine( $default )
+				$default,
+				'HTMLForm info field in raw mode needs to escape default key'
 			);
 		}
 		if ( $isInfo === true && ( $raw === false || $raw === null ) ) {
-			$this->maybeEmitIssue(
+			$this->maybeEmitIssueSimplified(
 				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
-				$this->getTaintedness( $default ),
-				'HTMLForm info field (non-raw) escapes default key already' .
-				$this->getOriginalTaintLine( $default )
+				$default,
+				'HTMLForm info field (non-raw) escapes default key already'
 			);
 		}
 		if ( !$isOptionsSafe && $options instanceof Node ) {
@@ -1171,12 +1157,11 @@ class MWVisitor extends TaintednessVisitor {
 					if ( !( $key instanceof Node ) ) {
 						continue;
 					}
-					$this->maybeEmitIssue(
+					$this->maybeEmitIssueSimplified(
 						SecurityCheckPlugin::HTML_EXEC_TAINT,
-						$this->getTaintedness( $key ),
+						$key,
 						'HTMLForm option label needs escaping' .
-						$value .
-						$this->getOriginalTaintLine( $key )
+						$value
 					);
 				}
 			} else {
@@ -1185,13 +1170,12 @@ class MWVisitor extends TaintednessVisitor {
 				// directly at the array, and given that it is common
 				// to specify options in a separate variable, warn
 				// if it contains any html.
-				$this->maybeEmitIssue(
+				$this->maybeEmitIssueSimplified(
 					SecurityCheckPlugin::HTML_EXEC_TAINT,
-					$this->getTaintedness( $options ),
+					$options,
 					'HTMLForm option label needs escaping ' .
 					'(Maybe false positive as could not determine ' .
-					'if it was key or value that is unescaped)' .
-					$this->getOriginalTaintLine( $options )
+					'if it was key or value that is unescaped)'
 				);
 			}
 		}

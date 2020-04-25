@@ -4,6 +4,9 @@
 ### New features
 * Increased the length limit for caused-by lines. The new limit is at 12 entries, rather than fixed at 255 characters (it was roughly doubled)
 
+### Internal changes
+* Caused-by lines are now stored together with a taintedness value, which allows filtering taintedness depending on the sink type
+
 ## v3.0.4
 ### New features
 * Added explicit taint info for `LinkRenderer::makeBrokenLink`
