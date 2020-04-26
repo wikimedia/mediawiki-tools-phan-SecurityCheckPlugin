@@ -808,6 +808,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				} elseif ( $node->children['expr']->kind === \ast\AST_VAR ) {
 					// Closure
 					$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
+					if ( !$pobjs ) {
+						throw new Exception( 'Closure var is not defined?' );
+					}
 					assert( count( $pobjs ) === 1 );
 					$types = $pobjs[0]->getUnionType()->getTypeSet();
 					$func = null;

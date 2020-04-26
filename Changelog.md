@@ -6,6 +6,8 @@
 
 ### Bug fixes
 * (MW) Fixed a crash observed when using `$this` as hook handler
+* Fixed an edge case that made the plugin crash when attempting to use an undeclared variable as a
+  callable
 
 ### Internal changes
 * Caused-by lines are now stored together with a taintedness value, which allows filtering taintedness depending on the sink type
