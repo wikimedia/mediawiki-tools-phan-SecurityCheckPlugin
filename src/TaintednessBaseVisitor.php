@@ -1244,6 +1244,9 @@ trait TaintednessBaseVisitor {
 		// Ensure we only set exec bits, not normal taint bits.
 		$taint &= SecurityCheckPlugin::BACKPROP_TAINTS;
 
+		if ( $var instanceof PassByReferenceVariable ) {
+			$var = $var->getElement();
+		}
 		if (
 			$taint === 0 ||
 			$this->isIssueSuppressedOrFalsePositive( $taint ) ||
@@ -1548,6 +1551,9 @@ trait TaintednessBaseVisitor {
 
 		$pobjs = $this->getPhanObjsForNode( $node );
 		foreach ( $pobjs as $pobj ) {
+			if ( $pobj instanceof PassByReferenceVariable ) {
+				$pobj = $pobj->getElement();
+			}
 			$pobjTaintContribution = $this->getTaintednessPhanObj( $pobj );
 			// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
 			$links = $pobj->taintedMethodLinks ?? null;

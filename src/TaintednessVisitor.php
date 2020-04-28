@@ -23,7 +23,6 @@ use Phan\Exception\CodeBaseException;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
-use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\ClosureType;
@@ -96,8 +95,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->debug( __METHOD__, 'No variable found' );
 			return SecurityCheckPlugin::INAPPLICABLE_TAINT;
 		}
-		assert( count( $pobjs ) === 1 && $pobjs[0] instanceof Variable );
-		return $this->getTaintednessPhanObj( $pobjs[0] );
+		assert( count( $pobjs ) === 1 );
+		$varObj = $pobjs[0];
+		if ( $varObj instanceof PassByReferenceVariable ) {
+			$varObj = $varObj->getElement();
+		}
+		return $this->getTaintednessPhanObj( $varObj );
 	}
 
 	/**
@@ -518,6 +521,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		foreach ( $variableObjs as $variableObj ) {
+			if ( $variableObj instanceof PassByReferenceVariable ) {
+				$variableObj = $variableObj->getElement();
+			}
 			if (
 				$variableObj instanceof Property &&
 				$variableObj->getClass( $this->code_base )->getFQSEN() ===
@@ -557,6 +563,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 
 			foreach ( $rhsObjs as $rhsObj ) {
+				if ( $rhsObj instanceof PassByReferenceVariable ) {
+					$rhsObj = $rhsObj->getElement();
+				}
 				// Only merge dependencies if there are no other
 				// sources of taint. Otherwise we can potentially
 				// misattribute where the taint is coming from
@@ -1274,7 +1283,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private function analyzeIncOrDec( Node $node ) : int {
 		$children = $this->getPhanObjsForNode( $node );
 		if ( count( $children ) === 1 ) {
-			return $this->getTaintednessPhanObj( reset( $children ) );
+			$pobj = reset( $children );
+			if ( $pobj instanceof PassByReferenceVariable ) {
+				$pobj = $pobj->getElement();
+			}
+			return $this->getTaintednessPhanObj( $pobj );
 		} elseif ( isset( $node->children['var'] ) ) {
 			// @fixme Stopgap to handle superglobals, which getPhanObjsForNode doesn't return
 			return $this->visitVar( $node->children['var'] );
