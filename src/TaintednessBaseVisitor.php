@@ -2049,7 +2049,7 @@ trait TaintednessBaseVisitor {
 			}
 
 			list( $curArgTaintedness, $effectiveArgTaintedness ) = $this->getArgTaint(
-				$taint, $argument, $i, $this->getTaintednessNode( $argument ), $funcName
+				$taint, $argument, $i, $funcName
 			);
 
 			// If this is a call by reference parameter,
@@ -2143,7 +2143,6 @@ trait TaintednessBaseVisitor {
 	 * @param array $funcTaint
 	 * @param Node $argument
 	 * @param int $i Position of the param
-	 * @param int $curArgTaintedness
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 * @return int[] [ cur, effective ]
 	 */
@@ -2151,7 +2150,6 @@ trait TaintednessBaseVisitor {
 		array $funcTaint,
 		Node $argument,
 		int $i,
-		int $curArgTaintedness,
 		FullyQualifiedFunctionLikeName $funcName
 	) : array {
 		if (
@@ -2161,9 +2159,11 @@ trait TaintednessBaseVisitor {
 		) {
 			// This function specifies that arrays are always ok
 			// So treat as if untainted.
-			$curArgTaintedness = SecurityCheckPlugin::NO_TAINT;
-			$effectiveArgTaintedness = SecurityCheckPlugin::NO_TAINT;
-		} elseif ( isset( $funcTaint[$i] ) ) {
+			return [ SecurityCheckPlugin::NO_TAINT, SecurityCheckPlugin::NO_TAINT ];
+		}
+
+		$curArgTaintedness = $this->getTaintednessNode( $argument );
+		if ( isset( $funcTaint[$i] ) ) {
 			if (
 				( $funcTaint[$i] & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
 				&& ( $curArgTaintedness & SecurityCheckPlugin::SQL_TAINT )
