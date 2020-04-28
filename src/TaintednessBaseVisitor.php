@@ -21,6 +21,7 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Scope;
+use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
 use Phan\Language\Type\IntType;
@@ -254,6 +255,72 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * @param TypedElementInterface $var
+	 * @return int
+	 */
+	protected function getTaintednessReference( TypedElementInterface $var ) : int {
+		if ( $var instanceof PassByReferenceVariable ) {
+			throw new Exception( __METHOD__ . ' takes the element inside PassByRefs' );
+		}
+		return $var->taintednessRef ?? SecurityCheckPlugin::NO_TAINT;
+	}
+
+	/**
+	 * Given a PassByRef, recursively extract the argument it refers to.
+	 *
+	 * @param PassByReferenceVariable $obj
+	 * @return TypedElementInterface
+	 */
+	protected function extractReferenceArgument(
+		PassByReferenceVariable $obj
+	) : TypedElementInterface {
+		do {
+			$obj = $obj->getElement();
+		} while ( $obj instanceof PassByReferenceVariable );
+		return $obj;
+	}
+
+	/**
+	 * Whether the object is a reference argument of a hook.
+	 *
+	 * @param TypedElementInterface $obj
+	 * @return bool
+	 */
+	protected function isHookRefArg( TypedElementInterface $obj ) : bool {
+		return property_exists( $obj, 'isHookRefArg' );
+	}
+
+	/**
+	 * @param TypedElementInterface $var
+	 * @param int $taint
+	 * @param bool $override
+	 */
+	protected function setRefTaintedness(
+		TypedElementInterface $var,
+		int $taint,
+		bool $override
+	) : void {
+		if ( $var instanceof PassByReferenceVariable ) {
+			throw new Error(
+				__METHOD__ . ' not meant for PassByReferenceVariable objects, but for their element'
+			);
+		}
+
+		if (
+			$this->context->getScope() instanceof BranchScope ||
+			$var instanceof Property ||
+			$this->isHookRefArg( $var )
+		) {
+			$override = false;
+		}
+		$var->taintednessRef = $override
+			? $taint
+			: $this->mergeAddTaint( $var->taintednessRef ?? SecurityCheckPlugin::NO_TAINT, $taint );
+
+		$this->addTaintError( $taint, $var );
+	}
+
+	/**
 	 * Change the taintedness of a variable
 	 *
 	 * @param TypedElementInterface $variableObj The variable in question
@@ -278,7 +345,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( $variableObj instanceof PassByReferenceVariable ) {
-			$variableObj = $variableObj->getElement();
+			throw new AssertionError( 'Handle passbyrefs before calling this method' );
 		}
 
 		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
@@ -310,6 +377,11 @@ trait TaintednessBaseVisitor {
 				$variableObj->taintedness = $taintedness;
 			}
 		} else {
+			if ( $this->isHookRefArg( $variableObj ) ) {
+				// We do this in the general case as well. In doing so, we assume that a hook handler
+				// is only used as a hook handler.
+				$override = false;
+			}
 			// This must be executed, so it can overwrite taintedness.
 			$variableObj->taintedness = $override ?
 				$taintedness :
@@ -890,6 +962,9 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new Exception( "This method cannot be used with methods" );
 		}
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			throw new Exception( 'Handle PassByRefs before calling this method' );
+		}
 		if ( property_exists( $variableObj, 'taintedness' ) ) {
 			$taintedness = $variableObj->taintedness;
 			// echo "$varName has taintedness $taintedness due to last time\n";
@@ -1246,7 +1321,7 @@ trait TaintednessBaseVisitor {
 		$taint &= SecurityCheckPlugin::BACKPROP_TAINTS;
 
 		if ( $var instanceof PassByReferenceVariable ) {
-			$var = $var->getElement();
+			$var = $this->extractReferenceArgument( $var );
 		}
 		if (
 			$taint === 0 ||
@@ -1291,7 +1366,6 @@ trait TaintednessBaseVisitor {
 			// when examining a function call. Inside the function body, we'll already have all the
 			// info we need, and actually, this extra taint would cause false positives with variable
 			// names reuse.
-			// @fixme However, right now only local variables can be passed in.
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $this->mergeAddTaint( $curVarTaint, $taint );
 			$this->setTaintedness( $var, $newTaint );
@@ -1478,7 +1552,7 @@ trait TaintednessBaseVisitor {
 		if ( $element instanceof TypedElementInterface ) {
 			if ( $arg === -1 ) {
 				if ( $element instanceof PassByReferenceVariable ) {
-					$element = $element->getElement();
+					$element = $this->extractReferenceArgument( $element );
 				}
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
 					$line = $element->taintedOriginalError;
@@ -1553,7 +1627,7 @@ trait TaintednessBaseVisitor {
 		$pobjs = $this->getPhanObjsForNode( $node );
 		foreach ( $pobjs as $pobj ) {
 			if ( $pobj instanceof PassByReferenceVariable ) {
-				$pobj = $pobj->getElement();
+				$pobj = $this->extractReferenceArgument( $pobj );
 			}
 			$pobjTaintContribution = $this->getTaintednessPhanObj( $pobj );
 			// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
@@ -2128,8 +2202,21 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Handle pass-by-ref params when examining a function call
-	 * @fixme This is ugly and hacky and needs to be refactored.
+	 * Handle pass-by-ref params when examining a function call. Phan handles passbyref by reanalyzing
+	 * the method with PassByReferenceVariable objects instead of Parameters. These objects contain
+	 * the info about the param, but proxy all calls to the underlying argument object. Our approach
+	 * to passbyrefs takes advantage of that, and is described below.
+	 *
+	 * Whenever we find a PassByReferenceVariable, we first extract the argument from it.
+	 * This means that we can set taintedness, links, caused-by, etc. all on the argument object,
+	 * and without having to use dedicated code paths.
+	 * However, methods are usually analyzed *before* the call, hence, if we modify the
+	 * taintedness of the argument immediately, the effect of the method call will be reproduced
+	 * twice. This would lead to weird bugs where a method escapes its (ref) parameter, and calling
+	 * such a method with a non-tainted argument would result in a DoubleEscaped warning.
+	 * To avoid that, we save taint data for passbyrefs inside another property (on the
+	 * argument object), taintednessRef. Then, when the method call is found, the "ref" taintedness
+	 * becomes actual, which is what this very method takes care of.
 	 *
 	 * @param FunctionInterface $func
 	 * @param Parameter $param
@@ -2147,38 +2234,23 @@ trait TaintednessBaseVisitor {
 			$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
 			return;
 		}
-		$methodVar = $func->getInternalScope()->getVariableByName( $param->getName() );
-
-		// FIXME: Better to keep a list of dependencies
-		// like what we do for methods?
-		// Iffy if this will work, because phan replaces
-		// the Parameter objects with ParameterPassByReference,
-		// and then unreplaces them
-		// echo __METHOD__ . $this->dbgInfo() . (string)$param. "\n";
-
-		$pobjs = $this->getPhanObjsForNode( $argument );
-		if ( count( $pobjs ) !== 1 ) {
+		$argObjs = $this->getPhanObjsForNode( $argument );
+		if ( count( $argObjs ) !== 1 ) {
 			$this->debug( __METHOD__, "Expected only one $param" );
 		}
-		foreach ( $pobjs as $pobj ) {
-			// FIXME, is unknown right here.
-			$combinedTaint = $this->mergeAddTaint(
-				$methodVar->taintedness ?? SecurityCheckPlugin::NO_TAINT,
-				$pobj->taintedness ?? SecurityCheckPlugin::UNKNOWN_TAINT
-			);
-			$pobj->taintedness = $combinedTaint;
-			$methodVar->taintedness =& $pobj->taintedness;
-			$methodLinks = $methodVar->taintedMethodLinks ?? new Set;
-			$pobjLinks = $pobj->taintedMethodLinks ?? new Set;
-			$pobj->taintedMethodLinks = $methodLinks->union( $pobjLinks );
-			$methodVar->taintedMethodLinks =& $pobj->taintedMethodLinks;
-			$combinedOrig = ( $pobj->taintedOriginalError ?? '' )
-				. ( $methodVar->taintedOriginalError ?? '' );
-			if ( strlen( $combinedOrig ) > 255 ) {
-				$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
+		foreach ( $argObjs as $argObj ) {
+			$overrideTaint = true;
+			if ( $argObj instanceof PassByReferenceVariable ) {
+				// Watch out for nested references, and do not reset taint in that case, yet
+				$argObj = $this->extractReferenceArgument( $argObj );
+				$overrideTaint = false;
 			}
-			$pobj->taintedOriginalError = $combinedOrig;
-			$methodVar->taintedOriginalError =& $pobj->taintedOriginalError;
+			// Move the ref taintedness to the "actual" taintedness of the object
+			$overrideTaint = $overrideTaint && !( $argObj instanceof Property );
+			$this->setTaintedness( $argObj, $this->getTaintednessReference( $argObj ), $overrideTaint );
+			if ( $overrideTaint ) {
+				unset( $argObj->taintednessRef );
+			}
 		}
 	}
 

@@ -1,0 +1,2 @@
+integration/passbyrefclosure/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefclosure/test.php +6)
+integration/passbyrefclosure/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefclosure/test.php +6; integration/passbyrefclosure/test.php +15)

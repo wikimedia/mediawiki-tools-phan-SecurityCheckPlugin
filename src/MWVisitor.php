@@ -1,6 +1,7 @@
 <?php
 
 use ast\Node;
+use Phan\Analysis\PostOrderAnalysisVisitor;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Language\Element\Method;
 use Phan\Language\FQSEN;
@@ -168,7 +169,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node The Hooks::run AST_STATIC_CALL
 	 */
 	private function triggerHook( Node $node ) : void {
-		$args = [];
 		$argList = $node->children['args']->children;
 		if ( count( $argList ) === 0 ) {
 			$this->debug( __METHOD__, "Too few args to Hooks::run" );
@@ -189,13 +189,10 @@ class MWVisitor extends TaintednessVisitor {
 			$this->debug( __METHOD__, "Could not run hook $hookName due to complex args" );
 			return;
 		}
-		foreach ( $argList[1]->children as $arg ) {
-			if ( $arg->children['key'] !== null ) {
-				$this->debug( __METHOD__, "named arg in hook $hookName?" );
-				continue;
-			}
-			$args[] = $arg;
-		}
+		$args = $this->extractHookArgs( $argList[1] );
+		$hasPassByRef = self::hookArgsContainReference( $argList[1] );
+		$analyzer = new PostOrderAnalysisVisitor( $this->code_base, $this->context, [] );
+		$argumentTypes = array_fill( 0, count( $args ), UnionType::empty() );
 
 		$subscribers = MediaWikiHooksHelper::getInstance()->getHookSubscribers( $hookName );
 		foreach ( $subscribers as $subscriber ) {
@@ -205,7 +202,7 @@ class MWVisitor extends TaintednessVisitor {
 				assert( $subscriber instanceof FullyQualifiedFunctionName );
 				$func = $this->code_base->getFunctionByFQSEN( $subscriber );
 			}
-			$taint = $this->getTaintOfFunction( $func );
+
 			// $this->debug( __METHOD__, "Dispatching $hookName to $subscriber" );
 			// This is hacky, but try to ensure that the associated line
 			// number for any issues is in the extension, and not the
@@ -219,10 +216,72 @@ class MWVisitor extends TaintednessVisitor {
 				->withLineNumberStart( $fContext->getLineNumberStart() );
 			$this->overrideContext = $newContext;
 
+			if ( $hasPassByRef ) {
+				// Trigger an analysis of the function call (see e.g. ClosureReturnTypeOverridePlugin's
+				// handling of call_user_func_array). Note that it's not enough to use our
+				// handleMethodCall, because that doesn't handle references correctly.
+
+				// NOTE: This is only known to be necessary with references, hence the check above
+				// (for performance). There might be other edge cases, though...
+
+				// TODO We don't care about types, so we use an empty union type. However this looks
+				// very very fragile.
+				// TODO 2: Someday we could write a generic-purpose MW plugin, which could (among other
+				// things) understand hook. It could share some code with taint-check, and at that
+				// point we'd likely want to use the correct types here (note that phan alone isn't
+				// able to analyze hooks at all).
+				$analyzer->analyzeCallableWithArgumentTypes( $argumentTypes, $func, $args );
+			}
+			$taint = $this->getTaintOfFunction( $func );
 			$this->handleMethodCall( $func, $subscriber, $taint, $args );
 
 			$this->overrideContext = $oldContext;
 		}
+	}
+
+	/**
+	 * Check whether any argument to (inside an array) is a reference.
+	 *
+	 * @param Node $argArrayNode
+	 * @return bool
+	 */
+	private static function hookArgsContainReference( Node $argArrayNode ) : bool {
+		foreach ( $argArrayNode->children as $child ) {
+			if ( $child instanceof Node && ( $child->flags & \ast\flags\ARRAY_ELEM_REF ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Convenience methods for extracting hooks arguments. Copied from
+	 * ClosureReturnTypeOverridePlugin::extractArrayArgs (which is private)
+	 * and simplified for our use case.
+	 *
+	 * @param Node $argArrayNode
+	 * @return Node[]
+	 */
+	private function extractHookArgs( Node $argArrayNode ) : array {
+		assert( $argArrayNode->kind === \ast\AST_ARRAY );
+		$arguments = [];
+		foreach ( $argArrayNode->children as $child ) {
+			if ( !( $child instanceof Node ) ) {
+				continue;
+			}
+			$arg = $child->children['value'];
+			$arguments[] = $arg;
+			if ( $arg instanceof Node ) {
+				$pobjs = $this->getPhanObjsForNode( $arg );
+				foreach ( $pobjs as $pobj ) {
+					// We mark hook args as such to avoid overriding the taintedness in assignments.
+					// This is based on the assumption that the order in which hooks are called is
+					// nondeterministic. See test registerhook.
+					$pobj->isHookRefArg = true;
+				}
+			}
+		}
+		return $arguments;
 	}
 
 	/**

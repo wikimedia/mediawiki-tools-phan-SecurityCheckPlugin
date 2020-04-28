@@ -1,2 +1,0 @@
-integration/propbyref/test.php:12 SecurityCheck-XSS Calling method \MyClass::setAndPrint() in [no method] that outputs using tainted argument $[arg #2]. (Caused by: integration/propbyref/test.php +7)
-integration/propbyref/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/propbyref/test.php +7; integration/propbyref/test.php +12)

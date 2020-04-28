@@ -1,0 +1,5 @@
+{
+	"Hooks": {
+		"MyHook": [ "MyClass::myHandler" ]
+	}
+}

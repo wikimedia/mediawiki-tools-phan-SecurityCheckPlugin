@@ -2,7 +2,6 @@
 
 use ast\Node;
 use Phan\Language\Element\PassByReferenceVariable;
-use Phan\Language\Element\Property;
 use Phan\PluginV3\PluginAwarePreAnalysisVisitor;
 
 /**
@@ -119,12 +118,11 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 
 			if ( $varObj instanceof PassByReferenceVariable ) {
-				// PassByReferenceVariable objects are too ephemeral to store taintedness there.
-				$varObj = $varObj->getElement();
-				if ( $varObj instanceof Property ) {
-					// This may be a Property passed by ref. Don't reset its taintedness and don't link it
-					continue;
-				}
+				$this->addTaintError(
+					SecurityCheckPlugin::NO_TAINT,
+					$this->extractReferenceArgument( $varObj )
+				);
+				continue;
 			}
 
 			$paramTypeTaint = $this->getTaintByReturnType( $varObj->getUnionType() );

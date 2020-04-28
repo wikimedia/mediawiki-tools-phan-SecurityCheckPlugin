@@ -1,0 +1,1 @@
+integration/passbyrefreturn/test.php:10 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefreturn/test.php +6)

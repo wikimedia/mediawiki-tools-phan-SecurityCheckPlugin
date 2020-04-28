@@ -40,11 +40,11 @@ class SecondClass {
 		$extraArg = $_GET['unsafe'];
 	}
 	public static function hook3( $arg1, &$arg2, $extraArg = '' ) {
-		// unsafe
+		// unsafe -- we assume that the call order is nondeterministic
 		$arg2 = $arg1;
 	}
 	public static function hook4( $arg1, &$arg2, &$extraArg ) {
-		// safe
+		// safe, but shouldn't override taint
 		$extraArg = 'Foo';
 	}
 	public static function hook5( $arg1, &$arg2, $extraArg = '' ) {

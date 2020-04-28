@@ -113,7 +113,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		assert( count( $pobjs ) === 1 );
 		$varObj = $pobjs[0];
 		if ( $varObj instanceof PassByReferenceVariable ) {
-			$varObj = $varObj->getElement();
+			$varObj = $this->extractReferenceArgument( $varObj );
 		}
 		$this->curTaint = $this->getTaintednessPhanObj( $varObj );
 	}
@@ -501,8 +501,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		foreach ( $variableObjs as $variableObj ) {
+			$reference = false;
 			if ( $variableObj instanceof PassByReferenceVariable ) {
-				$variableObj = $variableObj->getElement();
+				$reference = true;
+				$variableObj = $this->extractReferenceArgument( $variableObj );
 			}
 			if (
 				$variableObj instanceof Property &&
@@ -524,7 +526,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$override &&
 				!( $variableObj instanceof Property ) &&
 				!$isGlobal &&
-				!in_array( $variableObj, $rhsObjs, true )
+				!in_array( $variableObj, $rhsObjs, true ) &&
+				!$reference
 			) {
 				// Clear any error before setting taintedness if we're overriding taint.
 				// Don't do that for globals and props, as we don't handle them really well yet.
@@ -535,7 +538,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// Ditto for links. Beyond this point the object is free of links.
 				$this->clearTaintLinks( $variableObj );
 			}
-			$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
+			if ( $reference ) {
+				$this->setRefTaintedness( $variableObj, $rhsTaintedness, $override );
+			} else {
+				$this->setTaintedness( $variableObj, $rhsTaintedness, $override );
+			}
 
 			if ( $isGlobal ) {
 				$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
@@ -544,7 +551,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 			foreach ( $rhsObjs as $rhsObj ) {
 				if ( $rhsObj instanceof PassByReferenceVariable ) {
-					$rhsObj = $rhsObj->getElement();
+					$rhsObj = $this->extractReferenceArgument( $rhsObj );
 				}
 				// Only merge dependencies if there are no other
 				// sources of taint. Otherwise we can potentially
@@ -898,9 +905,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
 		if ( $variableObj instanceof PassByReferenceVariable ) {
-			$variableObj = $variableObj->getElement();
+			$this->curTaint = $this->getTaintednessReference( $this->extractReferenceArgument( $variableObj ) );
+		} else {
+			$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
 		}
-		$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
 	}
 
 	/**
@@ -1251,7 +1259,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( count( $children ) === 1 ) {
 			$pobj = reset( $children );
 			if ( $pobj instanceof PassByReferenceVariable ) {
-				$pobj = $pobj->getElement();
+				$pobj = $this->extractReferenceArgument( $pobj );
 			}
 			$this->curTaint = $this->getTaintednessPhanObj( $pobj );
 		} elseif ( isset( $node->children['var'] ) ) {

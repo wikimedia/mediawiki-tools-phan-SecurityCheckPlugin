@@ -1,1 +1,0 @@
-integration/refviaparam/reftest.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/refviaparam/reftest.php +5)

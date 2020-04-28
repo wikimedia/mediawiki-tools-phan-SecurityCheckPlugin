@@ -1,0 +1,2 @@
+integration/passbyrefnested/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnested/test.php +7; integration/passbyrefnested/test.php +10; integration/passbyrefnested/test.php +15)
+integration/passbyrefnested/test.php:28 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnested/test.php +20; integration/passbyrefnested/test.php +23; integration/passbyrefnested/test.php +27)
