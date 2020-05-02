@@ -292,29 +292,12 @@ trait TaintednessBaseVisitor {
 		// its probably a non-local variable (or in the if case, code
 		// that may not be executed).
 
-		$varContext = $variableObj->getFileRef();
-		assert( $varContext instanceof Context, 'record_variable_context_and_scope must be enabled' );
-		$existsOutside = false;
-		if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
-			&& $varContext->getScope() !== $this->context->getScope()
-		) {
-			$parentScope = $varContext->getScope();
-			// We are in a branch and this is a local variable
-			// (as opposed to a class member). Try to link this
-			// variable with its parent outside the branch in same func.
-			if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
-				$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
-				if ( !( $parentVarObj instanceof Parameter ) || $parentVarObj->isPassByReference() ) {
-					// Parameters are handled separately, unless this is a pass-by-ref
-					$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
-					$existsOutside = true;
-				}
-			} else {
-				$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
-			}
+		$parentVarObj = $this->getParentVarObj( $variableObj );
+		if ( $parentVarObj ) {
+			$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
 		}
 
-		if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) || $existsOutside ) {
+		if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) || $parentVarObj ) {
 			// Given we are either in a branch, or the variable has some
 			// sort of outer scope (is a global, is a class member), we
 			// try to merge the taint instead of overriding, as we have
@@ -340,6 +323,36 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
 			// ( $variableObj->taintedness ?? 'unset' ) );
 		$this->addTaintError( $taintedness, $variableObj );
+	}
+
+	/**
+	 * @param TypedElementInterface $variableObj
+	 * @return TypedElementInterface|null
+	 */
+	private function getParentVarObj( TypedElementInterface $variableObj ) : ?TypedElementInterface {
+		$varContext = $variableObj->getFileRef();
+		assert( $varContext instanceof Context, 'record_variable_context_and_scope must be enabled' );
+		if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
+			&& $varContext->getScope() !== $this->context->getScope()
+		) {
+			$parentScope = $varContext->getScope();
+			// We are in a branch and this is a local variable
+			// (as opposed to a class member). Try to link this
+			// variable with its parent outside the branch in same func.
+			if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
+				$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
+				if (
+					$parentVarObj !== $variableObj &&
+					( !( $parentVarObj instanceof Parameter ) || $parentVarObj->isPassByReference() )
+				) {
+					// Parameters are handled separately, unless this is a pass-by-ref
+					return $parentVarObj;
+				}
+			} else {
+				$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
+			}
+		}
+		return null;
 	}
 
 	/**
