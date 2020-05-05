@@ -1,8 +1,6 @@
 <?php
 
 use ast\Node;
-use Phan\CodeBase;
-use Phan\Language\Context;
 use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
 
 /**
@@ -26,14 +24,6 @@ use Phan\PluginV2\PluginAwarePostAnalysisVisitor;
  */
 class GetReturnObjsVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;
-
-	/**
-	 * @inheritDoc
-	 */
-	public function __construct( CodeBase $code_base, Context $context ) {
-		parent::__construct( $code_base, $context );
-		$this->plugin = SecurityCheckPlugin::$pluginInstance;
-	}
 
 	/**
 	 * @param Node $node

@@ -54,9 +54,6 @@ use Phan\Library\Set;
  * @property-read \Phan\CodeBase $code_base
  */
 trait TaintednessBaseVisitor {
-	/** @var SecurityCheckPlugin */
-	protected $plugin;
-
 	/** @var null|string|bool|resource filehandle to output debug messages */
 	private $debugOutput;
 
@@ -819,7 +816,7 @@ trait TaintednessBaseVisitor {
 	 * @return null|array Null if no info, otherwise the taint for the function
 	 */
 	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?array {
-		$taint = $this->plugin->getBuiltinFuncTaint( $fqsen );
+		$taint = SecurityCheckPlugin::$pluginInstance->getBuiltinFuncTaint( $fqsen );
 		if ( $taint !== null ) {
 			$this->checkFuncTaint( $taint );
 		}
@@ -1869,7 +1866,7 @@ trait TaintednessBaseVisitor {
 		if (
 			( $combinedTaint === 0 &&
 			$rhsTaint & SecurityCheckPlugin::UNKNOWN_TAINT ) ||
-			$this->plugin->isFalsePositive(
+			SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 				$adjustLHS,
 				$rhsTaint,
 				$msg,
@@ -1899,7 +1896,7 @@ trait TaintednessBaseVisitor {
 			$context = $this->overrideContext;
 		}
 
-		$this->plugin->emitIssue(
+		SecurityCheckPlugin::emitIssue(
 			$this->code_base,
 			$context,
 			$issueType,
@@ -1930,7 +1927,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		$msg = "[dummy msg for false positive check]";
-		return $this->plugin->isFalsePositive(
+		return SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 			$adjustLHS,
 			$adjustLHS,
 			$msg,

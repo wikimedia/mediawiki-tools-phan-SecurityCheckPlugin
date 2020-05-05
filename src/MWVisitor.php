@@ -35,13 +35,6 @@ use Phan\Language\UnionType;
  */
 class MWVisitor extends TaintednessVisitor {
 	/**
-	 * Re-declared for better type inference
-	 * @suppress PhanReadOnlyProtectedProperty
-	 * @var MediaWikiSecurityCheckPlugin
-	 */
-	protected $plugin;
-
-	/**
 	 * Try and recognize hook registration
 	 *
 	 * Also handles static calls
@@ -206,7 +199,7 @@ class MWVisitor extends TaintednessVisitor {
 			$args[] = $arg;
 		}
 
-		$subscribers = $this->plugin->getHookSubscribers( $hookName );
+		$subscribers = MediaWikiHooksHelper::getInstance()->getHookSubscribers( $hookName );
 		foreach ( $subscribers as $subscriber ) {
 			if ( $subscriber instanceof FullyQualifiedMethodName ) {
 				$func = $this->code_base->getMethodByFQSEN( $subscriber );
@@ -301,7 +294,7 @@ class MWVisitor extends TaintednessVisitor {
 		string $hookType,
 		FullyQualifiedFunctionLikeName $callback
 	) : void {
-		$alreadyRegistered = $this->plugin->registerHook( $hookType, $callback );
+		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $callback );
 		$this->debug( __METHOD__, "registering $callback for hook $hookType" );
 		if ( !$alreadyRegistered ) {
 			// If this is the first time seeing this, re-analyze the
@@ -361,7 +354,7 @@ class MWVisitor extends TaintednessVisitor {
 			$this->handleGetQueryInfoReturn( $node->children['expr'] );
 		}
 
-		$hookType = $this->plugin->isSpecialHookSubscriber( $funcFQSEN );
+		$hookType = MediaWikiHooksHelper::getInstance()->isSpecialHookSubscriber( $funcFQSEN );
 		switch ( $hookType ) {
 		case '!ParserFunctionHook':
 			$this->visitReturnOfFunctionHook( $node->children['expr'], $funcFQSEN );

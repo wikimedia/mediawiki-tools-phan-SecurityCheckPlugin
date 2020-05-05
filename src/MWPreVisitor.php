@@ -27,13 +27,6 @@ use Phan\Language\UnionType;
  */
 class MWPreVisitor extends PreTaintednessVisitor {
 	/**
-	 * Re-declared for better type inference
-	 * @suppress PhanReadOnlyProtectedProperty
-	 * @var MediaWikiSecurityCheckPlugin
-	 */
-	protected $plugin;
-
-	/**
 	 * Set taint for certain hook types.
 	 *
 	 * Also handles FuncDecl
@@ -43,7 +36,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		parent::visitMethod( $node );
 
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
-		$hookType = $this->plugin->isSpecialHookSubscriber( $method->getFQSEN() );
+		$hookType = MediaWikiHooksHelper::getInstance()->isSpecialHookSubscriber( $method->getFQSEN() );
 		if ( !$hookType ) {
 			return;
 		}
@@ -158,7 +151,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 					SecurityCheckPlugin::YES_TAINT
 				) ) {
 					$funcName = $method->getFQSEN();
-					$this->plugin->emitIssue(
+					MediaWikiSecurityCheckPlugin::$pluginInstance->emitIssue(
 						$this->code_base,
 						$this->context,
 						'SecurityCheckTaintedOutput',
