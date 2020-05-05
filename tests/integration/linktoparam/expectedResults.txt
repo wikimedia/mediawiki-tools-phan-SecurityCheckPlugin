@@ -1,0 +1,5 @@
+integration/linktoparam/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linktoparam/test.php +12)
+integration/linktoparam/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linktoparam/test.php +21; integration/linktoparam/test.php +28)
+integration/linktoparam/test.php:45 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linktoparam/test.php +36; integration/linktoparam/test.php +39; integration/linktoparam/test.php +44)
+integration/linktoparam/test.php:48 SecurityCheck-DoubleEscaped Calling method \escapeArg() in \mainFunc that outputs using tainted argument $[arg #1]. (Caused by: integration/linktoparam/test.php +55)
+integration/linktoparam/test.php:55 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \escapeArg that outputs using tainted argument $text. (Caused by: integration/linktoparam/test.php +48)

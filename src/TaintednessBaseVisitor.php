@@ -403,6 +403,7 @@ trait TaintednessBaseVisitor {
 		assert( $varContext instanceof Context, 'record_variable_context_and_scope must be enabled' );
 		if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
 			&& $varContext->getScope() !== $this->context->getScope()
+			&& ( $this->context->getScope() instanceof BranchScope )
 		) {
 			$parentScope = $varContext->getScope();
 			// We are in a branch and this is a local variable
@@ -410,11 +411,7 @@ trait TaintednessBaseVisitor {
 			// variable with its parent outside the branch in same func.
 			if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
 				$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
-				if (
-					$parentVarObj !== $variableObj &&
-					( !( $parentVarObj instanceof Parameter ) || $parentVarObj->isPassByReference() )
-				) {
-					// Parameters are handled separately, unless this is a pass-by-ref
+				if ( $parentVarObj !== $variableObj ) {
 					return $parentVarObj;
 				}
 			} else {
