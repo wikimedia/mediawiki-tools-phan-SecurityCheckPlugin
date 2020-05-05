@@ -27,6 +27,6 @@ class Foo {
 			echo $form; // Safe, but we're not yet smart enough
 			$form = $_GET['baz'];
 		}
-		echo $form; // Unsafe. This shouldn't have line 25 in its caused-by
+		echo $form; // Unsafe. Ideally, this shouldn't have line 25 in its caused-by
 	}
 }

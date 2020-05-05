@@ -326,16 +326,19 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $variableObj The variable in question
 	 * @param int $taintedness One of the class constants
 	 * @param bool $override Override taintedness or just take max.
+	 * @param bool $allowClearLHSData Whether we're allowed to clear taint error and links
+	 *   from the LHS. This is only honored when the taint is being overridden.
 	 */
 	protected function setTaintedness(
 		TypedElementInterface $variableObj,
 		int $taintedness,
-		$override = true
+		$override = true,
+		bool $allowClearLHSData = false
 	) : void {
 		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
-			// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' )
-			// . ' Caller: ' . ( debug_backtrace()[1]['function'] ?? 'n/a' )
-			// . ', ' . ( debug_backtrace()[2]['function'] ?? 'n/a' ) );
+		// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' )
+		// . ' Caller: ' . ( debug_backtrace()[1]['function'] ?? 'n/a' )
+		// . ', ' . ( debug_backtrace()[2]['function'] ?? 'n/a' ) );
 
 		assert( $taintedness >= 0, "Taintedness: $taintedness" );
 
@@ -357,11 +360,8 @@ trait TaintednessBaseVisitor {
 		// that may not be executed).
 
 		$parentVarObj = $this->getParentVarObj( $variableObj );
-		if ( $parentVarObj ) {
-			$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
-		}
 
-		if ( property_exists( $variableObj, 'taintednessHasOuterScope' ) || $parentVarObj ) {
+		if ( $parentVarObj ) {
 			// Given we are either in a branch, or the variable has some
 			// sort of outer scope (is a global, is a class member), we
 			// try to merge the taint instead of overriding, as we have
@@ -371,26 +371,30 @@ trait TaintednessBaseVisitor {
 
 			// Future todo: In cases of if...else where all cases covered,
 			// should try to merge all branches ala ContextMergeVisitor.
-			if ( property_exists( $variableObj, 'taintedness' ) ) {
-				$variableObj->taintedness = $this->mergeAddTaint( $variableObj->taintedness, $taintedness );
-			} else {
-				$variableObj->taintedness = $taintedness;
-			}
-		} else {
-			if ( $this->isHookRefArg( $variableObj ) ) {
-				// We do this in the general case as well. In doing so, we assume that a hook handler
-				// is only used as a hook handler.
-				$override = false;
-			}
-			// This must be executed, so it can overwrite taintedness.
-			$variableObj->taintedness = $override ?
-				$taintedness :
-				$this->mergeAddTaint(
-					$variableObj->taintedness ?? 0, $taintedness
-				);
+			$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
+			$override = false;
 		}
+		if ( $this->isHookRefArg( $variableObj ) ) {
+			// We do this in the general case as well. In doing so, we assume that a hook handler
+			// is only used as a hook handler.
+			$override = false;
+		}
+
+		if ( $override && $allowClearLHSData ) {
+			// Clear any error and link before setting taintedness if we're overriding taint.
+			// Checking for $override here already takes into account globals, props,
+			// outer scope, and whatnot.
+			$this->clearTaintError( $variableObj );
+			$this->clearTaintLinks( $variableObj );
+		}
+
+		$variableObj->taintedness = $override ?
+			$taintedness :
+			$this->mergeAddTaint(
+				$variableObj->taintedness ?? 0, $taintedness
+			);
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
-			// ( $variableObj->taintedness ?? 'unset' ) );
+		// ( $variableObj->taintedness ?? 'unset' ) );
 		$this->addTaintError( $taintedness, $variableObj );
 	}
 
@@ -399,10 +403,13 @@ trait TaintednessBaseVisitor {
 	 * @return TypedElementInterface|null
 	 */
 	private function getParentVarObj( TypedElementInterface $variableObj ) : ?TypedElementInterface {
+		if ( property_exists( $variableObj, 'isGlobalVariable' ) ) {
+			return $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
+		}
 		$varContext = $variableObj->getFileRef();
 		assert( $varContext instanceof Context, 'record_variable_context_and_scope must be enabled' );
-		if ( !property_exists( $variableObj, 'taintednessHasOuterScope' )
-			&& $varContext->getScope() !== $this->context->getScope()
+		if (
+			$varContext->getScope() !== $this->context->getScope()
 			&& ( $this->context->getScope() instanceof BranchScope )
 		) {
 			$parentScope = $varContext->getScope();
@@ -1357,7 +1364,7 @@ trait TaintednessBaseVisitor {
 			$this->setFuncTaint( $method, $paramTaint );
 		}
 
-		if ( $var instanceof Property || property_exists( $var, 'taintednessHasOuterScope' ) ) {
+		if ( $var instanceof Property || property_exists( $var, 'isGlobalVariable' ) ) {
 			// For local variables, don't set the taint: the taintedness set here should only be used
 			// when examining a function call. Inside the function body, we'll already have all the
 			// info we need, and actually, this extra taint would cause false positives with variable

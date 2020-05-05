@@ -1,0 +1,1 @@
+integration/causedbymultiplebranch/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedbymultiplebranch/test.php +6)
