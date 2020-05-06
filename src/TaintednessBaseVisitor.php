@@ -946,12 +946,21 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintednessNode( Node $node ) : int {
 		// Debug::printNode( $node );
+		// Make sure to update the line number, or the same issue may be reported
+		// more than once on different lines (see test 'multilineissue').
+		$oldLine = $this->context->getLineNumberStart();
+		$this->context->setLineNumberStart( $node->lineno );
 		$ret = null;
-		( new TaintednessVisitor( $this->code_base, $this->context, $ret ) )(
-			$node
-		);
-		assert( is_int( $ret ) && $ret >= 0, "Taintedness: $ret" );
-		return $ret;
+
+		try {
+			( new TaintednessVisitor( $this->code_base, $this->context, $ret ) )(
+				$node
+			);
+			assert( is_int( $ret ) && $ret >= 0, "Taintedness: $ret" );
+			return $ret;
+		} finally {
+			$this->context->setLineNumberStart( $oldLine );
+		}
 	}
 
 	/**

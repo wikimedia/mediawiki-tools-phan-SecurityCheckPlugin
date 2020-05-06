@@ -1,0 +1,3 @@
+integration/multilineissue/test.php:8 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \wlhLink that outputs using tainted argument $text. (Caused by: integration/multilineissue/test.php +6)
+integration/multilineissue/test.php:16 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \getFilterPanel that outputs using tainted argument $[arg #1].
+integration/multilineissue/test.php:23 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument $gVar. (Caused by: integration/multilineissue/test.php +21)
