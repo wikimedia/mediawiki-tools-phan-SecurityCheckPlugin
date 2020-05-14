@@ -870,8 +870,7 @@ trait TaintednessBaseVisitor {
 					break;
 				}
 				$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
-				$methodTaint = $this->getTaintOfFunction( $toString );
-				$taint |= $this->handleMethodCall( $toString, $toStringFQSEN, $methodTaint, [] );
+				$taint |= $this->handleMethodCall( $toString, $toStringFQSEN, [] );
 			}
 		}
 		return $taint;
@@ -2026,17 +2025,16 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func
 	 * @param FullyQualifiedFunctionLikeName $funcName
-	 * @param array $taint Taint of function/method
 	 * @param array $args Arguments to function/method
 	 * @return int Taint The resulting taint of the expression
 	 */
 	public function handleMethodCall(
 		FunctionInterface $func,
 		FullyQualifiedFunctionLikeName $funcName,
-		array $taint,
 		array $args
 	) : int {
 		$oldMem = memory_get_peak_usage();
+		$taint = $this->getTaintOfFunction( $func );
 		$this->checkFuncTaint( $taint );
 
 		// We need to look at the taintedness of the arguments

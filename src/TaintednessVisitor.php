@@ -804,7 +804,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->handleMethodCall(
 					$constructor,
 					$constructor->getFQSEN(),
-					$this->getTaintOfFunction( $constructor ),
 					$node->children['args']->children
 				);
 				// Now return __toString()
@@ -821,7 +820,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->curTaint = $this->handleMethodCall(
 					$toString,
 					$toString->getFQSEN(),
-					$this->getTaintOfFunction( $toString ),
 					[] // __toString() has no args
 				);
 				return;
@@ -850,7 +848,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$func = $ctxNode->getMethod( $methodName, $isStatic );
 			}
 			$funcName = $func->getFQSEN();
-			$taint = $this->getTaintOfFunction( $func );
 		} catch ( Exception $e ) {
 			$this->debug( __METHOD__, "FIXME complicated case not handled."
 				. " Maybe func not defined. " . $this->getDebugInfo( $e ) );
@@ -861,7 +858,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaint = $this->handleMethodCall(
 			$func,
 			$funcName,
-			$taint,
 			$node->children['args']->children
 		);
 	}

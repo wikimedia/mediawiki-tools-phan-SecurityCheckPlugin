@@ -232,8 +232,7 @@ class MWVisitor extends TaintednessVisitor {
 				// able to analyze hooks at all).
 				$analyzer->analyzeCallableWithArgumentTypes( $argumentTypes, $func, $args );
 			}
-			$taint = $this->getTaintOfFunction( $func );
-			$this->handleMethodCall( $func, $subscriber, $taint, $args );
+			$this->handleMethodCall( $func, $subscriber, $args );
 
 			$this->overrideContext = $oldContext;
 		}
@@ -470,8 +469,7 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 		$select = $this->code_base->getMethodByFQSEN( $selectFQSEN );
-		$taint = $this->getTaintOfFunction( $select );
-		$this->handleMethodCall( $select, $selectFQSEN, $taint, $args );
+		$this->handleMethodCall( $select, $selectFQSEN, $args );
 		if ( isset( $args[4] ) ) {
 			$this->checkSQLOptions( $args[4] );
 		}
