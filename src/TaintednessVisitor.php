@@ -1012,11 +1012,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * A foreach() loop
 	 *
 	 * The variable from the loop condition has its taintedness
-	 * transferred in PreTaintednessVisitor
+	 * transferred in TaintednessLoopVisitor
 	 * @param Node $node
 	 */
 	public function visitForeach( Node $node ) : void {
-		// This is handled by PreTaintednessVisitor.
+		// This is handled by TaintednessLoopVisitor.
 		$this->curTaint = SecurityCheckPlugin::NO_TAINT;
 	}
 

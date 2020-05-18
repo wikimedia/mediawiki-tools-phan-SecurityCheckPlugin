@@ -31,50 +31,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/**
-	 * Visit a foreach loop
-	 *
-	 * This is done in pre-order so that we can handle
-	 * the loop condition prior to determine the taint
-	 * of the loop variable, prior to evaluating the
-	 * loop body.
-	 *
-	 * @param Node $node
-	 */
-	public function visitForeach( Node $node ) : void {
-		// TODO: Could we do something better here detecting the array
-		// type
-		$lhsTaintedness = $this->getTaintedness( $node->children['expr'] );
-
-		$value = $node->children['value'];
-		if ( $value->kind === \ast\AST_REF ) {
-			// FIXME, this doesn't fully handle the ref case.
-			// taint probably won't be propagated to outer scope.
-			$value = $value->children['var'];
-		}
-
-		if ( $value->kind !== \ast\AST_VAR ) {
-			$this->debug( __METHOD__, "FIXME foreach complex case not handled" );
-			// Debug::printNode( $node );
-			return;
-		}
-
-		try {
-			$variableObj = $this->getCtxN( $value )->getVariable();
-			$this->setTaintedness( $variableObj, $lhsTaintedness );
-
-			if ( isset( $node->children['key'] ) ) {
-				// This will probably have a lot of false positives with
-				// arrays containing only numeric keys.
-				assert( $node->children['key']->kind === \ast\AST_VAR );
-				$variableObj = $this->getCtxN( $node->children['key'] )->getVariable();
-				$this->setTaintedness( $variableObj, $lhsTaintedness );
-			}
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Exception " . $this->getDebugInfo( $e ) );
-		}
-	}
-
-	/**
 	 * @see visitMethod
 	 * @param Node $node
 	 */

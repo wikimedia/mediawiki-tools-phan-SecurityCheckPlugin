@@ -1,0 +1,4 @@
+integration/foreach/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach/test.php +5)
+integration/foreach/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach/test.php +5)
+integration/foreach/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach/test.php +13)
+integration/foreach/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach/test.php +13)

@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 require_once __DIR__ . '/TaintednessBaseVisitor.php';
+require_once __DIR__ . '/TaintednessLoopVisitor.php';
 require_once __DIR__ . '/PreTaintednessVisitor.php';
 require_once __DIR__ . '/TaintednessVisitor.php';
 require_once __DIR__ . '/GetReturnObjsVisitor.php';
@@ -29,14 +30,17 @@ use Phan\Config;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\PluginV3;
+use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
 use Phan\PluginV3\PostAnalyzeNodeCapability;
 use Phan\PluginV3\PreAnalyzeNodeCapability;
 
 /**
  * @suppress PhanUnreferencedPublicClassConstant They're for use in custom plugins, too
  */
-abstract class SecurityCheckPlugin extends PluginV3
-	implements PostAnalyzeNodeCapability, PreAnalyzeNodeCapability
+abstract class SecurityCheckPlugin extends PluginV3 implements
+	PostAnalyzeNodeCapability,
+	PreAnalyzeNodeCapability,
+	BeforeLoopBodyAnalysisCapability
 {
 
 	// Various taint flags. The _EXEC_ varieties mean
@@ -425,5 +429,12 @@ abstract class SecurityCheckPlugin extends PluginV3
 				'overall' => self::NO_TAINT
 			],
 		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function getBeforeLoopBodyAnalysisVisitorClassName() : string {
+		return TaintednessLoopVisitor::class;
 	}
 }
