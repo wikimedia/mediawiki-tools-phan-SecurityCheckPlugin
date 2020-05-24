@@ -66,6 +66,15 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::YES_TAINT
 		];
 
+		$linkRendererMethods = [
+			self::NO_TAINT, /* target */
+			self::ESCAPES_HTML, /* text (using HtmlArmor) */
+			// The array keys for this aren't escaped (!)
+			self::NO_TAINT, /* attribs */
+			self::NO_TAINT, /* query */
+			'overall' => self::ESCAPED_TAINT
+		];
+
 		return [
 			// Note, at the moment, this checks where the function
 			// is implemented, so you can't use IDatabase.
@@ -498,38 +507,11 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT, /* options. All are safe */
 				'overall' => self::ESCAPED_TAINT
 			],
-			'\MediaWiki\Linker\LinkRenderer::buildAElement' => [
-				self::NO_TAINT, /* target */
-				self::ESCAPES_HTML, /* text (using HtmlArmor) */
-				// The array keys for this aren't escaped (!)
-				self::NO_TAINT, /* attribs */
-				self::NO_TAINT, /* known */
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\MediaWiki\Linker\LinkRenderer::makeLink' => [
-				self::NO_TAINT, /* target */
-				self::ESCAPES_HTML, /* text (using HtmlArmor) */
-				// The array keys for this aren't escaped (!)
-				self::NO_TAINT, /* attribs */
-				self::NO_TAINT, /* query */
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\MediaWiki\Linker\LinkRenderer::makeKnownLink' => [
-				self::NO_TAINT, /* target */
-				self::ESCAPES_HTML, /* text (using HtmlArmor) */
-				// The array keys for this aren't escaped (!)
-				self::NO_TAINT, /* attribs */
-				self::NO_TAINT, /* query */
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\MediaWiki\Linker\LinkRenderer::makePreloadedLink' => [
-				self::NO_TAINT, /* target */
-				self::ESCAPES_HTML, /* text (using HtmlArmor) */
-				// The array keys for this aren't escaped (!)
-				self::NO_TAINT, /* attribs */
-				self::NO_TAINT, /* query */
-				'overall' => self::ESCAPED_TAINT
-			],
+			'\MediaWiki\Linker\LinkRenderer::buildAElement' => $linkRendererMethods,
+			'\MediaWiki\Linker\LinkRenderer::makeLink' => $linkRendererMethods,
+			'\MediaWiki\Linker\LinkRenderer::makeKnownLink' => $linkRendererMethods,
+			'\MediaWiki\Linker\LinkRenderer::makePreloadedLink' => $linkRendererMethods,
+			'\MediaWiki\Linker\LinkRenderer::makeBrokenLink' => $linkRendererMethods,
 		];
 	}
 
