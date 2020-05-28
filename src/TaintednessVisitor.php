@@ -633,6 +633,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * Visits the backtick operator. Note that shell_exec() has a simple AST_CALL node.
 	 * @param Node $node
 	 */
 	public function visitShellExec( Node $node ) : void {
