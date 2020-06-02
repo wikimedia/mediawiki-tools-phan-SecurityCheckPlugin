@@ -974,7 +974,6 @@ trait TaintednessBaseVisitor {
 					$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
 					return [];
 				}
-			case \ast\AST_LIST:
 			case \ast\AST_ENCAPS_LIST:
 			case \ast\AST_ARRAY:
 				$results = [];
