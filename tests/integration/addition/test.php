@@ -35,3 +35,9 @@ $unknownType = $a->foo();
 '@phan-debug-var $unknownType'; // If a future version of phan doesn't infer an empty union type here, the test becomes useless /wrong
 $var = $unknownType + $unknownType;
 echo $var; // Unsafe
+
+$unsafe = $_GET['unsafe'];
+echo $unsafe + 42.2; // Safe
+echo $unsafe + 'foobar'; // Safe
+echo $unsafe + true; // Safe
+echo $unsafe + null; // Safe

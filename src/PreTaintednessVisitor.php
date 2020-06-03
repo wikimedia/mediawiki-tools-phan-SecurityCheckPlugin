@@ -93,4 +93,18 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			}
 		}
 	}
+
+	/**
+	 * Determine whether this operation is safe, based on the operand types. This needs to be done
+	 * in preorder because phan infers types from operators, e.g. from `$a += $b` phan will infer
+	 * that they're both numbers. We need to use the types of the operands *before* inferring
+	 * types from the operator.
+	 *
+	 * @param Node $node
+	 */
+	public function visitAssignOp( Node $node ) : void {
+		$lhs = $node->children['var'];
+		$rhs = $node->children['expr'];
+		$node->assignTaintMask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
+	}
 }

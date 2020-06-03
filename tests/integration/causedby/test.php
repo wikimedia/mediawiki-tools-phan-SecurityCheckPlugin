@@ -1,10 +1,19 @@
 <?php
-// phpcs:disable Generic.Files.LineLength
-$res2 = $_GET['unsafe']; // This line is unsafe, but should not be in caused-by because taintedness is cleared by the next line
+
+// In global scope
+$res2 = $_GET['unsafe']; // Unsafe, but should not be in caused-by because taintedness is cleared by the next line
 $res2 = 'somethingsafe';
 $res2 = $_GET['unsafe2']; // This line in the only source of taintedness
 
 echo $res2;
+
+function inFunctionScope() {
+	$res2 = $_GET['unsafe']; // Unsafe, but should not be in caused-by because taintedness is cleared by the next line
+	$res2 = 'somethingsafe';
+	$res2 = $_GET['unsafe2']; // This line in the only source of taintedness
+
+	echo $res2;
+}
 
 class FooBar {
 	private $foo;
