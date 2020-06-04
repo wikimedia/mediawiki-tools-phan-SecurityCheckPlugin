@@ -39,15 +39,14 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * Also handles static calls
 	 * @param Node $node
-	 * @return int
 	 */
-	public function visitMethodCall( Node $node ) : int {
-		$parentTaint = parent::visitMethodCall( $node );
+	public function visitMethodCall( Node $node ) : void {
+		parent::visitMethodCall( $node );
 		try {
 			$ctx = $this->getCtxN( $node );
 			if ( !isset( $node->children['method'] ) ) {
 				// Called by visitCall
-				return $parentTaint;
+				return;
 			}
 			$methodName = $node->children['method'];
 			$method = $ctx->getMethod(
@@ -81,7 +80,6 @@ class MWVisitor extends TaintednessVisitor {
 		} catch ( Exception $_ ) {
 			// ignore
 		}
-		return $parentTaint;
 	}
 
 	/**
@@ -338,15 +336,14 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * e.g. A tag hook's return value is output as html.
 	 * @param Node $node
-	 * @return int
 	 */
-	public function visitReturn( Node $node ) : int {
-		$parentTaint = parent::visitReturn( $node );
+	public function visitReturn( Node $node ) : void {
+		parent::visitReturn( $node );
 		if (
 			!$this->context->isInFunctionLikeScope()
 			|| !$node->children['expr'] instanceof Node
 		) {
-			return $parentTaint;
+			return;
 		}
 		$funcFQSEN = $this->context->getFunctionLikeFQSEN();
 
@@ -370,7 +367,6 @@ class MWVisitor extends TaintednessVisitor {
 			);
 			break;
 		}
-		return $parentTaint;
 	}
 
 	/**
@@ -828,12 +824,11 @@ class MWVisitor extends TaintednessVisitor {
 	 * Check for $wgHooks registration
 	 *
 	 * @param Node $node
-	 * @return int
 	 * @note This assumes $wgHooks is always the global
 	 *   even if there is no globals declaration.
 	 */
-	public function visitAssign( Node $node ) : int {
-		$parentTaint = parent::visitAssign( $node );
+	public function visitAssign( Node $node ) : void {
+		parent::visitAssign( $node );
 
 		$var = $node->children['var'];
 		assert( $var instanceof Node );
@@ -869,7 +864,6 @@ class MWVisitor extends TaintednessVisitor {
 				);
 			}
 		}
-		return $parentTaint;
 	}
 
 	/**
@@ -1164,27 +1158,24 @@ class MWVisitor extends TaintednessVisitor {
 	 * Try to detect HTMLForm specifiers
 	 *
 	 * @param Node $node
-	 * @return int
 	 */
-	public function visitArray( Node $node ) : int {
-		$parentTaint = parent::visitArray( $node );
+	public function visitArray( Node $node ) : void {
+		parent::visitArray( $node );
 		$this->doVisitArray( $node );
-		return $parentTaint;
 	}
 
 	/**
 	 * A global declaration. Use to adjust types for MW globals
 	 *
 	 * @param Node $node
-	 * @return int
 	 */
-	public function visitGlobal( Node $node ) : int {
-		$parentTaint = parent::visitGlobal( $node );
+	public function visitGlobal( Node $node ) : void {
+		parent::visitGlobal( $node );
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
 		$varName = $node->children['var']->children['name'];
 		if ( !is_string( $varName ) ) {
 			// global $$foo;
-			return $parentTaint;
+			return;
 		}
 		$scope = $this->context->getScope();
 		if ( $scope->hasVariableWithName( $varName ) ) {
@@ -1219,7 +1210,5 @@ class MWVisitor extends TaintednessVisitor {
 		} else {
 			$this->debug( __METHOD__, "global $varName not in scope (?)" );
 		}
-
-		return $parentTaint;
 	}
 }

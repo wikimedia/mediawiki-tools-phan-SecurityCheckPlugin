@@ -872,11 +872,12 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintednessNode( Node $node ) : int {
 		// Debug::printNode( $node );
-		$r = ( new TaintednessVisitor( $this->code_base, $this->context ) )(
+		$ret = null;
+		( new TaintednessVisitor( $this->code_base, $this->context, $ret ) )(
 			$node
 		);
-		assert( $r >= 0, $r );
-		return $r;
+		assert( $ret >= 0, $ret );
+		return $ret;
 	}
 
 	/**
@@ -2368,9 +2369,12 @@ trait TaintednessBaseVisitor {
 		}
 
 		$node = $func->getNode();
-		return ( new GetReturnObjsVisitor(
+		$objs = [];
+		( new GetReturnObjsVisitor(
 			$this->code_base,
-			$context
+			$context,
+			$objs
 		) )( $node );
+		return $objs;
 	}
 }
