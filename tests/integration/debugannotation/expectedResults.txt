@@ -1,0 +1,10 @@
+integration/debugannotation/test.php:3 SecurityCheckDebugTaintedness Variable $doesnExist doesn't exist in scope
+integration/debugannotation/test.php:6 SecurityCheckDebugTaintedness Variable $var has taintedness: NONE
+integration/debugannotation/test.php:8 SecurityCheckDebugTaintedness Variable $var has taintedness: YES
+integration/debugannotation/test.php:10 SecurityCheckDebugTaintedness Variable $var1 has taintedness: ~SHELL
+integration/debugannotation/test.php:12 SecurityCheckDebugTaintedness Variable $var2 has taintedness: HTML, SERIALIZE, CUSTOM1, CUSTOM2, MISC
+integration/debugannotation/test.php:14 SecurityCheckDebugTaintedness Variable $var3 has taintedness: ESCAPED, SERIALIZE, CUSTOM1, CUSTOM2, MISC
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var1 has taintedness: ~SHELL
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var2 has taintedness: HTML, SERIALIZE, CUSTOM1, CUSTOM2, MISC
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var3 has taintedness: ESCAPED, SERIALIZE, CUSTOM1, CUSTOM2, MISC
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var4 has taintedness: NONE

@@ -70,7 +70,8 @@ return [
 		'SecurityCheck-OTHER',
 		// Rely on severity setting to blacklist false positive.
 		'SecurityCheck-LikelyFalsePositive',
-		'PhanSyntaxError'
+		'PhanSyntaxError',
+		'SecurityCheckDebugTaintedness',
 	],
 
 	/**

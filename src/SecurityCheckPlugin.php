@@ -27,24 +27,27 @@ use Closure;
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
+use Phan\Language\Element\Comment\Builder;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\Scope;
 use Phan\Library\Set;
 use Phan\PluginV3;
+use Phan\PluginV3\AnalyzeLiteralStatementCapability;
 use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
 use Phan\PluginV3\MergeVariableInfoCapability;
 use Phan\PluginV3\PostAnalyzeNodeCapability;
 use Phan\PluginV3\PreAnalyzeNodeCapability;
 
 /**
- * @suppress PhanUnreferencedPublicClassConstant They're for use in custom plugins, too
+ * Base class used by the Generic and MediaWiki flavours of the plugin.
  */
 abstract class SecurityCheckPlugin extends PluginV3 implements
 	PostAnalyzeNodeCapability,
 	PreAnalyzeNodeCapability,
 	BeforeLoopBodyAnalysisCapability,
-	MergeVariableInfoCapability
+	MergeVariableInfoCapability,
+	AnalyzeLiteralStatementCapability
 {
 
 	// Various taint flags. The _EXEC_ varieties mean
@@ -144,6 +147,13 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		self::NO_OVERRIDE | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT;
 
 	/**
+	 * Used to print taint debug data, see BlockAnalysisVisitor::PHAN_DEBUG_VAR_REGEX
+	 */
+	private const DEBUG_TAINTEDNESS_REGEXP =
+		'/@phan-debug-var-taintedness\s+\$(' . Builder::WORD_REGEX . '(,\s*\$' . Builder::WORD_REGEX . ')*)/';
+	// @phan-suppress-previous-line PhanAccessClassConstantInternal It's just perfect for use here
+
+	/**
 	 * @var self Passed to the visitor for context
 	 */
 	public static $pluginInstance;
@@ -214,6 +224,112 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			$variable->taintedMethodLinks = $methodLinks;
 			$variable->taintedOriginalError = $error;
 		};
+	}
+
+	/**
+	 * Print the taintedness of a variable, when requested
+	 * @see BlockAnalysisVisitor::analyzeSubstituteVarAssert()
+	 * @inheritDoc
+	 */
+	public function analyzeStringLiteralStatement( CodeBase $codeBase, Context $context, string $statement ): bool {
+		$found = false;
+		if ( preg_match_all( self::DEBUG_TAINTEDNESS_REGEXP, $statement, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $group ) {
+				foreach ( explode( ',', $group[1] ) as $rawVar ) {
+					$varName = ltrim( trim( $rawVar ), '$' );
+					if ( $context->getScope()->hasVariableWithName( $varName ) ) {
+						$var = $context->getScope()->getVariableByName( $varName );
+						$taint = property_exists( $var, 'taintedness' )
+							// TODO Can we somehow preserve the shape here?
+							? self::taintToString( $var->taintedness->get() )
+							: 'unset';
+						$msg = "Variable {CODE} has taintedness: {DETAILS}";
+						$params = [ "\$$varName", $taint ];
+					} else {
+						$msg = "Variable {CODE} doesn't exist in scope";
+						$params = [ "\$$varName" ];
+					}
+					self::emitIssue(
+						$codeBase,
+						$context,
+						'SecurityCheckDebugTaintedness',
+						$msg,
+						$params
+					);
+					$found = true;
+				}
+			}
+		}
+		return $found;
+	}
+
+	/**
+	 * Get a string representation of a taint integer
+	 *
+	 * The prefix ~ means all input taints except the letter given.
+	 * The prefix * means the EXEC version of the taint.
+	 *
+	 * @param int $taint
+	 * @return string
+	 */
+	public static function taintToString( int $taint ) : string {
+		if ( $taint === self::NO_TAINT ) {
+			return 'NONE';
+		}
+
+		// Note, order matters here.
+		static $mapping = [
+			self::YES_TAINT => 'YES',
+			self::YES_TAINT &
+			( ~self::HTML_TAINT ) => '~HTML',
+			self::YES_TAINT &
+			( ~self::SQL_TAINT ) => '~SQL',
+			self::YES_TAINT &
+			( ~self::SHELL_TAINT ) => '~SHELL',
+			self::YES_TAINT &
+			( ~self::SERIALIZE_TAINT ) => '~SERIALIZE',
+			self::YES_TAINT &
+			( ~self::CUSTOM1_TAINT ) => '~CUSTOM1',
+			self::YES_TAINT &
+			( ~self::CUSTOM2_TAINT ) => '~CUSTOM2',
+			// We skip ~ versions of flags which shouldn't be possible.
+			self::HTML_TAINT => 'HTML',
+			self::SQL_TAINT => 'SQL',
+			self::SHELL_TAINT => 'SHELL',
+			self::ESCAPED_TAINT => 'ESCAPED',
+			self::SERIALIZE_TAINT => 'SERIALIZE',
+			self::CUSTOM1_TAINT => 'CUSTOM1',
+			self::CUSTOM2_TAINT => 'CUSTOM2',
+			self::MISC_TAINT => 'MISC',
+			self::SQL_NUMKEY_TAINT => 'SQL_NUMKEY',
+			self::ARRAY_OK => 'ARRAY_OK',
+			self::HTML_EXEC_TAINT => '*HTML',
+			self::SQL_EXEC_TAINT => '*SQL',
+			self::SHELL_EXEC_TAINT => '*SHELL',
+			self::ESCAPED_EXEC_TAINT => '*ESCAPED',
+			self::SERIALIZE_EXEC_TAINT => '*SERIALIZE',
+			self::CUSTOM1_EXEC_TAINT => '*CUSTOM1',
+			self::CUSTOM2_EXEC_TAINT => '*CUSTOM2',
+			self::MISC_EXEC_TAINT => '*MISC',
+			self::SQL_NUMKEY_EXEC_TAINT => '*SQL_NUMKEY',
+		];
+
+		$types = [];
+		foreach ( $mapping as $bitmap => $val ) {
+			if ( ( $bitmap & $taint ) === $bitmap ) {
+				$types[] = $val;
+				$taint &= ~$bitmap;
+			}
+		}
+		// Catch-all flags
+		if ( ( $taint & self::ALL_EXEC_TAINT ) !== 0 ) {
+			$types[] = '*ALL';
+			$taint &= ~self::ALL_EXEC_TAINT;
+		}
+		if ( ( $taint & self::ALL_TAINT ) !== 0 ) {
+			$types[] = 'ALL';
+		}
+		return implode( ', ', $types );
 	}
 
 	/**

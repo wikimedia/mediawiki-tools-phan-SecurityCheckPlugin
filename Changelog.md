@@ -9,6 +9,7 @@
   parameters and return type declarations.
 * Binops are now properly analysed, removing taintedness if the operation is safe.
 * Caused-by lines for function calls now include a code snippet with the argument, together with its ordinal.
+* Added an annotation to print the taintedness of a variable (use it with `'@phan-debug-var-taintedness $varname'`)
 
 ### Bug fixes
 * (MW) Fixed a crash observed when using `$this` as hook handler

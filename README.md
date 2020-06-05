@@ -134,6 +134,7 @@ You can use the `-y` command line option of Phan to filter by severity.
 
 How to avoid false positives
 ----------------------------
+
 If you need to suppress a false positive, you can put `@suppress NAME-OF-WARNING`
 in the docblock for a function/method. Alternatively, you can use other types of
 suppression, like `@phan-suppress-next-line`. See phan's readme for a complete
@@ -154,6 +155,14 @@ can use `@param-taint` as follows:
     echo $stuffToPrint;
   }
 ```
+
+When debugging security issues, you can use:
+```
+'@phan-debug-var-taintedness $varname';
+```
+this will emit a SecurityCheckDebugTaintedness issue containing the taintedness of `$varname`
+at the line where the annotation is found. Note that you have to insert the annotation in a string
+literal; comments will not work. See also phan's `@phan-debug-var` annotation.
 
 Notable limitations
 -------------------

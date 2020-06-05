@@ -495,10 +495,12 @@ class Taintedness {
 	 * @return string
 	 */
 	public function toString( $indent = '' ) : string {
+		$flags = SecurityCheckPlugin::taintToString( $this->flags );
+		$unknown = SecurityCheckPlugin::taintToString( $this->unknownDimsTaint );
 		$ret = <<<EOT
 {
-$indent    Own taint: $this->flags
-$indent    Unknown keys: $this->unknownDimsTaint
+$indent    Own taint: $flags
+$indent    Unknown keys: $unknown
 $indent    Keys: {
 EOT;
 
