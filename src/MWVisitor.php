@@ -621,12 +621,14 @@ class MWVisitor extends TaintednessVisitor {
 			assert( $arrayElm->kind === \ast\AST_ARRAY_ELEM );
 			$val = $arrayElm->children['value'];
 			$key = $arrayElm->children['key'];
-			$taintType = ( $key === 'HAVING' && $this->nodeIsArray( $val ) ) ?
-				SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
-				SecurityCheckPlugin::SQL_EXEC_TAINT;
-			$taintType = new Taintedness( $taintType );
 
-			if ( in_array( $key, $relevant ) ) {
+			if ( in_array( $key, $relevant, true ) ) {
+				$taintType = ( $key === 'HAVING' && $this->nodeIsArray( $val ) ) ?
+					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
+					SecurityCheckPlugin::SQL_EXEC_TAINT;
+				$taintType = new Taintedness( $taintType );
+
+				$this->backpropagateArgTaint( $node, $taintType );
 				$ctx = clone $this->context;
 				$this->overrideContext = $ctx->withLineNumberStart(
 					$val->lineno ?? $ctx->getLineNumberStart()
@@ -657,6 +659,7 @@ class MWVisitor extends TaintednessVisitor {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
+
 		foreach ( $node->children as $table ) {
 			assert( $table->kind === \ast\AST_ARRAY_ELEM );
 
@@ -683,6 +686,12 @@ class MWVisitor extends TaintednessVisitor {
 					"Join type for {STRING_LITERAL} is user controlled",
 					[ $tableName ]
 				);
+				if ( $joinType instanceof Node ) {
+					$this->backpropagateArgTaint(
+						$joinType,
+						new Taintedness( SecurityCheckPlugin::SQL_EXEC_TAINT )
+					);
+				}
 				// On to the join ON conditions.
 				if (
 					count( $joinInfo->children ) === 1 ||
@@ -702,6 +711,12 @@ class MWVisitor extends TaintednessVisitor {
 					"The ON conditions are not properly escaped for the join to `{STRING_LITERAL}`",
 					[ $tableName ]
 				);
+				if ( $onCond instanceof Node ) {
+					$this->backpropagateArgTaint(
+						$onCond,
+						new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
+					);
+				}
 				$this->overrideContext = null;
 			}
 		}

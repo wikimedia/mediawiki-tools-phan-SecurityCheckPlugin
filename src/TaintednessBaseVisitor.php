@@ -2483,7 +2483,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param Node $argument
 	 * @param Taintedness $taint
-	 * @param FunctionInterface $func
+	 * @param FunctionInterface|null $func
 	 *
 	 * @todo This has false negatives, because we don't collect function arguments in
 	 * getPhanObjsForNode (we'd have to pass option 'all'), so we can't handle e.g. array_merge
@@ -2491,7 +2491,11 @@ trait TaintednessBaseVisitor {
 	 * the arg taint isn't propagated to the return value. Ideally, we'd want to include an argument
 	 * iff the corresponding parameter passes $taint through.
 	 */
-	protected function backpropagateArgTaint( Node $argument, Taintedness $taint, FunctionInterface $func ) : void {
+	protected function backpropagateArgTaint(
+		Node $argument,
+		Taintedness $taint,
+		FunctionInterface $func = null
+	) : void {
 		if ( $taint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) ) {
 			// Special case for numkey, we need to "filter" the argument.
 			// TODO This doesn't return arrays with mixed keys. Currently, doing so would result
@@ -2514,9 +2518,9 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface[] $phanObjs
 	 * @param Taintedness $taint
-	 * @param FunctionInterface $func
+	 * @param FunctionInterface|null $func
 	 */
-	private function doBackpropArgTaint( array $phanObjs, Taintedness $taint, FunctionInterface $func ) : void {
+	private function doBackpropArgTaint( array $phanObjs, Taintedness $taint, FunctionInterface $func = null ) : void {
 		foreach ( $phanObjs as $phanObj ) {
 			$this->markAllDependentMethodsExec( $phanObj, $taint, $func );
 		}
