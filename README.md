@@ -17,9 +17,9 @@ Usage
 -----
 
 ### System requirements
-* php >= 7.2.0
-* Phan 2.6.1
-* Strongly suggested: php-ast >=1.0.1. While this is not enforced via composer,
+* `php >= 7.2.0`
+* `Phan 2.6.1`
+* Strongly suggested: `php-ast >=1.0.1`. While this is not enforced via composer,
 using the fallback parser is way slower and more memory-draining than using php-ast.
 See https://github.com/nikic/php-ast for instructions.
 * Lots of memory. Scanning MediaWiki seems to take about 3 minutes
@@ -74,13 +74,13 @@ For MediaWiki extensions/skins, this assumes the extension/skin is installed in 
 normal `extensions` or `skins` directory, and thus MediaWiki is in `../../`. If this is not
 the case, then you need to specify the `MW_INSTALL_PATH` environment variable.
 
-This plugin also provides variants seccheck-fast-mwext (Doesn't analyze
-MediaWiki core. May miss some stuff related to hooks) and seccheck-slow-mwext
-(Also analyzes vendor). seccheck-mwext will generally take about 3 minutes,
-where seccheck-fast-mwext takes only about half a minute.
+This plugin also provides variants `seccheck-fast-mwext` (Doesn't analyze
+MediaWiki core. May miss some stuff related to hooks) and `seccheck-slow-mwext`
+(Also analyzes vendor). `seccheck-mwext` will generally take about 3 minutes,
+where `seccheck-fast-mwext` takes only about half a minute.
 
 Additionally, if you want to do a really quick check, you can run the
-seccheck-generic script from a mediawiki extension/skin which will ignore all
+`seccheck-generic` script from a mediawiki extension/skin which will ignore all
 MediaWiki stuff, making the check much faster (but misses many issues).
 
 #### Manual
@@ -91,7 +91,7 @@ that taint-check is in the standard vendor location, e.g.
 `"$seccheckPath/GenericSecurityCheckPlugin.php"` for a generic project.
 
 Also, make sure that you have the following settings, or the plugin won't work:
-```
+```php
    'quick_mode' => false,
    'record_variable_context_and_scope' => true
 ```
@@ -106,7 +106,7 @@ Then run phan as you normally would:
 
 **Note**: Taint-check is bundled in https://github.com/wikimedia/mediawiki-tools-phan
 version 0.10.2 and above, so you don't have to add it manually if you're already using
-mediawiki-tools-phan.
+`mediawiki-tools-phan`.
 
 ### Docker
 The docker image used by Wikimedia's continuous integration for scanning extensions and skins
@@ -121,19 +121,19 @@ Plugin output
 The plugin will output various issue types depending on what it
 detects. The issue types it outputs are:
 
-* SecurityCheckMulti - For when there are multiple types of security issues
+* `SecurityCheckMulti` - For when there are multiple types of security issues
   involved
-* SecurityCheck-XSS
-* SecurityCheck-SQLInjection
-* SecurityCheck-ShellInjection
-* SecurityCheck-PHPSerializeInjection - For when someone does `unserialize( $_GET['d'] );`
+* `SecurityCheck-XSS`
+* `SecurityCheck-SQLInjection`
+* `SecurityCheck-ShellInjection`
+* `SecurityCheck-PHPSerializeInjection` - For when someone does `unserialize( $_GET['d'] );`
   This issue type seems to have a high false positive rate currently.
-* SecurityCheck-CUSTOM1 - To allow people to have custom taint types
-* SecurityCheck-CUSTOM2 - ditto
-* SecurityCheck-DoubleEscaped - Detecting that HTML is being double escaped
-* SecurityCheck-OTHER - At the moment, this corresponds to things that don't
+* `SecurityCheck-CUSTOM1` - To allow people to have custom taint types
+* `SecurityCheck-CUSTOM2` - ditto
+* `SecurityCheck-DoubleEscaped` - Detecting that HTML is being double escaped
+* `SecurityCheck-OTHER` - At the moment, this corresponds to things that don't
   have an escaping function to make input safe. e.g. `eval( $_GET['foo'] ); require $_GET['bar'];`
-* SecurityCheck-LikelyFalsePositive - A potential issue, but probably not.
+* `SecurityCheck-LikelyFalsePositive` - A potential issue, but probably not.
   Mostly happens when the plugin gets confused.
 
 The severity field is usually marked as `Issue::SEVERITY_NORMAL (5)`. False
@@ -152,7 +152,7 @@ If you need to suppress a false positive, you can put `@suppress NAME-OF-WARNING
 in the docblock for a function/method. Alternatively, you can use other types of
 suppression, like `@phan-suppress-next-line`. See phan's readme for a complete
 list.
-The @param-taint and @return-taint (see "Customizing" section) are also very useful
+The `@param-taint` and `@return-taint` (see "Customizing" section) are also very useful
 with dealing with false positives.
 
 There's much more than listed here, but some notable limitations/bugs:
@@ -170,7 +170,7 @@ There's much more than listed here, but some notable limitations/bugs:
 * The plugin is not capable of determining which branch is taken
   even in cases where it seems like it would be easy to determine statically.
   Thus it can fall to false positves like:
-  ```
+  ```php
   $a = $_GET['evil'];
   if ( foo() ) {
   	$a = htmlspecialchars( $a );
@@ -186,13 +186,13 @@ There's much more than listed here, but some notable limitations/bugs:
   is best practise anyways.
 * Arrays are considered as a single unit. The taint of any member of an array is
   the union of the taint that all the members should have. For example:
-  ```
-  	$stuff = [
-		$_GET['evil'],
-		htmlspecialchars( $_GET['foo'] ),
-	];
-   	echo $stuff[1];
-	echo htmlspecialchars( $stuff[0] );
+  ```php
+  $stuff = [
+  	$_GET['evil'],
+  	htmlspecialchars( $_GET['foo'] ),
+  ];
+  echo $stuff[1];
+  echo htmlspecialchars( $stuff[0] );
   ```
   This will give both a double escaped warning and an XSS warning, as the
   plugin only tracks $stuff, not $stuff[0] vs $stuff[1].
@@ -201,11 +201,11 @@ There's much more than listed here, but some notable limitations/bugs:
 * With pass by reference parameters to MediaWiki hooks,
   sometimes the line number is the hook call in MediaWiki core, instead of
   the hook subscriber in the extension that caused the issue.
-* The plugin can only validate the fifth ($options) and sixth ($join_cond)
-  of MediaWiki's IDatabase::select() if its provided directly as an array
-  literal, or directly returned as an array literal from a getQueryInfo()
+* The plugin can only validate the fifth (`$options`) and sixth (`$join_cond`)
+  of MediaWiki's `IDatabase::select()` if its provided directly as an array
+  literal, or directly returned as an array literal from a `getQueryInfo()`
   method.
-* Checking of HTMLForm field specifiers only works if they are specified
+* Checking of `HTMLForm` field specifiers only works if they are specified
   as array literals and may also misidentify things which aren't really HTMLForms
 
 Customizing
@@ -220,7 +220,7 @@ you want to override the taint calculated for a specific function.
 
 You can do this by adding a taint directive in a docblock comment. For example:
 
-```
+```php
 /**
  * My function description
  *
@@ -231,25 +231,25 @@ function escapeHtml( $html ) {
 }
 ```
 
-Taint directives are prefixed with either `@param-taint $parametername` or `@return-taint`. If there are multiple directives they can be separated by a comma. @param-taint is used for either marking how taint is transmited from the parameter to the methods return value, or when used with `exec_` directives, to mark places where parameters are outputted/executed. `@return-taint` is used to adjust the return value's taint regardless of the input parameters.
+Taint directives are prefixed with either `@param-taint $parametername` or `@return-taint`. If there are multiple directives they can be separated by a comma. `@param-taint` is used for either marking how taint is transmited from the parameter to the methods return value, or when used with `exec_` directives, to mark places where parameters are outputted/executed. `@return-taint` is used to adjust the return value's taint regardless of the input parameters.
 
 The type of directives include:
-* `exec_$TYPE` - If a parameter is marked as exec_$TYPE then feeding that parameter a value with $TYPE taint will result in a warning triggered. Typically you would use this when a function that outputs or executes its parameter
+* `exec_$TYPE` - If a parameter is marked as `exec_$TYPE` then feeding that parameter a value with `$TYPE` taint will result in a warning triggered. Typically you would use this when a function that outputs or executes its parameter
 * `escapes_$TYPE` - Used for parameters where the function escapes and then returns the parameter. So `escapes_sql` would clear the sql taint bit, but leave other taint bits alone.
-* `onlysafefor_$TYPE` - For use in `@return-taint`, marks the return type as safe for a specific $TYPE but unsafe for the other types.
-* `$TYPE` - if just the type is specified in a parameter, it is bitwised AND with the input variable's taint. Normally you wouldn't want to do this, but can be useful when $TYPE is `none` to specify that the parameter is not used to generate the return value. In an @return this could be used to enumerate which taint flags the return value has, which is usually only useful when specified as `tainted` to say it has all flags.
+* `onlysafefor_$TYPE` - For use in `@return-taint`, marks the return type as safe for a specific `$TYPE` but unsafe for the other types.
+* `$TYPE` - if just the type is specified in a parameter, it is bitwised AND with the input variable's taint. Normally you wouldn't want to do this, but can be useful when `$TYPE` is `none` to specify that the parameter is not used to generate the return value. In an `@return` this could be used to enumerate which taint flags the return value has, which is usually only useful when specified as `tainted` to say it has all flags.
 * `array_ok` - special purpose flag to say ignore tainted arguments if they are in an array.
 * `allow_override` - Special purpose flag to specify that that taint annotation should be overriden by phan-taint-check if it can detect a specific taint.
 
-The value for $TYPE can be one of htmlnoent, html, sql, shell, serialize, custom1, custom2, misc, sql_numkey, escaped, none, tainted, raw_param. Most of these are taint categories, except:
-* htmlnoent - like html but disable double escaping detection that gets used with html. When escapes\_html is specified, escaped automatically gets added to @return, and exec_escaped is added to @param. Similarly onlysafefor_html is equivalent to onlysafefor_htmlnoent, escaped.
-* none - Means no taint
-* tainted - Means all taint categories except special categories (equivalent to SecurityCheckPlugin::YES_TAINT)
-* escaped - Is used to mean the value is already escaped (To track double escaping)
-* sql_numkey - Is fairly special purpose for MW. It ignores taint in arrays if they are for associative keys.
-* raw_param - To be used in conjunction with other taint types. Means that the parameter's value is considered raw, hence all escaping should have already taken place, because it's not meant to happen afterwards. It behaves as if the taint of the parameter would immediately be EXEC'ed
+The value for `$TYPE` can be one of `htmlnoent`, `html`, `sql`, `shell`, `serialize`, `custom1`, `custom2`, `misc`, `sql_numkey`, `escaped`, `none`, `tainted`, `raw_param`. Most of these are taint categories, except:
+* `htmlnoent` - like `html` but disable double escaping detection that gets used with `html`. When `escapes_html` is specified, escaped automatically gets added to `@return`, and `exec_escaped` is added to `@param`. Similarly `onlysafefor_html` is equivalent to `onlysafefor_htmlnoent`, escaped.
+* `none` - Means no taint
+* `tainted` - Means all taint categories except special categories (equivalent to `SecurityCheckPlugin::YES_TAINT`)
+* `escaped` - Is used to mean the value is already escaped (To track double escaping)
+* `sql_numkey` - Is fairly special purpose for MediaWiki. It ignores taint in arrays if they are for associative keys.
+* `raw_param` - To be used in conjunction with other taint types. Means that the parameter's value is considered raw, hence all escaping should have already taken place, because it's not meant to happen afterwards. It behaves as if the taint of the parameter would immediately be EXEC'ed
 
-The default value for @param-taint is `tainted` if its a string (or other dangerous type), and `none` if its something like an integer. The default value for @return-taint is `allow_override` (Which is equivalent to none unless something better can be autodetected).
+The default value for `@param-taint` is `tainted` if its a string (or other dangerous type), and `none` if its something like an integer. The default value for `@return-taint` is `allow_override` (Which is equivalent to none unless something better can be autodetected).
 
 Instead of annotating methods in your codebase, you can also customize
 phan-taint-check to have builtin knowledge of method taints. In addition
@@ -269,10 +269,12 @@ example, an output function).
 For example, [htmlspecialchars] which removes html taint but leaves other taint
 would look like
 
-    'htmlspecialchars' => [
-        self::YES_TAINT & ~self::HTML_TAINT,
-        'overall' => self::NO_TAINT,
-    ];
+```php
+'htmlspecialchars' => [
+	self::YES_TAINT & ~self::HTML_TAINT,
+	'overall' => self::NO_TAINT,
+];
+```
 
 Environment variables
 ---------------------
@@ -281,10 +283,10 @@ The following environment variables affect the plugin. Normally you would not
 have to adjust these.
 
 * `SECURITY_CHECK_EXT_PATH` - Path to directory containing
-  extension.json/skin.json when in MediaWiki mode.
+  `extension.json`/`skin.json` when in MediaWiki mode.
   If not set assumes the project root directory.
 * `SECCHECK_DEBUG` - File to output extra debug information (If running from
-  shell, /dev/stderr is convenient)
+  `shell`, `/dev/stderr` is convenient)
 
 License
 -------
