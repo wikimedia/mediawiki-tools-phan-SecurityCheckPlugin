@@ -565,15 +565,14 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			if ( !$context->isInClassScope() ) {
 				return false;
 			}
-			$class = $context->getClassInScope( $code_base );
 			$maintFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
 				'\\Maintenance'
 			);
 			if ( !$code_base->hasClassWithFQSEN( $maintFQSEN ) ) {
 				return false;
 			}
-			$maint = $code_base->getClassByFQSEN( $maintFQSEN );
-			$isMaint = $class->isSubclassOf( $code_base, $maint );
+			$classFQSEN = $context->getClassFQSEN();
+			$isMaint = TaintednessBaseVisitor::isSubclassOf( $classFQSEN, $maintFQSEN, $code_base );
 			if ( $isMaint ) {
 				$msg .= ' [Likely false positive because in a subclass ' .
 					'of Maintenance, thus probably CLI]';

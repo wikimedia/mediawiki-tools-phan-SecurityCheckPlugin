@@ -115,25 +115,8 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Method $method
 	 */
 	private function doSelectWrapperSpecialHandling( Node $node, Method $method ) : void {
-		$clazz = $method->getClass( $this->code_base );
-
-		$implementIDB = false;
-		do {
-			$interfaceList = $clazz->getInterfaceFQSENList();
-			foreach ( $interfaceList as $interface ) {
-				if ( (string)$interface === '\\Wikimedia\\Rdbms\\IDatabase' ) {
-					$implementIDB = true;
-					break 2;
-				}
-			}
-		// @codingStandardsIgnoreStart MediaWiki.ControlStructures.AssignmentInControlStructures.AssignmentInControlStructures
-		} while (
-			$clazz->hasParentType() &&
-			( $clazz = $clazz->getParentClass( $this->code_base ) )
-		);
-		// @codingStandardsIgnoreEnd
-
-		if ( !$implementIDB ) {
+		$idbFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( '\\Wikimedia\\Rdbms\\IDatabase' );
+		if ( !self::isSubclassOf( $method->getClassFQSEN(), $idbFQSEN, $this->code_base ) ) {
 			return;
 		}
 
@@ -933,17 +916,14 @@ class MWVisitor extends TaintednessVisitor {
 			'MediaWiki\Auth\AuthenticationRequest'
 		);
 
-		if ( $this->code_base->hasClassWithFQSEN( $authReqFQSEN ) ) {
-			$authReq = $this->code_base->getClassByFQSEN( $authReqFQSEN );
-			if (
-				$this->context->isInClassScope() &&
-				$this->context->getClassInScope( $this->code_base )
-					->isSubclassOf( $this->code_base, $authReq )
-			) {
-				// AuthenticationRequest::getFieldInfo() defines a very
-				// similar array but with different rules. T202112
-				return;
-			}
+		if (
+			$this->code_base->hasClassWithFQSEN( $authReqFQSEN ) &&
+			$this->context->isInClassScope() &&
+			self::isSubclassOf( $this->context->getClassFQSEN(), $authReqFQSEN, $this->code_base )
+		) {
+			// AuthenticationRequest::getFieldInfo() defines a very
+			// similar array but with different rules. T202112
+			return;
 		}
 
 		// This is a rather superficial check. There
@@ -1120,7 +1100,6 @@ class MWVisitor extends TaintednessVisitor {
 			) {
 				$isOptionsSafe = false;
 			}
-			$clazz = $this->code_base->getClassByFQSEN( $fqsen );
 
 			$fqsenBase = FullyQualifiedClassName::fromFullyQualifiedString(
 				'\HTMLFormField'
@@ -1129,9 +1108,8 @@ class MWVisitor extends TaintednessVisitor {
 				$this->debug( __METHOD__, "Missing HTMLFormField base class?!" );
 				return;
 			}
-			$baseClazz = $this->code_base->getClassByFQSEN( $fqsenBase );
 
-			$isAField = $clazz->isSubclassOf( $this->code_base, $baseClazz );
+			$isAField = self::isSubclassOf( $fqsen, $fqsenBase, $this->code_base );
 
 			if ( !$isAField ) {
 				return;

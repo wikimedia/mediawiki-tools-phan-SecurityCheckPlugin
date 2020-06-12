@@ -4,6 +4,7 @@ use ast\Node;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;
+use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\IssueException;
 use Phan\Issue;
@@ -2450,5 +2451,23 @@ trait TaintednessBaseVisitor {
 			$objs
 		) )( $node );
 		return $objs;
+	}
+
+	/**
+	 * Shorthand to check if $child is subclass of $parent.
+	 *
+	 * @param FullyQualifiedClassName $child
+	 * @param FullyQualifiedClassName $parent
+	 * @param CodeBase $codeBase
+	 * @return bool
+	 */
+	public static function isSubclassOf(
+		FullyQualifiedClassName $child,
+		FullyQualifiedClassName $parent,
+		CodeBase $codeBase
+	) : bool {
+		$childTypes = $child->asType()->asExpandedTypes( $codeBase )->getTypeSet();
+		$parentType = $parent->asType();
+		return in_array( $parentType, $childTypes, true );
 	}
 }
