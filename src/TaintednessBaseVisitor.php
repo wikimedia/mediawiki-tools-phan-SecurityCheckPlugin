@@ -2080,7 +2080,8 @@ trait TaintednessBaseVisitor {
 
 		// If we have multiple, include what types.
 		if ( $issueType === 'SecurityCheckMulti' ) {
-			$msg .= " ({$lhsTaint->get()} <- {$rhsTaint->get()})";
+			$msg .= ' (' . SecurityCheckPlugin::taintToString( $lhsTaint->get() ) .
+				' <- ' . SecurityCheckPlugin::taintToString( $rhsTaint->get() ) . ')';
 		}
 
 		$context = $this->context;
