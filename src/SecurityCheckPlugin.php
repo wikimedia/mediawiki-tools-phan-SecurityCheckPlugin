@@ -152,9 +152,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		self::EXEC_TAINT | self::SQL_NUMKEY_EXEC_TAINT | self::ESCAPED_EXEC_TAINT;
 	public const ALL_YES_EXEC_TAINT = self::ALL_TAINT | self::ALL_EXEC_TAINT;
 
-	// Taints that support backpropagation. Does not include numkey
-	// due to special array handling.
-	public const BACKPROP_TAINTS = self::ALL_EXEC_TAINT & ~self::SQL_NUMKEY_EXEC_TAINT;
+	// Taints that support backpropagation.
+	public const BACKPROP_TAINTS = self::ALL_EXEC_TAINT;
 
 	public const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
 

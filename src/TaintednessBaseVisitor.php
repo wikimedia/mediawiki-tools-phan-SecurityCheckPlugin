@@ -35,6 +35,7 @@ use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
+use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
 use Phan\Library\Set;
@@ -1238,16 +1239,30 @@ trait TaintednessBaseVisitor {
 	 * @param string[] $options Change type of objects returned
 	 *    * 'all' -> Given a method call, include the method and its args
 	 *    * 'return' -> Given a method call, include objects in its return.
+	 *    * 'numkey' -> Given an array, only include values whose key can potentially be int
 	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
 	protected function getPhanObjsForNode( Node $node, $options = [] ) : array {
 		$cn = $this->getCtxN( $node );
 
+		/**
+		 * @phan-return array{0?:TypedElementInterface}
+		 */
+		$maybeKeepIfNumkey = function ( TypedElementInterface $el ) use ( $options ) : array {
+			if (
+				!in_array( 'numkey', $options, true ) ||
+				$this->elementCanBeNumkey( $el )
+			) {
+				return [ $el ];
+			}
+			return [];
+		};
 		switch ( $node->kind ) {
 			case \ast\AST_PROP:
 			case \ast\AST_STATIC_PROP:
 				try {
-					return [ $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP ) ];
+					$prop = $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP );
+					return $maybeKeepIfNumkey( $prop );
 				} catch ( NodeException | IssueException | UnanalyzableException $e ) {
 					// There won't be an expr for static prop.
 					if ( isset( $node->children['expr'] ) && $node->children['expr'] instanceof Node ) {
@@ -1272,7 +1287,8 @@ trait TaintednessBaseVisitor {
 					return [];
 				} else {
 					try {
-						return [ $cn->getVariable() ];
+						$var = $cn->getVariable();
+						return $maybeKeepIfNumkey( $var );
 					} catch ( NodeException | IssueException $e ) {
 						$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
 						return [];
@@ -1282,8 +1298,16 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_ENCAPS_LIST:
 			case \ast\AST_ARRAY:
 				$results = [];
+				$skipIfNumkey = $node->kind === \ast\AST_ARRAY && in_array( 'numkey', $options, true );
 				foreach ( $node->children as $child ) {
 					if ( !is_object( $child ) ) {
+						continue;
+					}
+
+					if (
+						$skipIfNumkey &&
+						$child->children['key'] !== null && !$this->nodeCanBeInt( $child->children['key'] )
+					) {
 						continue;
 					}
 					$results = array_merge( $this->getPhanObjsForNode( $child, $options ), $results );
@@ -2394,14 +2418,7 @@ trait TaintednessBaseVisitor {
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( $taint->hasParam( $i ) && $taint->getParamTaint( $i )->isExecTaint() ) {
 				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
-				$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
-				foreach ( $phanObjs as $phanObj ) {
-					$this->markAllDependentMethodsExec(
-						$phanObj,
-						$taint->getParamTaint( $i ),
-						$func
-					);
-				}
+				$this->backpropagateArgTaint( $argument, $taint->getParamTaint( $i ), $func );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = '#' . ( $i + 1 );
@@ -2461,6 +2478,48 @@ trait TaintednessBaseVisitor {
 			SecurityCheckPlugin::ALL_EXEC_TAINT;
 		return $taint->getOverall()->without( $preserveOrExec )
 			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
+	}
+
+	/**
+	 * @param Node $argument
+	 * @param Taintedness $taint
+	 * @param FunctionInterface $func
+	 *
+	 * @todo This has false negatives, because we don't collect function arguments in
+	 * getPhanObjsForNode (we'd have to pass option 'all'), so we can't handle e.g. array_merge
+	 * right now. However, collecting all args would create false positives with functions where
+	 * the arg taint isn't propagated to the return value. Ideally, we'd want to include an argument
+	 * iff the corresponding parameter passes $taint through.
+	 */
+	protected function backpropagateArgTaint( Node $argument, Taintedness $taint, FunctionInterface $func ) : void {
+		if ( $taint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) ) {
+			// Special case for numkey, we need to "filter" the argument.
+			// TODO This doesn't return arrays with mixed keys. Currently, doing so would result
+			// in arrays being considered as a unit, and the taint would be backpropagated to all
+			// values, even ones with string keys. See TODO in elementCanBeNumkey
+			$numkeyObjs = $this->getPhanObjsForNode( $argument, [ 'return', 'numkey' ] );
+			// TODO This should be limited to the outer array, see TODO in backpropnumkey test
+			// Note that this is true in general for NUMKEY taint, not just when backpropagating it
+			$numkeyTaint = new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
+			$this->doBackpropArgTaint( $numkeyObjs, $numkeyTaint, $func );
+			$taint = $taint->without( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
+		}
+
+		$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
+		$this->doBackpropArgTaint( $phanObjs, $taint, $func );
+	}
+
+	/**
+	 * Internal helper for backpropagateArgTaint to ease recursion
+	 *
+	 * @param TypedElementInterface[] $phanObjs
+	 * @param Taintedness $taint
+	 * @param FunctionInterface $func
+	 */
+	private function doBackpropArgTaint( array $phanObjs, Taintedness $taint, FunctionInterface $func ) : void {
+		foreach ( $phanObjs as $phanObj ) {
+			$this->markAllDependentMethodsExec( $phanObj, $taint, $func );
+		}
 	}
 
 	/**
@@ -2848,6 +2907,51 @@ trait TaintednessBaseVisitor {
 		}
 		$type = $this->getNodeType( $node );
 		return $type && $type->hasIntType() && $type->typeCount() === 1;
+	}
+
+	/**
+	 * @param TypedElementInterface $el
+	 * @return bool
+	 */
+	protected function elementCanBeNumkey( TypedElementInterface $el ) : bool {
+		$type = $el->getUnionType()->getRealUnionType();
+		if ( $type->hasMixedType() || $type->isEmpty() ) {
+			return true;
+		}
+		if ( !$type->hasArray() ) {
+			return false;
+		}
+
+		// TODO We require that all keys must be integer just to cut down on false positives.
+		// We can probably change this if phan infers some real types more precisely, e.g.
+		// if https://github.com/phan/phan/issues/4344 is resolved.
+		// Also, see TODO in backpropagateArgTaint.
+		static $preferFalseNegatives = true;
+		$keyTypes = GenericArrayType::keyUnionTypeFromTypeSetStrict( $el->getUnionType()->getRealTypeSet() );
+		return $preferFalseNegatives
+			? $keyTypes === GenericArrayType::KEY_INT
+			: ( $keyTypes & GenericArrayType::KEY_INT ) !== 0;
+	}
+
+	/**
+	 * Given a Node, can it be an int?
+	 * Floats are not considered ints here.
+	 *
+	 * @param Node|mixed $node A node object or simple value from AST tree
+	 * @return bool Is it an int?
+	 * @fixme A lot of duplication with other similar methods...
+	 */
+	protected function nodeCanBeInt( $node ) : bool {
+		if ( !( $node instanceof Node ) ) {
+			// simple literal
+			return is_int( $node );
+		}
+		$type = $this->getNodeType( $node );
+		if ( !$type ) {
+			return true;
+		}
+		$type = $type->getRealUnionType();
+		return $type->hasIntType() || $type->hasMixedType() || $type->isEmpty();
 	}
 
 	/**

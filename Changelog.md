@@ -6,6 +6,7 @@
 * Improved taint data for $_FILES
 * Infer when a parameter is passed through by a function (even partially or conditionally), at least in non-complicated cases
 * Improved caused-by lines for setters and some functions that pass their parameters through
+* Added support backpropagating NUMKEY taint, preferring false negatives until real type inference is improved
 
 ## v3.2.1
 ### Bug fixes
