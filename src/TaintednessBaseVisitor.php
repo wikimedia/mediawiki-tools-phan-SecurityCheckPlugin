@@ -355,24 +355,10 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
 		// . get_class( $this->context->getScope() ) . "" );
 
-		// If the current context is not a FunctionLikeScope, then
-		// it might be a class, or an if branch, or global. In any case
-		// its probably a non-local variable (or in the if case, code
-		// that may not be executed).
-
-		$parentVarObj = $this->getParentVarObj( $variableObj );
-
-		if ( $parentVarObj ) {
-			// Given we are either in a branch, or the variable has some
-			// sort of outer scope (is a global, is a class member), we
-			// try to merge the taint instead of overriding, as we have
-			// no guarantee that this particular branch gets executed, so
-			// we make the variable taint be the union of the case where
-			// this branch is executed and where it isn't.
-
-			// Future todo: In cases of if...else where all cases covered,
-			// should try to merge all branches ala ContextMergeVisitor.
-			$this->linkTaintednessToParent( $variableObj, $parentVarObj, $taintedness );
+		if ( property_exists( $variableObj, 'isGlobalVariable' ) ) {
+			$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
+			// Merge the taint on the "true" global object, too
+			$this->doSetTaintedness( $globalVar, $taintedness, false );
 			$override = false;
 		}
 		if ( $this->isHookRefArg( $variableObj ) ) {
@@ -389,6 +375,18 @@ trait TaintednessBaseVisitor {
 			$this->clearTaintLinks( $variableObj );
 		}
 
+		$this->doSetTaintedness( $variableObj, $taintedness, $override );
+	}
+
+	/**
+	 * Actually sets the taintedness on $variableObj. This should only be called by
+	 * setTaintedness.
+	 *
+	 * @param TypedElementInterface $variableObj
+	 * @param int $taintedness
+	 * @param bool $override
+	 */
+	private function doSetTaintedness( TypedElementInterface $variableObj, int $taintedness, bool $override ) {
 		$variableObj->taintedness = $override ?
 			$taintedness :
 			$this->mergeAddTaint(
@@ -397,79 +395,6 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
 		// ( $variableObj->taintedness ?? 'unset' ) );
 		$this->addTaintError( $taintedness, $variableObj );
-	}
-
-	/**
-	 * @param TypedElementInterface $variableObj
-	 * @return TypedElementInterface|null
-	 */
-	private function getParentVarObj( TypedElementInterface $variableObj ) : ?TypedElementInterface {
-		if ( property_exists( $variableObj, 'isGlobalVariable' ) ) {
-			return $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
-		}
-		$varContext = $variableObj->getFileRef();
-		assert( $varContext instanceof Context, 'record_variable_context_and_scope must be enabled' );
-		if (
-			$varContext->getScope() !== $this->context->getScope()
-			&& ( $this->context->getScope() instanceof BranchScope )
-		) {
-			$parentScope = $varContext->getScope();
-			// We are in a branch and this is a local variable
-			// (as opposed to a class member). Try to link this
-			// variable with its parent outside the branch in same func.
-			if ( $parentScope->hasVariableWithName( $variableObj->getName() ) ) {
-				$parentVarObj = $parentScope->getVariableByName( $variableObj->getName() );
-				if ( $parentVarObj !== $variableObj ) {
-					return $parentVarObj;
-				}
-			} else {
-				$this->debug( __METHOD__, "var {$variableObj->getName()} does not exist outside branch!" );
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Given a variable object with some kind of outer scope, link its taintedness to the given
-	 * parent variable
-	 *
-	 * @param TypedElementInterface $inner
-	 * @param TypedElementInterface $outer
-	 * @param int $taintedness
-	 */
-	private function linkTaintednessToParent(
-		TypedElementInterface $inner,
-		TypedElementInterface $outer,
-		int $taintedness
-	) : void {
-		if ( !property_exists( $outer, 'taintedness' ) ) {
-			// $this->debug( __METHOD__,
-			// "parent scope for $inner has no taint. Setting $taintedness" );
-			$outer->taintedness = $taintedness;
-		} else {
-			// $this->debug( __METHOD__,
-			// "parent scope for $inner already has taint "
-			// . $outer->taintedness . " adding $taintedness " );
-			$outer->taintedness = $this->mergeAddTaint( $outer->taintedness, $taintedness );
-		}
-		$inner->taintedness =& $outer->taintedness;
-
-		$methodLinks = $outer->taintedMethodLinks ?? new Set;
-		$variableObjLinks = $inner->taintedMethodLinks ?? new Set;
-		$inner->taintedMethodLinks = $methodLinks->union( $variableObjLinks );
-		$outer->taintedMethodLinks =& $inner->taintedMethodLinks;
-		$varError = $inner->taintedOriginalError ?? '';
-		$combinedOrig = $outer->taintedOriginalError ?? '';
-		if ( strpos( $combinedOrig, $varError ?: "\1\2" ) === false ) {
-			$combinedOrig .= $varError;
-		}
-
-		if ( strlen( $combinedOrig ) > 254 ) {
-			$this->debug( __METHOD__, "Too long original error! {$inner->getName()}" );
-			$combinedOrig = substr( $combinedOrig, 0, 250 ) . '... ';
-		}
-		$inner->taintedOriginalError = $combinedOrig;
-		$outer->taintedOriginalError =& $inner->taintedOriginalError;
 	}
 
 	/**

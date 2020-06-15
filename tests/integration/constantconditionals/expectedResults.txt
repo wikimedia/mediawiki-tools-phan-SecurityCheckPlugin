@@ -1,6 +1,4 @@
 integration/constantconditionals/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +14)
-integration/constantconditionals/test.php:26 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +21; integration/constantconditionals/test.php +24)
-integration/constantconditionals/test.php:36 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +31; integration/constantconditionals/test.php +34)
-integration/constantconditionals/test.php:52 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +43; integration/constantconditionals/test.php +50)
+integration/constantconditionals/test.php:26 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +21)
 integration/constantconditionals/test.php:78 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +57; integration/constantconditionals/test.php +77)
 integration/constantconditionals/test.php:81 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constantconditionals/test.php +62; integration/constantconditionals/test.php +80)

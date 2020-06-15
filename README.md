@@ -90,10 +90,9 @@ that taint-check is in the standard vendor location, e.g.
 `"$seccheckPath/MediaWikiSecurityCheckPlugin.php"` for a MediaWiki-related project, and
 `"$seccheckPath/GenericSecurityCheckPlugin.php"` for a generic project.
 
-Also, make sure that you have the following settings, or the plugin won't work:
+Also, make sure that you have the following setting, or the plugin won't work:
 ```php
-   'quick_mode' => false,
-   'record_variable_context_and_scope' => true
+   'quick_mode' => false
 ```
 
 You may also want to add `SecurityCheck-LikelyFalsePositive` and
@@ -167,23 +166,6 @@ There's much more than listed here, but some notable limitations/bugs:
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you must add annotations to its docblock so
   that the plugin can recognize it. See the Customizing section.
-* The plugin is not capable of determining which branch is taken
-  even in cases where it seems like it would be easy to determine statically.
-  Thus it can fall to false positves like:
-  ```php
-  $a = $_GET['evil'];
-  if ( foo() ) {
-  	$a = htmlspecialchars( $a );
-  } else {
-  	$a = htmlspecialchars( $a );
-  }
-  echo $a;
-  ```
-  Will give a warning, since the plugin is not smart enough to realize that
-  all possible branches will result in the value being escaped. Generally false
-  positives related to this can be avoided by avoiding reusing variable names,
-  for values that have different amounts of escaping, which in the author's opinion
-  is best practise anyways.
 * Arrays are considered as a single unit. The taint of any member of an array is
   the union of the taint that all the members should have. For example:
   ```php

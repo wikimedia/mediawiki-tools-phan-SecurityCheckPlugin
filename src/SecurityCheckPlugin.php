@@ -28,9 +28,13 @@ require_once __DIR__ . '/GetReturnObjsVisitor.php';
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
+use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use Phan\Language\Scope;
+use Phan\Library\Set;
 use Phan\PluginV3;
 use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
+use Phan\PluginV3\MergeVariableInfoCapability;
 use Phan\PluginV3\PostAnalyzeNodeCapability;
 use Phan\PluginV3\PreAnalyzeNodeCapability;
 
@@ -40,7 +44,8 @@ use Phan\PluginV3\PreAnalyzeNodeCapability;
 abstract class SecurityCheckPlugin extends PluginV3 implements
 	PostAnalyzeNodeCapability,
 	PreAnalyzeNodeCapability,
-	BeforeLoopBodyAnalysisCapability
+	BeforeLoopBodyAnalysisCapability,
+	MergeVariableInfoCapability
 {
 
 	// Various taint flags. The _EXEC_ varieties mean
@@ -144,11 +149,51 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		if ( Config::get_quick_mode() ) {
 			throw new AssertionError( 'Quick mode must be disabled to run taint-check' );
 		}
-		if ( !Config::getValue( 'record_variable_context_and_scope' ) ) {
-			throw new AssertionError(
-				'"record_variable_context_and_scope" must be enabled to run taint-check'
-			);
-		}
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getMergeVariableInfoClosure() : Closure {
+		/**
+		 * For branches that are not guaranteed to be executed, merge taint info for any involved
+		 * variable across all branches.
+		 * @param Variable $variable
+		 * @param Scope[] $scopeList
+		 * @param bool $varExistsInAllScopes @phan-unused-param
+		 * @suppress PhanUnreferencedClosure
+		 */
+		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ) {
+			$varName = $variable->getName();
+
+			$methodLinks = new Set();
+			$error = '';
+			$taintedness = 0;
+
+			foreach ( $scopeList as $scope ) {
+				$localVar = $scope->getVariableByNameOrNull( $varName );
+				if ( !$localVar ) {
+					continue;
+				}
+
+				$taintedness |= ( $localVar->taintedness ?? 0 );
+
+				$variableObjLinks = $localVar->taintedMethodLinks ?? new Set;
+				$methodLinks->addAll( $variableObjLinks );
+
+				$varError = $localVar->taintedOriginalError ?? '';
+				if ( strpos( $error, $varError ?: "\1\2" ) === false ) {
+					$error .= $varError;
+				}
+				if ( strlen( $error ) > 254 ) {
+					$error = substr( $error, 0, 250 ) . '... ';
+				}
+			}
+
+			$variable->taintedness = $taintedness;
+			$variable->taintedMethodLinks = $methodLinks;
+			$variable->taintedOriginalError = $error;
+		};
 	}
 
 	/**

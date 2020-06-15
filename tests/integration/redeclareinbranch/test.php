@@ -24,9 +24,9 @@ class Foo {
 		if ( rand() ) {
 			$form = $_GET['bar'];
 			$form = 'foo';
-			echo $form; // Safe, but we're not yet smart enough
+			echo $form; // Safe
 			$form = $_GET['baz'];
 		}
-		echo $form; // Unsafe. Ideally, this shouldn't have line 25 in its caused-by
+		echo $form; // Unsafe, and line 25 must not be in its caused-by
 	}
 }

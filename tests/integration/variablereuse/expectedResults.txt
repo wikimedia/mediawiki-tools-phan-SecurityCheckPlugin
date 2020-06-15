@@ -1,0 +1,2 @@
+integration/variablereuse/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/variablereuse/test.php +14)
+integration/variablereuse/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/variablereuse/test.php +18)
