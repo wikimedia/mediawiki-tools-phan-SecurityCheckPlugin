@@ -608,7 +608,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitDim( Node $node ) : void {
-		$this->curTaint = $this->getTaintednessNode( $node->children['expr'] );
+		if ( !$node->children['expr'] instanceof Node ) {
+			// Accessing offset of a string literal
+			$this->curTaint = SecurityCheckPlugin::NO_TAINT;
+		} else {
+			$this->curTaint = $this->getTaintednessNode( $node->children['expr'] );
+		}
 	}
 
 	/**
@@ -971,6 +976,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		foreach ( $node->children as $child ) {
 			if ( $child === null ) {
 				// Happens for list( , $x ) = foo()
+				continue;
+			}
+			if ( $child->kind === \ast\AST_UNPACK ) {
+				// PHP 7.4's in-place unpacking.
+				// TODO Do something?
 				continue;
 			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );

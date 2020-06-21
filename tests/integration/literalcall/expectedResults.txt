@@ -1,0 +1,1 @@
+integration/literalcall/test.php:11 SecurityCheck-XSS Calling method \echoEvil() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/literalcall/test.php +9)

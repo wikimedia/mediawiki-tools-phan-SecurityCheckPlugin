@@ -40,7 +40,7 @@
 	},
 	"scripts": {
 		"test": [
-			"parallel-lint . --exclude vendor",
+			"parallel-lint . --exclude vendor --exclude tests/integration/weirdsyntax",
 			"composer phpcs",
 			"composer minus-x",
 			"composer phan-for-plugin",

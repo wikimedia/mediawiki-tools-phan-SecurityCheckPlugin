@@ -1025,7 +1025,7 @@ trait TaintednessBaseVisitor {
 					return [ $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP ) ];
 				} catch ( Exception $e ) {
 					// There won't be an expr for static prop.
-					if ( isset( $node->children['expr'] ) ) {
+					if ( isset( $node->children['expr'] ) && $node->children['expr'] instanceof Node ) {
 						$cnClass = $this->getCtxN( $node->children['expr'] );
 						if ( $cnClass->getVariableName() === 'row' ) {
 							// Its probably a db row, so ignore.
@@ -1083,14 +1083,17 @@ trait TaintednessBaseVisitor {
 				// Future todo might be to ignore casts to ints, since
 				// such things should be safe. Unclear if that makes
 				// sense in all circumstances.
-				if ( is_object( $node->children['expr'] ) ) {
+				if ( $node->children['expr'] instanceof Node ) {
 					return $this->getPhanObjsForNode( $node->children['expr'], $options );
 				}
 				return [];
 			case \ast\AST_DIM:
-				// For now just consider the outermost array.
-				// FIXME. doesn't handle tainted array keys!
-				return $this->getPhanObjsForNode( $node->children['expr'], $options );
+				if ( $node->children['expr'] instanceof Node ) {
+					// For now just consider the outermost array.
+					// FIXME. doesn't handle tainted array keys!
+					return $this->getPhanObjsForNode( $node->children['expr'], $options );
+				}
+				return [];
 			case \ast\AST_UNARY_OP:
 				$var = $node->children['expr'];
 				return $var instanceof Node ? $this->getPhanObjsForNode( $var, $options ) : [];
