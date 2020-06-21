@@ -1,0 +1,2 @@
+integration/typemask3/test.php:32 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/typemask3/test.php +28; integration/typemask3/test.php +30)
+integration/typemask3/test.php:40 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/typemask3/test.php +36)

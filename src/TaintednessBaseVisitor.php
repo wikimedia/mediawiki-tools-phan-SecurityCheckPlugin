@@ -1,4 +1,4 @@
-<?php
+<?php declare( strict_types=1 );
 
 namespace SecurityCheckPlugin;
 
@@ -27,9 +27,11 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Scope\BranchScope;
+use Phan\Language\Type;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
 use Phan\Language\Type\IntType;
+use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\Type\MixedType;
 use Phan\Language\Type\StringType;
 use Phan\Language\UnionType;
@@ -152,6 +154,14 @@ trait TaintednessBaseVisitor {
 			$newTaint->setOverall( $getTaintToAdd( $curOverall, $baseOverall ) );
 		}
 		$maybeAddTaintError( $baseOverall, $curOverall, 'overall' );
+
+		// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
+		// the PHPDoc type, as it may be wrong.
+		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
+		$newTaint->map( function ( Taintedness $taint ) use ( $mask ) : void {
+			$taint->keepOnly( $mask );
+		} );
+
 		$func->funcTaint = $newTaint;
 	}
 
@@ -524,7 +534,7 @@ trait TaintednessBaseVisitor {
 
 		// Assume that anything really dangerous we've already
 		// hardcoded. So just preserve taint
-		$taintFromReturnType = $this->getTaintByReturnType( $func->getUnionType() );
+		$taintFromReturnType = $this->getTaintByType( $func->getUnionType() );
 		if ( $taintFromReturnType->isSafe() ) {
 			return new FunctionTaintedness( Taintedness::newSafe() );
 		}
@@ -658,7 +668,7 @@ trait TaintednessBaseVisitor {
 		// If we haven't seen this function before, first of all
 		// check the return type. If it (e.g.) returns just an int,
 		// its probably safe.
-		$taint = new FunctionTaintedness( $this->getTaintByReturnType( $func->getUnionType() ) );
+		$taint = new FunctionTaintedness( $this->getTaintByType( $func->getUnionType() ) );
 		$this->setFuncTaint( $func, $taint, true );
 		return $taint->withMaybeClearNoOverride( $clearOverride );
 	}
@@ -807,7 +817,7 @@ trait TaintednessBaseVisitor {
 	 * @param UnionType $types The types
 	 * @return Taintedness
 	 */
-	protected function getTaintByReturnType( UnionType $types ) : Taintedness {
+	protected function getTaintByType( UnionType $types ) : Taintedness {
 		$typelist = $types->getTypeSet();
 		if ( count( $typelist ) === 0 ) {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
@@ -816,6 +826,10 @@ trait TaintednessBaseVisitor {
 
 		$taint = Taintedness::newSafe();
 		foreach ( $typelist as $type ) {
+			if ( $type instanceof LiteralTypeInterface ) {
+				// We're going to assume that literals aren't tainted...
+				continue;
+			}
 			switch ( $type->getName() ) {
 			case 'int':
 			case 'non-zero-int':
@@ -845,15 +859,23 @@ trait TaintednessBaseVisitor {
 				$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 				break;
 			default:
-				// This means specific class or a type not listed above (likely phan-specific)
-				$fqsen = $type->isObjectWithKnownFQSEN() ? $type->asFQSEN() : $type->__toString();
-				if ( !( $fqsen instanceof FullyQualifiedClassName ) ) {
+				assert( $type instanceof Type );
+				if ( $type->hasTemplateTypeRecursive() ) {
+					// TODO Can we do better for template types?
+					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+					break;
+				}
+
+				if ( !$type->isObjectWithKnownFQSEN() ) {
+					// Likely some phan-specific types not included above
 					$this->debug( __METHOD__, " $type not a class?" );
 					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 					break;
 				}
+
+				// This means specific class, so look up __toString()
 				$toStringFQSEN = FullyQualifiedMethodName::fromStringInContext(
-					$fqsen . '::__toString',
+					$type->asFQSEN() . '::__toString',
 					$this->context
 				);
 				if ( !$this->code_base->hasMethodWithFQSEN( $toStringFQSEN ) ) {
@@ -868,6 +890,56 @@ trait TaintednessBaseVisitor {
 			}
 		}
 		return $taint;
+	}
+
+	/**
+	 * Get what taint types are allowed on a typed element (i.e. use its type to rule out
+	 * impossible taint types).
+	 *
+	 * @param TypedElementInterface $var
+	 * @return Taintedness
+	 */
+	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : Taintedness {
+		if (
+			$var instanceof Property ||
+			property_exists( $var, 'isGlobalVariable' ) ||
+			$this->context->isInGlobalScope()
+		) {
+			// TODO Improve handling of globals and props
+			return Taintedness::newAll();
+		}
+		// Note, we must use the real union type because:
+		// 1 - The non-real type might be wrong
+		// 2 - The non-real type might be incomplete (e.g. when analysing a func without docblock
+		// we still don't know all the possible types of the params).
+		return $this->getTaintMaskForType( $var->getUnionType()->getRealUnionType() );
+	}
+
+	/**
+	 * Get what taint types are allowed on an element with the given type.
+	 *
+	 * @param UnionType $type
+	 * @return Taintedness
+	 */
+	protected function getTaintMaskForType( UnionType $type ) : Taintedness {
+		$typeTaint = $this->getTaintByType( $type );
+
+		if ( $typeTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) {
+			return Taintedness::newAll();
+		}
+		return $typeTaint;
+	}
+
+	/**
+	 * Get what taint the element could have in the future. For instance, a func parameter may initially
+	 * have no taint, but it may become tainted depending on the argument.
+	 * @todo Ensure this won't miss any case (aside from when phan infers a wrong real type)
+	 *
+	 * @param TypedElementInterface $el
+	 * @return Taintedness
+	 */
+	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ) : Taintedness {
+		return $this->getTaintMaskForTypedElement( $el );
 	}
 
 	/**
@@ -964,11 +1036,12 @@ trait TaintednessBaseVisitor {
 			throw new Exception( 'Handle PassByRefs before calling this method' );
 		}
 		if ( property_exists( $variableObj, 'taintedness' ) ) {
-			$taintedness = clone $variableObj->taintedness;
+			$mask = $this->getTaintMaskForTypedElement( $variableObj );
+			$taintedness = $variableObj->taintedness->withOnly( $mask );
 			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
 			$type = $variableObj->getUnionType();
-			$taintedness = $this->getTaintByReturnType( $type );
+			$taintedness = $this->getTaintByType( $type );
 			// $this->debug( " \$" . $variableObj->getName() . " first sight."
 			// . " taintedness set to $taintedness due to type $type\n";
 		}

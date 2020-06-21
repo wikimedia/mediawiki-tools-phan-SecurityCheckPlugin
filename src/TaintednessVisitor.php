@@ -734,11 +734,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to backtick" );
-				$this->markAllDependentMethodsExec(
-					$phanObj,
-					$shellExecTaint
-				);
+				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $shellExecTaint->get() ) ) {
+					$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to backtick" );
+					$this->markAllDependentMethodsExec(
+						$phanObj,
+						$shellExecTaint
+					);
+				}
 			}
 		}
 		// Its unclear if we should consider this tainted or not
@@ -767,11 +769,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to require/eval" );
-				$this->markAllDependentMethodsExec(
-					$phanObj,
-					$includeOrEvalTaint
-				);
+				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $includeOrEvalTaint->get() ) ) {
+					$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to require/eval" );
+					$this->markAllDependentMethodsExec(
+						$phanObj,
+						$includeOrEvalTaint
+					);
+				}
 			}
 		}
 		// Strictly speaking we have no idea if the result
@@ -807,13 +811,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// in case it later turns out not to be safe.
 			$phanObjs = $this->getPhanObjsForNode( $echoedExpr, [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to echo" );
-				// FIXME, maybe not do this for local variables
-				// since they don't have other code paths that can set them.
-				$this->markAllDependentMethodsExec(
-					$phanObj,
-					$echoTaint
-				);
+				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $echoTaint->get() ) ) {
+					$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to echo" );
+					// FIXME, maybe not do this for local variables
+					// since they don't have other code paths that can set them.
+					$this->markAllDependentMethodsExec(
+						$phanObj,
+						$echoTaint
+					);
+				}
 			}
 		}
 		$this->curTaint = Taintedness::newSafe();

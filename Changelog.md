@@ -5,6 +5,8 @@
 * Increased the length limit for caused-by lines. The new limit is at 12 entries, rather than fixed at 255 characters (it was roughly doubled)
 * Handle a few more edge cases in foreach loops. Notably, class properties used as key or value are now
   properly analyzed, and caused-by lines now include sources of taintedness outside the loop.
+* The plugin now filters taintedness based on the (real) type of variables using `if` conditions,
+  parameters and return type declarations.
 
 ### Bug fixes
 * (MW) Fixed a crash observed when using `$this` as hook handler

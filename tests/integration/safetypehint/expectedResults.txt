@@ -1,0 +1,2 @@
+integration/safetypehint/test.php:11 SecurityCheck-XSS Calling method \echoUnsafe() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/safetypehint/test.php +9)
+integration/safetypehint/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/safetypehint/test.php +19)

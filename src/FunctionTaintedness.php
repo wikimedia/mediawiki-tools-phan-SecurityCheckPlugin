@@ -2,6 +2,7 @@
 
 namespace SecurityCheckPlugin;
 
+use Closure;
 use Error;
 use LogicException;
 
@@ -129,6 +130,18 @@ class FunctionTaintedness {
 	 */
 	public function hasParam( int $param ) : bool {
 		return isset( $this->paramTaints[$param] );
+	}
+
+	/**
+	 * Apply a callback to all taint values (in-place)
+	 * @param Closure $fn
+	 * @phan-param Closure( Taintedness ):void $fn
+	 */
+	public function map( Closure $fn ) : void {
+		foreach ( $this->paramTaints as $taint ) {
+			$fn( $taint );
+		}
+		$fn( $this->overall );
 	}
 
 	/**

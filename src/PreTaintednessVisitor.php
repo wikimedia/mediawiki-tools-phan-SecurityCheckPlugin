@@ -83,7 +83,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				continue;
 			}
 
-			$paramTypeTaint = $this->getTaintByReturnType( $varObj->getUnionType() );
+			$paramTypeTaint = $this->getTaintByType( $varObj->getUnionType() );
 			// Initially, the variable starts off with no taint.
 			$this->setTaintedness( $varObj, Taintedness::newSafe() );
 

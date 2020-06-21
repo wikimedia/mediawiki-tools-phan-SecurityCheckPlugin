@@ -19,8 +19,8 @@ function test2() {
 	];
 
 	foreach ( $unsafeKeys as $k => $v ) {
-		echo $k; // Unsafe
-		echo $v; // Ideally safe (TODO currently we squash key and value taint together)
+		echo $k; // Unsafe FIXME See https://github.com/phan/phan/issues/4251
+		echo $v; // Ideally safe (TODO currently we squash key and value taint together) FIXME See https://github.com/phan/phan/issues/4251
 	}
 }
 

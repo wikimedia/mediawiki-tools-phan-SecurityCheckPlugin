@@ -69,6 +69,13 @@ class Taintedness {
 	}
 
 	/**
+	 * @return self
+	 */
+	public static function newAll() : self {
+		return new self( SecurityCheckPlugin::ALL_TAINT_FLAGS );
+	}
+
+	/**
 	 * Get a numeric representation of the taint stored in this object. This includes own taint,
 	 * array keys and whatnot.
 	 * @note This should almost NEVER be used outside of this class! Use accessors as much as possible!
