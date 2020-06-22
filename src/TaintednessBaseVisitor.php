@@ -2360,6 +2360,79 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Given a binary operator, compute which taint will be preserved. Safe ops don't preserve
+	 * any taint, whereas unsafe ops will preserve all taints. The taint of a binop is basically
+	 * ( lhs_taint | rhs_taint ) & taint_mask
+	 *
+	 * @warning This method should avoid computing the taint of $lhs and $rhs, because it might be
+	 * called in preorder, but it would trigger a postorder visit.
+	 *
+	 * @param Node $opNode
+	 * @param Node|mixed $lhs Either a Node or a scalar
+	 * @param Node|mixed $rhs Either a Node or a scalar
+	 * @return int
+	 */
+	protected function getBinOpTaintMask( Node $opNode, $lhs, $rhs ) : int {
+		static $safeBinOps = [
+			\ast\flags\BINARY_BOOL_XOR,
+			\ast\flags\BINARY_DIV,
+			\ast\flags\BINARY_IS_EQUAL,
+			\ast\flags\BINARY_IS_IDENTICAL,
+			\ast\flags\BINARY_IS_NOT_EQUAL,
+			\ast\flags\BINARY_IS_NOT_IDENTICAL,
+			\ast\flags\BINARY_IS_SMALLER,
+			\ast\flags\BINARY_IS_SMALLER_OR_EQUAL,
+			\ast\flags\BINARY_MOD,
+			\ast\flags\BINARY_MUL,
+			\ast\flags\BINARY_POW,
+			// BINARY_ADD handled below due to array addition.
+			\ast\flags\BINARY_SUB,
+			\ast\flags\BINARY_BOOL_AND,
+			\ast\flags\BINARY_BOOL_OR,
+			\ast\flags\BINARY_IS_GREATER,
+			\ast\flags\BINARY_IS_GREATER_OR_EQUAL,
+			\ast\flags\BINARY_SHIFT_LEFT,
+			\ast\flags\BINARY_SHIFT_RIGHT,
+			\ast\flags\BINARY_SPACESHIP,
+		];
+
+		// This list is mostly used for debugging purposes
+		static $knownUnsafeOps = [
+			\ast\flags\BINARY_ADD,
+			\ast\flags\BINARY_CONCAT,
+			\ast\flags\BINARY_COALESCE,
+			// The result of bitwise ops can be a string, so we err on the side of caution.
+			\ast\flags\BINARY_BITWISE_AND,
+			\ast\flags\BINARY_BITWISE_OR,
+			\ast\flags\BINARY_BITWISE_XOR,
+		];
+
+		if ( in_array( $opNode->flags, $safeBinOps, true ) ) {
+			return SecurityCheckPlugin::NO_TAINT;
+		}
+		if (
+			$opNode->flags === \ast\flags\BINARY_ADD &&
+			( !$this->nodeCanBeArray( $lhs ) || !$this->nodeCanBeArray( $rhs ) )
+		) {
+			// Array addition is the only way `+` can preserve taintedness; if at least one operand
+			// is definitely NOT an array, then the result will be an integer, or a fatal error will
+			// occurr (depending on the other operand). Note that if we cannot be 100% sure that the
+			// node cannot be an array (e.g. if it has mixed type), we err on the side of caution and
+			// consider it potentially tainted.
+			return SecurityCheckPlugin::NO_TAINT;
+		}
+
+		if ( !in_array( $opNode->flags, $knownUnsafeOps, true ) ) {
+			$this->debug(
+				__METHOD__,
+				'Unhandled binop ' . Debug::astFlagDescription( $opNode->flags, $opNode->kind )
+			);
+		}
+
+		return SecurityCheckPlugin::ALL_TAINT_FLAGS;
+	}
+
+	/**
 	 * Get the possible UnionType of a node, without emitting issues.
 	 *
 	 * @param Node $node
@@ -2397,6 +2470,24 @@ trait TaintednessBaseVisitor {
 		}
 		$type = $this->getNodeType( $node );
 		return $type && $type->hasArrayLike() && !$type->hasMixedType() && !$type->hasStringType();
+	}
+
+	/**
+	 * Can $node potentially be an array?
+	 *
+	 * @param Node|mixed $node
+	 * @return bool
+	 */
+	protected function nodeCanBeArray( $node ) : bool {
+		if ( !( $node instanceof Node ) ) {
+			return is_array( $node );
+		}
+		$type = $this->getNodeType( $node );
+		if ( !$type ) {
+			return true;
+		}
+		$type = $type->getRealUnionType();
+		return $type->hasArrayLike() || $type->hasMixedType() || $type->isEmpty();
 	}
 
 	/**

@@ -7,6 +7,7 @@
   properly analyzed, and caused-by lines now include sources of taintedness outside the loop.
 * The plugin now filters taintedness based on the (real) type of variables using `if` conditions,
   parameters and return type declarations.
+* Binops are now properly analysed, removing taintedness if the operation is safe.
 
 ### Bug fixes
 * (MW) Fixed a crash observed when using `$this` as hook handler

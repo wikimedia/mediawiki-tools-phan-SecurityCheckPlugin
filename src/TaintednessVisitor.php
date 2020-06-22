@@ -623,53 +623,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitBinaryOp( Node $node ) : void {
 		$lhs = $node->children['left'];
 		$rhs = $node->children['right'];
-
-		$safeBinOps = [
-			// Unsure about BITWISE ops, since
-			// "A" | "B" still is a string
-			// so skipping.
-			\ast\flags\BINARY_BOOL_XOR,
-			\ast\flags\BINARY_DIV,
-			\ast\flags\BINARY_IS_EQUAL,
-			\ast\flags\BINARY_IS_IDENTICAL,
-			\ast\flags\BINARY_IS_NOT_EQUAL,
-			\ast\flags\BINARY_IS_NOT_IDENTICAL,
-			\ast\flags\BINARY_IS_SMALLER,
-			\ast\flags\BINARY_IS_SMALLER_OR_EQUAL,
-			\ast\flags\BINARY_MOD,
-			\ast\flags\BINARY_MUL,
-			\ast\flags\BINARY_POW,
-			// BINARY_ADD handled below due to array addition.
-			\ast\flags\BINARY_SUB,
-			\ast\flags\BINARY_BOOL_AND,
-			\ast\flags\BINARY_BOOL_OR,
-			\ast\flags\BINARY_IS_GREATER,
-			\ast\flags\BINARY_IS_GREATER_OR_EQUAL
-		];
-
-		if ( in_array( $node->flags, $safeBinOps, true ) ) {
-			$this->curTaint = Taintedness::newSafe();
-			return;
-		} elseif (
-			$node->flags === \ast\flags\BINARY_ADD && (
-				$this->nodeIsInt( $lhs ) ||
-				$this->nodeIsInt( $rhs )
-			)
-		) {
-			// This is used to avoid removing taintedness from array addition, and addition
-			// of unknown types. If at least one node is integer, either the result will be an
-			// integer, or PHP will throw a fatal.
-			$this->curTaint = Taintedness::newSafe();
-			return;
-		}
-
-		// Otherwise combine the ophand taint.
 		$leftTaint = $this->getTaintedness( $lhs );
 		$rightTaint = $this->getTaintedness( $rhs );
-		if ( $node->flags === \ast\flags\BINARY_ADD ) {
+		$mask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
+		if ( $node->flags === \ast\flags\BINARY_ADD && $mask !== SecurityCheckPlugin::NO_TAINT ) {
+			// HACK: This means that a node can be array, so assume array plus
 			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
 		} else {
-			$combinedTaint = $leftTaint->with( $rightTaint );
+			$combinedTaint = $leftTaint->with( $rightTaint )->withOnly( $mask );
 		}
 		$this->curTaint = $combinedTaint;
 	}

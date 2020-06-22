@@ -11,3 +11,27 @@ echo $unsafe;
 $arr = (array)$_GET['array'];
 $unsafe2 = $arr + [ 'safe' => true ];
 echo implode( '-', $unsafe2 );
+
+function foo( $unknownType ) {
+	$x = $unknownType + $unknownType;
+	echo $x;
+}
+foo( $_GET['a'] );
+
+/*
+ * What follows is a complicated way to have an empty union type but non-empty taint data.
+ * Note that it doesn't work with a simple function (i.e. it must be a method).
+ */
+class A {
+	/**
+	 * @return-taint tainted
+	 */
+	function foo() {
+	}
+}
+
+$a = new A;
+$unknownType = $a->foo();
+'@phan-debug-var $unknownType'; // If a future version of phan doesn't infer an empty union type here, the test becomes useless /wrong
+$var = $unknownType + $unknownType;
+echo $var; // Unsafe
