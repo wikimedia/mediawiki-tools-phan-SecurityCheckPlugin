@@ -39,3 +39,10 @@ $inner = [];
 $inner[] =  $_GET['a'] ;
 $key = mysqli_real_escape_string( new mysqli, $GLOBALS['a'] );
 $db->select( 'table', '*', [ $key => $inner ], __METHOD__ ); // Safe, NUMKEY is only for the outer array
+
+
+$foo = 'foo';
+$db->select( 'table', '*', [ $foo => $_GET['a'] ], __METHOD__ ); // Safe
+
+$num = 42;
+$db->select( 'table', '*', [ $num => $_GET['a'] ], __METHOD__ ); // Unsafe

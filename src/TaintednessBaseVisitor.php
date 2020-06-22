@@ -30,10 +30,7 @@ use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type;
 use Phan\Language\Type\CallableType;
 use Phan\Language\Type\ClosureType;
-use Phan\Language\Type\IntType;
 use Phan\Language\Type\LiteralTypeInterface;
-use Phan\Language\Type\MixedType;
-use Phan\Language\Type\StringType;
 use Phan\Language\UnionType;
 use Phan\Library\Set;
 
@@ -2363,9 +2360,30 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Get the possible UnionType of a node, without emitting issues.
+	 *
+	 * @param Node $node
+	 * @return UnionType|null
+	 */
+	protected function getNodeType( Node $node ) : ?UnionType {
+		try {
+			return UnionTypeVisitor::unionTypeFromNode(
+				$this->code_base,
+				$this->context,
+				$node,
+				// Don't check types, as this might be called e.g. on the LHS (see T249647)
+				false
+			);
+		} catch ( Exception $e ) {
+			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
+			return null;
+		}
+	}
+
+	/**
 	 * Given a Node, is it an array? (And definitely not a string)
 	 *
-	 * @param mixed|Node $node A node object or simple value from AST tree
+	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it an array?
 	 */
 	protected function nodeIsArray( $node ) : bool {
@@ -2377,23 +2395,8 @@ trait TaintednessBaseVisitor {
 			// Exit early in the simple case.
 			return true;
 		}
-		try {
-			$type = UnionTypeVisitor::unionTypeFromNode(
-				$this->code_base,
-				$this->context,
-				$node
-			);
-			if (
-				$type->hasArrayLike() &&
-				!$type->hasType( MixedType::instance( false ) ) &&
-				!$type->hasType( StringType::instance( false ) )
-			) {
-				return true;
-			}
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
-		}
-		return false;
+		$type = $this->getNodeType( $node );
+		return $type && $type->hasArrayLike() && !$type->hasMixedType() && !$type->hasStringType();
 	}
 
 	/**
@@ -2401,33 +2404,17 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @todo Unclear if this should return true for things that can
 	 *   autocast to a string (e.g. ints)
-	 * @param mixed|Node $node A node object or simple value from AST tree
+	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it a string?
 	 */
 	protected function nodeIsString( $node ) : bool {
-		if ( is_string( $node ) ) {
-			return true;
-		}
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
-			return false;
+			return is_string( $node );
 		}
-		try {
-			$type = UnionTypeVisitor::unionTypeFromNode(
-				$this->code_base,
-				$this->context,
-				$node,
-				// Don't check types, as this might be called e.g. on the LHS (see T249647)
-				false
-			);
-			if ( $type->hasType( StringType::instance( false ) ) ) {
-				// @todo Should having mixed type result in returning false here?
-				return true;
-			}
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
-		}
-		return false;
+		$type = $this->getNodeType( $node );
+		// @todo Should having mixed type result in returning false here?
+		return $type && $type->hasStringType();
 	}
 
 	/**
@@ -2435,35 +2422,16 @@ trait TaintednessBaseVisitor {
 	 *
 	 * Floats are not considered ints here.
 	 *
-	 * @param mixed|Node $node A node object or simple value from AST tree
+	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it an int?
 	 */
 	protected function nodeIsInt( $node ) : bool {
-		if ( is_int( $node ) ) {
-			return true;
-		}
 		if ( !( $node instanceof Node ) ) {
-			// simple literal that's not an int.
-			return false;
+			// simple literal
+			return is_int( $node );
 		}
-		try {
-			$type = UnionTypeVisitor::unionTypeFromNode(
-				$this->code_base,
-				$this->context,
-				$node,
-				// Don't check types, as this might be called e.g. on the LHS (see T249647)
-				false
-			);
-			if (
-				$type->hasType( IntType::instance( false ) ) &&
-				$type->typeCount() === 1
-			) {
-				return true;
-			}
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
-		}
-		return false;
+		$type = $this->getNodeType( $node );
+		return $type && $type->hasIntType() && $type->typeCount() === 1;
 	}
 
 	/**
