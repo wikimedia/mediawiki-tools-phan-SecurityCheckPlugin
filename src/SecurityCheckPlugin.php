@@ -149,8 +149,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public static $pluginInstance;
 
 	/**
-	 * @var array Cache of parsed docblocks. This is declared here (as opposed to the BaseVisitor)
+	 * @var int[][] Cache of parsed docblocks. This is declared here (as opposed to the BaseVisitor)
 	 *  so that PHPUnit can snapshot and restore it.
+	 * @phan-var array<string,int[]>
 	 */
 	public static $docblockCache = [];
 
@@ -220,7 +221,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * normally you would override the getCustomFuncTaints() method, not this one.
 	 *
 	 * @param FullyQualifiedFunctionLikeName $fqsen The function/method in question
-	 * @return array|null Null to autodetect taintedness. Otherwise an array
+	 * @return int[]|null Null to autodetect taintedness. Otherwise an array
 	 *   Numeric keys reflect how the taintedness the parameter reflect the
 	 *   return value, or whether the parameter is directly executed.
 	 *   The special key overall controls the taint of the function
@@ -256,7 +257,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	/**
 	 * Get an array of function taints custom for the application
 	 *
-	 * @return array Array of function taints (See getBuiltinFuncTaint())
+	 * @return int[][] Array of function taints (See getBuiltinFuncTaint())
+	 * @phan-return array<string,int[]>
 	 */
 	abstract protected function getCustomFuncTaints() : array;
 
@@ -422,7 +424,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	/**
 	 * Taints for builtin php functions
 	 *
-	 * @return array List of func taints (See getBuiltinFuncTaint())
+	 * @return int[][] List of func taints (See getBuiltinFuncTaint())
+	 * @phan-return array<string,int[]>
 	 */
 	protected function getPHPFuncTaints() : array {
 		return [

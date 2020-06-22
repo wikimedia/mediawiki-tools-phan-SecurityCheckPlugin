@@ -63,7 +63,7 @@ trait TaintednessBaseVisitor {
 	/** @var null|string|bool|resource filehandle to output debug messages */
 	private $debugOutput;
 
-	/** @var Context Override the file/line number to emit issues */
+	/** @var Context|null Override the file/line number to emit issues */
 	protected $overrideContext;
 
 	/**
@@ -147,8 +147,8 @@ trait TaintednessBaseVisitor {
 	 * the starting index of the subset in the $haystack array. If the subset occurs multiple
 	 * times, this will just find the first one.
 	 *
-	 * @param array $haystack
-	 * @param array $needle
+	 * @param (string|int)[][] $haystack
+	 * @param (string|int)[][] $needle
 	 * @return false|int False if not a subset, the starting index if it is.
 	 * @note Use strict comparisons with the return value!
 	 */
@@ -484,7 +484,7 @@ trait TaintednessBaseVisitor {
 	 * arguments into its return value
 	 *
 	 * @param FunctionInterface $func A builtin Function/Method
-	 * @return array The function taint.
+	 * @return int[] The function taint.
 	 */
 	private function getTaintOfFunctionPHP( FunctionInterface $func ) : array {
 		$taint = $this->getBuiltinFuncTaint( $func->getFQSEN() );
@@ -695,9 +695,9 @@ trait TaintednessBaseVisitor {
 	 * This is primarily used to ensure that no override doesn't
 	 * propagate into other variables.
 	 *
-	 * @param array $taint Function taint
+	 * @param int[] $taint Function taint
 	 * @param bool $clear Whether to clear it or not
-	 * @return array Function taint
+	 * @return int[] Function taint
 	 */
 	private function maybeClearNoOverride( array $taint, bool $clear ) : array {
 		if ( !$clear ) {
@@ -875,7 +875,7 @@ trait TaintednessBaseVisitor {
 	 * This is used for when people special case if a function is tainted.
 	 *
 	 * @param FullyQualifiedFunctionLikeName $fqsen Function to check
-	 * @return null|array Null if no info, otherwise the taint for the function
+	 * @return int[]|null Null if no info, otherwise the taint for the function
 	 */
 	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?array {
 		$taint = SecurityCheckPlugin::$pluginInstance->getBuiltinFuncTaint( $fqsen );
@@ -940,7 +940,7 @@ trait TaintednessBaseVisitor {
 		( new TaintednessVisitor( $this->code_base, $this->context, $ret ) )(
 			$node
 		);
-		assert( $ret >= 0, $ret );
+		assert( is_int( $ret ) && $ret >= 0, "Taintedness: $ret" );
 		return $ret;
 	}
 
@@ -1535,7 +1535,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint.
 	 *
-	 * @param TypedElementInterface|Node $element
+	 * @param TypedElementInterface|Node|mixed $element
 	 * @param int|null $taintedness Only consider caused-by lines having (at least) these bits, null
 	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
@@ -1570,9 +1570,9 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param array $allLines
+	 * @param (string|int)[][] $allLines
 	 * @param int|null $taintedness
-	 * @return array
+	 * @return string[]
 	 */
 	private function extractInterestingCausedbyLines( array $allLines, ?int $taintedness ) : array {
 		if ( $taintedness === null ) {
@@ -1593,7 +1593,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
-	 * @param TypedElementInterface|Node $element
+	 * @param TypedElementInterface|Node|mixed $element
 	 * @param int|null $taintedness Only consider caused-by lines having (at least) these bits, null
 	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
@@ -1659,7 +1659,7 @@ trait TaintednessBaseVisitor {
 	 * @param mixed $node Either a Node or a string, int, etc. The expression
 	 * @param int $taintedness The taintedness in question
 	 * @param FunctionInterface $curFunc The function/method we are in.
-	 * @return array numeric keys for each parameter taint and 'overall' key
+	 * @return int[] numeric keys for each parameter taint and 'overall' key
 	 */
 	protected function matchTaintToParam(
 		$node,
@@ -1755,7 +1755,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @warning Will cause an assertion failure if not well formed.
 	 *
-	 * @param array $taint the taint of a function
+	 * @param int[] $taint the taint of a function
 	 */
 	protected function checkFuncTaint( array $taint ) : void {
 		assert(
@@ -1780,7 +1780,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @note $node may not be the current node in $this->context.
 	 *
-	 * @param Node|string $node The thingy from AST expected to be a Callable
+	 * @param Node|mixed $node The thingy from AST expected to be a Callable
 	 * @return FullyQualifiedMethodName|FullyQualifiedFunctionName|null The corresponding FQSEN
 	 */
 	protected function getFQSENFromCallable( $node ) {
@@ -1930,6 +1930,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $combinedTaint The taint to warn for. I.e. The exec flags
 	 *   from LHS shifted to non-exec bitwise AND'd with the rhs taint.
 	 * @return array Issue type and severity
+	 * @phan-return array{0:string,1:int}
 	 */
 	public function taintToIssueAndSeverity( int $combinedTaint ) : array {
 		$severity = Issue::SEVERITY_NORMAL;
@@ -2109,6 +2110,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 * @param array $args Arguments to function/method
+	 * @phan-param array<Node|mixed> $args
 	 * @return int Taint The resulting taint of the expression
 	 */
 	public function handleMethodCall(
@@ -2222,7 +2224,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get current and effective taint of an argument when examining a func call
 	 *
-	 * @param array $funcTaint
+	 * @param int[] $funcTaint
 	 * @param Node $argument
 	 * @param int $i Position of the param
 	 * @param FullyQualifiedFunctionLikeName $funcName
@@ -2463,7 +2465,7 @@ trait TaintednessBaseVisitor {
 	 * more robust and hopefully the more common code path.
 	 *
 	 * @param FunctionInterface $func The function/method. Must use Analyzable trait
-	 * @return array An array of phan objects
+	 * @return TypedElementInterface[] An array of phan objects
 	 */
 	public function getReturnObjsOfFunc( FunctionInterface $func ) : array {
 		if ( !property_exists( $func, 'retObjs' ) ) {

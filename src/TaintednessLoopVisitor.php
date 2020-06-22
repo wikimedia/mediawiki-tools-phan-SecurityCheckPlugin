@@ -18,7 +18,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitForeach( Node $node ) {
+	public function visitForeach( Node $node ) : void {
 		// TODO: Could we do something better here detecting the array
 		// type
 		$lhsTaintedness = $this->getTaintedness( $node->children['expr'] );

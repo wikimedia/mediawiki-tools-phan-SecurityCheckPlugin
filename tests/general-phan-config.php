@@ -145,7 +145,7 @@ return [
 	 * type to be cast to null. Setting this to false
 	 * will cut down on false positives.
 	 */
-	'null_casts_as_any_type' => true,
+	'null_casts_as_any_type' => false,
 
 	/**
 	 * If enabled, scalars (int, float, bool, string, null)
@@ -259,7 +259,12 @@ return [
 	// A list of plugin files to execute
 	'plugins' => [
 		'UnusedSuppressionPlugin',
-		'DuplicateExpressionPlugin'
+		'DuplicateExpressionPlugin',
+		'UnknownElementTypePlugin',
+		'LoopVariableReusePlugin',
+		'RedundantAssignmentPlugin',
+		'StrictLiteralComparisonPlugin',
+		'PhanSelfCheckPlugin',
 	],
 
 	/**
