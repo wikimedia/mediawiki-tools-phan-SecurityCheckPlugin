@@ -417,6 +417,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// echo __METHOD__ . $this->dbgInfo() . ' ';
 		// Debug::printNode($node);
 
+		$lhs = $node->children['var'];
+		$rhs = $node->children['expr'];
 		// Note: If there is a local variable that is a reference
 		// to another non-local variable, this will probably incorrectly
 		// override the taint (Pass by reference variables are handled
@@ -424,14 +426,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		// Make sure $foo[2] = 0; doesn't kill taint of $foo generally.
 		// Ditto for $this->bar, or props in general just in case.
-		$override = $node->children['var']->kind !== \ast\AST_DIM
-			&& $node->children['var']->kind !== \ast\AST_PROP;
+		$override = $lhs->kind !== \ast\AST_DIM && $lhs->kind !== \ast\AST_PROP;
 
-		$variableObjs = $this->getPhanObjsForNode( $node->children['var'] );
+		$variableObjs = $this->getPhanObjsForNode( $lhs );
 
-		$lhsTaintedness = $this->getTaintedness( $node->children['var'] );
+		$lhsTaintedness = $this->getTaintedness( $lhs );
 		# $this->debug( __METHOD__, "Getting taint LHS = $lhsTaintedness:" );
-		$rhsTaintedness = $this->getTaintedness( $node->children['expr'] );
+		$rhsTaintedness = $this->getTaintedness( $rhs );
 		# $this->debug( __METHOD__, "Getting taint RHS = $rhsTaintedness:" );
 
 		if ( $node->kind === \ast\AST_ASSIGN_OP ) {
@@ -444,9 +445,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Special case for SQL_NUMKEY_TAINT
 		// If we're assigning an SQL tainted value as an array key
 		// or as the value of a numeric key, then set NUMKEY taint.
-		$var = $node->children['var'];
-		if ( $var->kind === \ast\AST_DIM ) {
-			$dim = $var->children['dim'];
+		if ( $lhs->kind === \ast\AST_DIM ) {
+			$dim = $lhs->children['dim'];
 			if ( $rhsTaintedness & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
 				// Things like 'foo' => ['taint', 'taint']
 				// are ok.
@@ -461,9 +461,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// $foo[2] = [ $sqlTainted ];
 				if (
 					( $dim === null || $this->nodeIsInt( $dim ) )
-					&& !$this->nodeIsArray( $node->children['expr'] )
-					&& !( $var->children['expr'] instanceof Node
-						&& $var->children['expr']->kind === \ast\AST_DIM
+					&& !$this->nodeIsArray( $rhs )
+					&& !( $lhs->children['expr'] instanceof Node
+						&& $lhs->children['expr']->kind === \ast\AST_DIM
 					)
 				) {
 					$rhsTaintedness |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
@@ -489,12 +489,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$lhsTaintedness,
 			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it"
-				. $this->getOriginalTaintLine( $node->children['var'] )
+				. $this->getOriginalTaintLine( $lhs )
 		);
 
 		$rhsObjs = [];
-		if ( is_object( $node->children['expr'] ) ) {
-			$rhsObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+		if ( is_object( $rhs ) ) {
+			$rhsObjs = $this->getPhanObjsForNode( $rhs );
 		}
 
 		foreach ( $variableObjs as $variableObj ) {
