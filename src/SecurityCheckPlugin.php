@@ -420,6 +420,26 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				~self::SHELL_TAINT & self::YES_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\shell_exec' => [
+				self::SHELL_EXEC_TAINT,
+				'overall' => self::YES_TAINT
+			],
+			'\passthru' => [
+				self::SHELL_EXEC_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\exec' => [
+				self::SHELL_EXEC_TAINT,
+				self::NO_TAINT, // TODO: This is an unsafe passbyref
+				self::NO_TAINT,
+				'overall' => self::YES_TAINT
+			],
+			'\system' => [
+				self::SHELL_EXEC_TAINT,
+				self::NO_TAINT,
+				'overall' => self::YES_TAINT
+			],
 			// Or any time the serialized data comes from a trusted source.
 			'\serialize' => [
 				'overall' => self::YES_TAINT & ~self::SERIALIZE_TAINT,
