@@ -328,12 +328,18 @@ trait TaintednessBaseVisitor {
 	 * @param bool $override Override taintedness or just take max.
 	 * @param bool $allowClearLHSData Whether we're allowed to clear taint error and links
 	 *   from the LHS. This is only honored when the taint is being overridden.
+	 * @param int|null $errorTaint The taintedness to use for adding the taint error. By default,
+	 *   this is identical to $taintedness. This can be useful when the element is already tainted
+	 *   (e.g. for assign ops like `.=`, so that `$tainted .= 'safe'` doesn't add a caused-by line),
+	 *   but it should only be used when there's no actual taint being added (so e.g. don't use this
+	 *   for `$tainted .= $anotherTainted`).
 	 */
 	protected function setTaintedness(
 		TypedElementInterface $variableObj,
 		int $taintedness,
 		$override = true,
-		bool $allowClearLHSData = false
+		bool $allowClearLHSData = false,
+		int $errorTaint = null
 	) : void {
 		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
 		// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' )
@@ -341,6 +347,8 @@ trait TaintednessBaseVisitor {
 		// . ', ' . ( debug_backtrace()[2]['function'] ?? 'n/a' ) );
 
 		assert( $taintedness >= 0, "Taintedness: $taintedness" );
+		$errorTaint = $errorTaint ?? $taintedness;
+		assert( $errorTaint >= 0, "Error taint: $errorTaint" );
 
 		if ( $variableObj instanceof FunctionInterface ) {
 			// FIXME what about closures?
@@ -357,7 +365,7 @@ trait TaintednessBaseVisitor {
 		if ( property_exists( $variableObj, 'isGlobalVariable' ) ) {
 			$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
 			// Merge the taint on the "true" global object, too
-			$this->doSetTaintedness( $globalVar, $taintedness, false );
+			$this->doSetTaintedness( $globalVar, $taintedness, false, $errorTaint );
 			$override = false;
 		}
 		if ( $this->isHookRefArg( $variableObj ) ) {
@@ -374,18 +382,26 @@ trait TaintednessBaseVisitor {
 			$this->clearTaintLinks( $variableObj );
 		}
 
-		$this->doSetTaintedness( $variableObj, $taintedness, $override );
+		$this->doSetTaintedness( $variableObj, $taintedness, $override, $errorTaint );
 	}
 
 	/**
 	 * Actually sets the taintedness on $variableObj. This should only be called by
 	 * setTaintedness.
 	 *
+	 * @see self::setTaintedness for param docs
+	 *
 	 * @param TypedElementInterface $variableObj
 	 * @param int $taintedness
 	 * @param bool $override
+	 * @param int $errorTaint
 	 */
-	private function doSetTaintedness( TypedElementInterface $variableObj, int $taintedness, bool $override ) {
+	private function doSetTaintedness(
+		TypedElementInterface $variableObj,
+		int $taintedness,
+		bool $override,
+		int $errorTaint
+	) : void {
 		$variableObj->taintedness = $override ?
 			$taintedness :
 			$this->mergeAddTaint(
@@ -393,7 +409,7 @@ trait TaintednessBaseVisitor {
 			);
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
 		// ( $variableObj->taintedness ?? 'unset' ) );
-		$this->addTaintError( $taintedness, $variableObj );
+		$this->addTaintError( $errorTaint, $variableObj );
 	}
 
 	/**
