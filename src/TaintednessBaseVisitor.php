@@ -2467,14 +2467,20 @@ trait TaintednessBaseVisitor {
 	 */
 	public function getReturnObjsOfFunc( FunctionInterface $func ) : array {
 		if ( !property_exists( $func, 'retObjs' ) ) {
+			if (
+				$this->context->isInFunctionLikeScope() &&
+				$func->getFQSEN() === $this->context->getFunctionLikeFQSEN()
+			) {
+				// Prevent infinite recursion
+				return [];
+			}
 			// We still have to see the function. Analyze it now.
 			$this->analyzeFunc( $func );
-		}
-
-		if ( !property_exists( $func, 'retObjs' ) ) {
-			// If it still doesn't exist, perhaps we reached the recursion limit, or it might be
-			// a kind of function that we can't handle.
-			return [];
+			if ( !property_exists( $func, 'retObjs' ) ) {
+				// If it still doesn't exist, perhaps we reached the recursion limit, or it might be
+				// a kind of function that we can't handle.
+				return [];
+			}
 		}
 
 		// Note that if a function is recursively calling itself, this list might be incomplete.
