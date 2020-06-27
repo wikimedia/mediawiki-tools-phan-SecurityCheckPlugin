@@ -142,7 +142,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * If you have something like $left = $right, merge any information
 	 * about what tainted $right into $left as $right's taint may now
-	 * have tainted $left (Or may not if the assingment is in a branch
+	 * have tainted $left (Or may not if the assignment is in a branch
 	 * or its not a local variable).
 	 *
 	 * @note It is assumed you already checked that right is tainted in some way.
@@ -925,7 +925,7 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Given a node, return the Phan variable objects that
-	 * corespond to that node. Note, this will ignore
+	 * correspond to that node. Note, this will ignore
 	 * things like method calls (for now at least).
 	 *
 	 * TODO: Maybe this should be a visitor class instead(?)
@@ -1290,7 +1290,7 @@ trait TaintednessBaseVisitor {
 			foreach ( $paramInfo as $i => $_ ) {
 				$paramTaint[$i] = $taint;
 				// $this->debug( __METHOD__, "Setting method $method" .
-					// " arg $i as $taint due to depenency on $var" );
+					// " arg $i as $taint due to dependency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 		}
@@ -1997,7 +1997,7 @@ trait TaintednessBaseVisitor {
 			}
 
 			// We are doing something like someFunc( $evilArg );
-			// Propogate that any vars set by someFunc should now be
+			// Propagate that any vars set by someFunc should now be
 			// marked tainted.
 			// FIXME: We also need to handle the case where
 			// someFunc( $execArg ) for pass by reference where
@@ -2030,7 +2030,7 @@ trait TaintednessBaseVisitor {
 			$taintedArg = is_string( $taintedArg ) ? $taintedArg : '[arg #' . ( $i + 1 ) . ']';
 			// We use curArgTaintedness here, as we aren't checking what taint
 			// gets passed to return value, but which taint is EXECed.
-			// $this->debug( __METHOD__, "Checking safe assing $funcName" .
+			// $this->debug( __METHOD__, "Checking safe assign $funcName" .
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
 			$containingMethod = $this->getCurrentMethod();
@@ -2121,7 +2121,7 @@ trait TaintednessBaseVisitor {
 			// FIXME, could maybe check if type is safe like int.
 			$effectiveArgTaintedness = $curArgTaintedness;
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-			// . " via preserve or unkown $funcName" );
+			// . " via preserve or unknown $funcName" );
 		} else {
 			// This parameter has no taint info.
 			// And overall this function doesn't depend on param
@@ -2304,7 +2304,7 @@ trait TaintednessBaseVisitor {
 	 * This of course will only work in simple cases. It may also potentially
 	 * have false positives if one instance is used solely for escaped stuff
 	 * and a different instance is used for unsafe values that are later
-	 * escaped, as all the different instaces are treated the same.
+	 * escaped, as all the different instances are treated the same.
 	 *
 	 * It needs the return statement to be trivial (e.g. return $this->foo;). It
 	 * will not work even with something as simple as $a = $this->foo; return $a;

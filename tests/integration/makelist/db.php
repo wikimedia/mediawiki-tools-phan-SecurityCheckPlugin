@@ -2,7 +2,7 @@
 namespace Wikimedia\Rdbms;
 
 interface IDatabase {
-	/** @var int Combine list with comma delimeters */
+	/** @var int Combine list with comma delimiters */
 	const LIST_COMMA = 0;
 	/** @var int Combine list with AND clauses */
 	const LIST_AND = 1;

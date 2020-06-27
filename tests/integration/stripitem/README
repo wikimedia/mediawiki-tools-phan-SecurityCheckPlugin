@@ -1,7 +1,7 @@
 This test is kind of non-perfect and a little confusing
 
 * Parser hooks are processed multiple times giving duplicates
-* Because of how backlink propogation for the EXEC taints work,
+* Because of how backlink propagation for the EXEC taints work,
 the second time around, $arg will be marked as YES_EXEC because
 its later executed so we need to make sure anything that assigns
 to that knows that. But because of duplicate processing, that means

@@ -34,7 +34,7 @@ use Phan\PluginV3\PluginAwarePostAnalysisVisitor;
  * This class visits all the nodes in the ast. It has two jobs:
  *
  * 1) Return the taint value of the current node we are visiting.
- * 2) In the event of an assignment (and similar things) propogate
+ * 2) In the event of an assignment (and similar things) propagate
  *  the taint value from the left hand side to the right hand side.
  *
  * For the moment, the taint values are stored in a "taintedness"
@@ -136,7 +136,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * Visit a method decleration
+	 * Visit a method declaration
 	 *
 	 * @param Node $node
 	 */
@@ -263,7 +263,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * Actual property decleration is PropElem
+	 * Actual property declaration is PropElem
 	 * @param Node $node
 	 */
 	public function visitPropDecl( Node $node ) : void {
@@ -478,7 +478,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// If we're assigning to a variable we know will be output later
 		// raise an issue now.
 		// We only want to give a warning if we are adding new taint to the
-		// variable. If the variable is alredy tainted, no need to retaint.
+		// variable. If the variable is already tainted, no need to retaint.
 		// Otherwise, this could result in a variable basically tainting itself.
 		// TODO: Additionally, we maybe consider skipping this when in
 		// branch scope and variable is not pass by reference.
@@ -795,7 +795,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				try {
 					$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
 				} catch ( CodeBaseException $_ ) {
-					// There is no __toString(), then presumably the object can't be outputed, so should be safe.
+					// There is no __toString(), then presumably the object can't be outputted, so should be safe.
 					$this->debug( __METHOD__, "no __toString() in $clazz" );
 					$this->curTaint = SecurityCheckPlugin::NO_TAINT;
 					return;
@@ -1085,7 +1085,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// FIXME this case isn't fully handled.
 				// Stuff from db probably not escaped. Most of the time.
 				// Don't include serialize here due to high false positives
-				// Eventhough unserializing stuff from db can be very
+				// Even though unserializing stuff from db can be very
 				// problematic if user can ever control.
 				// FIXME This is MW specific so should not be
 				// in the generic visitor.

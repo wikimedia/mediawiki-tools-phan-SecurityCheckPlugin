@@ -11,7 +11,7 @@ class Foo {
 		global $globalFoo;
 		$this->bar2 = $_GET['evil'];
 		$globalFoo = $_GET['evil'];
-		// Note: intentional lack of global decleration.
+		// Note: intentional lack of global declaration.
 		$globalBar = $_GET['evil'];
 	}
 

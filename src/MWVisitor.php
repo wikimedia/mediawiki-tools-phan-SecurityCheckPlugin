@@ -580,10 +580,10 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * This only works if its specified as an array literal.
 	 *
-	 * Relavent options:
-	 *  GROUP BY is put directly in the query (array get's imploded)
+	 * Relevant options:
+	 *  GROUP BY is put directly in the query (array gets imploded)
 	 *  HAVING is treated like a WHERE clause
-	 *  ORDER BY is put directly in the query (array get's imploded)
+	 *  ORDER BY is put directly in the query (array gets imploded)
 	 *  USE INDEX is directly put in string (both array and string version)
 	 *  IGNORE INDEX ditto
 	 * @param Node|mixed $node The node from the AST tree

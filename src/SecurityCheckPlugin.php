@@ -300,7 +300,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *  * array_ok - sets self::ARRAY_OK
 	 *  * allow_override - Allow autodetected taints to override annotation
 	 *
-	 * @todo Should UNKOWN_TAINT be in here? What about ~ operator?
+	 * @todo Should UNKNOWN_TAINT be in here? What about ~ operator?
 	 * @note The special casing to have escapes_html always add exec_escaped
 	 *   (and having htmlnoent exist) is "experimental" and may change in
 	 *   future versions (Maybe all types should set exec_escaped. Maybe it
