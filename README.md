@@ -1,4 +1,4 @@
-MediaWiki Security Check Plugin
+Phan Security Check Plugin
 ===============================
 
 This is a plugin to [Phan] to try and detect security issues
@@ -6,35 +6,52 @@ This is a plugin to [Phan] to try and detect security issues
 a variable, and checks to see that such variables are
 escaped before being output as html or used as an sql query, etc.
 
-It is primarily intended for scanning MediaWiki extensions,
-however it supports a generic mode which should work with
-any PHP project.
+It supports generic PHP projects, and it also has a dedicated mode
+for MediaWiki code (analyzes hooks, HTMLForms and Database methods).
 
-This plugin should be considered beta quality. Generic mode isn't
-well tested yet.
+This plugin should be considered beta quality.
 
 Usage
 -----
 
 ### System requirements
 * `php >= 7.2.0`
-* `Phan 2.6.1`
+* `Phan 3.0.3`
 * Strongly suggested: `php-ast >=1.0.1`. While this is not enforced via composer,
 using the fallback parser is way slower and more memory-draining than using php-ast.
 See https://github.com/nikic/php-ast for instructions.
-* Lots of memory. Scanning MediaWiki seems to take about 3 minutes
-and use about 2 GB of memory. Running out of memory may be a real issue
-if you try and scan something from within a VM that has limited
-memory. Small projects do not require so much memory
+* Lots of memory. Scanning MediaWiki takes several GBs of memory. Running out of memory
+may be a real issue if you try and scan something from within a VM that has limited
+memory. Small projects do not require so much memory.
 
 ### Install
 
     $ `composer require --dev mediawiki/phan-taint-check-plugin`
 
 ### Usage
-The plugin can be used in both "standalone" and "manual" mode. The former is the best
-choice if your project isn't already running phan, as it provides its own config file.
-The second will simply use an already existing config file for phan.
+The plugin can be used in both "manual" and "standalone" mode. The former is the best
+choice if your project is already running phan, and almost no configuration is needed.
+The latter should be used if you don't want to add phan to your project.
+
+#### Manual
+You simply have to add taint-check to the `plugins` section of your phan config. Assuming
+that taint-check is in the standard vendor location, e.g.
+` $seccheckPath = 'vendor/mediawiki/phan-taint-check-plugin/';`, the file to include is
+`"$seccheckPath/GenericSecurityCheckPlugin.php"` for a generic project, and
+`"$seccheckPath/MediaWikiSecurityCheckPlugin.php"` for a MediaWiki project.
+
+Also, make sure that you have the following setting, or the plugin won't work:
+```php
+   'quick_mode' => false
+```
+
+You may also want to add `SecurityCheck-LikelyFalsePositive` and
+`SecurityCheck-PHPSerializeInjection` to `suppress_issue_types` (the latter
+has a high rate of false positives).
+
+Then run phan as you normally would:
+
+    $ vendor/bin/phan -d . --long-progress-bar
 
 #### Standalone
 * For MediaWiki core, add the following to composer.json:
@@ -74,44 +91,14 @@ For MediaWiki extensions/skins, this assumes the extension/skin is installed in 
 normal `extensions` or `skins` directory, and thus MediaWiki is in `../../`. If this is not
 the case, then you need to specify the `MW_INSTALL_PATH` environment variable.
 
-This plugin also provides variants `seccheck-fast-mwext` (Doesn't analyze
+This plugin also provides variants `seccheck-fast-mwext` (doesn't analyze
 MediaWiki core. May miss some stuff related to hooks) and `seccheck-slow-mwext`
-(Also analyzes vendor). `seccheck-mwext` will generally take about 3 minutes,
-where `seccheck-fast-mwext` takes only about half a minute.
+(also analyzes vendor). `seccheck-mwext` is several times slower than `seccheck-fast-mwext`.
 
-Additionally, if you want to do a really quick check, you can run the
-`seccheck-generic` script from a mediawiki extension/skin which will ignore all
-MediaWiki stuff, making the check much faster (but misses many issues).
-
-#### Manual
-You simply have to add taint-check to the `plugins` section of your phan config. Assuming
-that taint-check is in the standard vendor location, e.g.
-` $seccheckPath = 'vendor/mediawiki/phan-taint-check-plugin/';`, the file to include is
-`"$seccheckPath/MediaWikiSecurityCheckPlugin.php"` for a MediaWiki-related project, and
-`"$seccheckPath/GenericSecurityCheckPlugin.php"` for a generic project.
-
-Also, make sure that you have the following setting, or the plugin won't work:
-```php
-   'quick_mode' => false
-```
-
-You may also want to add `SecurityCheck-LikelyFalsePositive` and
-`SecurityCheck-PHPSerializeInjection` to the list of suppressed issues (the latter
-has a high rate of false positives).
-
-Then run phan as you normally would:
-
-    $ vendor/bin/phan -d . --long-progress-bar
 
 **Note**: Taint-check is bundled in https://github.com/wikimedia/mediawiki-tools-phan
 version 0.10.2 and above, so you don't have to add it manually if you're already using
-`mediawiki-tools-phan`.
-
-### Docker
-The docker image used by Wikimedia's continuous integration for scanning extensions and skins
-is available at https://gerrit.wikimedia.org/r/plugins/gitiles/integration/config/+/master/dockerfiles/mediawiki-phan-seccheck .
-
-For more information about Wikimedia's use of this plugin see
+`mediawiki-tools-phan`. For more information about Wikimedia's use of this plugin see
 https://www.mediawiki.org/wiki/Phan-taint-check-plugin
 
 Plugin output
@@ -145,8 +132,8 @@ rate at the moment.
 
 You can use the `-y` command line option of Phan to filter by severity.
 
-Limitations
------------
+How to avoid false positives
+----------------------------
 If you need to suppress a false positive, you can put `@suppress NAME-OF-WARNING`
 in the docblock for a function/method. Alternatively, you can use other types of
 suppression, like `@phan-suppress-next-line`. See phan's readme for a complete
@@ -154,10 +141,9 @@ list.
 The `@param-taint` and `@return-taint` (see "Customizing" section) are also very useful
 with dealing with false positives.
 
-There's much more than listed here, but some notable limitations/bugs:
-
-
-## General limitations
+Notable limitations
+-------------------
+### General limitations
 
 * When an issue is output, the plugin tries to include details about what line
   originally caused the issue. Usually it works, but sometimes it gives
@@ -179,7 +165,7 @@ There's much more than listed here, but some notable limitations/bugs:
   This will give both a double escaped warning and an XSS warning, as the
   plugin only tracks $stuff, not $stuff[0] vs $stuff[1].
 
-## MediaWiki specific limitations
+### MediaWiki specific limitations
 * With pass by reference parameters to MediaWiki hooks,
   sometimes the line number is the hook call in MediaWiki core, instead of
   the hook subscriber in the extension that caused the issue.
@@ -248,13 +234,13 @@ key. If any of the keys in the array have an EXEC flags, then an issue is
 immediately raised if the corresponding taint is fed the function (For
 example, an output function).
 
-For example, [htmlspecialchars] which removes html taint but leaves other taint
-would look like
+For example, [htmlspecialchars] which removes html taint, escapes its argument and returns the
+escaped value would look like:
 
 ```php
 'htmlspecialchars' => [
-	self::YES_TAINT & ~self::HTML_TAINT,
-	'overall' => self::NO_TAINT,
+	( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT,
+	'overall' => self::ESCAPED,
 ];
 ```
 
