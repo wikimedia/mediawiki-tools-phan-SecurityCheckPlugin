@@ -189,7 +189,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 			$methodLinks = new Set();
 			$error = [];
-			$taintedness = 0;
+			$taintedness = Taintedness::newSafe();
 
 			foreach ( $scopeList as $scope ) {
 				$localVar = $scope->getVariableByNameOrNull( $varName );
@@ -197,7 +197,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					continue;
 				}
 
-				$taintedness |= ( $localVar->taintedness ?? 0 );
+				if ( property_exists( $localVar, 'taintedness' ) ) {
+					$taintedness->add( $localVar->taintedness );
+				}
 
 				$variableObjLinks = $localVar->taintedMethodLinks ?? new Set;
 				$methodLinks->addAll( $variableObjLinks );
@@ -270,8 +272,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *
 	 * @note The $lhsTaint parameter uses the self::*_TAINT constants,
 	 *   NOT the *_EXEC_TAINT constants.
-	 * @param int $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
-	 * @param int $rhsTaint The taint of the expression
+	 * @param Taintedness $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
+	 * @param Taintedness $rhsTaint The taint of the expression
 	 * @param string &$msg Issue description (so plugin can modify to state why false)
 	 * @param Context $context
 	 * @param CodeBase $code_base
@@ -279,8 +281,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @suppress PhanUnusedPublicMethodParameter No param is used
 	 */
 	public function isFalsePositive(
-		int $lhsTaint,
-		int $rhsTaint,
+		Taintedness $lhsTaint,
+		Taintedness $rhsTaint,
 		string &$msg,
 		Context $context,
 		CodeBase $code_base

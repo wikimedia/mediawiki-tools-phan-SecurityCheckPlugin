@@ -99,7 +99,7 @@ class MWVisitor extends TaintednessVisitor {
 		$text = $node->children['args']->children[1] ?? null;
 		if ( !$escapeArg && $text instanceof Node ) {
 			$this->maybeEmitIssueSimplified(
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$text,
 				"Calling Linker::makeExternalLink with user controlled text " .
 				"and third argument set to false"
@@ -411,7 +411,7 @@ class MWVisitor extends TaintednessVisitor {
 		case '!ParserHook':
 			$ret = $node->children['expr'];
 			$this->maybeEmitIssueSimplified(
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$ret,
 				"Outputting user controlled HTML from Parser tag hook $funcFQSEN"
 			);
@@ -531,7 +531,7 @@ class MWVisitor extends TaintednessVisitor {
 				// Since LIST_NAMES is very rare, and LIST_COMMA is default,
 				// assume its LIST_AND or LIST_OR
 				$this->maybeEmitIssueSimplified(
-					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
+					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$args->children[0],
 					"IDatabase::makeList with unknown type arg is " .
 					"given an array with unescaped keynames or " .
@@ -567,7 +567,7 @@ class MWVisitor extends TaintednessVisitor {
 			case 'cond':
 				// exec_sql_numkey
 				$this->maybeEmitIssueSimplified(
-					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
+					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$args->children[0],
 					"IDatabase::makeList with LIST_AND, LIST_OR or "
 						. "LIST_SET must sql escape string "
@@ -577,7 +577,7 @@ class MWVisitor extends TaintednessVisitor {
 			case 'name':
 				// Like comma but with no escaping.
 				$this->maybeEmitIssueSimplified(
-					SecurityCheckPlugin::SQL_EXEC_TAINT,
+					new Taintedness( SecurityCheckPlugin::SQL_EXEC_TAINT ),
 					$args->children[0],
 					"IDatabase::makeList with LIST_NAMES needs "
 						. "to escape for SQL"
@@ -617,6 +617,7 @@ class MWVisitor extends TaintednessVisitor {
 			$taintType = ( $key === 'HAVING' && $this->nodeIsArray( $val ) ) ?
 				SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
 				SecurityCheckPlugin::SQL_EXEC_TAINT;
+			$taintType = new Taintedness( $taintType );
 
 			if ( in_array( $key, $relevant ) ) {
 				$ctx = clone $this->context;
@@ -669,7 +670,7 @@ class MWVisitor extends TaintednessVisitor {
 				$joinType = $joinInfo->children[0]->children['value'];
 				// join type does not get escaped.
 				$this->maybeEmitIssueSimplified(
-					SecurityCheckPlugin::SQL_EXEC_TAINT,
+					new Taintedness( SecurityCheckPlugin::SQL_EXEC_TAINT ),
 					$joinType,
 					"join type for $tableName is user controlled"
 				);
@@ -687,7 +688,7 @@ class MWVisitor extends TaintednessVisitor {
 					$onCond->lineno ?? $ctx->getLineNumberStart()
 				);
 				$this->maybeEmitIssueSimplified(
-					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT,
+					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$onCond,
 					"The ON conditions are not properly escaped for the join to `$tableName`"
 				);
@@ -729,7 +730,7 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		$this->maybeEmitIssueSimplified(
-			SecurityCheckPlugin::HTML_EXEC_TAINT,
+			new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 			$node->children[0],
 			"Outputting user controlled HTML from Parser function hook $funcName"
 		);
@@ -1126,7 +1127,7 @@ class MWVisitor extends TaintednessVisitor {
 		if ( $label !== null ) {
 			// double escape check for label.
 			$this->maybeEmitIssueSimplified(
-				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
+				new Taintedness( SecurityCheckPlugin::ESCAPED_EXEC_TAINT ),
 				$label,
 				'HTMLForm label key escapes its input'
 			);
@@ -1134,21 +1135,21 @@ class MWVisitor extends TaintednessVisitor {
 		if ( $rawLabel !== null ) {
 			// double escape check for label.
 			$this->maybeEmitIssueSimplified(
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$rawLabel,
 				'HTMLForm label-raw needs to escape input'
 			);
 		}
 		if ( $isInfo === true && $raw === true ) {
 			$this->maybeEmitIssueSimplified(
-				SecurityCheckPlugin::HTML_EXEC_TAINT,
+				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$default,
 				'HTMLForm info field in raw mode needs to escape default key'
 			);
 		}
 		if ( $isInfo === true && ( $raw === false || $raw === null ) ) {
 			$this->maybeEmitIssueSimplified(
-				SecurityCheckPlugin::ESCAPED_EXEC_TAINT,
+				new Taintedness( SecurityCheckPlugin::ESCAPED_EXEC_TAINT ),
 				$default,
 				'HTMLForm info field (non-raw) escapes default key already'
 			);
@@ -1167,7 +1168,7 @@ class MWVisitor extends TaintednessVisitor {
 						continue;
 					}
 					$this->maybeEmitIssueSimplified(
-						SecurityCheckPlugin::HTML_EXEC_TAINT,
+						new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 						$key,
 						'HTMLForm option label needs escaping' .
 						$value
@@ -1180,7 +1181,7 @@ class MWVisitor extends TaintednessVisitor {
 				// to specify options in a separate variable, warn
 				// if it contains any html.
 				$this->maybeEmitIssueSimplified(
-					SecurityCheckPlugin::HTML_EXEC_TAINT,
+					new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 					$options,
 					'HTMLForm option label needs escaping ' .
 					'(Maybe false positive as could not determine ' .

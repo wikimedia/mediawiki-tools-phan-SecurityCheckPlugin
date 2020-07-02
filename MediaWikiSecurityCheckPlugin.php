@@ -29,6 +29,7 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use SecurityCheckPlugin\MWPreVisitor;
 use SecurityCheckPlugin\MWVisitor;
 use SecurityCheckPlugin\SecurityCheckPlugin;
+use SecurityCheckPlugin\Taintedness;
 use SecurityCheckPlugin\TaintednessBaseVisitor;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
@@ -519,23 +520,16 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
 	 * Mark XSS's that happen in a Maintenance subclass as false a positive
 	 *
-	 * @param int $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
-	 * @param int $rhsTaint The taint of the expression
-	 * @param string &$msg The issue description
-	 * @param Context $context
-	 * @param CodeBase $code_base
-	 * @return bool Is this a false positive?
+	 * @inheritDoc
 	 */
 	public function isFalsePositive(
-		int $lhsTaint,
-		int $rhsTaint,
+		Taintedness $lhsTaint,
+		Taintedness $rhsTaint,
 		string &$msg,
 		Context $context,
 		CodeBase $code_base
 	) : bool {
-		if (
-			( $lhsTaint & $rhsTaint ) === self::HTML_TAINT
-		) {
+		if ( $lhsTaint->withOnly( $rhsTaint )->get() === self::HTML_TAINT ) {
 			if (
 				strpos( $context->getFile(), "maintenance/" ) === 0 ||
 				strpos( $context->getFile(), "./maintenance/" ) === 0

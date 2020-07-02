@@ -77,7 +77,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 
 			if ( $varObj instanceof PassByReferenceVariable ) {
 				$this->addTaintError(
-					SecurityCheckPlugin::NO_TAINT,
+					Taintedness::newSafe(),
 					$this->extractReferenceArgument( $varObj )
 				);
 				continue;
@@ -85,9 +85,9 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 
 			$paramTypeTaint = $this->getTaintByReturnType( $varObj->getUnionType() );
 			// Initially, the variable starts off with no taint.
-			$this->setTaintedness( $varObj, SecurityCheckPlugin::NO_TAINT );
+			$this->setTaintedness( $varObj, Taintedness::newSafe() );
 
-			if ( $paramTypeTaint !== SecurityCheckPlugin::NO_TAINT ) {
+			if ( !$paramTypeTaint->isSafe() ) {
 				// If the param is not an integer or something, link it to the func
 				$this->linkParamAndFunc( $varObj, $method, $i );
 			}
