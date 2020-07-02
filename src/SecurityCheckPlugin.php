@@ -149,11 +149,13 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public static $pluginInstance;
 
 	/**
-	 * @var int[][] Cache of parsed docblocks. This is declared here (as opposed to the BaseVisitor)
-	 *  so that PHPUnit can snapshot and restore it.
-	 * @phan-var array<string,int[]>
+	 * @var FunctionTaintedness[] Cache of parsed docblocks. This is declared here (as opposed to
+	 *  the BaseVisitor) so that PHPUnit can snapshot and restore it.
 	 */
 	public static $docblockCache = [];
+
+	/** @var FunctionTaintedness[] Cache of taintedness of builtin functions */
+	private static $builtinFuncTaintCache = [];
 
 	/**
 	 * Save the subclass instance to make it accessible from the visitor
@@ -220,16 +222,44 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * This allows overriding the default taint of a function
 	 *
 	 * If you want to provide custom taint hints for your application,
-	 * normally you would override the getCustomFuncTaints() method, not this one.
+	 * override the getCustomFuncTaints()
 	 *
 	 * @param FullyQualifiedFunctionLikeName $fqsen The function/method in question
-	 * @return int[]|null Null to autodetect taintedness. Otherwise an array
-	 *   Numeric keys reflect how the taintedness the parameter reflect the
-	 *   return value, or whether the parameter is directly executed.
-	 *   The special key overall controls the taint of the function
-	 *   irrespective of its parameters. The overall keys must always be specified.
-	 *   As a special case, if the overall key has self::PRESERVE_TAINT
-	 *   then any unspecified keys behave like they are self::YES_TAINT.
+	 * @return FunctionTaintedness|null Null to autodetect taintedness
+	 */
+	public function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?FunctionTaintedness {
+		$name = (string)$fqsen;
+
+		if ( isset( self::$builtinFuncTaintCache[$name] ) ) {
+			return clone self::$builtinFuncTaintCache[$name];
+		}
+
+		static $funcTaints = null;
+		if ( $funcTaints === null ) {
+			$funcTaints = $this->getCustomFuncTaints() + $this->getPHPFuncTaints();
+		}
+
+		if ( isset( $funcTaints[$name] ) ) {
+			$intTaint = $funcTaints[$name];
+			$taint = [];
+			foreach ( $intTaint as $i => $val ) {
+				$objVal = new Taintedness( $val );
+				// For backcompat, make self::NO_OVERRIDE always be set.
+				$objVal->add( self::NO_OVERRIDE );
+				$taint[$i] = $objVal;
+			}
+			self::$builtinFuncTaintCache[$name] = FunctionTaintedness::newFromArray( $taint );
+			return clone self::$builtinFuncTaintCache[$name];
+		}
+		return null;
+	}
+
+	/**
+	 * Get an array of function taints custom for the application
+	 *
+	 * @return int[][] Array of function taints with 'overall' string key and numeric
+	 *   keys for parameters. This is the same format
+	 *   as FunctionTaintedness objects, except in array form.
 	 *
 	 *   For example: [ self::YES_TAINT, 'overall' => self::NO_TAINT ]
 	 *   means that the taint of the return value is the same as the taint
@@ -240,26 +270,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *   Means that the function removes html taint (escapes) e.g. htmlspecialchars
 	 *   [ 'overall' => self::YES_TAINT ]
 	 *   Means that it returns a tainted value (e.g. return $_POST['foo']; )
-	 */
-	public function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?array {
-		$funcTaints = $this->getCustomFuncTaints() + $this->getPHPFuncTaints();
-		$name = (string)$fqsen;
-
-		if ( isset( $funcTaints[$name] ) ) {
-			$taint = $funcTaints[$name];
-			// For backcompat, make self::NO_OVERRIDE always be set.
-			foreach ( $taint as $_ => &$val ) {
-				$val |= self::NO_OVERRIDE;
-			}
-			return $taint;
-		}
-		return null;
-	}
-
-	/**
-	 * Get an array of function taints custom for the application
-	 *
-	 * @return int[][] Array of function taints (See getBuiltinFuncTaint())
+	 * @see FunctionTaintedness for more details
 	 * @phan-return array<string,int[]>
 	 */
 	abstract protected function getCustomFuncTaints() : array;
@@ -326,9 +337,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *   future versions (Maybe all types should set exec_escaped. Maybe it
 	 *   should be explicit)
 	 * @param string $line A line from the docblock
-	 * @return null|int null on no info, or taint info integer.
+	 * @return Taintedness|null null on no info
 	 */
-	public static function parseTaintLine( string $line ) : ?int {
+	public static function parseTaintLine( string $line ) : ?Taintedness {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
@@ -337,7 +348,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$taints = explode( ',', strtolower( $line ) );
 		$taints = array_map( 'trim', $taints );
 
-		$overallTaint = self::NO_OVERRIDE;
+		$overallTaint = new Taintedness( self::NO_OVERRIDE );
 		$numberOfTaintsProcessed = 0;
 		foreach ( $taints as $taint ) {
 			$taintParts = [];
@@ -346,33 +357,33 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			}
 			$numberOfTaintsProcessed++;
 			if ( $taintParts['taint'] === 'array_ok' ) {
-				$overallTaint |= self::ARRAY_OK;
+				$overallTaint->add( self::ARRAY_OK );
 				continue;
 			}
 			if ( $taintParts['taint'] === 'allow_override' ) {
-				$overallTaint &= ~self::NO_OVERRIDE;
+				$overallTaint->remove( self::NO_OVERRIDE );
 				continue;
 			}
 			if ( $taintParts['taint'] === 'raw_param' ) {
-				$overallTaint |= self::RAW_PARAM;
+				$overallTaint->add( self::RAW_PARAM );
 				continue;
 			}
-			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );
+			$taintAsInt = new Taintedness( self::convertTaintNameToConstant( $taintParts['type'] ) );
 			switch ( $taintParts['prefix'] ) {
 				case '':
-					$overallTaint |= $taintAsInt;
+					$overallTaint->add( $taintAsInt );
 					break;
 				case 'exec':
-					$overallTaint |= ( $taintAsInt << 1 );
+					$overallTaint->add( $taintAsInt->asYesToExecTaint() );
 					break;
 				case 'escapes':
 				case 'onlysafefor':
-					$overallTaint |= ( self::YES_TAINT & ~$taintAsInt );
+					$overallTaint->add( Taintedness::newTainted()->without( $taintAsInt ) );
 					if ( $taintParts['type'] === 'html' ) {
 						if ( $taintParts['prefix'] === 'escapes' ) {
-							$overallTaint |= self::ESCAPED_EXEC_TAINT;
+							$overallTaint->add( self::ESCAPED_EXEC_TAINT );
 						} else {
-							$overallTaint |= self::ESCAPED_TAINT;
+							$overallTaint->add( self::ESCAPED_TAINT );
 						}
 					}
 					break;

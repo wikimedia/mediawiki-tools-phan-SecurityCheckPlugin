@@ -478,7 +478,7 @@ class MWVisitor extends TaintednessVisitor {
 		$func = $this->context->getFunctionLikeInScope( $this->code_base );
 		$taint = $this->getTaintOfFunction( $func );
 		$mask = ~( SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-		$taint['overall'] = ( $taint['overall'] & $mask ) | SecurityCheckPlugin::NO_OVERRIDE;
+		$taint->setOverall( $taint->getOverall()->withOnly( $mask )->with( SecurityCheckPlugin::NO_OVERRIDE ) );
 		$this->setFuncTaint( $func, $taint, true );
 	}
 

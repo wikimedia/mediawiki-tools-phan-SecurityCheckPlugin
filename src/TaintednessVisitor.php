@@ -150,7 +150,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function analyzeFunctionLike( FunctionInterface $func ) : Taintedness {
 		if (
-			!property_exists( $func, 'funcTaint' ) &&
+			$this->getFuncTaint( $func ) === null &&
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
 			!$func->hasYield() &&
@@ -168,7 +168,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// somewhere else - the exec status of this won't be detected
 			// until later, so setting this to NO_TAINT here might miss
 			// some issues in the inbetween period.
-			$this->setFuncTaint( $func, [ 'overall' => SecurityCheckPlugin::NO_TAINT ] );
+			$this->setFuncTaint( $func, new FunctionTaintedness( Taintedness::newSafe() ) );
 		}
 		return Taintedness::newInapplicable();
 	}
@@ -936,7 +936,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$curFunc
 		);
 
-		$this->checkFuncTaint( $funcTaint );
 		$this->setFuncTaint( $curFunc, $funcTaint );
 
 		if ( $node->children['expr'] instanceof Node ) {
@@ -947,7 +946,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$retObjs
 			);
 
-			if ( $funcTaint['overall'] & SecurityCheckPlugin::YES_EXEC_TAINT ) {
+			if ( $funcTaint->getOverall()->has( SecurityCheckPlugin::YES_EXEC_TAINT ) ) {
 				foreach ( $retObjs as $pobj ) {
 					$this->mergeTaintError( $curFunc, $pobj );
 				}
