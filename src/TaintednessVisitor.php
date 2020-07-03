@@ -28,6 +28,7 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
+use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\ClosureType;
@@ -513,10 +514,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( $reference ) {
 				$this->setRefTaintedness( $variableObj, $rhsTaintedness, $override );
 			} else {
-				// Don't clear data if one of the objects in the RHS is the same as this object
-				// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
-				$allowClearLHSData = !in_array( $variableObj, $rhsObjs, true );
-				$this->setTaintedness( $variableObj, $rhsTaintedness, $override, $allowClearLHSData );
+				// First try updating specific offset taint
+				$dimUpdated = $this->setOffsetTaintInAssignment( $variableObj, $node, $rhsTaintedness );
+				if ( !$dimUpdated ) {
+					// Don't clear data if one of the objects in the RHS is the same as this object
+					// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
+					$allowClearLHSData = !in_array( $variableObj, $rhsObjs, true );
+					$this->setTaintedness( $variableObj, $rhsTaintedness, $override, $allowClearLHSData );
+				}
 			}
 
 			foreach ( $rhsObjs as $rhsObj ) {
@@ -540,9 +545,85 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * For an assignment, try to update the lhs precisely using dim information for both LHS and RHS.
+	 * @todo Perhaps this should be decoupled from assignments and be moved into setTaintedness
+	 *
+	 * @param TypedElementInterface $variableObj The object at the LHS
+	 * @param Node $node The assignment node. Must be AST_ASSIGN or AST_ASSINGN_OP
+	 * @param Taintedness $rhsTaint Taintedness of the RHS, adjusted with numkey etc. if necessary
+	 * @return bool Whether we managed to update the dim taintedness
+	 */
+	private function setOffsetTaintInAssignment(
+		TypedElementInterface $variableObj,
+		Node $node,
+		Taintedness $rhsTaint
+	) : bool {
+		assert( $node->kind === \ast\AST_ASSIGN || $node->kind === \ast\AST_ASSIGN_OP );
+		$lhs = $node->children['var'];
+		if ( $lhs->kind === \ast\AST_ARRAY ) {
+			// TODO Handle arrays at the LHS
+			return false;
+		}
+		if (
+			$lhs->kind !== \ast\AST_DIM &&
+			( $node->kind !== \ast\AST_ASSIGN_OP || $node->flags !== \ast\flags\BINARY_ADD )
+		) {
+			// If we're not assigning to a dim and we don't have an array addition,
+			// setTaintedness will handle the node.
+			return false;
+		}
+
+		$resolvedOffsetsLhs = [];
+		$resolvedAll = true;
+		$lhsDimNode = $lhs;
+		while ( $lhsDimNode instanceof Node && $lhsDimNode->kind === \ast\AST_DIM ) {
+			$offsetNode = $lhsDimNode->children['dim'];
+			if ( $offsetNode === null ) {
+				// $arr[] = 'foo'
+				// Phan doesn't infer real types here, nor will we.
+				$resolvedAll = false;
+				$curOff = null;
+			} else {
+				$curOff = $this->resolveOffset( $offsetNode );
+				if ( $curOff instanceof Node ) {
+					$resolvedAll = false;
+				}
+			}
+			$resolvedOffsetsLhs[] = $curOff;
+			$lhsDimNode = $lhsDimNode->children['expr'];
+		}
+		$resolvedOffsetsLhs = array_reverse( $resolvedOffsetsLhs );
+
+		// TODO Direct access here not ideal
+		$varTaint = property_exists( $variableObj, 'taintedness' )
+			? clone $variableObj->taintedness
+			: Taintedness::newSafe();
+
+		if ( $node->kind !== \ast\AST_ASSIGN_OP || $node->flags !== \ast\flags\BINARY_ADD ) {
+			assert( $lhs->kind === \ast\AST_DIM );
+			assert( count( $resolvedOffsetsLhs ) >= 1 );
+			$offsetOverride = $node->kind !== \ast\AST_ASSIGN_OP && $resolvedAll;
+			$varTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $rhsTaint, $offsetOverride );
+		} else {
+			// Special handling for A += B, where A and B can be DIM nodes
+			$varTaint->applyArrayPlusAtOffsetList( $resolvedOffsetsLhs, $rhsTaint );
+		}
+
+		// We avoid overriding just for properties here (globals etc. are handled in setTaintedness).
+		// Note 1: override for ASSIGN_OP is already handled above when setting the updating the taint
+		// Note 2: both checks are necessary, because we may have e.g. a DIM node for $this->prop['foo']
+		$dimOverride = $lhs->kind !== \ast\AST_PROP && !( $variableObj instanceof Property );
+		$this->setTaintedness( $variableObj, $varTaint, $dimOverride, false, $rhsTaint );
+		return true;
+	}
+
+	/**
 	 * @param Node $node
 	 */
 	public function visitBinaryOp( Node $node ) : void {
+		$lhs = $node->children['left'];
+		$rhs = $node->children['right'];
+
 		$safeBinOps = [
 			// Unsure about BITWISE ops, since
 			// "A" | "B" still is a string
@@ -571,8 +652,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		} elseif (
 			$node->flags === \ast\flags\BINARY_ADD && (
-				$this->nodeIsInt( $node->children['left'] ) ||
-				$this->nodeIsInt( $node->children['right'] )
+				$this->nodeIsInt( $lhs ) ||
+				$this->nodeIsInt( $rhs )
 			)
 		) {
 			// This is used to avoid removing taintedness from array addition, and addition
@@ -583,23 +664,35 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		// Otherwise combine the ophand taint.
-		$leftTaint = $this->getTaintedness( $node->children['left'] );
-		$rightTaint = $this->getTaintedness( $node->children['right'] );
-		$this->curTaint = $leftTaint->with( $rightTaint );
+		$leftTaint = $this->getTaintedness( $lhs );
+		$rightTaint = $this->getTaintedness( $rhs );
+		if ( $node->flags === \ast\flags\BINARY_ADD ) {
+			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
+		} else {
+			$combinedTaint = $leftTaint->with( $rightTaint );
+		}
+		$this->curTaint = $combinedTaint;
 	}
 
 	/**
-	 * @todo We need more fine grained handling of arrays.
-	 *
 	 * @param Node $node
 	 */
 	public function visitDim( Node $node ) : void {
-		if ( !$node->children['expr'] instanceof Node ) {
+		$varNode = $node->children['expr'];
+		if ( !$varNode instanceof Node ) {
 			// Accessing offset of a string literal
 			$this->curTaint = Taintedness::newSafe();
-		} else {
-			$this->curTaint = $this->getTaintednessNode( $node->children['expr'] );
+			return;
 		}
+		$nodeTaint = $this->getTaintednessNode( $varNode );
+		if ( $node->children['dim'] === null ) {
+			// This should only happen in assignments: $x[] = 'foo'. Just return
+			// the taint of the whole object.
+			$this->curTaint = $nodeTaint;
+			return;
+		}
+		$offset = $this->resolveOffset( $node->children['dim'] );
+		$this->curTaint = $nodeTaint->getTaintednessForOffsetOrWhole( $offset );
 	}
 
 	/**
@@ -956,10 +1049,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * @todo Handle array shape mutations (e.g. unset, array_shift, array_pop, etc.)
 	 * @param Node $node
 	 */
 	public function visitArray( Node $node ) : void {
 		$curTaint = Taintedness::newSafe();
+		// Current numeric key in the array
+		$curNumKey = 0;
 		foreach ( $node->children as $child ) {
 			if ( $child === null ) {
 				// Happens for list( , $x ) = foo()
@@ -973,20 +1069,30 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$childTaint = $this->getTaintedness( $child );
 			$key = $child->children['key'];
+			$keyTaint = $this->getTaintedness( $key );
 			$value = $child->children['value'];
+			$valTaint = $this->getTaintedness( $value );
 			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
-			if ( $this->getTaintedness( $value )->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
-				$childTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+
+			if ( $valTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+				$curTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 			if (
-				( $this->getTaintedness( $key )->has( $sqlTaint ) ) ||
+				( $keyTaint->has( $sqlTaint ) ) ||
 				( ( $key === null || $this->nodeIsInt( $key ) )
-					&& ( $this->getTaintedness( $value )->has( $sqlTaint ) )
+					&& ( $valTaint->has( $sqlTaint ) )
 					&& $this->nodeIsString( $value ) )
 			) {
-				$childTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$curTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
-			$curTaint->add( $childTaint );
+			// FIXME This will fail with in-place spread and when some numeric keys are specified
+			//  explicitly (at least).
+			$offset = $key ?? $curNumKey++;
+			$offset = $this->resolveOffset( $offset );
+			// TODO $childTaint includes the taintedness of the key. In the future,
+			// we might want to distinguish.
+			// Note that we remove numkey taint because that's only for the outer array
+			$curTaint->setOffsetTaintedness( $offset, $childTaint->without( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) );
 		}
 		$this->curTaint = $curTaint;
 	}
@@ -1095,7 +1201,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
 			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
 			// If the LHS is a variable and it can potentially be a stdClass, share its taintedness
-			// with the property, like we do for arrays.
+			// with the property. TODO Can we improve this?
 			$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
 			if ( $variable->getUnionType()->hasType( $stdClassType ) ) {
 				$this->doSetTaintedness(

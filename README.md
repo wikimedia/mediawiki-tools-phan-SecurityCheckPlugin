@@ -165,18 +165,6 @@ Notable limitations
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you must add annotations to its docblock so
   that the plugin can recognize it. See the Customizing section.
-* Arrays are considered as a single unit. The taint of any member of an array is
-  the union of the taint that all the members should have. For example:
-  ```php
-  $stuff = [
-  	$_GET['evil'],
-  	htmlspecialchars( $_GET['foo'] ),
-  ];
-  echo $stuff[1];
-  echo htmlspecialchars( $stuff[0] );
-  ```
-  This will give both a double escaped warning and an XSS warning, as the
-  plugin only tracks $stuff, not $stuff[0] vs $stuff[1].
 
 ### MediaWiki specific limitations
 * With pass by reference parameters to MediaWiki hooks,

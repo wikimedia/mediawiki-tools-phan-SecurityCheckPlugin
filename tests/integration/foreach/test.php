@@ -77,4 +77,3 @@ function refForeach( &$info ) {
 	foreach ( $info as &$child ) {// This would throw an exception due to PassByRef usage
 	}
 }
-

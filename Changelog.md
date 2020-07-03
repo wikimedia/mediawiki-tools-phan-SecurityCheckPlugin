@@ -24,6 +24,7 @@
 * Added explicit taint info for `shell_exec` and friends
 * The plugin is now able to properly analyze conditionals, and merge the possible taints of each branch
 * The plugin can now analyze pass by reference variables better
+* Added support for analyzing each array element on its own
 
 ### Bug fixes
 * Fixed several plugin crashes observed when analyzing weird syntax

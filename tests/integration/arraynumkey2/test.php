@@ -34,3 +34,8 @@ $inList['Foo'][] = $_GET['evil2'];
 $inList['bar'] = [ $_GET['evil4'] ];
 // safe
 $db->select( 'table', '*', $inList, __METHOD__ );
+
+$inner = [];
+$inner[] =  $_GET['a'] ;
+$key = mysqli_real_escape_string( new mysqli, $GLOBALS['a'] );
+$db->select( 'table', '*', [ $key => $inner ], __METHOD__ ); // Safe, NUMKEY is only for the outer array

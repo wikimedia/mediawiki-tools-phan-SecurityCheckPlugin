@@ -166,9 +166,9 @@ class FunctionTaintedness {
 	 * @return string
 	 */
 	public function __toString() : string {
-		$str = "[\n\toverall: $this->overall,\n";
+		$str = "[\n\toverall: " . $this->overall->toString( '    ' ) . ",\n";
 		foreach ( $this->paramTaints as $par => $taint ) {
-			$str .= "\t$par: $taint,\n";
+			$str .= "\t$par: " . $taint->toString() . ",\n";
 		}
 		return "$str]";
 	}

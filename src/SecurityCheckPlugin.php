@@ -200,7 +200,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				}
 
 				if ( property_exists( $localVar, 'taintedness' ) ) {
-					$taintedness->add( $localVar->taintedness );
+					$taintedness->mergeWith( $localVar->taintedness );
 				}
 
 				$variableObjLinks = $localVar->taintedMethodLinks ?? new Set;

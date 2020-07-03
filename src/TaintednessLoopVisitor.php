@@ -43,7 +43,14 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$this->debug( __METHOD__, "Cannot get foreach value " . $this->getDebugInfo( $e ) );
 			}
 			if ( $valueObj !== null ) {
-				$this->setTaintedness( $valueObj, $lhsTaintedness, $value->kind === \ast\AST_VAR );
+				// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
+				// the right taint to the value if we discover what the key is for the current iteration
+				$this->setTaintedness(
+					$valueObj,
+					$lhsTaintedness->asValueForForeach(),
+					$value->kind === \ast\AST_VAR,
+					true
+				);
 				$this->mergeTaintDependencies( $valueObj, $expr );
 				$this->mergeTaintError( $valueObj, $expr );
 			}
@@ -66,7 +73,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				if ( $keyObj !== null ) {
 					// TODO This will probably have a lot of false positives with
 					// arrays containing only numeric keys.
-					$this->setTaintedness( $keyObj, $lhsTaintedness, $key->kind === \ast\AST_VAR );
+					$this->setTaintedness( $keyObj, $lhsTaintedness->asKeyForForeach(), $key->kind === \ast\AST_VAR );
 					$this->mergeTaintDependencies( $keyObj, $expr );
 					$this->mergeTaintError( $keyObj, $expr );
 				}

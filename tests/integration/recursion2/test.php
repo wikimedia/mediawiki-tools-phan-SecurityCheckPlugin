@@ -19,7 +19,7 @@ function safeTainted() {
 
 function taintedSafe() {
 	if ( rand() ) {
-		echo taintedSafe(); // LikelyFalsePositive, because it's still unknown
+		echo taintedSafe(); // XSS
 	}
 	if ( rand() ) {
 		return $_GET['baz'];

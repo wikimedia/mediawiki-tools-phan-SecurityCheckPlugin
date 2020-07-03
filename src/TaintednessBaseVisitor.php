@@ -132,7 +132,7 @@ trait TaintednessBaseVisitor {
 				// if we are explicitly setting it, it is no
 				// longer unknown.
 				$curTNoUnk = $curT->without( SecurityCheckPlugin::UNKNOWN_TAINT );
-				return $curTNoUnk->with( $baseT );
+				return $curTNoUnk->asMergedWith( $baseT );
 			}
 		};
 
@@ -493,11 +493,14 @@ trait TaintednessBaseVisitor {
 		Taintedness $errorTaint
 	) : void {
 		if ( !property_exists( $variableObj, 'taintedness' ) || $override ) {
-			$variableObj->taintedness = $taintedness;
+			$variableObj->taintedness = clone $taintedness;
 		} else {
 			// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 			// objects of which $variableObj is a clone!
-			$variableObj->taintedness = $variableObj->taintedness->with( $taintedness );
+			/** @var Taintedness $curTaint */
+			$curTaint = $variableObj->taintedness;
+			'@phan-var Taintedness $curTaint';
+			$variableObj->taintedness = $curTaint->asMergedWith( $taintedness );
 		}
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
 		// ( $variableObj->taintedness ?? 'unset' ) );
@@ -970,6 +973,22 @@ trait TaintednessBaseVisitor {
 			// . " taintedness set to $taintedness due to type $type\n";
 		}
 		return $taintedness;
+	}
+
+	/**
+	 * Shortcut to try and turn an offset stored inside the AST into an equivalent PHP
+	 * scalar value.
+	 *
+	 * @param Node|mixed $rawOffset A Node or a scalar value from the AST
+	 * @return Node|mixed An equivalent scalar PHP value, or $rawOffset if it cannot be resolved
+	 */
+	protected function resolveOffset( $rawOffset ) {
+		// Null usually means an "implicit" dim like in `$a[] = $b`. Trying to resolve
+		// it will likely create errors (anything added to implicit indexes is stored together).
+		assert( $rawOffset !== null );
+		return $rawOffset instanceof Node
+			? $this->getCtxN( $rawOffset )->getEquivalentPHPScalarValue()
+			: $rawOffset;
 	}
 
 	/**
@@ -1483,6 +1502,7 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Get the line number of the original cause of taint.
+	 * @todo Keep per-offset caused-by lines
 	 *
 	 * @param TypedElementInterface|Node|mixed $element
 	 * @param Taintedness|null $taintedness Only consider caused-by lines having (at least) these bits, null
@@ -1606,6 +1626,8 @@ trait TaintednessBaseVisitor {
 	 * out which of the current function's parameters its taint came
 	 * from.
 	 *
+	 * @todo Do a better job in preserving offset taint
+	 *
 	 * @param mixed $node Either a Node or a string, int, etc. The expression
 	 * @param Taintedness $taintedness
 	 * @param FunctionInterface $curFunc The function/method we are in.
@@ -1666,7 +1688,7 @@ trait TaintednessBaseVisitor {
 				}
 			}
 		}
-		$paramTaint->setOverall( $otherTaint->with( $taintRemaining )->withOnly( $taintedness ) );
+		$paramTaint->setOverall( $otherTaint->asMergedWith( $taintRemaining )->withOnly( $taintedness ) );
 		return $paramTaint;
 	}
 
@@ -1972,7 +1994,7 @@ trait TaintednessBaseVisitor {
 
 		// If we have multiple, include what types.
 		if ( $issueType === 'SecurityCheckMulti' ) {
-			$msg .= " ($lhsTaint <- $rhsTaint)";
+			$msg .= " ({$lhsTaint->get()} <- {$rhsTaint->get()})";
 		}
 
 		$context = $this->context;
@@ -2119,7 +2141,7 @@ trait TaintednessBaseVisitor {
 				$this->getOriginalTaintLine( $argument, $thisTaint )
 			);
 
-			$overallArgTaint->add( $effectiveArgTaintedness );
+			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
 		}
 
 		$containingMethod = $this->getCurrentMethod();
@@ -2197,7 +2219,9 @@ trait TaintednessBaseVisitor {
 			// when unspecified or is unknown. So just
 			// pass the taint through.
 			// FIXME, could maybe check if type is safe like int.
-			$effectiveArgTaintedness = $curArgTaintedness;
+			// TODO Currently we collapse because the array shape may mutate (e.g. implode, unset,
+			//   array_shift, array_merge, etc.). This should be handled on a per-case basis.
+			$effectiveArgTaintedness = $curArgTaintedness->asCollapsed();
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 			// . " via preserve or unknown $funcName" );
 		} else {
