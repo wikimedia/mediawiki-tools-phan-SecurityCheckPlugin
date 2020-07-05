@@ -52,37 +52,46 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// to the variable in question.
 
 	public const NO_TAINT = 0;
+
 	// For declaration type things. Given a special value for
 	// debugging purposes, but inapplicable taint should not
 	// actually show up anywhere.
-	public const INAPPLICABLE_TAINT = 1;
+	public const INAPPLICABLE_TAINT = 1 << 0;
+
 	// Flag to denote that we don't know
-	public const UNKNOWN_TAINT = 2;
+	public const UNKNOWN_TAINT = 1 << 1;
+
 	// Flag for function parameters and the like, where it
 	// preserves whatever taint the function is given.
-	public const PRESERVE_TAINT = 4;
+	public const PRESERVE_TAINT = 1 << 2;
 
 	// In future might separate out different types of html quoting.
 	// e.g. "<div data-foo='" . htmlspecialchars( $bar ) . "'>";
 	// is unsafe.
-	public const HTML_TAINT = 8;
-	public const HTML_EXEC_TAINT = 16;
-	public const SQL_TAINT = 32;
-	public const SQL_EXEC_TAINT = 64;
-	public const SHELL_TAINT = 128;
-	public const SHELL_EXEC_TAINT = 256;
-	public const SERIALIZE_TAINT = 512;
-	public const SERIALIZE_EXEC_TAINT = 1024;
+	public const HTML_TAINT = 1 << 3;
+	public const HTML_EXEC_TAINT = 1 << 4;
+
+	public const SQL_TAINT = 1 << 5;
+	public const SQL_EXEC_TAINT = 1 << 6;
+
+	public const SHELL_TAINT = 1 << 7;
+	public const SHELL_EXEC_TAINT = 1 << 8;
+
+	public const SERIALIZE_TAINT = 1 << 9;
+	public const SERIALIZE_EXEC_TAINT = 1 << 10;
+
 	// To allow people to add other application specific
 	// taints.
-	public const CUSTOM1_TAINT = 2048;
-	public const CUSTOM1_EXEC_TAINT = 4096;
-	public const CUSTOM2_TAINT = 8192;
-	public const CUSTOM2_EXEC_TAINT = 16384;
+	public const CUSTOM1_TAINT = 1 << 11;
+	public const CUSTOM1_EXEC_TAINT = 1 << 12;
+	public const CUSTOM2_TAINT = 1 << 13;
+	public const CUSTOM2_EXEC_TAINT = 1 << 14;
+
 	// For stuff that doesn't fit another
 	// category (For the moment, this is stuff like `require $foo`)
-	public const MISC_TAINT = 32768;
-	public const MISC_EXEC_TAINT = 65536;
+	public const MISC_TAINT = 1 << 15;
+	public const MISC_EXEC_TAINT = 1 << 16;
+
 	// Special purpose for supporting MediaWiki's IDatabase::select
 	// and friends. Like SQL_TAINT, but only applies to the numeric
 	// keys of an array. Note: These are not included in YES_TAINT/EXEC_TAINT.
@@ -91,36 +100,45 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// The associative keys also have this flag if they are tainted.
 	// It is also assumed anything with this flag will also have
 	// the SQL_TAINT flag set.
-	public const SQL_NUMKEY_TAINT = 131072;
-	public const SQL_NUMKEY_EXEC_TAINT = 262144;
+	public const SQL_NUMKEY_TAINT = 1 << 17;
+	public const SQL_NUMKEY_EXEC_TAINT = 1 << 18;
+
 	// For double escaped variables
-	public const ESCAPED_TAINT = 524288;
-	public const ESCAPED_EXEC_TAINT = 1048576;
+	public const ESCAPED_TAINT = 1 << 19;
+	public const ESCAPED_EXEC_TAINT = 1 << 20;
 
 	// Special purpose flags(Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
-	public const ARRAY_OK = 268435456;
+	public const ARRAY_OK = 1 << 28;
+
+	// Do not allow autodetected taint info override given taint.
+	public const NO_OVERRIDE = 1 << 29;
+
 	// Represents a parameter expecting a raw value, for which escaping should have already
 	// taken place. E.g. in MW this happens for Message::rawParams. In practice, this turns
 	// the func taint into EXEC, but without propagation.
-	public const RAW_PARAM = 1073741824;
-	// Do not allow autodetected taint info override given taint.
-	public const NO_OVERRIDE = 0x20000000;
+	public const RAW_PARAM = 1 << 30;
 
 	// Combination flags.
+
 	// YES_TAINT denotes all taint a user controlled variable would have
-	public const YES_TAINT = 43688;
-	public const EXEC_TAINT = 87376;
-	public const YES_EXEC_TAINT = 131064;
+	public const YES_TAINT = self::HTML_TAINT | self::SQL_TAINT | self::SHELL_TAINT | self::SERIALIZE_TAINT |
+		self::CUSTOM1_TAINT | self::CUSTOM2_TAINT | self::MISC_TAINT;
+	public const EXEC_TAINT = self::YES_TAINT << 1;
+	public const YES_EXEC_TAINT = self::YES_TAINT | self::EXEC_TAINT;
+
 	// ALL taint is YES + special purpose taints, but not including special flags.
 	public const ALL_TAINT = self::YES_TAINT | self::SQL_NUMKEY_TAINT | self::ESCAPED_TAINT;
 	public const ALL_EXEC_TAINT =
 		self::EXEC_TAINT | self::SQL_NUMKEY_EXEC_TAINT | self::ESCAPED_EXEC_TAINT;
 	public const ALL_YES_EXEC_TAINT = self::ALL_TAINT | self::ALL_EXEC_TAINT;
+
 	// Taints that support backpropagation. Does not include numkey
 	// due to special array handling.
 	public const BACKPROP_TAINTS = self::ALL_EXEC_TAINT & ~self::SQL_NUMKEY_EXEC_TAINT;
+
 	public const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
+
 	// As the name would suggest, this must include *ALL* possible taint flags.
 	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::ARRAY_OK | self::RAW_PARAM |
 		self::NO_OVERRIDE | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT;
@@ -308,9 +326,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 */
 	public static function parseTaintLine( string $line ) : ?int {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
-			. 'custom2|misc|sql_numkey|escaped|none|tainted|raw_param)';
+			. 'custom2|misc|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
-		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override)$/";
+		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override|raw_param)$/";
 
 		$taints = explode( ',', strtolower( $line ) );
 		$taints = array_map( 'trim', $taints );
@@ -329,6 +347,10 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			}
 			if ( $taintParts['taint'] === 'allow_override' ) {
 				$overallTaint &= ~self::NO_OVERRIDE;
+				continue;
+			}
+			if ( $taintParts['taint'] === 'raw_param' ) {
+				$overallTaint |= self::RAW_PARAM;
 				continue;
 			}
 			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );
@@ -392,8 +414,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				return self::YES_TAINT;
 			case 'none':
 				return self::NO_TAINT;
-			case 'raw_param':
-				return self::RAW_PARAM;
 			default:
 				throw new AssertionError( "$name not valid taint" );
 		}
