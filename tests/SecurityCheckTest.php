@@ -4,6 +4,7 @@ use Phan\CLIBuilder;
 use Phan\Output\Printer\PlainTextPrinter;
 use Phan\Phan;
 use SecurityCheckPlugin\MediaWikiHooksHelper;
+use SecurityCheckPlugin\SecurityCheckPlugin;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
@@ -129,5 +130,24 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	public function providePhanInteractionTests() {
 		return $this->extractTestCases( 'phan-interaction' );
+	}
+
+	/**
+	 * Ensure that SecurityCheckPlugin::ALL_TAINT_FLAGS really has all possible flags
+	 */
+	public function testAllTaintFlagsReallyHasAllFlags() {
+		$cl = new ReflectionClass( SecurityCheckPlugin::class );
+		$excludedConsts = [ 'ALL_TAINT_FLAGS' ];
+		$actual = 0;
+		foreach ( $cl->getConstants() as $name => $val ) {
+			if ( is_int( $val ) && !in_array( $name, $excludedConsts, true ) ) {
+				$actual |= $val;
+			}
+		}
+		$this->assertSame(
+			SecurityCheckPlugin::ALL_TAINT_FLAGS,
+			$actual,
+			'ALL_TAINT_FLAGS should include all flags'
+		);
 	}
 }
