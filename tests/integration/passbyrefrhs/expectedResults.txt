@@ -1,1 +1,1 @@
-integration/passbyrefrhs/test.php:11 SecurityCheck-XSS Calling method \echoLocalCopy() in [no method] that outputs using tainted argument $l. (Caused by: integration/passbyrefrhs/test.php +7) (Caused by: integration/passbyrefrhs/test.php +10)
+integration/passbyrefrhs/test.php:11 SecurityCheck-XSS Calling method \echoLocalCopy() in [no method] that outputs using tainted argument #1 (`$l`). (Caused by: integration/passbyrefrhs/test.php +7) (Caused by: integration/passbyrefrhs/test.php +10)

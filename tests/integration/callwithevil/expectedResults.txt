@@ -1,1 +1,1 @@
-integration/callwithevil/test.php:11 SecurityCheck-XSS Calling method \Foo::output() in [no method] that outputs using tainted argument $a. (Caused by: integration/callwithevil/test.php +4) (Caused by: integration/callwithevil/test.php +8)
+integration/callwithevil/test.php:11 SecurityCheck-XSS Calling method \Foo::output() in [no method] that outputs using tainted argument #1 (`$a`). (Caused by: integration/callwithevil/test.php +4) (Caused by: integration/callwithevil/test.php +8)

@@ -1,3 +1,3 @@
-integration/constructors/test.php:50 SecurityCheck-XSS Calling method \Bad::printArg() in [no method] that outputs using tainted argument $unsafe. (Caused by: integration/constructors/test.php +27) (Caused by: integration/constructors/test.php +43)
-integration/constructors/test.php:54 SecurityCheck-XSS Calling method \Bad::printArg() in [no method] that outputs using tainted argument $unsafe. (Caused by: integration/constructors/test.php +27) (Caused by: integration/constructors/test.php +43)
+integration/constructors/test.php:50 SecurityCheck-XSS Calling method \Bad::printArg() in [no method] that outputs using tainted argument #1 (`$unsafe`). (Caused by: integration/constructors/test.php +27) (Caused by: integration/constructors/test.php +43)
+integration/constructors/test.php:54 SecurityCheck-XSS Calling method \Bad::printArg() in [no method] that outputs using tainted argument #1 (`$unsafe`). (Caused by: integration/constructors/test.php +27) (Caused by: integration/constructors/test.php +43)
 integration/constructors/test.php:62 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/constructors/test.php +35)

@@ -1,2 +1,2 @@
 integration/execfunc/OutputPage.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/execfunc/OutputPage.php +7; integration/execfunc/test.php +6)
-integration/execfunc/test.php:6 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: Builtin-\OutputPage::addHTML)
+integration/execfunc/test.php:6 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`). (Caused by: Builtin-\OutputPage::addHTML)

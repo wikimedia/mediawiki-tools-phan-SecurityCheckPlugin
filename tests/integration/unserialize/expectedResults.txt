@@ -1,1 +1,1 @@
-integration/unserialize/test.php:3 SecurityCheck-PHPSerializeInjection Calling method \unserialize() in [no method] that outputs using tainted argument $[arg #1].
+integration/unserialize/test.php:3 SecurityCheck-PHPSerializeInjection Calling method \unserialize() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`).

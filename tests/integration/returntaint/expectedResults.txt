@@ -1,3 +1,3 @@
-integration/returntaint/test.php:20 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/returntaint/test.php +6)
+integration/returntaint/test.php:20 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`foo()`). (Caused by: integration/returntaint/test.php +6)
 integration/returntaint/test.php:22 SecurityCheck-OTHER Argument to require, include or eval is user controlled (Caused by: integration/returntaint/test.php +6)
 integration/returntaint/test.php:28 SecurityCheck-OTHER Argument to require, include or eval is user controlled (Caused by: integration/returntaint/test.php +13)

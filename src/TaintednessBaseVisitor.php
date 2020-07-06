@@ -6,6 +6,7 @@ use AssertionError;
 use ast\Node;
 use Error;
 use Exception;
+use Phan\AST\ASTReverter;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;
@@ -2208,8 +2209,13 @@ trait TaintednessBaseVisitor {
 					$this->debug( __METHOD__, "FIXME " . get_class( $e ) . " " . $e->getMessage() );
 				}
 			}
-			$taintedArg = $argument->children['name'] ?? '[arg #' . ( $i + 1 ) . ']';
-			$taintedArg = is_string( $taintedArg ) ? $taintedArg : '[arg #' . ( $i + 1 ) . ']';
+			// Always include the ordinal (it helps for repeated arguments)
+			$taintedArg = '#' . ( $i + 1 );
+			$argStr = ASTReverter::toShortString( $argument );
+			if ( !( $argStr instanceof Node ) && strlen( $argStr ) < 25 ) {
+				// If we have a short representation of the arg, include it as well.
+				$taintedArg .= " (`$argStr`)";
+			}
 			// We use curArgTaintedness here, as we aren't checking what taint
 			// gets passed to return value, but which taint is EXECed.
 			// $this->debug( __METHOD__, "Checking safe assign $funcName" .
@@ -2221,7 +2227,7 @@ trait TaintednessBaseVisitor {
 				$thisTaint,
 				$curArgTaintedness,
 				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
-				" that outputs using tainted argument \${DETAILS}.{DETAILS}{DETAILS}",
+				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}",
 				[
 					$funcName,
 					$containingMethod,

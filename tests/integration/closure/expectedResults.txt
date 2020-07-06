@@ -1,2 +1,2 @@
-integration/closure/test.php:14 SecurityCheck-XSS Calling method \closure_2de964bb76dd() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/closure/test.php +4)
-integration/closure/test.php:18 SecurityCheck-DoubleEscaped Calling method \closure_914627d177b6() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/closure/test.php +8)
+integration/closure/test.php:14 SecurityCheck-XSS Calling method \closure_2de964bb76dd() in [no method] that outputs using tainted argument #1 (`$_GET['val']`). (Caused by: integration/closure/test.php +4)
+integration/closure/test.php:18 SecurityCheck-DoubleEscaped Calling method \closure_914627d177b6() in [no method] that outputs using tainted argument #1. (Caused by: integration/closure/test.php +8)

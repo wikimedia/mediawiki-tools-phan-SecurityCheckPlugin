@@ -1,1 +1,1 @@
-integration/doubleescaped/test.php:6 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument $escaped. (Caused by: integration/doubleescaped/test.php +5)
+integration/doubleescaped/test.php:6 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$escaped`). (Caused by: integration/doubleescaped/test.php +5)
