@@ -23,3 +23,6 @@ echo $y; // TODO: This is unsafe.
 echo $z;
 
 echo system( getUnsafe(), $_ );
+
+shell_exec( escapeshellarg( $_GET['foo'] ) ); // Safe
+shell_exec( escapeshellcmd( $_GET['foo'] ) ); // Safe

@@ -418,6 +418,11 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				~self::SHELL_TAINT & self::YES_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			// TODO Perhaps we should distinguish arguments escape vs command escape
+			'\escapeshellcmd' => [
+				~self::SHELL_TAINT & self::YES_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			'\shell_exec' => [
 				self::SHELL_EXEC_TAINT,
 				'overall' => self::YES_TAINT
@@ -437,6 +442,20 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::SHELL_EXEC_TAINT,
 				self::NO_TAINT,
 				'overall' => self::YES_TAINT
+			],
+			'\proc_open' => [
+				self::SHELL_EXEC_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT, // TODO Unsafe passbyref
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT  // TODO Perhaps not so safe
+			],
+			'\popen' => [
+				self::SHELL_EXEC_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT  // TODO Perhaps not so safe
 			],
 			// Or any time the serialized data comes from a trusted source.
 			'\serialize' => [
@@ -468,6 +487,22 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::SQL_EXEC_TAINT,
 				'overall' => self::UNKNOWN_TAINT
 			],
+			'\sqlite_query' => [
+				self::NO_TAINT,
+				self::SQL_EXEC_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\sqlite_single_query' => [
+				self::NO_TAINT,
+				self::SQL_EXEC_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			// Note: addslashes, addcslashes etc. intentionally omitted because they're not
+			// enough to avoid SQLi.
 			'\mysqli_escape_string' => [
 				self::NO_TAINT,
 				self::YES_TAINT & ~self::SQL_TAINT,
@@ -486,10 +521,49 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\sqlite_escape_string' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			'\base64_encode' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\file_put_contents' => [
+				self::MISC_EXEC_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			// TODO What about file_get_contents() and file() ?
+			'\fopen' => [
+				self::MISC_EXEC_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT // TODO Perhaps not so safe
+			],
+			'\opendir' => [
+				self::MISC_EXEC_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT // TODO Perhaps not so safe
+			],
+			'\printf' => [
+				self::HTML_EXEC_TAINT,
+				// TODO We could check if the respective specifiers are safe
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			]
 		];
 	}
 
