@@ -506,6 +506,15 @@ class Taintedness {
 	}
 
 	/**
+	 * @return $this
+	 */
+	public function withoutKeys() : self {
+		$ret = clone $this;
+		$ret->keysTaint = SecurityCheckPlugin::NO_TAINT;
+		return $ret;
+	}
+
+	/**
 	 * Get a representation of this taint to be used in a foreach assignment for the key
 	 *
 	 * @return $this

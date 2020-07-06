@@ -92,3 +92,34 @@ echo $new1['safe']; // Unsafe
 echo $new1['unsafe']; // Ideally safe, but unsafe because we don't retroactively track $v
 echo $new2['safe']; // Unsafe
 echo $new2['unsafe']; // Safe
+
+function withUnknownKey() {
+	$unk = [ $GLOBALS['k1'] => 'safe', $GLOBALS['k2'] => $_GET['unsafe'] ];
+	$arr = [
+		'safe' => 'safe',
+		'unsafe' => $unk,
+		'switched' => [
+			'safe' => $_GET['b'],
+			'unsafe' => 'safe'
+		]
+	];
+
+	foreach ( $arr as $v2 ) {
+		echo $v2['unsafe']; // Unsafe (can be the one in $unk)
+	}
+}
+
+function withUnknownSuperglobal() {
+	$arr = [
+		'safe' => 'safe',
+		'unsafe' => $_GET['a']['b']['c']['d'],
+		'switched' => [
+			'safe' => $_GET['b'],
+			'unsafe' => 'safe'
+		]
+	];
+
+	foreach ( $arr as $v2 ) {
+		echo $v2['unsafe']; // Unsafe (can be in $_GET['a']['b']['c']['d'])
+	}
+}

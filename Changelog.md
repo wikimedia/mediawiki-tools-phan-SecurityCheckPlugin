@@ -2,6 +2,7 @@
 
 ## UNRELEASED
 ### New features
+* Infer array shape mutations for several array-related builtin functions
 * Improved taint data for $_FILES
 * Infer when a parameter is passed through by a function (even partially or conditionally), at least in non-complicated cases
 * Improved caused-by lines for setters and some functions that pass their parameters through

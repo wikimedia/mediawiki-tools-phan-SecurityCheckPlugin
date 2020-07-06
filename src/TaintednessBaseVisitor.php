@@ -2350,7 +2350,7 @@ trait TaintednessBaseVisitor {
 			}
 
 			list( $curArgTaintedness, $effectiveArgTaintedness ) = $this->getArgTaint(
-				$taint, $argument, $i, $funcName
+				$taint, $argument, $i, $func, $funcName
 			);
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
 			// the Message class doesn't have double escape taint if method takes Message|string.
@@ -2460,7 +2460,7 @@ trait TaintednessBaseVisitor {
 		$preserveOrExec = SecurityCheckPlugin::PRESERVE_TAINT |
 			SecurityCheckPlugin::ALL_EXEC_TAINT;
 		return $taint->getOverall()->without( $preserveOrExec )
-			->withObj( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
+			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 	}
 
 	/**
@@ -2469,6 +2469,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionTaintedness $funcTaint
 	 * @param Node $argument
 	 * @param int $i Position of the param
+	 * @param FunctionInterface $func
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 * @return Taintedness[] [ cur, effective ]
 	 */
@@ -2476,6 +2477,7 @@ trait TaintednessBaseVisitor {
 		FunctionTaintedness $funcTaint,
 		Node $argument,
 		int $i,
+		FunctionInterface $func,
 		FullyQualifiedFunctionLikeName $funcName
 	) : array {
 		if (
@@ -2518,9 +2520,7 @@ trait TaintednessBaseVisitor {
 			// when unspecified or is unknown. So just
 			// pass the taint through.
 			// FIXME, could maybe check if type is safe like int.
-			// TODO Currently we collapse because the array shape may mutate (e.g. implode, unset,
-			//   array_shift, array_merge, etc.). This should be handled on a per-case basis.
-			$effectiveArgTaintedness = $curArgTaintedness->asCollapsed();
+			$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 			// . " via preserve or unknown $funcName" );
 		} else {
@@ -2585,6 +2585,102 @@ trait TaintednessBaseVisitor {
 			if ( $overrideTaint ) {
 				unset( $argObj->taintednessRef );
 			}
+		}
+	}
+
+	/**
+	 * Get the effect of $func on the shape of $curArgTaint (which is argument to param $paramIdx).
+	 * Note, this is for the return value, and not e.g. for passbyref effects.
+	 *
+	 * @param FunctionInterface $func
+	 * @param Taintedness $curArgTaint
+	 * @param int $paramIdx
+	 * @return Taintedness
+	 */
+	protected function getNewPreservedTaintForParam(
+		FunctionInterface $func,
+		Taintedness $curArgTaint,
+		int $paramIdx
+	) : Taintedness {
+		if ( !$func->isPHPInternal() ) {
+			return $curArgTaint->asCollapsed();
+		}
+
+		switch ( ltrim( $func->getName(), '\\' ) ) {
+			// These return one or more elements (first param; no other params should be provided, but who knows)
+			case 'array_pop':
+			case 'array_shift':
+			case 'current':
+			case 'end':
+			case 'next':
+			case 'pos':
+			case 'prev':
+			case 'reset':
+				return $paramIdx === 0 ? $curArgTaint->asValueFirstLevel() : $curArgTaint->asCollapsed();
+			case 'array_values':
+				return $paramIdx === 0 ? $curArgTaint->withoutKeys() : $curArgTaint->asCollapsed();
+			// These return one or more keys
+			case 'key':
+			case 'array_key_first':
+			case 'array_key_last':
+			case 'array_keys':
+				return $paramIdx === 0 ? $curArgTaint->asKeyForForeach() : $curArgTaint->asCollapsed();
+			// No effect on the shape, and second param is safe
+			case 'array_change_key_case':
+				return $paramIdx === 0 ? clone $curArgTaint : Taintedness::newSafe();
+			// TODO For now, we assume that all functions in this case preserve the shape
+			// TODO Handling these ones should be easywith diff() and intersect() methods in Taintedness.
+			case 'array_diff':
+			case 'array_diff_assoc':
+			case' array_intersect':
+			case 'array_intersect_assoc':
+			case 'array_intersect_key':
+			// TODO Last parameter of these is a callback, so probably hard to handle. They're also variadic,
+			// so we'd need to know the arg type to determine whether we have a callback. Note that we're
+			// currently cloning the taint for cb params.
+			case 'array_diff_uassoc':
+			case 'array_diff_ukey':
+			case 'array_intersect_uassoc':
+			case 'array_intersect_ukey':
+			case 'array_udiff':
+			case 'array_udiff_assoc':
+			case 'array_uintersect':
+			case 'array_uintersect_assoc':
+			// TODO Last two params of these are callbacks, so twice as hard
+			case 'array_udiff_uassoc':
+			case 'array_uintersect_uassoc':
+				return clone $curArgTaint;
+			case 'array_flip':
+				$ret = $curArgTaint->asKeyForForeach();
+				$ret->addKeysTaintedness( $curArgTaint->asValueFirstLevel()->get() );
+				return $ret;
+			case 'join':
+				return $curArgTaint->withoutKeys()->asCollapsed();
+			case 'implode':
+				// Arg 0 shouldn't be shaped, but who knows...
+				return $paramIdx === 0 ? $curArgTaint->asCollapsed() : $curArgTaint->withoutKeys()->asCollapsed();
+			case 'array_fill':
+				// TODO: We cannot build a shape yet
+				return $paramIdx === 2 ? $curArgTaint->asCollapsed() : Taintedness::newSafe();
+			case 'array_fill_keys':
+				// TODO: We cannot build a shape yet
+				return $paramIdx === 0 ? $curArgTaint->asValueFirstLevel() : $curArgTaint->asCollapsed();
+			// TODO These would really require knowing the other args
+			case 'unset':
+			case 'array_merge':
+			case 'array_merge_recursive':
+			case 'array_replace':
+			case 'array_replace_recursive':
+			case 'array_pad':
+			case 'array_reverse':
+			case 'array_slice':
+			case 'array_map':
+			case 'array_filter':
+			case 'array_reduce':
+			// We can't tell what gets removed
+			case 'array_unique':
+			default:
+				return $curArgTaint->asCollapsed();
 		}
 	}
 
