@@ -481,8 +481,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
 			$adjustedRHS,
-			"Assigning a tainted value to a variable that later does something unsafe with it"
-				. $this->getOriginalTaintLine( $lhs, null )
+			"Assigning a tainted value to a variable that later does something unsafe with it{DETAILS}",
+			[ $this->getOriginalTaintLine( $lhs, null ) ]
 		);
 
 		$rhsObjs = [];
@@ -683,8 +683,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->maybeEmitIssue(
 			$shellExecTaint,
 			$taintedness,
-			"Backtick shell execution operator contains user controlled arg" .
-				$this->getOriginalTaintLine( $node->children['expr'], $shellExecTaint )
+			"Backtick shell execution operator contains user controlled arg{DETAILS}",
+			[ $this->getOriginalTaintLine( $node->children['expr'], $shellExecTaint ) ]
 		);
 
 		if (
@@ -718,8 +718,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->maybeEmitIssue(
 			$includeOrEvalTaint,
 			$taintedness,
-			"Argument to require, include or eval is user controlled" .
-				$this->getOriginalTaintLine( $node->children['expr'], $includeOrEvalTaint )
+			"Argument to require, include or eval is user controlled{DETAILS}",
+			[ $this->getOriginalTaintLine( $node->children['expr'], $includeOrEvalTaint ) ]
 		);
 
 		if (
@@ -763,8 +763,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->maybeEmitIssue(
 			$echoTaint,
 			$taintedness,
-			"Echoing expression that was not html escaped" .
-				$this->getOriginalTaintLine( $echoedExpr, $echoTaint )
+			"Echoing expression that was not html escaped{DETAILS}",
+			[ $this->getOriginalTaintLine( $echoedExpr, $echoTaint ) ]
 		);
 
 		if ( $echoedExpr instanceof Node && $this->isSafeAssignment( $echoTaint, $taintedness ) ) {

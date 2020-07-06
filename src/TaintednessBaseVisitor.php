@@ -2009,13 +2009,21 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $lhsTaint
 	 * @param mixed $rhsElement
 	 * @param string $msg
+	 * @param array $params Additional parameters for the message template
+	 * @phan-param list<string|FullyQualifiedFunctionLikeName> $params
 	 * @throws Exception
 	 */
-	public function maybeEmitIssueSimplified( Taintedness $lhsTaint, $rhsElement, string $msg ) : void {
+	public function maybeEmitIssueSimplified(
+		Taintedness $lhsTaint,
+		$rhsElement,
+		string $msg,
+		array $params = []
+	) : void {
 		$this->maybeEmitIssue(
 			$lhsTaint,
 			$this->getTaintedness( $rhsElement ),
-			$msg . $this->getOriginalTaintLine( $rhsElement, $lhsTaint )
+			$msg . '{DETAILS}',
+			array_merge( $params, [ $this->getOriginalTaintLine( $rhsElement, $lhsTaint ) ] )
 		);
 	}
 
@@ -2030,8 +2038,15 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $lhsTaint Taint of left hand side (or equivalent)
 	 * @param Taintedness $rhsTaint Taint of right hand side (or equivalent)
 	 * @param string $msg Issue description
+	 * @param array $msgArgs Message arguments passed to emitIssue
+	 * @phan-param list<string|FullyQualifiedFunctionLikeName> $msgArgs
 	 */
-	public function maybeEmitIssue( Taintedness $lhsTaint, Taintedness $rhsTaint, string $msg ) : void {
+	public function maybeEmitIssue(
+		Taintedness $lhsTaint,
+		Taintedness $rhsTaint,
+		string $msg,
+		array $msgArgs
+	) : void {
 		if ( $lhsTaint->has( SecurityCheckPlugin::RAW_PARAM ) ) {
 			$msg .= ' (Param is raw)';
 			$lhsTaint = $lhsTaint->without( SecurityCheckPlugin::RAW_PARAM )->asYesToExecTaint();
@@ -2080,7 +2095,7 @@ trait TaintednessBaseVisitor {
 			$context,
 			$issueType,
 			$msg,
-			[],
+			$msgArgs,
 			$severity
 		);
 	}
@@ -2205,10 +2220,15 @@ trait TaintednessBaseVisitor {
 			$this->maybeEmitIssue(
 				$thisTaint,
 				$curArgTaintedness,
-				"Calling method $funcName() in $containingMethod" .
-				" that outputs using tainted argument \$$taintedArg." .
-				$this->getOriginalTaintLine( $func, $thisTaint, $i ) .
-				$this->getOriginalTaintLine( $argument, $thisTaint )
+				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
+				" that outputs using tainted argument \${DETAILS}.{DETAILS}{DETAILS}",
+				[
+					$funcName,
+					$containingMethod,
+					$taintedArg,
+					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
+					$this->getOriginalTaintLine( $argument, $thisTaint )
+				]
 			);
 
 			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
@@ -2219,9 +2239,13 @@ trait TaintednessBaseVisitor {
 		$this->maybeEmitIssue(
 			$overallTaint,
 			$overallTaint->asExecToYesTaint(),
-			"Calling method $funcName in $containingMethod that "
-			. "is always unsafe " .
-			$this->getOriginalTaintLine( $func, $overallTaint )
+			"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE} that "
+			. "is always unsafe.{DETAILS}",
+			[
+				$funcName,
+				$containingMethod,
+				$this->getOriginalTaintLine( $func, $overallTaint )
+			]
 		);
 
 		$newMem = memory_get_peak_usage();

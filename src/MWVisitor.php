@@ -7,7 +7,6 @@ use Exception;
 use Phan\Analysis\PostOrderAnalysisVisitor;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Language\Element\Method;
-use Phan\Language\FQSEN;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
@@ -413,7 +412,8 @@ class MWVisitor extends TaintednessVisitor {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$ret,
-				"Outputting user controlled HTML from Parser tag hook $funcFQSEN"
+				"Outputting user controlled HTML from Parser tag hook {FUNCTIONLIKE}",
+				[ $funcFQSEN ]
 			);
 			break;
 		}
@@ -627,7 +627,8 @@ class MWVisitor extends TaintednessVisitor {
 				$this->maybeEmitIssueSimplified(
 					$taintType,
 					$val,
-					"$key clause is user controlled"
+					"{STRING_LITERAL} clause is user controlled",
+					[ $key ]
 				);
 				$this->overrideContext = null;
 			}
@@ -672,7 +673,8 @@ class MWVisitor extends TaintednessVisitor {
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_EXEC_TAINT ),
 					$joinType,
-					"join type for $tableName is user controlled"
+					"Join type for {STRING_LITERAL} is user controlled",
+					[ $tableName ]
 				);
 				// On to the join ON conditions.
 				if (
@@ -690,7 +692,8 @@ class MWVisitor extends TaintednessVisitor {
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$onCond,
-					"The ON conditions are not properly escaped for the join to `$tableName`"
+					"The ON conditions are not properly escaped for the join to `{STRING_LITERAL}`",
+					[ $tableName ]
 				);
 				$this->overrideContext = null;
 			}
@@ -701,9 +704,9 @@ class MWVisitor extends TaintednessVisitor {
 	 * Check to see if isHTML => true and is tainted.
 	 *
 	 * @param Node $node The expr child of the return. NOT the return itself
-	 * @param FQSEN $funcName
+	 * @param FullyQualifiedFunctionLikeName $funcName
 	 */
-	private function visitReturnOfFunctionHook( Node $node, FQSEN $funcName ) : void {
+	private function visitReturnOfFunctionHook( Node $node, FullyQualifiedFunctionLikeName $funcName ) : void {
 		if ( $node->kind !== \ast\AST_ARRAY || count( $node->children ) < 2 ) {
 			return;
 		}
@@ -732,7 +735,8 @@ class MWVisitor extends TaintednessVisitor {
 		$this->maybeEmitIssueSimplified(
 			new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 			$node->children[0],
-			"Outputting user controlled HTML from Parser function hook $funcName"
+			"Outputting user controlled HTML from Parser function hook {FUNCTIONLIKE}",
+			[ $funcName ]
 		);
 	}
 
@@ -1170,8 +1174,8 @@ class MWVisitor extends TaintednessVisitor {
 					$this->maybeEmitIssueSimplified(
 						new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 						$key,
-						'HTMLForm option label needs escaping' .
-						$value
+						'HTMLForm option label needs escaping{DETAILS}',
+						[ $value ]
 					);
 				}
 			} else {

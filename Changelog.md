@@ -22,6 +22,7 @@
 * Caused-by lines are now stored together with a taintedness value, which allows filtering taintedness depending on the sink type
 * Taintedness is now stored in a value object, rather than a plain integer.
 * Function taintedness is now stored in a value object, rather than an array of integers.
+* Issue descriptions now use phan templates, which notably adds support for selective colorizing.
 
 ## v3.0.4
 ### New features
