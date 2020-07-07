@@ -213,20 +213,30 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @note It is assumed you already checked that right is tainted in some way.
 	 * @param TypedElementInterface $left (LHS-ish variable)
-	 * @param TypedElementInterface $right (RHS-ish variable)
+	 * @param TypedElementInterface|Node $right (RHS-ish variable)
 	 */
-	protected function mergeTaintError(
-		TypedElementInterface $left,
-		TypedElementInterface $right
-	) : void {
+	protected function mergeTaintError( TypedElementInterface $left, $right ) : void {
+		if ( $right instanceof Node ) {
+			$phanObjs = $this->getPhanObjsForNode( $right, [ 'all' ] );
+		} else {
+			assert( $right instanceof TypedElementInterface );
+			$phanObjs = [ $right ];
+		}
+
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
 			$left->taintedOriginalError = [];
 		}
-		$rightError = $right->taintedOriginalError ?? [];
-		$left->taintedOriginalError = self::mergeCausedByLines(
-			$left->taintedOriginalError,
-			$rightError
-		);
+
+		foreach ( $phanObjs as $rightObj ) {
+			// TODO: Possibly we would want to skip merging the errors,
+			// if the merge did not result in any new taint being set.
+			// However at this point, taint has already been merged so
+			// we don't know if we should skip or not.
+			$left->taintedOriginalError = self::mergeCausedByLines(
+				$left->taintedOriginalError,
+				$rightObj->taintedOriginalError ?? []
+			);
+		}
 	}
 
 	/**
@@ -1260,12 +1270,21 @@ trait TaintednessBaseVisitor {
 	 * This also merges the information on what line caused the taint.
 	 *
 	 * @param TypedElementInterface $lhs Source of method list
-	 * @param TypedElementInterface $rhs Destination of merged method list
+	 * @param TypedElementInterface|Node $rhs Destination of merged method list
 	 */
-	protected function mergeTaintDependencies(
-		TypedElementInterface $lhs,
-		TypedElementInterface $rhs
-	) : void {
+	protected function mergeTaintDependencies( TypedElementInterface $lhs, $rhs ) : void {
+		if ( $rhs instanceof Node ) {
+			// Recurse.
+			$phanObjs = $this->getPhanObjsForNode( $rhs );
+			foreach ( $phanObjs as $phanObj ) {
+				if ( $phanObj instanceof PassByReferenceVariable ) {
+					$phanObj = $this->extractReferenceArgument( $phanObj );
+				}
+				$this->mergeTaintDependencies( $lhs, $phanObj );
+			}
+			return;
+		}
+		assert( $rhs instanceof TypedElementInterface );
 		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
 		$taintRHS = $this->getTaintednessPhanObj( $rhs );
 
