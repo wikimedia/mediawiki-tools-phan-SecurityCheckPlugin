@@ -1,5 +1,7 @@
 <?php
 
+namespace SecurityCheckPlugin;
+
 use Phan\Config;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;

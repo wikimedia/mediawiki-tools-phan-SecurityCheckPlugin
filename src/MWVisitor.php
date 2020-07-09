@@ -1,6 +1,9 @@
 <?php
 
+namespace SecurityCheckPlugin;
+
 use ast\Node;
+use Exception;
 use Phan\Analysis\PostOrderAnalysisVisitor;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Language\Element\Method;

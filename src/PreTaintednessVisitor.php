@@ -1,5 +1,7 @@
 <?php
 
+namespace SecurityCheckPlugin;
+
 use ast\Node;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\PluginV3\PluginAwarePreAnalysisVisitor;

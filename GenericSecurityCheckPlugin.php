@@ -27,7 +27,12 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-require_once __DIR__ . "/src/SecurityCheckPlugin.php";
+
+use SecurityCheckPlugin\PreTaintednessVisitor;
+use SecurityCheckPlugin\SecurityCheckPlugin;
+use SecurityCheckPlugin\TaintednessVisitor;
+
+require_once __DIR__ . "/vendor/autoload.php";
 
 class GenericSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**

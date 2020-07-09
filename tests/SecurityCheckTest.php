@@ -3,6 +3,7 @@
 use Phan\CLIBuilder;
 use Phan\Output\Printer\PlainTextPrinter;
 use Phan\Phan;
+use SecurityCheckPlugin\MediaWikiHooksHelper;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /**

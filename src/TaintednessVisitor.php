@@ -17,7 +17,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+namespace SecurityCheckPlugin;
+
 use ast\Node;
+use Exception;
 use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
@@ -1260,9 +1263,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// taint. Casting an object to a string calls __toString().
 		// Future TODO: handle the string case properly.
 		$dangerousCasts = [
-			ast\flags\TYPE_STRING,
-			ast\flags\TYPE_ARRAY,
-			ast\flags\TYPE_OBJECT
+			\ast\flags\TYPE_STRING,
+			\ast\flags\TYPE_ARRAY,
+			\ast\flags\TYPE_OBJECT
 		];
 
 		if ( !in_array( $node->flags, $dangerousCasts, true ) ) {

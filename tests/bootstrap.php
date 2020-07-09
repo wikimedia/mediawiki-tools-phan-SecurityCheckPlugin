@@ -5,4 +5,4 @@
 // it up when it was already populated) will result in weird false positives.
 require_once __DIR__ . '/../vendor/phan/phan/src/Phan/Language/Scope/GlobalScope.php';
 // Same as above, for SecurityCheckPlugin::$docblockCache
-require_once __DIR__ . '/../src/SecurityCheckPlugin.php';
+require_once __DIR__ . '/../vendor/autoload.php';

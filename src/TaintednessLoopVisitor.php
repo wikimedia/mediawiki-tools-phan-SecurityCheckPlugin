@@ -1,6 +1,9 @@
 <?php
 
+namespace SecurityCheckPlugin;
+
 use ast\Node;
+use Exception;
 use Phan\PluginV3\BeforeLoopBodyAnalysisVisitor;
 
 class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {

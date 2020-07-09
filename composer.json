@@ -26,6 +26,9 @@
 		"wiki": "https://www.mediawiki.org/wiki/SecurityCheckPlugin",
 		"irc": "irc://freenode.net/wikimedia-dev"
 	},
+	"autoload": {
+		"psr-4": { "SecurityCheckPlugin\\": "src" }
+	},
 	"require": {
 		"phan/phan": "3.0.3",
 		"php": "^7.2.0",

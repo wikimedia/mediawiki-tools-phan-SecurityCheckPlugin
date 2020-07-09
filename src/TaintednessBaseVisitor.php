@@ -1,6 +1,11 @@
 <?php
 
+namespace SecurityCheckPlugin;
+
+use AssertionError;
 use ast\Node;
+use Error;
+use Exception;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;

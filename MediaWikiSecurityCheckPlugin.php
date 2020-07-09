@@ -21,14 +21,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  */
-require_once __DIR__ . "/src/SecurityCheckPlugin.php";
-require_once __DIR__ . "/src/MWVisitor.php";
-require_once __DIR__ . "/src/MWPreVisitor.php";
-require_once __DIR__ . "/src/MediaWikiHooksHelper.php";
+require_once __DIR__ . "/vendor/autoload.php";
 
 use Phan\CodeBase;
 use Phan\Language\Context;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
+use SecurityCheckPlugin\MWPreVisitor;
+use SecurityCheckPlugin\MWVisitor;
+use SecurityCheckPlugin\SecurityCheckPlugin;
+use SecurityCheckPlugin\TaintednessBaseVisitor;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
