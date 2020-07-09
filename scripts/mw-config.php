@@ -48,6 +48,21 @@ $coreCfg = [
 		'includes/libs/jsminplus.php',
 		'includes/libs/objectcache/utils/MemcachedClient.php',
 	],
+
+	/**
+	 * MW-specific globals. This list was copied from mediawiki-phan-config.
+	 */
+	'globals_type_map' => [
+		'wgContLang' => '\\Language',
+		'wgParser' => '\\Parser',
+		'wgTitle' => '\\Title',
+		'wgMemc' => '\\BagOStuff',
+		'wgUser' => '\\User',
+		'wgConf' => '\\SiteConfiguration',
+		'wgLang' => '\\Language',
+		'wgOut' => '\\OutputPage',
+		'wgRequest' => '\\WebRequest',
+	]
 ];
 
 $cfg = $coreCfg + $baseCfg;
