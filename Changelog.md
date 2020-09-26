@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v3.0.4
 ### New features
 * Added explicit taint info for `LinkRenderer::makeBrokenLink`
 * Added explicit taint info for `shell_exec` and friends
@@ -9,6 +9,7 @@
 
 ### Bug fixes
 * Fixed several plugin crashes observed when analyzing weird syntax
+* Fixed a crash observed with non-literal keys in getQueryInfo methods (T268055)
 
 ### Internal changes
 * Bumped phan/phan to 3.0.3
