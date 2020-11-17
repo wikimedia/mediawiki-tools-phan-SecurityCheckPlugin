@@ -841,7 +841,7 @@ trait TaintednessBaseVisitor {
 	 *  unless you provide it with a Phan object (Not an AST node).
 	 *
 	 * FIXME maybe it should try and turn into phan object.
-	 * @param Mixed $expr An expression from the AST tree.
+	 * @param mixed $expr An expression from the AST tree.
 	 * @return int The taint
 	 */
 	protected function getTaintedness( $expr ) : int {
@@ -1463,7 +1463,7 @@ trait TaintednessBaseVisitor {
 	protected function getOriginalTaintLine( $element, $arg = -1 ) : string {
 		$line = $this->getOriginalTaintLineRaw( $element, $arg );
 		if ( $line ) {
-			$line = substr( $line, 0, - 1 );
+			$line = substr( $line, 0, -1 );
 			return " (Caused by:$line)";
 		} else {
 			return '';
@@ -1477,7 +1477,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	private function getOriginalTaintLineRaw( $element, $arg = - 1 ) : string {
+	private function getOriginalTaintLineRaw( $element, $arg = -1 ) : string {
 		if ( !is_object( $element ) ) {
 			return '';
 		}
@@ -1532,7 +1532,7 @@ trait TaintednessBaseVisitor {
 	 * out which of the current function's parameters its taint came
 	 * from.
 	 *
-	 * @param Mixed $node Either a Node or a string, int, etc. The expression
+	 * @param mixed $node Either a Node or a string, int, etc. The expression
 	 * @param int $taintedness The taintedness in question
 	 * @param FunctionInterface $curFunc The function/method we are in.
 	 * @return array numeric keys for each parameter taint and 'overall' key
@@ -2190,7 +2190,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given a Node, is it an array? (And definitely not a string)
 	 *
-	 * @param Mixed|Node $node A node object or simple value from AST tree
+	 * @param mixed|Node $node A node object or simple value from AST tree
 	 * @return bool Is it an array?
 	 */
 	protected function nodeIsArray( $node ) : bool {
@@ -2226,7 +2226,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @todo Unclear if this should return true for things that can
 	 *   autocast to a string (e.g. ints)
-	 * @param Mixed|Node $node A node object or simple value from AST tree
+	 * @param mixed|Node $node A node object or simple value from AST tree
 	 * @return bool Is it a string?
 	 */
 	protected function nodeIsString( $node ) : bool {
@@ -2260,7 +2260,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * Floats are not considered ints here.
 	 *
-	 * @param Mixed|Node $node A node object or simple value from AST tree
+	 * @param mixed|Node $node A node object or simple value from AST tree
 	 * @return bool Is it an int?
 	 */
 	protected function nodeIsInt( $node ) : bool {
