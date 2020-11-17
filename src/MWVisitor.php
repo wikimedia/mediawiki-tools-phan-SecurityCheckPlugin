@@ -438,10 +438,15 @@ class MWVisitor extends TaintednessVisitor {
 		$args = [ '', '', '', '' ];
 		foreach ( $node->children as $child ) {
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-			if ( !isset( $keysToArg[$child->children['key']] ) ) {
+			$key = $child->children['key'];
+			if ( $key instanceof Node ) {
+				// Dynamic name, skip (T268055).
 				continue;
 			}
-			$args[$keysToArg[$child->children['key']]] = $child->children['value'];
+			if ( !isset( $keysToArg[$key] ) ) {
+				continue;
+			}
+			$args[$keysToArg[$key]] = $child->children['value'];
 		}
 		$selectFQSEN = FullyQualifiedMethodName::fromFullyQualifiedString(
 			'\Wikimedia\Rdbms\IDatabase::select'
