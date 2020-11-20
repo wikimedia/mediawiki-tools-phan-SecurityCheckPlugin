@@ -141,6 +141,20 @@ list.
 The `@param-taint` and `@return-taint` (see "Customizing" section) are also very useful
 with dealing with false positives.
 
+Note that the plugin will report possible XSS vulnerabilities in CLI context. To avoid them,
+you can suppress `SecurityCheck-XSS` file-wide with `@phan-file-suppress` in CLI scripts, or
+for the whole application (using the `suppress_issue_types` config option) if the application only
+consists of CLI scripts. Alternatively, if all outputting happens from an internal function, you
+can use `@param-taint` as follows:
+```php
+  /**
+   * @param-taint $stuffToPrint none
+   */
+  public function printMyStuff( string $stuffToPrint ) {
+    echo $stuffToPrint;
+  }
+```
+
 Notable limitations
 -------------------
 ### General limitations
@@ -148,7 +162,6 @@ Notable limitations
 * When an issue is output, the plugin tries to include details about what line
   originally caused the issue. Usually it works, but sometimes it gives
   misleading/wrong information
-* Command line scripts cause XSS false positives
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you must add annotations to its docblock so
   that the plugin can recognize it. See the Customizing section.
