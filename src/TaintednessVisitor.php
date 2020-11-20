@@ -1240,19 +1240,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	private function analyzeIncOrDec( Node $node ) : void {
-		$children = $this->getPhanObjsForNode( $node );
-		if ( count( $children ) === 1 ) {
-			$pobj = reset( $children );
-			if ( $pobj instanceof PassByReferenceVariable ) {
-				$pobj = $this->extractReferenceArgument( $pobj );
-			}
-			$this->curTaint = $this->getTaintednessPhanObj( $pobj );
-		} elseif ( isset( $node->children['var'] ) ) {
-			// @fixme Stopgap to handle superglobals, which getPhanObjsForNode doesn't return
-			$this->visitVar( $node->children['var'] );
-		} else {
-			$this->curTaint = SecurityCheckPlugin::NO_TAINT;
-		}
+		$this->curTaint = $this->getTaintedness( $node->children['var'] );
 	}
 
 	/**
