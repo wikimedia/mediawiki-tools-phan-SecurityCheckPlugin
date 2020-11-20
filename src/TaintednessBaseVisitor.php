@@ -776,15 +776,8 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		if ( !$validTaintEncountered ) {
-			return null;
-		}
-
-		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $funcTaint;
-		if ( count( SecurityCheckPlugin::$docblockCache ) > 1000 ) {
-			array_shift( SecurityCheckPlugin::$docblockCache );
-		}
-		return $funcTaint;
+		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $validTaintEncountered ? $funcTaint : null;
+		return SecurityCheckPlugin::$docblockCache[ $fqsen ];
 	}
 
 	/**
