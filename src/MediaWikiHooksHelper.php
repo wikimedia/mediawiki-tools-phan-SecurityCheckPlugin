@@ -30,7 +30,8 @@ class MediaWikiHooksHelper {
 	private $extensionJsonLoaded = false;
 
 	/**
-	 * @var array A mapping from hook names to FQSEN that implement it
+	 * @var FullyQualifiedFunctionLikeName[][] A mapping from hook names to FQSEN that implement it
+	 * @phan-var array<string,FullyQualifiedFunctionLikeName[]>
 	 */
 	private $hookSubscribers = [];
 

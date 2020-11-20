@@ -64,6 +64,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 *  PPFrame object
 	 *
 	 * @param array $params formal parameters of tag hook
+	 * @phan-param array<Node|int|string|bool|null|float> $params
 	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
 	private function setTagHookParamTaint( array $params, FunctionInterface $method ) : void {

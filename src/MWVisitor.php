@@ -164,6 +164,7 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 		$hookName = $argList[0];
+		assert( $argList[1] instanceof Node );
 		if (
 			count( $argList ) < 2
 			|| $argList[1]->kind !== \ast\AST_ARRAY
@@ -305,7 +306,7 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 		$hookName = $params[0];
-		if ( !is_string( $params[0] ) ) {
+		if ( !is_string( $hookName ) ) {
 			$this->debug( __METHOD__, "Could not register hook. Name is complex" );
 			return;
 		}
@@ -753,7 +754,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * Oddly enough, [ 'NameOfClass', 'NameOfStaticMethod' ] does not appear
 	 * to be valid, despite that being a valid callable.
 	 *
-	 * @param Node|string $node
+	 * @param Node|mixed $node
 	 * @param string $hookName
 	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
 	 */
