@@ -4,6 +4,7 @@ namespace SecurityCheckPlugin;
 
 use ast\Node;
 use Exception;
+use Phan\Debug;
 use Phan\PluginV3\BeforeLoopBodyAnalysisVisitor;
 
 class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
@@ -18,37 +19,60 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitForeach( Node $node ) {
+	public function visitForeach( Node $node ) : void {
 		// TODO: Could we do something better here detecting the array
 		// type
-		$lhsTaintedness = $this->getTaintedness( $node->children['expr'] );
+		$expr = $node->children['expr'];
+		$lhsTaintedness = $this->getTaintedness( $expr );
 
 		$value = $node->children['value'];
 		if ( $value->kind === \ast\AST_REF ) {
-			// FIXME, this doesn't fully handle the ref case.
-			// taint probably won't be propagated to outer scope.
+			// TODO, this doesn't propagate the taint to the outer scope
+			// (FWIW, phan doesn't do much better with types, https://github.com/phan/phan/issues/4017)
 			$value = $value->children['var'];
 		}
 
-		if ( $value->kind !== \ast\AST_VAR ) {
-			$this->debug( __METHOD__, "FIXME foreach complex case not handled" );
-			// Debug::printNode( $node );
-			return;
+		$handledNodes = [ \ast\AST_VAR, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
+		if ( in_array( $value->kind, $handledNodes, true ) ) {
+			try {
+				$valueObj = $value->kind === \ast\AST_VAR
+					? $this->getCtxN( $value )->getVariable()
+					: $this->getCtxN( $value )->getProperty( $value->kind === \ast\AST_STATIC_PROP );
+			} catch ( Exception $e ) {
+				$valueObj = null;
+				$this->debug( __METHOD__, "Cannot get foreach value " . $this->getDebugInfo( $e ) );
+			}
+			if ( $valueObj !== null ) {
+				$this->setTaintedness( $valueObj, $lhsTaintedness, $value->kind === \ast\AST_VAR );
+				$this->mergeTaintDependencies( $valueObj, $expr );
+				$this->mergeTaintError( $valueObj, $expr );
+			}
+		} else {
+			$this->debug( __METHOD__, "FIXME foreach complex value not handled: " . Debug::nodeToString( $value ) );
 		}
 
-		try {
-			$variableObj = $this->getCtxN( $value )->getVariable();
-			$this->setTaintedness( $variableObj, $lhsTaintedness );
+		$key = $node->children['key'] ?? null;
+		if ( $key instanceof Node ) {
+			if ( in_array( $key->kind, $handledNodes, true ) ) {
+				try {
+					$keyObj = $key->kind === \ast\AST_VAR
+						? $this->getCtxN( $key )->getVariable()
+						: $this->getCtxN( $key )->getProperty( $key->kind === \ast\AST_STATIC_PROP );
+				} catch ( Exception $e ) {
+					$keyObj = null;
+					$this->debug( __METHOD__, "Cannot get foreach key " . $this->getDebugInfo( $e ) );
+				}
 
-			if ( isset( $node->children['key'] ) ) {
-				// This will probably have a lot of false positives with
-				// arrays containing only numeric keys.
-				assert( $node->children['key']->kind === \ast\AST_VAR );
-				$variableObj = $this->getCtxN( $node->children['key'] )->getVariable();
-				$this->setTaintedness( $variableObj, $lhsTaintedness );
+				if ( $keyObj !== null ) {
+					// TODO This will probably have a lot of false positives with
+					// arrays containing only numeric keys.
+					$this->setTaintedness( $keyObj, $lhsTaintedness, $key->kind === \ast\AST_VAR );
+					$this->mergeTaintDependencies( $keyObj, $expr );
+					$this->mergeTaintError( $keyObj, $expr );
+				}
+			} else {
+				$this->debug( __METHOD__, "FIXME foreach complex key not handled: " . Debug::nodeToString( $key ) );
 			}
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Exception " . $this->getDebugInfo( $e ) );
 		}
 	}
 }
