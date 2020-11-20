@@ -102,23 +102,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * These are the vars passed to closures via use()
+	 * These are the vars passed to closures via use(). Nothing special to do, the variables
+	 * themselves are already handled in visitVar.
 	 *
 	 * @param Node $node
 	 */
 	public function visitClosureVar( Node $node ) : void {
-		$pobjs = $this->getPhanObjsForNode( $node );
-		if ( !$pobjs ) {
-			$this->debug( __METHOD__, 'No variable found' );
-			$this->curTaint = SecurityCheckPlugin::INAPPLICABLE_TAINT;
-			return;
-		}
-		assert( count( $pobjs ) === 1 );
-		$varObj = $pobjs[0];
-		if ( $varObj instanceof PassByReferenceVariable ) {
-			$varObj = $this->extractReferenceArgument( $varObj );
-		}
-		$this->curTaint = $this->getTaintednessPhanObj( $varObj );
+		$this->curTaint = SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
 
 	/**
