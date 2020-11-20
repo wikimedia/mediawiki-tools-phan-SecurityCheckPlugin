@@ -121,6 +121,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// due to special array handling.
 	public const BACKPROP_TAINTS = self::ALL_EXEC_TAINT & ~self::SQL_NUMKEY_EXEC_TAINT;
 	public const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
+	// As the name would suggest, this must include *ALL* possible taint flags.
+	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::ARRAY_OK | self::RAW_PARAM |
+		self::NO_OVERRIDE | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT;
 
 	/**
 	 * @var self Passed to the visitor for context
