@@ -436,7 +436,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\OutputPage::parse' => [ 'overall' => self::NO_TAINT, ],
 			'\Sanitizer::removeHTMLtags' => [
-				self::ESCAPES_HTML,
+				self::NO_TAINT, // See T268353
 				self::SHELL_EXEC_TAINT, /* attribute callback */
 				self::NO_TAINT, /* callback args */
 				self::YES_TAINT, /* extra tags */
