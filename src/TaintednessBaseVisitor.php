@@ -138,6 +138,52 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Check whether $needle is subset of $haystack, regardless of the keys, and returns
+	 * the starting index of the subset in the $haystack array. If the subset occurs multiple
+	 * times, this will just find the first one.
+	 *
+	 * @param array $haystack
+	 * @param array $needle
+	 * @return false|int False if not a subset, the starting index if it is.
+	 * @note Use strict comparisons with the return value!
+	 */
+	private static function getArraySubsetIdx( array $haystack, array $needle ) {
+		if ( !$needle ) {
+			// For our needs, the empty array is not a subset of anything
+			return false;
+		}
+		$curIdx = 0;
+		$haystack = array_values( $haystack );
+		$needleLength = count( $needle );
+		foreach ( $haystack as $i => $el ) {
+			if ( $el === $needle[ $curIdx ] ) {
+				$curIdx++;
+			} else {
+				$curIdx = 0;
+			}
+			if ( $curIdx === $needleLength ) {
+				return $i - ( $needleLength - 1 );
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Merge the caused-by lines of $new into $base.
+	 *
+	 * @param array[] $base
+	 * @param array[] $new
+	 * @return array[]
+	 */
+	public static function mergeCausedByLines( array $base, array $new ) : array {
+		if ( self::getArraySubsetIdx( $base, $new ) !== false ) {
+			return $base;
+		}
+
+		return array_merge( $base, $new );
+	}
+
+	/**
 	 * Merge the info on original cause of taint to left variable
 	 *
 	 * If you have something like $left = $right, merge any information
@@ -154,17 +200,13 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $right
 	) : void {
 		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
-			$left->taintedOriginalError = '';
+			$left->taintedOriginalError = [];
 		}
-		$rightError = $right->taintedOriginalError ?? '';
-		if ( strpos( $left->taintedOriginalError, $rightError ?: "\1\2" ) === false ) {
-			$left->taintedOriginalError .= $rightError;
-		}
-
-		if ( strlen( $left->taintedOriginalError ) > 254 ) {
-			$this->debug( __METHOD__, "Too long original error! for " . $left->getName() );
-			$left->taintedOriginalError = substr( $left->taintedOriginalError, 0, 250 ) . '... ';
-		}
+		$rightError = $right->taintedOriginalError ?? [];
+		$left->taintedOriginalError = self::mergeCausedByLines(
+			$left->taintedOriginalError,
+			$rightError
+		);
 	}
 
 	/**
@@ -174,7 +216,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function clearTaintError( TypedElementInterface $elem ) : void {
 		if ( property_exists( $elem, 'taintedOriginalError' ) ) {
-			$elem->taintedOriginalError = '';
+			$elem->taintedOriginalError = [];
 		}
 	}
 
@@ -212,45 +254,32 @@ trait TaintednessBaseVisitor {
 
 		if ( $arg === -1 ) {
 			if ( !property_exists( $elem, 'taintedOriginalError' ) ) {
-				$elem->taintedOriginalError = '';
+				$elem->taintedOriginalError = [];
 			}
 		} else {
 			if ( !property_exists( $elem, 'taintedOriginalErrorByArg' ) ) {
 				$elem->taintedOriginalErrorByArg = [];
 			}
 			if ( !isset( $elem->taintedOriginalErrorByArg[$arg] ) ) {
-				$elem->taintedOriginalErrorByArg[$arg] = '';
+				$elem->taintedOriginalErrorByArg[$arg] = [];
 			}
 		}
 		if ( !is_string( $reason ) ) {
-			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) . ';' ];
+			$newErrors = [ trim( $this->dbgInfo( $reason ?? $this->context ) ) ];
 		} else {
-			$newErrors = [ ' ' . $reason . ';' ];
+			$newErrors = [ trim( $reason ) ];
 		}
 		if ( $this->overrideContext ) {
-			$newErrors[] = $this->dbgInfo( $this->overrideContext ) . ';';
+			$newErrors[] = trim( $this->dbgInfo( $this->overrideContext ) );
 		}
 		foreach ( $newErrors as $newError ) {
 			if ( $arg === -1 ) {
-				if ( strpos( $elem->taintedOriginalError, $newError ) === false ) {
-					$elem->taintedOriginalError .= $newError;
+				if ( !in_array( $newError, $elem->taintedOriginalError, true ) ) {
+					$elem->taintedOriginalError[] = $newError;
 				}
-			} elseif ( strpos( $elem->taintedOriginalErrorByArg[$arg], $newError ) === false ) {
-				$elem->taintedOriginalErrorByArg[$arg] .= $newError;
+			} elseif ( !in_array( $newError, $elem->taintedOriginalErrorByArg[$arg], true ) ) {
+				$elem->taintedOriginalErrorByArg[$arg][] = $newError;
 			}
-		}
-
-		if ( $arg === -1 ) {
-			if ( strlen( $elem->taintedOriginalError ) > 254 ) {
-				$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
-				$elem->taintedOriginalError = substr(
-					$elem->taintedOriginalError, 0, 250
-				) . '... ';
-			}
-		} elseif ( strlen( $elem->taintedOriginalErrorByArg[$arg] ) > 254 ) {
-			$this->debug( __METHOD__, "Too long original error! " . $elem->getName() );
-			$elem->taintedOriginalErrorByArg[ $arg ] =
-				substr( $elem->taintedOriginalErrorByArg[ $arg ], 0, 250 ) . '... ';
 		}
 	}
 
@@ -1454,6 +1483,24 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Given an array of caused-by lines, return a truncated, stringified representation of it.
+	 *
+	 * @todo Perhaps this should include the first and last X lines, not the first 2X. However,
+	 *   doing so would make phan emit a new issue for the same line whenever new caused-by
+	 *   lines are added to the array.
+	 *
+	 * @param string[] $lines
+	 * @return string
+	 */
+	private function stringifyCausedByLines( array $lines ) : string {
+		$maxLines = 12;
+		if ( count( $lines ) <= $maxLines ) {
+			return implode( '; ', $lines );
+		}
+		return implode( '; ', array_slice( $lines, 0, $maxLines ) ) . '; ...';
+	}
+
+	/**
 	 * Get the line number of the original cause of taint.
 	 *
 	 * @param TypedElementInterface|Node $element
@@ -1461,10 +1508,9 @@ trait TaintednessBaseVisitor {
 	 * @return string
 	 */
 	protected function getOriginalTaintLine( $element, $arg = -1 ) : string {
-		$line = $this->getOriginalTaintLineRaw( $element, $arg );
-		if ( $line ) {
-			$line = substr( $line, 0, -1 );
-			return " (Caused by:$line)";
+		$lines = $this->getOriginalTaintArray( $element, $arg );
+		if ( $lines ) {
+			return ' (Caused by: ' . $this->stringifyCausedByLines( $lines ) . ')';
 		} else {
 			return '';
 		}
@@ -1475,44 +1521,44 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface|Node $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
-	 * @return string
+	 * @return string[]
 	 */
-	private function getOriginalTaintLineRaw( $element, $arg = -1 ) : string {
+	private function getOriginalTaintArray( $element, $arg = -1 ) : array {
 		if ( !is_object( $element ) ) {
-			return '';
+			return [];
 		}
 
-		$line = '';
+		$lines = [];
 		if ( $element instanceof TypedElementInterface ) {
 			if ( $arg === -1 ) {
 				if ( $element instanceof PassByReferenceVariable ) {
 					$element = $this->extractReferenceArgument( $element );
 				}
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
-					$line = $element->taintedOriginalError;
+					$lines = array_merge( $lines, $element->taintedOriginalError );
 				}
 				foreach ( $element->taintedOriginalErrorByArg ?? [] as $origArg ) {
 					// FIXME is this right? In the generic
 					// case should we include all arguments as
 					// well?
-					$line .= $origArg;
+					$lines = array_merge( $lines, $origArg );
 				}
 			} else {
 				assert( $element instanceof FunctionInterface );
-				$line .= $element->taintedOriginalErrorByArg[$arg] ?? '';
+				$lines = array_merge( $lines, $element->taintedOriginalErrorByArg[ $arg ] ?? [] );
 			}
 		} elseif ( $element instanceof Node ) {
 			$pobjs = $this->getPhanObjsForNode( $element );
 			foreach ( $pobjs as $elem ) {
-				$line .= $this->getOriginalTaintLineRaw( $elem );
+				$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem ) );
 			}
-			if ( $line === '' ) {
+			if ( $lines === [] ) {
 				// try to dig deeper.
 				// This will also include method calls and whatnot.
 				// FIXME should we always do this? Is it too spammy.
 				$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
 				foreach ( $pobjs as $elem ) {
-					$line .= $this->getOriginalTaintLineRaw( $elem );
+					$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem ) );
 				}
 			}
 		} else {
@@ -1521,8 +1567,8 @@ trait TaintednessBaseVisitor {
 				. get_class( $element )
 			);
 		}
-		assert( strlen( $line ) < 8096, " taint error too long $line" );
-		return $line;
+
+		return $lines;
 	}
 
 	/**

@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### New features
+* Increased the length limit for caused-by lines. The new limit is at 12 entries, rather than fixed at 255 characters (it was roughly doubled)
+
 ## v3.0.4
 ### New features
 * Added explicit taint info for `LinkRenderer::makeBrokenLink`
