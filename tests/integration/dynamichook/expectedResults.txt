@@ -1,0 +1,1 @@
+integration/dynamichook/test.php:16 SecurityCheck-XSS Calling method \CentralAuthTokenSessionProvider::onBeforePageDisplay() in [no method] that outputs using tainted argument $[arg #1]. (Caused by: integration/dynamichook/test.php +17) (Originally at: integration/dynamichook/test.php:21)
