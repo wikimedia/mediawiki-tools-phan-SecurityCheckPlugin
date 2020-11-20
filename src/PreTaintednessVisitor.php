@@ -84,15 +84,13 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			}
 
 			$paramTypeTaint = $this->getTaintByReturnType( $varObj->getUnionType() );
-			if ( $paramTypeTaint === SecurityCheckPlugin::NO_TAINT ) {
-				// The param is an integer or something, so skip.
-				$this->setTaintedness( $varObj, $paramTypeTaint );
-				continue;
-			}
-
 			// Initially, the variable starts off with no taint.
 			$this->setTaintedness( $varObj, SecurityCheckPlugin::NO_TAINT );
-			$this->linkParamAndFunc( $varObj, $method, $i );
+
+			if ( $paramTypeTaint !== SecurityCheckPlugin::NO_TAINT ) {
+				// If the param is not an integer or something, link it to the func
+				$this->linkParamAndFunc( $varObj, $method, $i );
+			}
 		}
 	}
 }

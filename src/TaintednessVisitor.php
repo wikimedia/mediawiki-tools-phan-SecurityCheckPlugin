@@ -1101,15 +1101,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
 			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
-			if ( property_exists( $variable, 'taintedness' ) ) {
-				// If the variable has taintedness set and its union type contains stdClass, it's
-				// because this is the result of casting an array to object. Share the taintedness
-				// of the variable with all its properties like we do for arrays.
-				$types = array_map( 'strval', $variable->getUnionType()->getTypeSet() );
-				if ( in_array( FullyQualifiedClassName::getStdClassFQSEN()->__toString(), $types, true ) ) {
-					$prop->taintedness = $this->mergeAddTaint( $prop->taintedness ?? 0, $variable->taintedness );
-					$this->mergeTaintError( $prop, $variable );
-				}
+			// If the LHS is a variable and it can potentially be a stdClass, share its taintedness
+			// with the property, like we do for arrays.
+			$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
+			if ( $variable->getUnionType()->hasType( $stdClassType ) ) {
+				$this->doSetTaintedness(
+					$prop,
+					$this->getTaintednessPhanObj( $variable ),
+					false,
+					SecurityCheckPlugin::NO_TAINT
+				);
+				$this->mergeTaintError( $prop, $variable );
 			}
 		}
 
@@ -1126,9 +1128,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
 		$prop = $clazz->getPropertyByName( $this->code_base, $node->children['name'] );
-		// FIXME should this be NO?
-		// $this->debug( __METHOD__, "Setting taint preserve if not set"
-		// . " yet for \$" . $node->children['name'] . "" );
+		// Initialize the taintedness of the prop if not set
 		$this->setTaintedness( $prop, SecurityCheckPlugin::NO_TAINT, false );
 		$this->curTaint = SecurityCheckPlugin::INAPPLICABLE_TAINT;
 	}
