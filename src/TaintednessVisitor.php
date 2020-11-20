@@ -955,19 +955,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			);
 
 			if ( $funcTaint['overall'] & SecurityCheckPlugin::YES_EXEC_TAINT ) {
-				$taintSource = '';
 				foreach ( $retObjs as $pobj ) {
-					$taintSource .= $pobj->taintedOriginalError ?? '';
-				}
-				if ( strlen( $taintSource ) < 200 ) {
-					if ( !property_exists( $curFunc, 'taintedOriginalError' ) ) {
-						$curFunc->taintedOriginalError = '';
-					}
-					$curFunc->taintedOriginalError = substr(
-						$curFunc->taintedOriginalError . $taintSource,
-						0,
-						250
-					);
+					$this->mergeTaintError( $curFunc, $pobj );
 				}
 			}
 		}
