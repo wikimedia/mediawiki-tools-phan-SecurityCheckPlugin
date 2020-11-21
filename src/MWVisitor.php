@@ -163,8 +163,8 @@ class MWVisitor extends TaintednessVisitor {
 			$this->debug( __METHOD__, "Cannot determine hook name" );
 			return;
 		}
+		'@phan-var array{0:string,1?:Node} $argList';
 		$hookName = $argList[0];
-		assert( $argList[1] instanceof Node );
 		if (
 			count( $argList ) < 2
 			|| $argList[1]->kind !== \ast\AST_ARRAY
