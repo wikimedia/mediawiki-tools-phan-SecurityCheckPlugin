@@ -9,14 +9,12 @@ escaped before being output as html or used as an sql query, etc.
 It supports generic PHP projects, and it also has a dedicated mode
 for MediaWiki code (analyzes hooks, HTMLForms and Database methods).
 
-This plugin should be considered beta quality.
-
 Usage
 -----
 
 ### System requirements
 * `php >= 7.2.0`
-* `Phan 3.0.3`
+* `Phan 3.2.4`
 * Strongly suggested: `php-ast >=1.0.1`. While this is not enforced via composer,
 using the fallback parser is way slower and more memory-draining than using php-ast.
 See https://github.com/nikic/php-ast for instructions.

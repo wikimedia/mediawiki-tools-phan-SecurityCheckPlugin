@@ -1,8 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v3.1.0
 ### New features
 * Increased the length limit for caused-by lines. The new limit is at 12 entries, rather than fixed at 255 characters (it was roughly doubled)
+* Caused-by lines are now stored together with a taintedness value, which allows filtering taintedness depending on the sink type
 * Handle a few more edge cases in foreach loops. Notably, class properties used as key or value are now
   properly analyzed, and caused-by lines now include sources of taintedness outside the loop.
 * The plugin now filters taintedness based on the (real) type of variables using `if` conditions,
@@ -10,6 +11,7 @@
 * Binops are now properly analysed, removing taintedness if the operation is safe.
 * Caused-by lines for function calls now include a code snippet with the argument, together with its ordinal.
 * Added an annotation to print the taintedness of a variable (use it with `'@phan-debug-var-taintedness $varname'`)
+* Added taint data for a bunch of built-in functions
 
 ### Bug fixes
 * (MW) Fixed a crash observed when using `$this` as hook handler
@@ -19,12 +21,16 @@
   warnings, making it difficult to suppress them all.
 * (MW) Avoid crash when Hooks::run has no arguments array
 * Fixed an edge case where literal integers/strings weren't recognized as integers/strings; this brings improved tracking of SQL_NUMKEY.
+* (MW) Fixed incorrect taint data for Sanitizer::removeHTMLtags (T268353)
+* Slightly improved performance for recursive methods (analysis is not attempted, rather than letting it reach the recursion limit of 5)
 
 ### Internal changes
-* Caused-by lines are now stored together with a taintedness value, which allows filtering taintedness depending on the sink type
 * Taintedness is now stored in a value object, rather than a plain integer.
 * Function taintedness is now stored in a value object, rather than an array of integers.
 * Issue descriptions now use phan templates, which notably adds support for selective colorizing.
+* (MW) The plugin no longer forces types for MW globals in non-standalone mode. This is now done by mediawiki-phan-config.
+* Plugin classes were moved to the `SecurityCheckPlugin` namespace.
+* Bumped phan/phan to 3.2.4
 
 ## v3.0.4
 ### New features
