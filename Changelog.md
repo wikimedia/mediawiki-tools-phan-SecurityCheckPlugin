@@ -12,6 +12,7 @@
   callable
 * Fixed a bug that caused the same issue to be reported on multiple lines, hence creating redundant
   warnings, making it difficult to suppress them all.
+* (MW) Avoid crash when Hooks::run has no arguments array
 
 ### Internal changes
 * Caused-by lines are now stored together with a taintedness value, which allows filtering taintedness depending on the sink type
