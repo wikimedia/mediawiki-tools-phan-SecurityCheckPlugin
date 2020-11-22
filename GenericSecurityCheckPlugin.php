@@ -32,8 +32,6 @@ use SecurityCheckPlugin\PreTaintednessVisitor;
 use SecurityCheckPlugin\SecurityCheckPlugin;
 use SecurityCheckPlugin\TaintednessVisitor;
 
-require_once __DIR__ . "/vendor/autoload.php";
-
 class GenericSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
 	 * @inheritDoc
