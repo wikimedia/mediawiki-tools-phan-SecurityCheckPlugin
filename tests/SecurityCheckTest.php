@@ -55,6 +55,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	private function runPhan( string $folderName, string $cfgFile ) : ?string {
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
+		// Useful when debugging weird test failures
+		// putenv( 'SECCHECK_DEBUG=-' );
 		$codeBase = require __DIR__ . '/../vendor/phan/phan/src/codebase.php';
 		$cliBuilder = new CLIBuilder();
 		$cliBuilder->setOption( 'project-root-directory', __DIR__ );

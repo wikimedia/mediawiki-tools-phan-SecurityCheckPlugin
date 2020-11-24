@@ -37,6 +37,9 @@ return [
 		Config::projectPath( 'MediaWikiSecurityCheckPlugin.php' ),
 	],
 
+	// We don't really need anything, except for phan
+	'exclude_file_regex' => '@vendor/(?!phan)@',
+
 	/**
 	 * A list of directories that should be parsed for class and
 	 * method information. After excluding the directories

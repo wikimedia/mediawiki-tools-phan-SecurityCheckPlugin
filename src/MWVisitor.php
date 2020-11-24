@@ -64,6 +64,9 @@ class MWVisitor extends TaintednessVisitor {
 				case '\Parser::setHook':
 				case '\Parser::setTransparentTagHook':
 					$type = $this->getHookTypeForRegistrationMethod( $methodName );
+					if ( $type === null ) {
+						break;
+					}
 					// $this->debug( __METHOD__, "registering $methodName as $type" );
 					$this->handleParserHookRegistration( $node, $type );
 					break;
@@ -80,8 +83,8 @@ class MWVisitor extends TaintednessVisitor {
 				default:
 					$this->doSelectWrapperSpecialHandling( $node, $method );
 			}
-		} catch ( Exception $_ ) {
-			// ignore
+		} catch ( Exception $e ) {
+			$this->debug( __METHOD__, 'FIXME cannot understand hook: ' . $this->getDebugInfo( $e ) );
 		}
 	}
 
@@ -278,9 +281,9 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * @param string $method The method name of the registration function
-	 * @return string The name of the hook that gets registered
+	 * @return string|null The name of the hook that gets registered
 	 */
-	private function getHookTypeForRegistrationMethod( string $method ) : string {
+	private function getHookTypeForRegistrationMethod( string $method ) : ?string {
 		switch ( $method ) {
 		case '\Parser::setFunctionHook':
 			return '!ParserFunctionHook';
@@ -288,7 +291,8 @@ class MWVisitor extends TaintednessVisitor {
 		case '\Parser::setTransparentTagHook':
 			return '!ParserHook';
 		default:
-			throw new Exception( "$method not a hook registerer" );
+			$this->debug( __METHOD__, "$method not a hook registerer" );
+			return null;
 		}
 	}
 

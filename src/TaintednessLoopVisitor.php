@@ -3,8 +3,10 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Exception;
 use Phan\Debug;
+use Phan\Exception\IssueException;
+use Phan\Exception\NodeException;
+use Phan\Exception\UnanalyzableException;
 use Phan\PluginV3\BeforeLoopBodyAnalysisVisitor;
 
 class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
@@ -38,7 +40,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$valueObj = $value->kind === \ast\AST_VAR
 					? $this->getCtxN( $value )->getVariable()
 					: $this->getCtxN( $value )->getProperty( $value->kind === \ast\AST_STATIC_PROP );
-			} catch ( Exception $e ) {
+			} catch ( NodeException | IssueException | UnanalyzableException $e ) {
 				$valueObj = null;
 				$this->debug( __METHOD__, "Cannot get foreach value " . $this->getDebugInfo( $e ) );
 			}
@@ -65,7 +67,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 					$keyObj = $key->kind === \ast\AST_VAR
 						? $this->getCtxN( $key )->getVariable()
 						: $this->getCtxN( $key )->getProperty( $key->kind === \ast\AST_STATIC_PROP );
-				} catch ( Exception $e ) {
+				} catch ( NodeException | IssueException | UnanalyzableException $e ) {
 					$keyObj = null;
 					$this->debug( __METHOD__, "Cannot get foreach key " . $this->getDebugInfo( $e ) );
 				}

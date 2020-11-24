@@ -12,7 +12,11 @@ use Phan\AST\UnionTypeVisitor;
 use Phan\BlockAnalysisVisitor;
 use Phan\CodeBase;
 use Phan\Debug;
+use Phan\Exception\CodeBaseException;
+use Phan\Exception\FQSENException;
 use Phan\Exception\IssueException;
+use Phan\Exception\NodeException;
+use Phan\Exception\UnanalyzableException;
 use Phan\Issue;
 use Phan\Language\Context;
 use Phan\Language\Element\ClassElement;
@@ -366,7 +370,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintednessReference( TypedElementInterface $var ) : Taintedness {
 		if ( $var instanceof PassByReferenceVariable ) {
-			throw new Exception( __METHOD__ . ' takes the element inside PassByRefs' );
+			throw new AssertionError( __METHOD__ . ' takes the element inside PassByRefs' );
 		}
 		return $var->taintednessRef ?? Taintedness::newSafe();
 	}
@@ -459,7 +463,7 @@ trait TaintednessBaseVisitor {
 
 		if ( $variableObj instanceof FunctionInterface ) {
 			// FIXME what about closures?
-			throw new Exception( "Must use setFuncTaint for functions" );
+			throw new AssertionError( "Must use setFuncTaint for functions" );
 		}
 
 		if ( $variableObj instanceof PassByReferenceVariable ) {
@@ -585,23 +589,19 @@ trait TaintednessBaseVisitor {
 		if ( $func instanceof Method ) {
 			try {
 				$class = $func->getClass( $this->code_base );
-				$nonParents = $class->getNonParentAncestorFQSENList();
+			} catch ( CodeBaseException $e ) {
+				$this->debug( __METHOD__, "Class not found for func $func: " . $this->getDebugInfo( $e ) );
+				return $funcsToTry;
+			}
+			$nonParents = $class->getNonParentAncestorFQSENList();
 
-				foreach ( $nonParents as $nonParentFQSEN ) {
+			foreach ( $nonParents as $nonParentFQSEN ) {
+				if ( $this->code_base->hasClassWithFQSEN( $nonParentFQSEN ) ) {
 					$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
-					if ( $nonParent->hasMethodWithName(
-						$this->code_base, $func->getName()
-					) ) {
-						$funcsToTry[] = $nonParent->getMethodByName(
-							$this->code_base, $func->getName()
-						);
+					if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName() ) ) {
+						$funcsToTry[] = $nonParent->getMethodByName( $this->code_base, $func->getName() );
 					}
 				}
-			} catch ( Exception $e ) {
-				// Could happen if the interface file is missing
-				$this->debug( __METHOD__, "Error looking up interface " .
-					get_class( $e ) . ' ' . $e->getMessage()
-				);
 			}
 		}
 		return $funcsToTry;
@@ -658,7 +658,7 @@ trait TaintednessBaseVisitor {
 				try {
 					$this->analyzeFunc( $definingFunc );
 				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "Error" . $e->getMessage() . "\n" );
+					$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
 				}
 				$this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
 			}
@@ -1000,7 +1000,7 @@ trait TaintednessBaseVisitor {
 		case "unknown type":
 		case "array":
 		default:
-			throw new Exception( __METHOD__ . " called with invalid type $type" );
+			throw new AssertionError( __METHOD__ . " called with invalid type $type" );
 		}
 	}
 
@@ -1037,10 +1037,10 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : Taintedness {
 		if ( $variableObj instanceof FunctionInterface ) {
-			throw new Exception( "This method cannot be used with methods" );
+			throw new AssertionError( "This method cannot be used with methods" );
 		}
 		if ( $variableObj instanceof PassByReferenceVariable ) {
-			throw new Exception( 'Handle PassByRefs before calling this method' );
+			throw new AssertionError( 'Handle PassByRefs before calling this method' );
 		}
 		if ( property_exists( $variableObj, 'taintedness' ) ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
@@ -1112,7 +1112,7 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_STATIC_PROP:
 				try {
 					return [ $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP ) ];
-				} catch ( Exception $e ) {
+				} catch ( NodeException | IssueException | UnanalyzableException $e ) {
 					// There won't be an expr for static prop.
 					if ( isset( $node->children['expr'] ) && $node->children['expr'] instanceof Node ) {
 						$cnClass = $this->getCtxN( $node->children['expr'] );
@@ -1132,16 +1132,16 @@ trait TaintednessBaseVisitor {
 				}
 			case \ast\AST_VAR:
 			case \ast\AST_CLOSURE_VAR:
-				try {
-					if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
-						return [];
-					} else {
-						return [ $cn->getVariable() ];
-						// return [];
-					}
-				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
+				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 					return [];
+				} else {
+					try {
+						return [ $cn->getVariable() ];
+					} catch ( NodeException | IssueException $e ) {
+						$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
+						return [];
+					}
+					// return [];
 				}
 			case \ast\AST_ENCAPS_LIST:
 			case \ast\AST_ARRAY:
@@ -1214,43 +1214,51 @@ trait TaintednessBaseVisitor {
 				if ( !$options ) {
 					return [];
 				}
-				try {
-					$ctxNode = $this->getCtxN( $node );
-					if ( $node->kind === \ast\AST_CALL ) {
-						if ( $node->children['expr']->kind !== \ast\AST_NAME ) {
-							return [];
-						}
+
+				$ctxNode = $this->getCtxN( $node );
+				// @todo Future todo might be to still return arguments when catching an exception.
+				if ( $node->kind === \ast\AST_CALL ) {
+					if ( $node->children['expr']->kind !== \ast\AST_NAME ) {
+						return [];
+					}
+					try {
 						$func = $ctxNode->getFunction( $node->children['expr']->children['name'] );
-					} else {
-						$methodName = $node->children['method'];
-						$func = $ctxNode->getMethod(
-							$methodName,
-							$node->kind === \ast\AST_STATIC_CALL
-						);
+					} catch ( IssueException | FQSENException $e ) {
+						$this->debug( __METHOD__, "FIXME func not found: " . $this->getDebugInfo( $e ) );
+						return [];
 					}
-					if ( in_array( 'return', $options ) ) {
-						// intentionally resetting options to []
-						// here to ensure we don't recurse beyond
-						// a depth of 1.
-						return $this->getReturnObjsOfFunc( $func );
+				} else {
+					$methodName = $node->children['method'];
+					try {
+						$func = $ctxNode->getMethod( $methodName, $node->kind === \ast\AST_STATIC_CALL );
+					} catch ( NodeException | CodeBaseException | IssueException $e ) {
+						$this->debug( __METHOD__, "FIXME method not found: " . $this->getDebugInfo( $e ) );
+						return [];
 					}
-					$args = $node->children['args']->children;
-					$pObjs = [ $func ];
-					foreach ( $args as $arg ) {
-						if ( !( $arg instanceof Node ) ) {
-							continue;
-						}
-						$pObjs = array_merge(
-							$pObjs,
-							$this->getPhanObjsForNode( $arg, $options )
-						);
-					}
-					return $pObjs;
-				} catch ( Exception $_ ) {
-					// Something non-simple
-					// @todo Future todo might be to still return arguments in this case.
-					return [];
 				}
+				if ( in_array( 'return', $options ) ) {
+					// intentionally resetting options to []
+					// here to ensure we don't recurse beyond
+					// a depth of 1.
+					try {
+						return $this->getReturnObjsOfFunc( $func );
+					} catch ( Exception $e ) {
+						$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
+						return [];
+					}
+				}
+				$args = $node->children['args']->children;
+				$pObjs = [ $func ];
+				foreach ( $args as $arg ) {
+					if ( !( $arg instanceof Node ) ) {
+						continue;
+					}
+					$pObjs = array_merge(
+						$pObjs,
+						$this->getPhanObjsForNode( $arg, $options )
+					);
+				}
+				return $pObjs;
 			case \ast\AST_PRE_INC:
 			case \ast\AST_PRE_DEC:
 			case \ast\AST_POST_INC:
@@ -1691,10 +1699,7 @@ trait TaintednessBaseVisitor {
 				}
 			}
 		} else {
-			throw new Exception(
-				$this->dbgInfo() . "invalid parameter "
-				. get_class( $element )
-			);
+			throw new AssertionError( $this->dbgInfo() . "invalid parameter " . get_class( $element ) );
 		}
 
 		return $lines;
@@ -2209,15 +2214,11 @@ trait TaintednessBaseVisitor {
 			if ( $taint->hasParam( $i ) && $taint->getParamTaint( $i )->isExecTaint() ) {
 				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
 				$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
-				try {
-					foreach ( $phanObjs as $phanObj ) {
-						$this->markAllDependentMethodsExec(
-							$phanObj,
-							$taint->getParamTaint( $i )
-						);
-					}
-				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "FIXME " . get_class( $e ) . " " . $e->getMessage() );
+				foreach ( $phanObjs as $phanObj ) {
+					$this->markAllDependentMethodsExec(
+						$phanObj,
+						$taint->getParamTaint( $i )
+					);
 				}
 			}
 			// Always include the ordinal (it helps for repeated arguments)
@@ -2488,8 +2489,8 @@ trait TaintednessBaseVisitor {
 				// Don't check types, as this might be called e.g. on the LHS (see T249647)
 				false
 			);
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "Got error " . get_class( $e ) );
+		} catch ( IssueException $e ) {
+			$this->debug( __METHOD__, "Got error " . $this->getDebugInfo( $e ) );
 			return null;
 		}
 	}

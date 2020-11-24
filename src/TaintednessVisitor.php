@@ -20,10 +20,13 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Exception;
+use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
+use Phan\Exception\FQSENException;
+use Phan\Exception\IssueException;
+use Phan\Exception\NodeException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
@@ -797,8 +800,64 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitNew( Node $node ) : void {
+		$ctxNode = $this->getCtxN( $node );
 		if ( $node->children['class']->kind === \ast\AST_NAME ) {
-			$this->visitMethodCall( $node );
+			// We check the __construct() method first, but the
+			// final resulting taint is from the __toString()
+			// method. This is a little hacky.
+			try {
+				// First do __construct()
+				$constructor = $ctxNode->getMethod(
+					'__construct',
+					false,
+					false,
+					true
+				);
+				$this->handleMethodCall(
+					$constructor,
+					$constructor->getFQSEN(),
+					$node->children['args']->children
+				);
+			} catch ( NodeException | CodeBaseException | IssueException $e ) {
+				$this->debug( __METHOD__, 'constructor doesn\'t exist: ' . $this->getDebugInfo( $e ) );
+			}
+
+			// Now return __toString()
+			try {
+				$clazzes = $ctxNode->getClassList(
+					false,
+					ContextNode::CLASS_LIST_ACCEPT_OBJECT_OR_CLASS_NAME,
+					null,
+					false
+				);
+			} catch ( CodeBaseException | IssueException $e ) {
+				$this->debug( __METHOD__, 'Cannot get class: ' . $this->getDebugInfo( $e ) );
+				$this->curTaint = Taintedness::newUnknown();
+				return;
+			}
+
+			$clazzesCount = count( $clazzes );
+			if ( $clazzesCount !== 1 ) {
+				// TODO None or too many, we give up for now
+				$this->debug( __METHOD__, "got $clazzesCount, giving up" );
+				$this->curTaint = Taintedness::newUnknown();
+				return;
+			}
+			$clazz = $clazzes[0];
+			try {
+				$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
+			} catch ( CodeBaseException $_ ) {
+				// There is no __toString(), then presumably the object can't be outputted, so should be safe.
+				$this->debug( __METHOD__, "no __toString() in $clazz" );
+				$this->curTaint = Taintedness::newSafe();
+				return;
+			}
+
+			$this->curTaint = $this->handleMethodCall(
+				$toString,
+				$toString->getFQSEN(),
+				[] // __toString() has no args
+			);
 		} else {
 			$this->debug( __METHOD__, "cannot understand new" );
 			$this->curTaint = Taintedness::newUnknown();
@@ -818,86 +877,67 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitMethodCall( Node $node ) : void {
-		$ctxNode = $this->getCtxN( $node );
-		$isStatic = ( $node->kind === \ast\AST_STATIC_CALL );
-		$isFunc = ( $node->kind === \ast\AST_CALL );
-
-		// First we need to get the taintedness of the method
-		// in question.
-		try {
-			if ( $node->kind === \ast\AST_NEW ) {
-				// We check the __construct() method first, but the
-				// final resulting taint is from the __toString()
-				// method. This is a little hacky.
-				$constructor = $ctxNode->getMethod(
-					'__construct',
-					false,
-					false,
-					true
-				);
-				// First do __construct()
-				$this->handleMethodCall(
-					$constructor,
-					$constructor->getFQSEN(),
-					$node->children['args']->children
-				);
-				// Now return __toString()
-				$clazz = $constructor->getClass( $this->code_base );
-				try {
-					$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
-				} catch ( CodeBaseException $_ ) {
-					// There is no __toString(), then presumably the object can't be outputted, so should be safe.
-					$this->debug( __METHOD__, "no __toString() in $clazz" );
-					$this->curTaint = Taintedness::newSafe();
-					return;
-				}
-
-				$this->curTaint = $this->handleMethodCall(
-					$toString,
-					$toString->getFQSEN(),
-					[] // __toString() has no args
-				);
-				return;
-			} elseif ( $isFunc ) {
-				if ( $node->children['expr']->kind === \ast\AST_NAME ) {
-					$func = $ctxNode->getFunction( $node->children['expr']->children['name'] );
-				} elseif ( $node->children['expr']->kind === \ast\AST_VAR ) {
-					// Closure
-					$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
-					if ( !$pobjs ) {
-						throw new Exception( 'Closure var is not defined?' );
-					}
-					assert( count( $pobjs ) === 1 );
-					$types = $pobjs[0]->getUnionType()->getTypeSet();
-					$func = null;
-					foreach ( $types as $type ) {
-						if ( $type instanceof ClosureType ) {
-							$func = $type->asFunctionInterfaceOrNull( $this->code_base, $this->context );
-						}
-					}
-					if ( $func === null ) {
-						throw new Exception( 'Cannot get closure from variable.' );
-					}
-				} else {
-					throw new Exception( "Non-simple func call" );
-				}
-			} else {
-				$methodName = $node->children['method'];
-				$func = $ctxNode->getMethod( $methodName, $isStatic );
-			}
-			$funcName = $func->getFQSEN();
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, "FIXME complicated case not handled."
-				. " Maybe func not defined. " . $this->getDebugInfo( $e ) );
+		$func = $this->getFuncToAnalyze( $node );
+		if ( is_string( $func ) ) {
+			$this->debug( __METHOD__, $func );
 			$this->curTaint = Taintedness::newUnknown();
 			return;
 		}
-
 		$this->curTaint = $this->handleMethodCall(
 			$func,
-			$funcName,
+			$func->getFQSEN(),
 			$node->children['args']->children
 		);
+	}
+
+	/**
+	 * @param Node $node
+	 * @return FunctionInterface|string String for an error message
+	 */
+	private function getFuncToAnalyze( Node $node ) {
+		$ctxNode = $this->getCtxN( $node );
+		$isStatic = ( $node->kind === \ast\AST_STATIC_CALL );
+		$isFunc = ( $node->kind === \ast\AST_CALL );
+		if ( $isFunc ) {
+			if ( !( $node->children['expr'] ) instanceof Node ) {
+				// Likely a syntax error (see test 'weirdsyntax'), don't crash.
+				return 'Likely sintax error';
+			}
+			if ( $node->children['expr']->kind === \ast\AST_NAME ) {
+				try {
+					$func = $ctxNode->getFunction( $node->children['expr']->children['name'] );
+				} catch ( IssueException | FQSENException $e ) {
+					return "FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e );
+				}
+			} elseif ( $node->children['expr']->kind === \ast\AST_VAR ) {
+				// Closure
+				$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
+				if ( !$pobjs ) {
+					return 'Closure var is not defined?';
+				}
+				assert( count( $pobjs ) === 1 );
+				$types = $pobjs[0]->getUnionType()->getTypeSet();
+				$func = null;
+				foreach ( $types as $type ) {
+					if ( $type instanceof ClosureType ) {
+						$func = $type->asFunctionInterfaceOrNull( $this->code_base, $this->context );
+					}
+				}
+				if ( $func === null ) {
+					return 'Cannot get closure from variable.';
+				}
+			} else {
+				return "Non-simple func call";
+			}
+		} else {
+			$methodName = $node->children['method'];
+			try {
+				$func = $ctxNode->getMethod( $methodName, $isStatic );
+			} catch ( NodeException | CodeBaseException | IssueException $e ) {
+				return "FIXME complicated case not handled. Maybe method not defined. " . $this->getDebugInfo( $e );
+			}
+		}
+			return $func;
 	}
 
 	/**
