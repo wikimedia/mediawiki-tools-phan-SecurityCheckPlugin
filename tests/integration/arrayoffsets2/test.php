@@ -113,7 +113,7 @@ echo $arr1['l1']['l2']['unsafe']; // Unsafe
 $arr1 = $arr0;
 $arr1['l1'][$GLOBALS['foo']] += $arr2['l1']['l2'];
 echo $arr1; // Unsafe
-echo $arr1['dunno']; // Unsafe
+echo $arr1['dunno']; // Safe, unknown key but no unknown keys were assigned
 echo $arr1['l1']; // Unsafe
 echo $arr1['l1']['l2']; // Unsafe
 echo $arr1['l1']['l2']['safe']; // Safe

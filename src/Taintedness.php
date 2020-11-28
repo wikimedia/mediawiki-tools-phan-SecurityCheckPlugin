@@ -409,9 +409,12 @@ class Taintedness {
 		if ( $offset instanceof Node ) {
 			return $this->with( $this->unknownDimsTaint );
 		}
-		return isset( $this->dimTaint[$offset] )
-			? $this->dimTaint[$offset]->with( $this->unknownDimsTaint )
-			: $this->asCollapsed();
+		if ( isset( $this->dimTaint[$offset] ) ) {
+			return $this->dimTaint[$offset]->with( $this->unknownDimsTaint );
+		}
+		$ret = new Taintedness( $this->flags );
+		$ret->unknownDimsTaint = $this->unknownDimsTaint;
+		return $ret;
 	}
 
 	/**
