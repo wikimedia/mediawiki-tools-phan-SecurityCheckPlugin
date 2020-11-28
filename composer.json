@@ -47,12 +47,14 @@
 			"composer phpcs",
 			"composer minus-x",
 			"composer phan-for-plugin",
-			"phpunit"
+			"phpunit",
+			"composer phan-tests"
 		],
 		"phpcs": "phpcs -p -s",
 		"minus-x": "minus-x check .",
 		"integration-tests": "./tests/runtests.sh",
 		"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
+		"phan-tests": "./tests/run-phan-tests.sh",
 		"fix": [
 			"minus-x fix .",
 			"phpcbf"
