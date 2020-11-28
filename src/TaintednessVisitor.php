@@ -664,6 +664,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $variableObj instanceof PassByReferenceVariable ) {
 			$variableObj = $this->extractReferenceArgument( $variableObj );
 		}
+		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
+			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
+			: null;
 		foreach ( $rhsObjs as $rhsObj ) {
 			if ( $rhsObj instanceof PassByReferenceVariable ) {
 				$rhsObj = $this->extractReferenceArgument( $rhsObj );
@@ -676,6 +679,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$adjTaint = $lhsTaintedness->with( $rhsTaintedness )->without( $taintRHSObj );
 			if ( $adjTaint->lacks( SecurityCheckPlugin::ALL_YES_EXEC_TAINT ) ) {
 				$this->mergeTaintDependencies( $variableObj, $rhsObj );
+				if ( $globalVarObj ) {
+					// Merge dependencies on the global copy as well
+					$this->mergeTaintDependencies( $globalVarObj, $rhsObj );
+				}
 			}
 		}
 
@@ -687,6 +694,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$lines = $this->getOriginalTaintArray( $rhsObj );
 				foreach ( $lines as [ $lineTaint, $line ] ) {
 					$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $variableObj, -1, $line );
+					if ( $globalVarObj ) {
+						$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $globalVarObj, -1, $line );
+					}
 				}
 			}
 		}
@@ -1141,11 +1151,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$scope = $this->context->getScope();
-		if ( $scope->hasGlobalVariableWithName( $varName ) ) {
-			$globalVar = $scope->getGlobalVariableByName( $varName );
-			$localVar = clone $globalVar;
-			$localVar->isGlobalVariable = true;
-			$scope->addVariable( $localVar );
+		if ( $scope->hasGlobalVariableWithName( $varName ) && !$this->context->isInGlobalScope() ) {
+			// Hack: keep track of what local variables are actually global.
+			// TODO Isn't there a way to do this without hacks?
+			$scope->globalsInScope = $scope->globalsInScope ?? [];
+			$scope->globalsInScope[] = $varName;
 		}
 		$this->curTaint = Taintedness::newInapplicable();
 	}

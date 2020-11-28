@@ -168,6 +168,8 @@ return [
 	 */
 	'dead_code_detection' => false,
 
+	'redundant_condition_detection' => true,
+
 	/**
 	 * If true, the dead code detection rig will
 	 * prefer false negatives (not report dead code) to

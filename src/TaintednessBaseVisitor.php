@@ -518,7 +518,7 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
 		// . get_class( $this->context->getScope() ) . "" );
 
-		if ( property_exists( $variableObj, 'isGlobalVariable' ) ) {
+		if ( $this->isGlobalVariableInLocalScope( $variableObj ) ) {
 			$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
 			// Merge the taint on the "true" global object, too
 			$this->doSetTaintedness( $globalVar, $resolvedOffsetsLhs, $taintedness, false, $errorTaint );
@@ -543,6 +543,19 @@ trait TaintednessBaseVisitor {
 		}
 
 		$this->doSetTaintedness( $variableObj, $resolvedOffsetsLhs, $taintedness, $override, $errorTaint );
+	}
+
+	/**
+	 * Whether $var is a global variable in the *current* *local* scope.
+	 * (More precisely, whether it was imported in this scope via the 'global' keyword)
+	 *
+	 * @param TypedElementInterface $var
+	 * @return bool
+	 */
+	public function isGlobalVariableInLocalScope( TypedElementInterface $var ) : bool {
+		return $var instanceof Variable
+			&& property_exists( $this->context->getScope(), 'globalsInScope' )
+			&& in_array( $var->getName(), $this->context->getScope()->globalsInScope, true );
 	}
 
 	/**
@@ -1002,7 +1015,7 @@ trait TaintednessBaseVisitor {
 	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : Taintedness {
 		if (
 			$var instanceof Property ||
-			property_exists( $var, 'isGlobalVariable' ) ||
+			$this->isGlobalVariableInLocalScope( $var ) ||
 			$this->context->isInGlobalScope()
 		) {
 			// TODO Improve handling of globals and props
@@ -1570,7 +1583,7 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		if ( $var instanceof Property || property_exists( $var, 'isGlobalVariable' ) ) {
+		if ( $var instanceof Property || $this->isGlobalVariableInLocalScope( $var ) ) {
 			// For local variables, don't set the taint: the taintedness set here should only be used
 			// when examining a function call. Inside the function body, we'll already have all the
 			// info we need, and actually, this extra taint would cause false positives with variable
