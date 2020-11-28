@@ -255,6 +255,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
+	public function visitIfElem( Node $node ) : void {
+		$this->curTaint = Taintedness::newInapplicable();
+	}
+
+	/**
+	 * @param Node $node
+	 */
 	public function visitThrow( Node $node ) : void {
 		$this->curTaint = Taintedness::newInapplicable();
 	}
@@ -1284,16 +1291,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitNameList( Node $node ) : void {
 		$this->curTaint = Taintedness::newSafe();
-	}
-
-	/**
-	 * @todo Is this right? The child condition should
-	 *  be visited when going in post order analysis anyways,
-	 *  and the taint of an If statement isn't really its condition.
-	 * @param Node $node
-	 */
-	public function visitIfElem( Node $node ) : void {
-		$this->curTaint = $this->getTaintedness( $node->children['cond'] );
 	}
 
 	/**
