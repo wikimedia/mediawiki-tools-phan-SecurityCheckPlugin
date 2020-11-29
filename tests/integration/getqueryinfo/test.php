@@ -10,8 +10,7 @@ class QueryPage extends SpecialPage {
 class MySpecialPage extends QueryPage {
 	public function getQueryInfo() {
 		$prefix = $_GET['prefix'];
-		return [
-			'tables' => [ 'pagelinks' ],
+		return [ 'tables' => [ 'pagelinks' ],
 			'fields' => [
 				'namespace' => 'pl_namespace',
 				'title' => "CONCAT( '$prefix', pl_title)",

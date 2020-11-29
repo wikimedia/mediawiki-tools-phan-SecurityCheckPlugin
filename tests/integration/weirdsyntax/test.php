@@ -16,3 +16,8 @@ function numberCall() {
 	( 2.3 )();  // No crash
 }
 
+'a' = 'b'; // No crash here
+
+if ("string" = $p2); // No crash here
+
+$x = new 'invalid name'; // No crash here

@@ -415,6 +415,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Debug::printNode($node);
 
 		$lhs = $node->children['var'];
+		if ( !$lhs instanceof Node ) {
+			// Syntax error, don't crash
+			$this->curTaint = Taintedness::newInapplicable();
+			return;
+		}
 		$rhs = $node->children['expr'];
 		// Note: If there is a local variable that is a reference
 		// to another non-local variable, this will probably incorrectly
@@ -801,6 +806,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitNew( Node $node ) : void {
 		$ctxNode = $this->getCtxN( $node );
+		if ( !$node->children['class'] instanceof Node ) {
+			// Syntax error, don't crash
+			$this->curTaint = Taintedness::newInapplicable();
+			return;
+		}
 		if ( $node->children['class']->kind === \ast\AST_NAME ) {
 			// We check the __construct() method first, but the
 			// final resulting taint is from the __toString()

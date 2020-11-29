@@ -51,9 +51,10 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	/**
 	 * @param string $folderName
 	 * @param string $cfgFile
+	 * @param bool $usePolyfill Whether to force the polyfill parser
 	 * @return string|null
 	 */
-	private function runPhan( string $folderName, string $cfgFile ) : ?string {
+	private function runPhan( string $folderName, string $cfgFile, bool $usePolyfill = false ) : ?string {
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
 		// Useful when debugging weird test failures
 		// putenv( 'SECCHECK_DEBUG=-' );
@@ -63,6 +64,9 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$cliBuilder->setOption( 'config-file', "./$cfgFile" );
 		$cliBuilder->setOption( 'directory', "./$folderName" );
 		$cliBuilder->setOption( 'no-progress-bar', true );
+		if ( $usePolyfill ) {
+			$cliBuilder->setOption( 'force-polyfill-parser', true );
+		}
 		$cli = $cliBuilder->build();
 
 		$stream = new BufferedOutput();
@@ -107,6 +111,16 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	/**
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider provideIntegrationTests
+	 */
+	public function testIntegration_Polyfill( $name, $expected ) {
+		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', true );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
 	 * Data provider for testIntegration
 	 *
 	 * @return Generator
@@ -122,6 +136,16 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	public function testPhanInteraction( string $name, string $expected ) {
 		$res = $this->runPhan( "phan-interaction/$name", 'phan-interaction-test-config.php' );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider providePhanInteractionTests
+	 */
+	public function testPhanInteraction_Polyfill( string $name, string $expected ) {
+		$res = $this->runPhan( "phan-interaction/$name", 'phan-interaction-test-config.php', true );
 		$this->assertEquals( $expected, $res );
 	}
 
