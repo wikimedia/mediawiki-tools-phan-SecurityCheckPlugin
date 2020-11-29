@@ -1145,19 +1145,29 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Shortcut to try and turn an offset stored inside the AST into an equivalent PHP
-	 * scalar value.
+	 * Shortcut to resolve array offsets, with a sanity check
 	 *
-	 * @param Node|mixed $rawOffset A Node or a scalar value from the AST
-	 * @return Node|mixed An equivalent scalar PHP value, or $rawOffset if it cannot be resolved
+	 * @param Node|mixed $rawOffset
+	 * @return Node|mixed
 	 */
 	protected function resolveOffset( $rawOffset ) {
 		// Null usually means an "implicit" dim like in `$a[] = $b`. Trying to resolve
 		// it will likely create errors (anything added to implicit indexes is stored together).
 		assert( $rawOffset !== null );
-		return $rawOffset instanceof Node
-			? $this->getCtxN( $rawOffset )->getEquivalentPHPScalarValue()
-			: $rawOffset;
+		return $this->resolveValue( $rawOffset );
+	}
+
+	/**
+	 * Shortcut to try and turn an AST element (Node or already literal) into an equivalent PHP
+	 * scalar value.
+	 *
+	 * @param Node|mixed $value A Node or a scalar value from the AST
+	 * @return Node|mixed An equivalent scalar PHP value, or $value if it cannot be resolved
+	 */
+	protected function resolveValue( $value ) {
+		return $value instanceof Node
+			? $this->getCtxN( $value )->getEquivalentPHPScalarValue()
+			: $value;
 	}
 
 	/**

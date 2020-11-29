@@ -183,8 +183,6 @@ Notable limitations
   of MediaWiki's `IDatabase::select()` if its provided directly as an array
   literal, or directly returned as an array literal from a `getQueryInfo()`
   method.
-* Checking of `HTMLForm` field specifiers only works if they are specified
-  as array literals and may also misidentify things which aren't really HTMLForms
 
 Customizing
 -----------

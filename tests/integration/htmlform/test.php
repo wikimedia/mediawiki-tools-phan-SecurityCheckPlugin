@@ -145,3 +145,16 @@ $unsafe12 = [
 	'rawrow' => true,
 	'default' => $_GET['evil']
 ];
+
+$fieldName = 'radio';
+$unsafe13 = [
+	'type' => $fieldName, // Unsafe
+	'options' => $_GET['x']
+];
+
+$typeKey = 'type';
+$optionsKey = 'options';
+$unsafe13 = [
+	$typeKey => $fieldName, // Unsafe
+	$optionsKey => $_GET['x']
+];

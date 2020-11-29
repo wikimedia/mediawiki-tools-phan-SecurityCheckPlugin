@@ -3,6 +3,7 @@
 ## UNRELEASED
 ### New features
 * Array keys are now tracked separately from values
+* (MW) Properly track taintedness of array keys in some HTMLForm specifiers
 
 ## v3.1.1
 ### Internal changes

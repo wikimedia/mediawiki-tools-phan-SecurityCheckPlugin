@@ -1001,50 +1001,38 @@ class MWVisitor extends TaintednessVisitor {
 		$isInfo = false;
 		$isOptionsSafe = true; // options key is really messed up with escaping.
 		foreach ( $node->children as $child ) {
-			if ( $child === null || $child->kind === \ast\AST_UNPACK || !is_string( $child->children['key'] ) ) {
-				// If we have list( , $x ) = foo(), or an in-place unpack, or a numeric/null key, chances
-				// are this is not an HTMLForm.
+			if ( $child === null || $child->kind === \ast\AST_UNPACK ) {
+				// If we have list( , $x ) = foo(), or an in-place unpack, chances are this is not an HTMLForm.
 				return;
 			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-			$key = (string)$child->children['key'];
+			$key = $this->resolveValue( $child->children['key'] );
+			if ( !is_string( $key ) ) {
+				// Either not resolvable (so nothing we can say) or a non-string literal, skip.
+				return;
+			}
 			switch ( $key ) {
 				case 'type':
-					$type = $child->children['value'];
+					$type = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'class':
-					$class = $child->children['value'];
+					$class = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'label':
-					$label = $child->children['value'];
+					$label = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'options':
-					$options = $child->children['value'];
+					$options = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'default':
-					$default = $child->children['value'];
+					$default = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'label-raw':
-					$rawLabel = $child->children['value'];
+					$rawLabel = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'raw':
 				case 'rawrow':
-					$raw = $child->children['value'];
-					if (
-						$raw instanceof Node
-						&& $raw->kind === \ast\AST_CONST
-						&& isset( $raw->children['name'] )
-						&& $raw->children['name'] instanceof Node
-						&& $raw->children['name']->kind === \ast\AST_NAME
-					) {
-						$raw = $raw->children['name']->children['name'];
-						if ( $raw === 'true' ) {
-							$raw = true;
-						}
-						if ( $raw === 'false' ) {
-							$raw = false;
-						}
-					}
+					$raw = $this->resolveValue( $child->children['value'] );
 					break;
 			}
 		}
@@ -1082,27 +1070,12 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		if ( $class !== null ) {
-			$className = null;
-			if ( is_string( $class ) ) {
-				$className = $class;
-			}
-			if (
-				$class instanceof Node &&
-				$class->kind === \ast\AST_CLASS_NAME &&
-				$class->children['class'] instanceof Node &&
-				$class->children['class']->kind === \ast\AST_NAME &&
-				is_string( $class->children['class']->children['name'] )
-			) {
-				$className = $class->children['class']->children['name'];
-			}
-
-			if ( !$className ) {
+			if ( !is_string( $class ) ) {
 				return;
 			}
-
 			try {
 				$fqsen = FullyQualifiedClassName::fromStringInContext(
-					$className,
+					$class,
 					$this->context
 				);
 			} catch ( InvalidFQSENException $_ ) {
@@ -1169,39 +1142,13 @@ class MWVisitor extends TaintednessVisitor {
 			);
 		}
 		if ( !$isOptionsSafe && $options instanceof Node ) {
-			if ( $options->kind === \ast\AST_ARRAY ) {
-				// We need to make sure all the keys are escaped
-				foreach ( $options->children as $child ) {
-					assert( $child instanceof Node );
-					assert( $child->kind === \ast\AST_ARRAY_ELEM );
-					$key = $child->children['key'];
-					$value = !is_object( $child->children['value'] ) ?
-						" (for value '" . $child->children['value'] . "')" :
-						"";
-					if ( !( $key instanceof Node ) ) {
-						continue;
-					}
-					$this->maybeEmitIssueSimplified(
-						new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-						$key,
-						'HTMLForm option label needs escaping{DETAILS}',
-						[ $value ]
-					);
-				}
-			} else {
-				// It would be really odd to have the field name
-				// be from user input, so in the event we can't look
-				// directly at the array, and given that it is common
-				// to specify options in a separate variable, warn
-				// if it contains any html.
-				$this->maybeEmitIssueSimplified(
-					new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-					$options,
-					'HTMLForm option label needs escaping ' .
-					'(Maybe false positive as could not determine ' .
-					'if it was key or value that is unescaped)'
-				);
-			}
+			$htmlExecTaint = new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT );
+			$this->maybeEmitIssue(
+				$htmlExecTaint,
+				$this->getTaintedness( $options )->asKeyForForeach(),
+				'HTMLForm option label needs escaping{DETAILS}',
+				[ $this->getOriginalTaintLine( $options, $htmlExecTaint ) ]
+			);
 		}
 	}
 
