@@ -22,8 +22,6 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitForeach( Node $node ) : void {
-		// TODO: Could we do something better here detecting the array
-		// type
 		$expr = $node->children['expr'];
 		$lhsTaintedness = $this->getTaintedness( $expr );
 
@@ -50,6 +48,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$this->setTaintedness(
 					$valueObj,
 					$lhsTaintedness->asValueForForeach(),
+					// NOTE: In overriding, we assume that the foreach has at least one iteration
 					$value->kind === \ast\AST_VAR,
 					true
 				);
@@ -73,9 +72,13 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				}
 
 				if ( $keyObj !== null ) {
-					// TODO This will probably have a lot of false positives with
-					// arrays containing only numeric keys.
-					$this->setTaintedness( $keyObj, $lhsTaintedness->asKeyForForeach(), $key->kind === \ast\AST_VAR );
+					$this->setTaintedness(
+						$keyObj,
+						$lhsTaintedness->asKeyForForeach(),
+						// NOTE: In overriding, we assume that the foreach has at least one iteration
+						$key->kind === \ast\AST_VAR,
+						true
+					);
 					$this->mergeTaintDependencies( $keyObj, $expr );
 					$this->mergeTaintError( $keyObj, $expr );
 				}
