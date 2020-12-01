@@ -122,6 +122,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// the func taint into EXEC, but without propagation.
 	public const RAW_PARAM = 1 << 30;
 
+	public const VARIADIC_PARAM = 1 << 31;
+
 	// Combination flags.
 
 	// YES_TAINT denotes all taint a user controlled variable would have
@@ -144,7 +146,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	// As the name would suggest, this must include *ALL* possible taint flags.
 	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::ARRAY_OK | self::RAW_PARAM |
-		self::NO_OVERRIDE | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT;
+		self::NO_OVERRIDE | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT |
+		self::VARIADIC_PARAM;
 
 	/**
 	 * Used to print taint debug data, see BlockAnalysisVisitor::PHAN_DEBUG_VAR_REGEX
@@ -152,6 +155,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	private const DEBUG_TAINTEDNESS_REGEXP =
 		'/@phan-debug-var-taintedness\s+\$(' . Builder::WORD_REGEX . '(,\s*\$' . Builder::WORD_REGEX . ')*)/';
 	// @phan-suppress-previous-line PhanAccessClassConstantInternal It's just perfect for use here
+
+	public const PARAM_ANNOTATION_REGEX = '/@param-taint &?(?P<variadic>\.\.\.)?\$(?P<paramname>\S+)\s+(?P<taint>.*)$/';
 
 	/**
 	 * @var self Passed to the visitor for context
@@ -329,7 +334,18 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		if ( ( $taint & self::ALL_TAINT ) !== 0 ) {
 			$types[] = 'ALL';
 		}
-		return implode( ', ', $types );
+		$taintTypes = implode( ', ', $types );
+		$flags = [];
+		if ( ( $taint & self::RAW_PARAM ) === self::RAW_PARAM ) {
+			$flags[] = 'raw param';
+		}
+		if ( ( $taint & self::VARIADIC_PARAM ) === self::VARIADIC_PARAM ) {
+			$flags[] = 'variadic param';
+		}
+		if ( $flags ) {
+			$taintTypes .= ' (' . implode( ', ', $flags ) . ')';
+		}
+		return $taintTypes;
 	}
 
 	/**

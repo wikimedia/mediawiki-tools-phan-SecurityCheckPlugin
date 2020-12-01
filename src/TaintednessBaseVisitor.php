@@ -850,13 +850,17 @@ trait TaintednessBaseVisitor {
 
 		foreach ( $lines as $line ) {
 			$m = [];
-			if ( preg_match( '/@param-taint &?\$(\S+)\s+(.*)$/', $line, $m ) ) {
-				$paramNumber = $this->getParamNumberGivenName( $func, $m[1] );
+			if ( preg_match( SecurityCheckPlugin::PARAM_ANNOTATION_REGEX, $line, $m ) ) {
+				$paramNumber = $this->getParamNumberGivenName( $func, $m['paramname'] );
+				// TODO: Should we check the real signature, rather than relying on the annotation?
+				// Probably yes, as currently we're 100% trusting the annotation, but it might be wrong.
+				$isVariadic = $m['variadic'] !== '';
 				if ( $paramNumber === null ) {
 					continue;
 				}
-				$taint = SecurityCheckPlugin::parseTaintLine( $m[2] );
+				$taint = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
 				if ( $taint !== null ) {
+					$taint->add( $isVariadic ? SecurityCheckPlugin::VARIADIC_PARAM : SecurityCheckPlugin::NO_TAINT );
 					$funcTaint->setParamTaint( $paramNumber, $taint );
 					$validTaintEncountered = true;
 					if ( $taint->has( SecurityCheckPlugin::ESCAPES_HTML, true ) ) {
@@ -865,7 +869,7 @@ trait TaintednessBaseVisitor {
 					}
 				} else {
 					$this->debug( __METHOD__, "Could not " .
-						"understand taint line '$m[2]'" );
+						"understand taint line '" . $m['taint'] . "'" );
 				}
 			} elseif ( strpos( $line, '@return-taint' ) !== false ) {
 				$taintLine = substr(
@@ -1546,10 +1550,17 @@ trait TaintednessBaseVisitor {
 
 		$oldMem = memory_get_peak_usage();
 
+		/** @var FunctionInterface $method */
 		foreach ( $var->taintedMethodLinks as $method ) {
 			$paramInfo = $var->taintedMethodLinks[$method];
+			// Note, not forCaller, as that doesn't see variadic parameters
+			/** @var Parameter[] $calleeParamList */
+			$calleeParamList = $method->getParameterList();
 			$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
 			foreach ( $paramInfo as $i => $_ ) {
+				if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
+					$taint = $taint->with( SecurityCheckPlugin::VARIADIC_PARAM );
+				}
 				$paramTaint->setParamTaint( $i, $taint );
 				// $this->debug( __METHOD__, "Setting method $method" .
 					// " arg $i as $taint due to dependency on $var" );
@@ -1776,7 +1787,7 @@ trait TaintednessBaseVisitor {
 				}
 			} else {
 				assert( $element instanceof FunctionInterface );
-				$argErr = $element->taintedOriginalErrorByArg[$arg] ?? [];
+				$argErr = $this->getTaintErrorByArg( $element, $arg );
 				$overallFuncErr = $element->taintedOriginalError ?? [];
 				if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
 					$lines = self::mergeCausedByLines( $lines, $overallFuncErr );
@@ -1796,6 +1807,32 @@ trait TaintednessBaseVisitor {
 		}
 
 		return $lines;
+	}
+
+	/**
+	 * @param FunctionInterface $element
+	 * @param int $arg
+	 * @return array
+	 * @phan-return list<array{0:Taintedness,1:string}>
+	 */
+	private function getTaintErrorByArg( FunctionInterface $element, int $arg ) : array {
+		if ( isset( $element->taintedOriginalErrorByArg[ $arg ] ) ) {
+			return $element->taintedOriginalErrorByArg[ $arg ];
+		}
+		// Check the variadic case. TODO Ideally, we might store caused-by and taintedness close together
+		$funcTaint = $element->funcTaint ?? null;
+		if ( !$funcTaint ) {
+			return [];
+		}
+		assert( $funcTaint instanceof FunctionTaintedness );
+		if (
+			$funcTaint->hasParam( $arg ) &&
+			$funcTaint->getParamTaint( $arg )->has( SecurityCheckPlugin::VARIADIC_PARAM )
+		) {
+			$lastIdx = max( $funcTaint->getParamKeys() );
+			return $arg >= $lastIdx ? $element->taintedOriginalErrorByArg[ $lastIdx ] : [];
+		}
+		return [];
 	}
 
 	/**

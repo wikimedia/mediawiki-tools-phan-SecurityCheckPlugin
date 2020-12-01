@@ -2,6 +2,7 @@
 
 ## UNRELEASED
 ### New features
+* Variadic parameters are now properly handled
 * Array keys are now tracked separately from values
 
 ## v3.1.1

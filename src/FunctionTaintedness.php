@@ -110,7 +110,9 @@ class FunctionTaintedness {
 		if ( !$this->hasParam( $param ) ) {
 			return Taintedness::newSafe();
 		}
-		return clone $this->paramTaints[$param];
+		// TODO: array_key_last once we support PHP 7.3+
+		$idx = min( $param, max( array_keys( $this->paramTaints ) ) );
+		return clone $this->paramTaints[$idx];
 	}
 
 	/**
@@ -129,7 +131,16 @@ class FunctionTaintedness {
 	 * @return bool
 	 */
 	public function hasParam( int $param ) : bool {
-		return isset( $this->paramTaints[$param] );
+		if ( isset( $this->paramTaints[$param] ) ) {
+			return true;
+		}
+		if ( !$this->paramTaints ) {
+			return false;
+		}
+		// TODO: array_key_last once we support PHP 7.3+
+		$lastKey = max( array_keys( $this->paramTaints ) );
+		$lastEl = $this->paramTaints[$lastKey];
+		return $param >= $lastKey && $lastEl->has( SecurityCheckPlugin::VARIADIC_PARAM );
 	}
 
 	/**

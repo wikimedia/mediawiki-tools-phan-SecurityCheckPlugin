@@ -1,0 +1,5 @@
+integration/variadic/test.php:8 SecurityCheck-XSS Calling method \echoAll() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/variadic/test.php +4)
+integration/variadic/test.php:9 SecurityCheck-XSS Calling method \echoAll() in [no method] that outputs using tainted argument #5 (`$_GET['a']`). (Caused by: integration/variadic/test.php +5)
+integration/variadic/test.php:27 SecurityCheck-XSS Calling method \annotatedCorrect() in [no method] that outputs using tainted argument #5 (`$_GET['a']`). (Caused by: integration/variadic/test.php +23)
+integration/variadic/test.php:34 SecurityCheck-XSS Calling method \Message::rawParams() in [no method] that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: Builtin-\Message::rawParams) (Param is raw)
+integration/variadic/test.php:35 SecurityCheck-XSS Calling method \Message::rawParams() in [no method] that outputs using tainted argument #25 (`$_GET['a']`). (Caused by: Builtin-\Message::rawParams) (Param is raw)
