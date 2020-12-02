@@ -2125,6 +2125,9 @@ trait TaintednessBaseVisitor {
 			case SecurityCheckPlugin::CODE_TAINT:
 				$issueType = 'SecurityCheck-RCE';
 				break;
+			case SecurityCheckPlugin::REGEX_TAINT:
+				$issueType = 'SecurityCheck-ReDoS';
+				break;
 			case SecurityCheckPlugin::CUSTOM1_TAINT:
 				$issueType = 'SecurityCheck-CUSTOM1';
 				break;

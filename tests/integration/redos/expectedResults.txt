@@ -1,0 +1,6 @@
+integration/redos/test.php:3 SecurityCheck-ReDoS Calling method \preg_match() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`).
+integration/redos/test.php:11 SecurityCheck-ReDoS Calling method \doMatch() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`). (Caused by: integration/redos/test.php +9)
+integration/redos/test.php:13 SecurityCheck-ReDoS Calling method \preg_replace() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`).
+integration/redos/test.php:14 SecurityCheck-ReDoS Calling method \preg_replace() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`).
+integration/redos/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/redos/test.php:17 SecurityCheck-ReDoS Calling method \preg_match_all() in [no method] that outputs using tainted argument #1 (`"/{$bad}/"`). (Caused by: integration/redos/test.php +16)

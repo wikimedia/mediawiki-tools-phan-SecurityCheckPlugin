@@ -238,6 +238,7 @@ return [
 		'SecurityCheck-CUSTOM2',
 		'SecurityCheck-RCE',
 		'SecurityCheck-PathTraversal',
+		'SecurityCheck-ReDoS',
 		'SecurityCheck-OTHER',
 		'SecurityCheck-LikelyFalsePositive',
 		'SecurityCheckDebugTaintedness',

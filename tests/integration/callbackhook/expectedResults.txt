@@ -1,3 +1,4 @@
+integration/callbackhook/Parser.php:41 SecurityCheck-LikelyFalsePositive Calling method \preg_match() in \StripState::addItem that outputs using tainted argument #1 (`$this->regex`).
 integration/callbackhook/func.php:5 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \wfSomeFunc (Caused by: integration/callbackhook/func.php +3)
 integration/callbackhook/test.php:12 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \closure_03e280fb69be (Caused by: integration/callbackhook/test.php +11)
 integration/callbackhook/test.php:20 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \closure_23b06e4acad4

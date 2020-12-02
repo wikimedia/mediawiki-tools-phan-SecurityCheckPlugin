@@ -69,6 +69,7 @@ return [
 		'SecurityCheck-CUSTOM2',
 		'SecurityCheck-RCE',
 		'SecurityCheck-PathTraversal',
+		'SecurityCheck-ReDoS',
 		'SecurityCheck-OTHER',
 		// Rely on severity setting to blacklist false positive.
 		'SecurityCheck-LikelyFalsePositive',

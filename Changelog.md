@@ -6,6 +6,7 @@
 * Array keys are now tracked separately from values
 * (MW) Properly track taintedness of array keys in some HTMLForm specifiers
 * Created new taint types and issues for RCE and path traversal: `SecurityCheck-RCE` and `SecurityCheck-PathTraversal`
+* Added detection for ReDoS vulnerabilities. New issue: `SecurityCheck-ReDoS`
 
 ## v3.1.1
 ### Internal changes
