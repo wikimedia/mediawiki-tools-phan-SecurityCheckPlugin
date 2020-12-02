@@ -74,7 +74,7 @@ $dbr->query( $dbr->makeList( [ 'foo',  'bar' => $_GET['evil3'] ], 1 ), '' );
 
 // Check assumption that unknown = LIST_AND.
 
-$type = IDatabase::LIST_AND;
+$type = $GLOBALS['foo'];
 $dbr->query( $dbr->makeList( [ 'fafad', 'adfafd' ], $type ), '' );
 $dbr->query( $dbr->makeList( [ $_GET['evil'],  $_GET['evil2'] ], $type ), '' ); // unsafe
 $dbr->query( $dbr->makeList( [ $_GET['evil'],  $_GET['evil2'] => $_GET['evil3'] ], $type ), '' ); // unsafe
@@ -145,3 +145,15 @@ $dbr->query( $dbr->makeList( [ 'fafad', 'adfafd' ], 3 ), '' );
 $dbr->query( $dbr->makeList( [ $_GET['evil'],  $_GET['evil2'] ], 3 ), '' ); // unsafe
 $dbr->query( $dbr->makeList( [ $_GET['evil'],  $_GET['evil2'] => $_GET['evil3'] ], 3 ), '' ); // unsafe
 $dbr->query( $dbr->makeList( [ 'foo',  'bar' => $_GET['evil3'] ], 3 ), '' ); // unsafe
+
+// NON-LITERAL
+$type1= LIST_COMMA;
+$dbr->query( $dbr->makeList( [ $_GET['evil'],  $_GET['evil2'] ], $type1 ), '' ); // Safe
+$type2= IDatabase::LIST_COMMA;
+$dbr->query( $dbr->makeList( [ $_GET['evil'],  $_GET['evil2'] ], $type2 ), '' ); // Safe
+$type3 = IDatabase::LIST_AND;
+$dbr->query( $dbr->makeList( [ $_GET['evil'], $_GET['evil2'] ], $type3 ), '' ); // Unsafe
+function getType4() {
+	return LIST_AND;
+}
+$dbr->query( $dbr->makeList( [ $_GET['evil'], $_GET['evil2'] ], getType4() ), '' ); // Unsafe

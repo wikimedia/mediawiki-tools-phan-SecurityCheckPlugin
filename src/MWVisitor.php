@@ -5,6 +5,7 @@ namespace SecurityCheckPlugin;
 use ast\Node;
 use Exception;
 use Phan\Analysis\PostOrderAnalysisVisitor;
+use Phan\AST\ContextNode;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Language\Element\Method;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
@@ -501,42 +502,22 @@ class MWVisitor extends TaintednessVisitor {
 		// First determine which IDatabase::LIST_*
 		// 0 = IDatabase::LIST_COMMA is default value.
 		$typeArg = $args->children[1] ?? 0;
-		if ( !is_object( $typeArg ) ) {
-			// Someone specified it literally instead of constant.
-			switch ( $typeArg ) {
-				case 0 /* LIST_COMMA */:
-					$type = 'comma';
-					break;
-				case 1 /* LIST_AND */:
-				case 2 /* LIST_SET */:
-				case 4 /* LIST_OR */:
-					$type = 'cond';
-					break;
-				case 3 /* LIST_NAMES */:
-					$type = 'name';
-					break;
-				default:
-					$this->debug( __METHOD__, "Unregonized 2nd arg "
-						. "to IDatabase::makeList '$typeArg'"
-					);
-					return;
-
-			}
-		} else {
+		if ( $typeArg instanceof Node ) {
+			$typeArg = $this->getCtxN( $typeArg )->getEquivalentPHPValueForNode(
+				$typeArg,
+				ContextNode::RESOLVE_SCALAR_DEFAULT & ~ContextNode::RESOLVE_CONSTANTS
+			);
+		}
+		if ( $typeArg instanceof Node ) {
 			if ( $typeArg->kind === \ast\AST_CLASS_CONST ) {
-				$constName = $typeArg->children['const'];
-			} elseif (
-				$typeArg->kind === \ast\AST_CONST &&
-				$typeArg->children['name']->kind === \ast\AST_NAME &&
-				is_string( $typeArg->children['name']->children['name'] )
-			) {
-				// oldstyle LIST_AND from defines.php
-				$constName = $typeArg->children['name']->children['name'];
+				// Probably IDatabase::LIST_*. Note that non-class constants are resolved
+				$typeArg = $typeArg->children['const'];
+			} elseif ( $typeArg->kind === \ast\AST_CONST ) {
+				$typeArg = $typeArg->children['name']->children['name'];
 			} else {
-				// Maybe someone passed it by variable.
+				// Something that cannot be resolved statically. Since LIST_NAMES is very rare, and LIST_COMMA is
+				// default, assume its LIST_AND or LIST_OR
 				$this->debug( __METHOD__, "Could not determine 2nd arg makeList()" );
-				// Since LIST_NAMES is very rare, and LIST_COMMA is default,
-				// assume its LIST_AND or LIST_OR
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$args->children[0],
@@ -544,52 +525,71 @@ class MWVisitor extends TaintednessVisitor {
 					"given an array with unescaped keynames or " .
 					"values for numeric keys (May be false positive)"
 				);
+
 				return;
-			}
-			switch ( $constName ) {
-				case 'LIST_COMMA':
-					$type = 'comma';
-					break;
-				case 'LIST_AND':
-				case 'LIST_SET':
-				case 'LIST_OR':
-					$type = 'cond';
-					break;
-				case 'LIST_NAMES':
-					$type = 'name';
-					break;
-				default:
-					$this->debug( __METHOD__, "Unregonized 2nd arg "
-						. "to IDatabase::makeList '$constName'"
-					);
-					return;
 			}
 		}
 
-		switch ( $type ) {
-			case 'comma':
-				// String keys ignored. Everything escaped.
-				// so nothing to worry about.
+		// Make sure not to mix strings and ints in switch cases, as that will break horribly
+		if ( is_int( $typeArg ) ) {
+			$typeArg = $this->literalListConstToName( $typeArg );
+		}
+		switch ( $typeArg ) {
+			case 'LIST_COMMA':
+				// String keys ignored. Everything escaped. So nothing to worry about.
 				break;
-			case 'cond':
+			case 'LIST_AND':
+			case 'LIST_SET':
+			case 'LIST_OR':
 				// exec_sql_numkey
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$args->children[0],
 					"IDatabase::makeList with LIST_AND, LIST_OR or "
-						. "LIST_SET must sql escape string "
-						. "key names and values of numeric keys"
+					. "LIST_SET must sql escape string key names and values of numeric keys"
 				);
 				break;
-			case 'name':
+			case 'LIST_NAMES' :
 				// Like comma but with no escaping.
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_EXEC_TAINT ),
 					$args->children[0],
 					"IDatabase::makeList with LIST_NAMES needs "
-						. "to escape for SQL"
+					. "to escape for SQL"
 				);
 				break;
+			default:
+				$this->debug( __METHOD__, "Unregonized 2nd arg " . "to IDatabase::makeList: '$typeArg'" );
+		}
+	}
+
+	/**
+	 * Convert a literal int value for a LIST_* constant to its name. This is a horrible hack for crappy code
+	 * that uses the constants literally rather than by name. Such code shouldn't deserve taint analysis.
+	 * This method can obviously break very easily if the values are changed.
+	 *
+	 * @param int $value
+	 * @return string
+	 */
+	private function literalListConstToName( int $value ) : string {
+		switch ( $value ) {
+			case 0:
+				return 'LIST_COMMA';
+			case 1:
+				return 'LIST_AND';
+			case 2:
+				return 'LIST_SET';
+			case 3:
+				return 'LIST_NAMES';
+			case 4:
+				return 'LIST_OR';
+			default:
+				// Oh boy, what the heck are you doing? Well, DWIM
+				$this->debug(
+					__METHOD__,
+					'Someone specified a LIST_* constant literally but it is not a valid value. Wow.'
+				);
+				return 'LIST_AND';
 		}
 	}
 

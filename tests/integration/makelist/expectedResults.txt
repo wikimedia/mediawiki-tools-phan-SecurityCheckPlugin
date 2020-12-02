@@ -37,3 +37,5 @@ integration/makelist/test.php:142 SecurityCheck-SQLInjection IDatabase::makeList
 integration/makelist/test.php:145 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
 integration/makelist/test.php:146 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
 integration/makelist/test.php:147 SecurityCheck-SQLInjection IDatabase::makeList with LIST_NAMES needs to escape for SQL
+integration/makelist/test.php:155 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
+integration/makelist/test.php:159 SecurityCheck-SQLInjection IDatabase::makeList with LIST_AND, LIST_OR or LIST_SET must sql escape string key names and values of numeric keys
