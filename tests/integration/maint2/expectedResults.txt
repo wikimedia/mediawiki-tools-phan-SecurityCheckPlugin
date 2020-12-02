@@ -1,2 +1,2 @@
 integration/maint2/test.php:12 SecurityCheck-LikelyFalsePositive Echoing expression that was not html escaped [Likely false positive because in a subclass of Maintenance, thus probably CLI]
-integration/maint2/test.php:14 SecurityCheck-OTHER Argument to require, include or eval is user controlled
+integration/maint2/test.php:14 SecurityCheck-RCE The code supplied to `eval` is user controlled

@@ -236,6 +236,8 @@ return [
 		'SecurityCheck-DoubleEscaped',
 		'SecurityCheck-CUSTOM1',
 		'SecurityCheck-CUSTOM2',
+		'SecurityCheck-RCE',
+		'SecurityCheck-PathTraversal',
 		'SecurityCheck-OTHER',
 		'SecurityCheck-LikelyFalsePositive',
 		'SecurityCheckDebugTaintedness',

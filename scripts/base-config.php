@@ -67,6 +67,8 @@ return [
 		'SecurityCheck-DoubleEscaped',
 		'SecurityCheck-CUSTOM1',
 		'SecurityCheck-CUSTOM2',
+		'SecurityCheck-RCE',
+		'SecurityCheck-PathTraversal',
 		'SecurityCheck-OTHER',
 		// Rely on severity setting to blacklist false positive.
 		'SecurityCheck-LikelyFalsePositive',

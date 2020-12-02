@@ -5,6 +5,7 @@
 * Variadic parameters are now properly handled
 * Array keys are now tracked separately from values
 * (MW) Properly track taintedness of array keys in some HTMLForm specifiers
+* Created new taint types and issues for RCE and path traversal: `SecurityCheck-RCE` and `SecurityCheck-PathTraversal`
 
 ## v3.1.1
 ### Internal changes
