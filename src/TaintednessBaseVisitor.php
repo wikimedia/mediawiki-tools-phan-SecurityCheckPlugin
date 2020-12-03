@@ -434,9 +434,28 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * TEMPORARY METHOD
+	 * @param TypedElementInterface $variableObj
+	 * @param Taintedness $taintedness
+	 * @param bool $override
+	 * @param bool $allowClearLHSData
+	 * @param Taintedness|null $errorTaint
+	 */
+	protected function setTaintednessOld(
+		TypedElementInterface $variableObj,
+		Taintedness $taintedness,
+		$override = true,
+		bool $allowClearLHSData = false,
+		Taintedness $errorTaint = null
+	) : void {
+		$this->setTaintedness( $variableObj, [], $taintedness, $override, $allowClearLHSData, $errorTaint );
+	}
+
+	/**
 	 * Change the taintedness of a variable
 	 *
 	 * @param TypedElementInterface $variableObj The variable in question
+	 * @param (Node|mixed)[] $resolvedOffsetsLhs List of possibly-resolved offsets at the LHS
 	 * @param Taintedness $taintedness
 	 * @param bool $override Override taintedness or just take max.
 	 * @param bool $allowClearLHSData Whether we're allowed to clear taint error and links
@@ -449,6 +468,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function setTaintedness(
 		TypedElementInterface $variableObj,
+		array $resolvedOffsetsLhs,
 		Taintedness $taintedness,
 		$override = true,
 		bool $allowClearLHSData = false,
@@ -476,13 +496,17 @@ trait TaintednessBaseVisitor {
 		if ( property_exists( $variableObj, 'isGlobalVariable' ) ) {
 			$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
 			// Merge the taint on the "true" global object, too
-			$this->doSetTaintedness( $globalVar, $taintedness, false, $errorTaint );
+			$this->doSetTaintedness( $globalVar, $resolvedOffsetsLhs, $taintedness, false, $errorTaint );
 			$override = false;
 		}
 		if ( $this->isHookRefArg( $variableObj ) ) {
 			// We do this in the general case as well. In doing so, we assume that a hook handler
 			// is only used as a hook handler.
 			$override = false;
+		}
+		if ( $resolvedOffsetsLhs ) {
+			// Don't clear data if this is an array assignment (regardless of whether offsets were resolved)
+			$allowClearLHSData = false;
 		}
 
 		if ( $override && $allowClearLHSData ) {
@@ -493,39 +517,79 @@ trait TaintednessBaseVisitor {
 			$this->clearTaintLinks( $variableObj );
 		}
 
-		$this->doSetTaintedness( $variableObj, $taintedness, $override, $errorTaint );
+		$this->doSetTaintedness( $variableObj, $resolvedOffsetsLhs, $taintedness, $override, $errorTaint );
 	}
 
 	/**
-	 * Actually sets the taintedness on $variableObj. This should only be called by
-	 * setTaintedness.
+	 * Actually sets the taintedness on $variableObj. This should almost never be used.
 	 *
 	 * @see self::setTaintedness for param docs
 	 *
 	 * @param TypedElementInterface $variableObj
+	 * @param (Node|mixed)[] $resolvedOffsetsLhs
 	 * @param Taintedness $taintedness
 	 * @param bool $override
 	 * @param Taintedness $errorTaint
 	 */
 	private function doSetTaintedness(
 		TypedElementInterface $variableObj,
+		array $resolvedOffsetsLhs,
 		Taintedness $taintedness,
 		bool $override,
 		Taintedness $errorTaint
 	) : void {
-		if ( !property_exists( $variableObj, 'taintedness' ) || $override ) {
-			$variableObj->taintedness = clone $taintedness;
+		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
+		// objects of which $variableObj is a clone!
+		/** @var Taintedness $curTaint */
+		$curTaint = property_exists( $variableObj, 'taintedness' )
+			? clone $variableObj->taintedness
+			: Taintedness::newSafe();
+		'@phan-var Taintedness $curTaint';
+
+		if ( $resolvedOffsetsLhs ) {
+			$offsetOverride = $override && $this->wereAllKeysResolved( $resolvedOffsetsLhs );
+			$keysTaint = $this->getKeysTaintednessList( $resolvedOffsetsLhs );
+			$curTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $taintedness, $offsetOverride );
+			foreach ( $keysTaint as $keyTaint ) {
+				$errorTaint->addKeysTaintedness( $keyTaint->get() );
+			}
 		} else {
-			// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
-			// objects of which $variableObj is a clone!
-			/** @var Taintedness $curTaint */
-			$curTaint = $variableObj->taintedness;
-			'@phan-var Taintedness $curTaint';
-			$variableObj->taintedness = $curTaint->asMergedWith( $taintedness );
+			$curTaint = $override ? $taintedness : $curTaint->asMergedWith( $taintedness );
 		}
+		$variableObj->taintedness = $curTaint;
 		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
 		// ( $variableObj->taintedness ?? 'unset' ) );
 		$this->addTaintError( $errorTaint, $variableObj );
+	}
+
+	/**
+	 * Given a list of resolved offsets, return the corresponding list of taintedness values
+	 * @param (Node|mixed)[] $offsets
+	 * @return Taintedness[]
+	 */
+	protected function getKeysTaintednessList( array $offsets ) : array {
+		$ret = [];
+		foreach ( $offsets as $offset ) {
+			$ret[] = $this->getTaintedness( $offset );
+		}
+		return $ret;
+	}
+
+	/**
+	 * Check whether we could *really* resolve (100% accuracy) all keys in $keys
+	 *
+	 * @param array $keys
+	 * @phan-param list<Node|mixed> $keys
+	 * @return bool
+	 */
+	private function wereAllKeysResolved( array $keys ) : bool {
+		foreach ( $keys as $key ) {
+			if ( $key === null || $key instanceof Node ) {
+				// Null is for `$arr[] = 'foo'`. Phan doesn't infer real types here, nor will we.
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -1479,7 +1543,7 @@ trait TaintednessBaseVisitor {
 			// names reuse.
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $curVarTaint->with( $taint );
-			$this->setTaintedness( $var, $newTaint );
+			$this->setTaintednessOld( $var, $newTaint );
 		}
 
 		$newMem = memory_get_peak_usage();
@@ -1526,7 +1590,7 @@ trait TaintednessBaseVisitor {
 			$newTaint = $curVarTaint->with( $taintAdjusted );
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
-			$this->setTaintedness( $var, $newTaint );
+			$this->setTaintednessOld( $var, $newTaint );
 			if (
 				$taintAdjusted->without( $curVarTaint )->isAllTaint() &&
 				$var instanceof ClassElement
@@ -2394,7 +2458,7 @@ trait TaintednessBaseVisitor {
 			}
 			// Move the ref taintedness to the "actual" taintedness of the object
 			$overrideTaint = $overrideTaint && !( $argObj instanceof Property );
-			$this->setTaintedness( $argObj, $this->getTaintednessReference( $argObj ), $overrideTaint );
+			$this->setTaintednessOld( $argObj, $this->getTaintednessReference( $argObj ), $overrideTaint );
 			if ( $overrideTaint ) {
 				unset( $argObj->taintednessRef );
 			}

@@ -45,7 +45,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			if ( $valueObj !== null ) {
 				// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
 				// the right taint to the value if we discover what the key is for the current iteration
-				$this->setTaintedness(
+				$this->setTaintednessOld(
 					$valueObj,
 					$lhsTaintedness->asValueForForeach(),
 					// NOTE: In overriding, we assume that the foreach has at least one iteration
@@ -72,7 +72,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				}
 
 				if ( $keyObj !== null ) {
-					$this->setTaintedness(
+					$this->setTaintednessOld(
 						$keyObj,
 						$lhsTaintedness->asKeyForForeach(),
 						// NOTE: In overriding, we assume that the foreach has at least one iteration
