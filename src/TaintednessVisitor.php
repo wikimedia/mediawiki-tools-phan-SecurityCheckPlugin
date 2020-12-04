@@ -435,23 +435,27 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$rhsTaintedness = $this->getTaintedness( $rhs );
 		# $this->debug( __METHOD__, "Getting taint RHS = $rhsTaintedness:" );
 
+		// This includes implicit taintedness from the LHS
+		$allRHSTaint = clone $rhsTaintedness;
+		$allowClearLHSData = true;
 		if ( $node->kind === \ast\AST_ASSIGN_OP ) {
 			// TODO, be more specific for different OPs
 			// Expand rhs to include implicit lhs ophand.
-			$rhsTaintedness->add( $lhsTaintedness );
-			$override = false;
+			$allRHSTaint->add( $lhsTaintedness );
+			$allowClearLHSData = false;
 		}
 
 		// Special case for SQL_NUMKEY_TAINT
 		// If we're assigning an SQL tainted value as an array key
 		// or as the value of a numeric key, then set NUMKEY taint.
+		// TODO Move this elsewhere?
 		if ( $lhs->kind === \ast\AST_DIM ) {
 			$dim = $lhs->children['dim'];
-			if ( $rhsTaintedness->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+			if ( $allRHSTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
 				// Things like 'foo' => ['taint', 'taint']
 				// are ok.
-				$rhsTaintedness->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			} elseif ( $rhsTaintedness->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+				$allRHSTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			} elseif ( $allRHSTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
 				// Checking the case:
 				// $foo[1] = $sqlTainted;
 				// $foo[] = $sqlTainted;
@@ -466,10 +470,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 						&& $lhs->children['expr']->kind === \ast\AST_DIM
 					)
 				) {
+					$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 					$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 				}
 			}
 			if ( $this->getTaintedness( $dim )->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+				$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 		}
@@ -521,7 +527,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// Also check the variable type, because for instance we have a DIM node for $this->prop['foo']
 			$curOverride = $override && !( $variableObj instanceof Property );
 			if ( $reference ) {
-				$this->setRefTaintedness( $variableObj, $rhsTaintedness, $curOverride );
+				$this->setRefTaintedness( $variableObj, $allRHSTaint, $curOverride );
 			} else {
 				// First try updating specific offset taint
 				$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $node );
@@ -532,15 +538,23 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 						? clone $variableObj->taintedness
 						: Taintedness::newSafe();
 					$keysTaint = $this->getKeysTaintednessList( $lhsOffsets );
-					$varTaint->applyArrayPlusAtOffsetList( $lhsOffsets, $keysTaint, $rhsTaintedness );
-					$rhsTaintedness = $varTaint;
+					$varTaint->applyArrayPlusAtOffsetList( $lhsOffsets, $keysTaint, $allRHSTaint );
+					$allRHSTaint = $varTaint;
 					// Everything was already included in the RHS with a huge hack.
 					$lhsOffsets = [];
 				}
 				// Don't clear data if one of the objects in the RHS is the same as this object
 				// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
-				$allowClearLHSData = !in_array( $variableObj, $rhsObjs, true );
-				$this->setTaintedness( $variableObj, $lhsOffsets, $rhsTaintedness, $curOverride, $allowClearLHSData );
+				$allowClearLHSData = $allowClearLHSData && !in_array( $variableObj, $rhsObjs, true );
+				$this->setTaintedness(
+					$variableObj,
+					$lhsOffsets,
+					$allRHSTaint,
+					$curOverride,
+					$allowClearLHSData,
+					// TODO: Error taint should be just $rhsTaintedness, but some useful caused-by lines get lost
+					$allRHSTaint
+				);
 			}
 
 			foreach ( $rhsObjs as $rhsObj ) {
@@ -560,7 +574,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				}
 			}
 		}
-		$this->curTaint = $rhsTaintedness;
+		$this->curTaint = $allRHSTaint;
 	}
 
 	/**
