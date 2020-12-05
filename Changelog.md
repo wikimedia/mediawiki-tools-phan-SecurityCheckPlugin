@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v3.1.1
 ### Internal changes
 * Allow installing the plugin in PHP 8. Analyzing code with new PHP 8 features is not supported yet (T269263)
 
