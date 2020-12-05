@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### Internal changes
+* Allow installing the plugin in PHP 8. Analyzing code with new PHP 8 features is not supported yet (T269263)
+
 ## v3.1.0
 ### New features
 * Increased the length limit for caused-by lines. The new limit is at 12 entries, rather than fixed at 255 characters (it was roughly doubled)
