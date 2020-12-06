@@ -339,14 +339,23 @@ trait TaintednessBaseVisitor {
 		}
 		foreach ( $newErrors as $newError ) {
 			if ( $arg === -1 ) {
-				if ( !in_array( $newError, $elem->taintedOriginalError, true ) ) {
-					$elem->taintedOriginalError = $this->mergeCausedByLines(
+				$newElement = [ clone $taintedness, $newError ];
+				if ( self::getArraySubsetIdx( $elem->taintedOriginalError, [ $newElement ] ) === false ) {
+					$elem->taintedOriginalError = self::mergeCausedByLines(
 						$elem->taintedOriginalError,
-						[ [ clone $taintedness, $newError ] ]
+						[ $newElement ]
 					);
 				}
-			} elseif ( !in_array( $newError, $elem->taintedOriginalErrorByArg[$arg], true ) ) {
-				$elem->taintedOriginalErrorByArg[$arg][] = $newError;
+			} else {
+				$rawPart = $taintedness->withOnly( SecurityCheckPlugin::RAW_PARAM );
+				$argErrTaint = $taintedness->asExecToYesTaint()->with( $rawPart );
+				$newElement = [ $argErrTaint, $newError ];
+				if ( self::getArraySubsetIdx( $elem->taintedOriginalErrorByArg[$arg], [ $newElement ] ) === false ) {
+					$elem->taintedOriginalErrorByArg[$arg] = self::mergeCausedByLines(
+						$elem->taintedOriginalErrorByArg[$arg],
+						[ $newElement ]
+					);
+				}
 			}
 		}
 	}
@@ -1582,9 +1591,10 @@ trait TaintednessBaseVisitor {
 	 * @return string
 	 */
 	protected function getOriginalTaintLine( $element, ?Taintedness $taintedness, $arg = -1 ) : string {
-		$lines = $this->getOriginalTaintArray( $element, $taintedness, $arg );
-		if ( $lines ) {
-			return ' (Caused by: ' . $this->stringifyCausedByLines( $lines ) . ')';
+		$lines = $this->getOriginalTaintArray( $element, $arg );
+		$filteredLines = $this->extractInterestingCausedbyLines( $lines, $taintedness );
+		if ( $filteredLines ) {
+			return ' (Caused by: ' . $this->stringifyCausedByLines( $filteredLines ) . ')';
 		} else {
 			return '';
 		}
@@ -1597,8 +1607,9 @@ trait TaintednessBaseVisitor {
 	 * @return Taintedness
 	 */
 	private function normalizeTaintForCausedBy( Taintedness $taintedness ) : Taintedness {
-		// Convert EXEC to YES, but keep existing YES in place.
-		$normTaints = $taintedness->withOnly( SecurityCheckPlugin::ALL_TAINT );
+		// Convert EXEC to YES, but keep existing YES in place, and also RAW_PARAM
+		// as that's used for error reporting.
+		$normTaints = $taintedness->withOnly( SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::RAW_PARAM );
 		$taintedness = $taintedness->asExecToYesTaint()->with( $normTaints );
 
 		if ( $taintedness->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
@@ -1635,12 +1646,11 @@ trait TaintednessBaseVisitor {
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
 	 * @param TypedElementInterface|Node|mixed $element
-	 * @param Taintedness|null $taintedness Only consider caused-by lines having (at least) these bits, null
-	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
-	 * @return string[]
+	 * @return array[]
+	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
-	private function getOriginalTaintArray( $element, ?Taintedness $taintedness, $arg = -1 ) : array {
+	private function getOriginalTaintArray( $element, $arg = -1 ) : array {
 		if ( !is_object( $element ) ) {
 			return [];
 		}
@@ -1652,32 +1662,32 @@ trait TaintednessBaseVisitor {
 					$element = $this->extractReferenceArgument( $element );
 				}
 				if ( property_exists( $element, 'taintedOriginalError' ) ) {
-					$lines = array_merge(
+					$lines = self::mergeCausedByLines(
 						$lines,
-						$this->extractInterestingCausedbyLines( $element->taintedOriginalError, $taintedness )
+						$element->taintedOriginalError
 					);
 				}
 				foreach ( $element->taintedOriginalErrorByArg ?? [] as $origArg ) {
 					// FIXME is this right? In the generic
 					// case should we include all arguments as
 					// well?
-					$lines = array_merge( $lines, $origArg );
+					$lines = self::mergeCausedByLines( $lines, $origArg );
 				}
 			} else {
 				assert( $element instanceof FunctionInterface );
-				$lines = array_merge( $lines, $element->taintedOriginalErrorByArg[ $arg ] ?? [] );
+				$lines = self::mergeCausedByLines( $lines, $element->taintedOriginalErrorByArg[ $arg ] ?? [] );
 			}
 		} elseif ( $element instanceof Node ) {
 			$pobjs = $this->getPhanObjsForNode( $element );
 			foreach ( $pobjs as $elem ) {
-				$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem, $taintedness ) );
+				$lines = self::mergeCausedByLines( $lines, $this->getOriginalTaintArray( $elem ) );
 			}
 			if ( $lines === [] ) {
 				// try to dig deeper.
 				// This will also include method calls and whatnot.
 				$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
 				foreach ( $pobjs as $elem ) {
-					$lines = array_merge( $lines, $this->getOriginalTaintArray( $elem, $taintedness ) );
+					$lines = self::mergeCausedByLines( $lines, $this->getOriginalTaintArray( $elem ) );
 				}
 			}
 		} else {

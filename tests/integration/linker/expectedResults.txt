@@ -1,4 +1,4 @@
 integration/linker/test.php:14 SecurityCheck-XSS Calling method \Linker::linkKnown() in [no method] that outputs using tainted argument #2 (`$_GET['baz']`). (Caused by: Builtin-\Linker::linkKnown) (Param is raw)
 integration/linker/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linker/test.php +14)
 integration/linker/test.php:18 SecurityCheck-XSS Calling method \Linker::linkKnown() in [no method] that outputs using tainted argument #2 (`$unsafeContent`). (Caused by: Builtin-\Linker::linkKnown) (Caused by: integration/linker/test.php +17) (Param is raw)
-integration/linker/test.php:18 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: Builtin-\Linker::linkKnown; integration/linker/test.php +17)
+integration/linker/test.php:18 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linker/test.php +17)
