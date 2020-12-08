@@ -1504,6 +1504,9 @@ trait TaintednessBaseVisitor {
 	 * This method is called to make all things that set $this->foo
 	 * as TAINT_EXEC.
 	 *
+	 * @note This might have annoying false positives with widely used properties
+	 * that are used with different levels of escaping, which is not a good idea anyway.
+	 *
 	 * @param TypedElementInterface $var The variable in question
 	 * @param Taintedness $taint What taint to mark them as.
 	 * @param Node|TypedElementInterface|null $triggeringElm To propagate caused-by lines
@@ -1525,22 +1528,6 @@ trait TaintednessBaseVisitor {
 			!property_exists( $var, 'taintedMethodLinks' ) ||
 			!count( $var->taintedMethodLinks )
 		) {
-			return;
-		}
-
-		if (
-			$var instanceof Property && (
-				(
-					$this->context->isInClassScope() &&
-					$this->context->getClassInScope( $this->code_base ) !== $var->getClass( $this->code_base )
-				) ||
-				$var->getContext()->getFile() !== $this->context->getFile()
-			)
-		) {
-			// @todo This should be tweaked. The idea behind this check is:
-			// - Let properties affect methods within the same class / the same file (depending
-			// on whether we're currently in class scope), e.g. for getters/setters
-			// - Forbid any other taintedness transfer. See the test 'user2' for the reason.
 			return;
 		}
 
