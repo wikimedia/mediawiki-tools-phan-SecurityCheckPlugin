@@ -440,21 +440,22 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$allRHSTaint = clone $rhsTaintedness;
 		$allowClearLHSData = true;
 		if ( $node->kind === \ast\AST_ASSIGN_OP ) {
-			if ( $node->flags !== \ast\flags\BINARY_ADD ) {
-				// Expand rhs to include implicit lhs ophand. $override shouldn't be used here
-				if ( property_exists( $node, 'assignTaintMask' ) ) {
-					$mask = $node->assignTaintMask;
-					// TODO Should we consume the value, since it depends on the union types?
-				} else {
-					$this->debug( __METHOD__, 'FIXME no preorder visit?' );
-					$mask = SecurityCheckPlugin::ALL_TAINT_FLAGS;
-				}
-
-				$allRHSTaint = $this->getBinOpTaint( $lhsTaintedness, $rhsTaintedness, $node->flags, $mask );
-			} else {
-				// TODO merge code for ADD
-				$allRHSTaint->add( $lhsTaintedness );
+			if ( $node->flags === \ast\flags\BINARY_ADD ) {
+				// Sanity: using `+=` should restrict the list of possible LHS nodes
+				static $allowedLHS = [ \ast\AST_VAR, \ast\AST_DIM, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
+				// TODO Determine if asserting is fine (as opp. to e.g. returning inapplicable taint)
+				assert( in_array( $lhs->kind, $allowedLHS, true ) );
 			}
+			// Expand rhs to include implicit lhs ophand. $override shouldn't be used here
+			if ( property_exists( $node, 'assignTaintMask' ) ) {
+				$mask = $node->assignTaintMask;
+				// TODO Should we consume the value, since it depends on the union types?
+			} else {
+				$this->debug( __METHOD__, 'FIXME no preorder visit?' );
+				$mask = SecurityCheckPlugin::ALL_TAINT_FLAGS;
+			}
+
+			$allRHSTaint = $this->getBinOpTaint( $lhsTaintedness, $rhsTaintedness, $node->flags, $mask );
 			$allowClearLHSData = false;
 		}
 
@@ -544,18 +545,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			} else {
 				// First try updating specific offset taint
 				$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $node );
-				if ( $node->kind === \ast\AST_ASSIGN_OP && $node->flags === \ast\flags\BINARY_ADD ) {
-					// Special handling for A += B, where A and B can be DIM nodes
-					// TODO Direct access here not ideal, and also a bit hacky
-					$varTaint = property_exists( $variableObj, 'taintedness' )
-						? clone $variableObj->taintedness
-						: Taintedness::newSafe();
-					$keysTaint = $this->getKeysTaintednessList( $lhsOffsets );
-					$varTaint->applyArrayPlusAtOffsetList( $lhsOffsets, $keysTaint, $allRHSTaint );
-					$allRHSTaint = $varTaint;
-					// Everything was already included in the RHS with a huge hack.
-					$lhsOffsets = [];
-				}
 				// Don't clear data if one of the objects in the RHS is the same as this object
 				// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
 				$allowClearLHSData = $allowClearLHSData && !in_array( $variableObj, $rhsObjs, true );
@@ -612,12 +601,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return [];
 		}
 
-		if (
-			$lhs->kind !== \ast\AST_DIM &&
-			( $node->kind !== \ast\AST_ASSIGN_OP || $node->flags !== \ast\flags\BINARY_ADD )
-		) {
-			// If we're not assigning to a dim and we don't have an array addition,
-			// visitAssign will handle the node.
+		if ( $lhs->kind !== \ast\AST_DIM ) {
 			return [];
 		}
 

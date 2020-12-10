@@ -1,5 +1,3 @@
-integration/assignop/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop/test.php +4)
-integration/assignop/test.php:10 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop/test.php +9)
 integration/assignop/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop/test.php +12; integration/assignop/test.php +15; integration/assignop/test.php +13)
 integration/assignop/test.php:22 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop/test.php +18; integration/assignop/test.php +21; integration/assignop/test.php +19)
 integration/assignop/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop/test.php +24; integration/assignop/test.php +26; integration/assignop/test.php +25)

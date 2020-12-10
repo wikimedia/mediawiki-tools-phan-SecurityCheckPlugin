@@ -3,17 +3,17 @@
 function nonArrayAdditionRemovesTaint() {
 	$unsafe = $_GET['x'];
 	$unsafe += 42;
-	echo $unsafe; // FIXME: Safe
+	echo $unsafe; // Safe
 
 	$num = 42;
 	$num += $_GET['unsafe'];
-	echo $num; // FIXME: Safe
+	echo $num; // Safe
 
 	$u1 = $_GET['u1'];
 	$u2 = $_GET['u2'];
 	assert( !is_array( $u1 ) && !is_array( $u2 ) );
 	$u1 += $u2;
-	echo $u1; // FIXME: Safe because phan doesn't use `mixed` for elements in $_GET, and `array` is ruled out above
+	echo $u1; // TODO: Ideally safe because `array` is ruled out above, but phan doesn't infer a real type here.
 
 	$u3 = $GLOBALS['u3'];
 	$u4 = $GLOBALS['u4'];
