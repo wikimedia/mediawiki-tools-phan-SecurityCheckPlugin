@@ -1217,8 +1217,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
 			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
+			if ( $variable instanceof PassByReferenceVariable ) {
+				$variable = $this->extractReferenceArgument( $variable );
+			}
 			// If the LHS is a variable and it can potentially be a stdClass, share its taintedness
-			// with the property. TODO Can we improve this?
+			// with the property. TODO Improve this.
 			$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
 			if ( $variable->getUnionType()->hasType( $stdClassType ) ) {
 				$this->doSetTaintedness(

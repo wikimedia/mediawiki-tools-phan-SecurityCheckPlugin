@@ -1,0 +1,2 @@
+integration/passbyrefcrash/test.php:5 SecurityCheck-LikelyFalsePositive Echoing expression that was not html escaped
+integration/passbyrefcrash/test.php:5 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefcrash/test.php +4; integration/passbyrefcrash/test.php +7)
