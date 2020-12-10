@@ -529,13 +529,13 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		CodeBase $code_base
 	) : bool {
 		if ( $lhsTaint->withOnly( $rhsTaint )->get() === self::HTML_TAINT ) {
+			$path = str_replace( '\\', '/', $context->getFile() );
 			if (
-				strpos( $context->getFile(), "maintenance/" ) === 0 ||
-				strpos( $context->getFile(), "./maintenance/" ) === 0
+				strpos( $path, 'maintenance/' ) === 0 ||
+				strpos( $path, '/maintenance/' ) !== false
 			) {
 				// For classes not using Maintenance subclasses
-				$msg = ' [Likely false positive because in maintenance'
-					. ' subdirectory, thus probably CLI]';
+				$msg .= ' [Likely false positive because in maintenance subdirectory, thus probably CLI]';
 				return true;
 			}
 			if ( !$context->isInClassScope() ) {
@@ -550,8 +550,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			$classFQSEN = $context->getClassFQSEN();
 			$isMaint = TaintednessBaseVisitor::isSubclassOf( $classFQSEN, $maintFQSEN, $code_base );
 			if ( $isMaint ) {
-				$msg .= ' [Likely false positive because in a subclass ' .
-					'of Maintenance, thus probably CLI]';
+				$msg .= ' [Likely false positive because in a subclass of Maintenance, thus probably CLI]';
 				return true;
 			}
 		}
