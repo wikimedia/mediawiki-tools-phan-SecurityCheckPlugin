@@ -1,0 +1,2 @@
+These are tests for weird/invalid syntax, to ensure it doesn't crash the plugin.
+Each test case is in its own file because phan may stop analyzing a file once it finds some invalid construct, without checking what comes later.

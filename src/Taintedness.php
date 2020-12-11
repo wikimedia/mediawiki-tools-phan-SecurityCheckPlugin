@@ -372,32 +372,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Apply the effect of array addition with $val after the list of offsets given by $offsets.
-	 * @see Taintedness::setTaintednessAtOffsetList() for the format
-	 *
-	 * @param array $offsets This CAN be empty, in which case the addition is applied to
-	 *   $this directly.
-	 * @phan-param array<int,Node|mixed> $offsets
-	 * @param Taintedness[] $offsetsTaint Taintedness for each offset in $offsets
-	 * @param Taintedness $val
-	 */
-	public function applyArrayPlusAtOffsetList( array $offsets, array $offsetsTaint, self $val ) : void {
-		if ( !$offsets ) {
-			$this->arrayPlus( $val );
-			return;
-		}
-		/**
-		 * @param mixed $lastOffset
-		 */
-		$arrayPlusCb = static function ( self $base, $lastOffset ) use ( $val ) : self {
-			return !isset( $base->dimTaint[$lastOffset] )
-				? $val
-				: $base->dimTaint[$lastOffset]->asArrayPlusWith( $val );
-		};
-		$this->applyClosureAtOffsetList( $offsets, $offsetsTaint, $val, $arrayPlusCb );
-	}
-
-	/**
 	 * Apply an array addition with $other
 	 *
 	 * @param Taintedness $other
