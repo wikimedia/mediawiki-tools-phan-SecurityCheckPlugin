@@ -9,6 +9,8 @@ escaped before being output as html or used as an sql query, etc.
 It supports generic PHP projects, and it also has a dedicated mode
 for MediaWiki code (analyzes hooks, HTMLForms and Database methods).
 
+A [web demo] is available.
+
 Usage
 -----
 
@@ -269,6 +271,7 @@ License
 
 [GNU General Public License, version 2 or later]
 
+[web demo]: https://taintcheck.toolforge.org/
 [Phan]: https://github.com/phan/phan
 [XSS]: https://en.wikipedia.org/wiki/Cross-site_scripting
 [SecurityCheckPlugin]: src/SecurityCheckPlugin.php
