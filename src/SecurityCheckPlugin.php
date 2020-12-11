@@ -110,7 +110,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public const ESCAPED_TAINT = 1 << 19;
 	public const ESCAPED_EXEC_TAINT = 1 << 20;
 
-	// Special purpose flags(Starting at 2^28)
+	// Special purpose flags (Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
 	public const ARRAY_OK = 1 << 28;
 

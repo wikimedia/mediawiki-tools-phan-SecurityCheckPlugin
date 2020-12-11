@@ -26,7 +26,7 @@ memory. Small projects do not require so much memory.
 
 ### Install
 
-    $ `composer require --dev mediawiki/phan-taint-check-plugin`
+    $ composer require --dev mediawiki/phan-taint-check-plugin
 
 ### Usage
 The plugin can be used in both "manual" and "standalone" mode. The former is the best
@@ -81,7 +81,7 @@ Then run phan as you normally would:
 
 You can then run:
 
-    $ `composer seccheck`
+    $ composer seccheck
 
 to run the security check.
 
