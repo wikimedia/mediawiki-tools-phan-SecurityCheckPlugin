@@ -1,0 +1,3 @@
+integration/consecutiveassign/test.php:5 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/consecutiveassign/test.php +3)
+integration/consecutiveassign/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/consecutiveassign/test.php +3)
+integration/consecutiveassign/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/consecutiveassign/test.php +3)

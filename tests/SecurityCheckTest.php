@@ -106,6 +106,9 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration( $name, $expected ) {
+		if ( $name === 'assignop' && PHP_VERSION_ID < 70400 ) {
+			$this->markTestSkipped( 'This test requires PHP 7.4+ due to the use of ??=' );
+		}
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php' );
 		$this->assertEquals( $expected, $res );
 	}
@@ -116,6 +119,9 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration_Polyfill( $name, $expected ) {
+		if ( $name === 'assignop' && PHP_VERSION_ID < 70400 ) {
+			$this->markTestSkipped( 'This test requires PHP 7.4+ due to the use of ??=' );
+		}
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', true );
 		$this->assertEquals( $expected, $res );
 	}

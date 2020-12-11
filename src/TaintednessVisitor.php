@@ -398,6 +398,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * Assignment operators are: .=, +=, -=, /=, %=, *=, **=, ??=, |=, &=, ^=, <<=, >>=
 	 * @param Node $node
 	 */
 	public function visitAssignOp( Node $node ) : void {
@@ -439,9 +440,21 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$allRHSTaint = clone $rhsTaintedness;
 		$allowClearLHSData = true;
 		if ( $node->kind === \ast\AST_ASSIGN_OP ) {
-			// TODO, be more specific for different OPs
-			// Expand rhs to include implicit lhs ophand.
-			$allRHSTaint->add( $lhsTaintedness );
+			if ( $node->flags !== \ast\flags\BINARY_ADD ) {
+				// Expand rhs to include implicit lhs ophand. $override shouldn't be used here
+				if ( property_exists( $node, 'assignTaintMask' ) ) {
+					$mask = $node->assignTaintMask;
+					// TODO Should we consume the value, since it depends on the union types?
+				} else {
+					$this->debug( __METHOD__, 'FIXME no preorder visit?' );
+					$mask = SecurityCheckPlugin::ALL_TAINT_FLAGS;
+				}
+
+				$allRHSTaint = $this->getBinOpTaint( $lhsTaintedness, $rhsTaintedness, $node->flags, $mask );
+			} else {
+				// TODO merge code for ADD
+				$allRHSTaint->add( $lhsTaintedness );
+			}
 			$allowClearLHSData = false;
 		}
 
@@ -552,8 +565,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 					$allRHSTaint,
 					$curOverride,
 					$allowClearLHSData,
-					// TODO: Error taint should be just $rhsTaintedness, but some useful caused-by lines get lost
-					$allRHSTaint
+					$rhsTaintedness
 				);
 			}
 
@@ -633,13 +645,30 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$leftTaint = $this->getTaintedness( $lhs );
 		$rightTaint = $this->getTaintedness( $rhs );
 		$mask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
-		if ( $node->flags === \ast\flags\BINARY_ADD && $mask !== SecurityCheckPlugin::NO_TAINT ) {
+		$this->curTaint = $this->getBinOpTaint( $leftTaint, $rightTaint, $node->flags, $mask );
+	}
+
+	/**
+	 * Get the taintedness of a binop, depending on the op type, applying the given flags
+	 * @param Taintedness $leftTaint
+	 * @param Taintedness $rightTaint
+	 * @param int $op Represented by a flags in \ast\flags
+	 * @param int $mask
+	 * @return Taintedness
+	 */
+	private function getBinOpTaint(
+		Taintedness $leftTaint,
+		Taintedness $rightTaint,
+		int $op,
+		int $mask
+	) : Taintedness {
+		if ( $op === \ast\flags\BINARY_ADD && $mask !== SecurityCheckPlugin::NO_TAINT ) {
 			// HACK: This means that a node can be array, so assume array plus
 			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
 		} else {
 			$combinedTaint = $leftTaint->with( $rightTaint )->withOnly( $mask );
 		}
-		$this->curTaint = $combinedTaint;
+		return $combinedTaint;
 	}
 
 	/**
