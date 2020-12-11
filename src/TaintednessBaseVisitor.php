@@ -2119,6 +2119,12 @@ trait TaintednessBaseVisitor {
 			case SecurityCheckPlugin::ESCAPED_TAINT:
 				$issueType = 'SecurityCheck-DoubleEscaped';
 				break;
+			case SecurityCheckPlugin::PATH_TAINT:
+				$issueType = 'SecurityCheck-PathTraversal';
+				break;
+			case SecurityCheckPlugin::CODE_TAINT:
+				$issueType = 'SecurityCheck-RCE';
+				break;
 			case SecurityCheckPlugin::CUSTOM1_TAINT:
 				$issueType = 'SecurityCheck-CUSTOM1';
 				break;

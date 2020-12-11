@@ -704,33 +704,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitShellExec( Node $node ) : void {
-		$taintedness = $this->getTaintedness( $node->children['expr'] );
-		$shellExecTaint = new Taintedness( SecurityCheckPlugin::SHELL_EXEC_TAINT );
-
-		$this->maybeEmitIssue(
-			$shellExecTaint,
-			$taintedness,
-			"Backtick shell execution operator contains user controlled arg{DETAILS}",
-			[ $this->getOriginalTaintLine( $node->children['expr'], $shellExecTaint ) ]
+		$this->visitSinkAndPropagate(
+			$node,
+			new Taintedness( SecurityCheckPlugin::SHELL_EXEC_TAINT ),
+			'Backtick shell execution operator contains user controlled arg'
 		);
-
-		if (
-			$node->children['expr'] instanceof Node &&
-			$this->isSafeAssignment( $shellExecTaint, $taintedness )
-		) {
-			// In the event the assignment looks safe, keep track of it,
-			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
-			foreach ( $phanObjs as $phanObj ) {
-				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $shellExecTaint->get() ) ) {
-					$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to backtick" );
-					$this->markAllDependentMethodsExec(
-						$phanObj,
-						$shellExecTaint
-					);
-				}
-			}
-		}
 		// Its unclear if we should consider this tainted or not
 		$this->curTaint = Taintedness::newTainted();
 	}
@@ -739,33 +717,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitIncludeOrEval( Node $node ) : void {
-		$taintedness = $this->getTaintedness( $node->children['expr'] );
-		$includeOrEvalTaint = new Taintedness( SecurityCheckPlugin::MISC_EXEC_TAINT );
-
-		$this->maybeEmitIssue(
-			$includeOrEvalTaint,
-			$taintedness,
-			"Argument to require, include or eval is user controlled{DETAILS}",
-			[ $this->getOriginalTaintLine( $node->children['expr'], $includeOrEvalTaint ) ]
-		);
-
-		if (
-			$node->children['expr'] instanceof Node &&
-			$this->isSafeAssignment( $includeOrEvalTaint, $taintedness )
-		) {
-			// In the event the assignment looks safe, keep track of it,
-			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
-			foreach ( $phanObjs as $phanObj ) {
-				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $includeOrEvalTaint->get() ) ) {
-					$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to require/eval" );
-					$this->markAllDependentMethodsExec(
-						$phanObj,
-						$includeOrEvalTaint
-					);
-				}
-			}
+		if ( $node->flags === \ast\flags\EXEC_EVAL ) {
+			$taintValue = SecurityCheckPlugin::CODE_EXEC_TAINT;
+			$msg = 'The code supplied to `eval` is user controlled';
+		} else {
+			$taintValue = SecurityCheckPlugin::PATH_EXEC_TAINT;
+			$msg = 'The included path is user controlled';
 		}
+		$this->visitSinkAndPropagate( $node, new Taintedness( $taintValue ), $msg );
 		// Strictly speaking we have no idea if the result
 		// of an eval() or require() is safe. But given that we
 		// don't know, and at least in the require() case its
@@ -774,7 +733,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * Also handles exit(), print, eval() and include() (for now).
+	 * Also handles exit() and print
 	 *
 	 * We assume a web based system, where outputting HTML via echo
 	 * is bad. This will have false positives in a CLI environment.
@@ -782,35 +741,52 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitEcho( Node $node ) : void {
-		$echoTaint = new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT );
-		$echoedExpr = $node->children['expr'];
-		$taintedness = $this->getTaintedness( $echoedExpr );
-		# $this->debug( __METHOD__, "Echoing with taint $taintedness" );
+		$this->visitSinkAndPropagate(
+			$node,
+			new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+			'Echoing expression that was not html escaped'
+		);
+		$this->curTaint = Taintedness::newSafe();
+	}
+
+	/**
+	 * @param Node $node
+	 * @param Taintedness $sinkTaint
+	 * @param string $issueMsg
+	 */
+	private function visitSinkAndPropagate( Node $node, Taintedness $sinkTaint, string $issueMsg ) : void {
+		assert( isset( $node->children['expr'] ) );
+		$taintedness = $this->getTaintedness( $node->children['expr'] );
 
 		$this->maybeEmitIssue(
-			$echoTaint,
+			$sinkTaint,
 			$taintedness,
-			"Echoing expression that was not html escaped{DETAILS}",
-			[ $this->getOriginalTaintLine( $echoedExpr, $echoTaint ) ]
+			"$issueMsg{DETAILS}",
+			[ $this->getOriginalTaintLine( $node->children['expr'], $sinkTaint ) ]
 		);
 
-		if ( $echoedExpr instanceof Node && $this->isSafeAssignment( $echoTaint, $taintedness ) ) {
+		if (
+			$node->children['expr'] instanceof Node &&
+			$this->isSafeAssignment( $sinkTaint, $taintedness )
+		) {
 			// In the event the assignment looks safe, keep track of it,
 			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $echoedExpr, [ 'return' ] );
+			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
 			foreach ( $phanObjs as $phanObj ) {
-				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $echoTaint->get() ) ) {
-					$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec due to echo" );
+				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $sinkTaint->get() ) ) {
+					$this->debug(
+						__METHOD__,
+						"Setting {$phanObj->getName()} exec $sinkTaint for node " . Debug::nodeToString( $node )
+					);
 					// FIXME, maybe not do this for local variables
 					// since they don't have other code paths that can set them.
 					$this->markAllDependentMethodsExec(
 						$phanObj,
-						$echoTaint
+						$sinkTaint
 					);
 				}
 			}
 		}
-		$this->curTaint = Taintedness::newSafe();
 	}
 
 	/**

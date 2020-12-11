@@ -24,7 +24,7 @@ class Foo {
 	}
 
 	/**
-	 * @suppress SecurityCheck-OTHER
+	 * @suppress SecurityCheck-PathTraversal
 	 */
 	public function includeMsg() {
 		return include $this->msg;

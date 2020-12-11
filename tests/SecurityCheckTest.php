@@ -182,4 +182,21 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 			'ALL_TAINT_FLAGS should include all flags'
 		);
 	}
+
+	/**
+	 * Ensure that any two SecurityCheckPlugin::*_TAINT constants have different values
+	 */
+	public function testTaintValuesAreDifferent() {
+		$cl = new ReflectionClass( SecurityCheckPlugin::class );
+		$constants = [];
+		foreach ( $cl->getConstants() as $name => $val ) {
+			if ( substr( $name, -strlen( '_TAINT' ) ) === '_TAINT' ) {
+				$constants[$name] = $val;
+			}
+		}
+		foreach ( $constants as $name => $value ) {
+			$firstOcc = array_search( $value, $constants );
+			$this->assertSame( $name, $firstOcc, 'Same taint value is used twice' );
+		}
+	}
 }

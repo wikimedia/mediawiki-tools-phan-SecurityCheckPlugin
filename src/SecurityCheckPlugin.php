@@ -83,17 +83,23 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public const SERIALIZE_TAINT = 1 << 9;
 	public const SERIALIZE_EXEC_TAINT = 1 << 10;
 
-	// To allow people to add other application specific
-	// taints.
-	public const CUSTOM1_TAINT = 1 << 11;
-	public const CUSTOM1_EXEC_TAINT = 1 << 12;
-	public const CUSTOM2_TAINT = 1 << 13;
-	public const CUSTOM2_EXEC_TAINT = 1 << 14;
+	// Tainted paths, as input to include(), require() and some FS functions (path traversal)
+	public const PATH_TAINT = 1 << 11;
+	public const PATH_EXEC_TAINT = 1 << 12;
 
-	// For stuff that doesn't fit another
-	// category (For the moment, this is stuff like `require $foo`)
+	// User-controlled code, for RCE
+	public const CODE_TAINT = 1 << 13;
+	public const CODE_EXEC_TAINT = 1 << 14;
+
+	// For stuff that doesn't fit another category
 	public const MISC_TAINT = 1 << 15;
 	public const MISC_EXEC_TAINT = 1 << 16;
+
+	// To allow people to add other application specific taints.
+	public const CUSTOM1_TAINT = 1 << 17;
+	public const CUSTOM1_EXEC_TAINT = 1 << 18;
+	public const CUSTOM2_TAINT = 1 << 19;
+	public const CUSTOM2_EXEC_TAINT = 1 << 20;
 
 	// Special purpose for supporting MediaWiki's IDatabase::select
 	// and friends. Like SQL_TAINT, but only applies to the numeric
@@ -103,12 +109,12 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// The associative keys also have this flag if they are tainted.
 	// It is also assumed anything with this flag will also have
 	// the SQL_TAINT flag set.
-	public const SQL_NUMKEY_TAINT = 1 << 17;
-	public const SQL_NUMKEY_EXEC_TAINT = 1 << 18;
+	public const SQL_NUMKEY_TAINT = 1 << 21;
+	public const SQL_NUMKEY_EXEC_TAINT = 1 << 22;
 
 	// For double escaped variables
-	public const ESCAPED_TAINT = 1 << 19;
-	public const ESCAPED_EXEC_TAINT = 1 << 20;
+	public const ESCAPED_TAINT = 1 << 23;
+	public const ESCAPED_EXEC_TAINT = 1 << 24;
 
 	// Special purpose flags (Starting at 2^28)
 	// Cancel's out all EXEC flags on a function arg if arg is array.
@@ -128,7 +134,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	// YES_TAINT denotes all taint a user controlled variable would have
 	public const YES_TAINT = self::HTML_TAINT | self::SQL_TAINT | self::SHELL_TAINT | self::SERIALIZE_TAINT |
-		self::CUSTOM1_TAINT | self::CUSTOM2_TAINT | self::MISC_TAINT;
+		self::PATH_TAINT | self::CODE_TAINT | self::CUSTOM1_TAINT | self::CUSTOM2_TAINT | self::MISC_TAINT;
 	public const EXEC_TAINT = self::YES_TAINT << 1;
 	public const YES_EXEC_TAINT = self::YES_TAINT | self::EXEC_TAINT;
 
@@ -305,6 +311,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			self::SERIALIZE_TAINT => 'SERIALIZE',
 			self::CUSTOM1_TAINT => 'CUSTOM1',
 			self::CUSTOM2_TAINT => 'CUSTOM2',
+			self::CODE_TAINT => 'CODE',
+			self::PATH_TAINT => 'PATH',
 			self::MISC_TAINT => 'MISC',
 			self::SQL_NUMKEY_TAINT => 'SQL_NUMKEY',
 			self::ARRAY_OK => 'ARRAY_OK',
@@ -315,6 +323,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			self::SERIALIZE_EXEC_TAINT => '*SERIALIZE',
 			self::CUSTOM1_EXEC_TAINT => '*CUSTOM1',
 			self::CUSTOM2_EXEC_TAINT => '*CUSTOM2',
+			self::CODE_EXEC_TAINT => '*CODE',
+			self::PATH_EXEC_TAINT => '*PATH',
 			self::MISC_EXEC_TAINT => '*MISC',
 			self::SQL_NUMKEY_EXEC_TAINT => '*SQL_NUMKEY',
 		];
@@ -473,7 +483,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 */
 	public static function parseTaintLine( string $line ) : ?Taintedness {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
-			. 'custom2|misc|sql_numkey|escaped|none|tainted)';
+			. 'custom2|misc|code|path|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
 		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override|raw_param)$/";
 
@@ -532,7 +542,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *
 	 * @note htmlnoent treated like self::HTML_TAINT.
 	 * @param string $name one of:
-	 *   html, sql, shell, serialize, custom1, custom2, misc, sql_numkey,
+	 *   html, sql, shell, serialize, custom1, custom2, code, path, misc, sql_numkey,
 	 *   escaped, none (= self::NO_TAINT), tainted (= self::YES_TAINT)
 	 * @return int One of the TAINT constants
 	 */
@@ -551,6 +561,10 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				return self::CUSTOM1_TAINT;
 			case 'custom2':
 				return self::CUSTOM2_TAINT;
+			case 'code':
+				return self::CODE_TAINT;
+			case 'path':
+				return self::PATH_TAINT;
 			case 'misc':
 				return self::MISC_TAINT;
 			case 'sql_numkey':
@@ -698,7 +712,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				'overall' => self::NO_TAINT
 			],
 			'\file_put_contents' => [
-				self::MISC_EXEC_TAINT,
+				self::PATH_EXEC_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
@@ -706,16 +720,24 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			],
 			// TODO What about file_get_contents() and file() ?
 			'\fopen' => [
-				self::MISC_EXEC_TAINT,
+				self::PATH_EXEC_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT // TODO Perhaps not so safe
 			],
 			'\opendir' => [
-				self::MISC_EXEC_TAINT,
+				self::PATH_EXEC_TAINT,
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT // TODO Perhaps not so safe
+			],
+			'\rawurlencode' => [
+				self::YES_TAINT & ~self::PATH_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\urlencode' => [
+				self::YES_TAINT & ~self::PATH_TAINT,
+				'overall' => self::NO_TAINT
 			],
 			'\printf' => [
 				self::HTML_EXEC_TAINT,
