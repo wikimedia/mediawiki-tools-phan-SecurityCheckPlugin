@@ -514,6 +514,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// branch scope and variable is not pass by reference.
 		// @fixme Is this really necessary? It doesn't seem helpful for local variables,
 		// and it doesn't handle props or globals.
+		// TODO: This should probably be moved to setTaintednessForAssignmentNode
 		$adjustedRHS = $rhsTaintedness->without( $lhsTaintedness );
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
@@ -522,12 +523,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			[ $this->getOriginalTaintLine( $lhs, null ) ]
 		);
 
+		$rhsObjs = [];
+		if ( is_object( $rhs ) ) {
+			$rhsObjs = $this->getPhanObjsForNode( $rhs );
+		}
+
 		$this->setTaintednessForAssignmentNode(
 			$lhs,
-			$lhsTaintedness,
 			$allRHSTaint,
 			$rhsTaintedness,
 			$rhs,
+			$rhsObjs,
 			$allowClearLHSData
 		);
 		return $allRHSTaint;
@@ -535,24 +541,42 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param Node $lhs
-	 * @param Taintedness $lhsTaintedness
 	 * @param Taintedness $allRHSTaint
 	 * @param Taintedness $rhsTaintedness
 	 * @param Node|mixed $rhs
+	 * @param TypedElementInterface[] $rhsObjs
 	 * @param bool $allowClearLHSData
 	 */
 	private function setTaintednessForAssignmentNode(
 		Node $lhs,
-		Taintedness $lhsTaintedness,
 		Taintedness $allRHSTaint,
 		Taintedness $rhsTaintedness,
 		$rhs,
+		array $rhsObjs,
 		bool $allowClearLHSData
 	) : void {
-		$rhsObjs = [];
-		if ( is_object( $rhs ) ) {
-			$rhsObjs = $this->getPhanObjsForNode( $rhs );
+		if ( $lhs->kind === \ast\AST_ARRAY ) {
+			$numKey = 0;
+			foreach ( $lhs->children as $child ) {
+				assert( $child instanceof Node && $child->kind === \ast\AST_ARRAY_ELEM );
+				$key = $child->children['key'] !== null ? $this->resolveOffset( $child->children['key'] ) : $numKey++;
+				$value = $child->children['value'];
+				if ( !$value instanceof Node ) {
+					// Syntax error, don't crash, and bail out immediately.
+					return;
+				}
+				$this->setTaintednessForAssignmentNode(
+					$value,
+					$allRHSTaint->getTaintednessForOffsetOrWhole( $key ),
+					$rhsTaintedness->getTaintednessForOffsetOrWhole( $key ),
+					$rhs,
+					$rhsObjs,
+					$allowClearLHSData
+				);
+			}
+			return;
 		}
+		$lhsTaintedness = $this->getTaintedness( $lhs );
 		$variableObjs = $this->getPhanObjsForNode( $lhs );
 		$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $lhs );
 		foreach ( $variableObjs as $variableObj ) {
@@ -721,11 +745,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @phan-return list<Node|mixed>
 	 */
 	private function getResolvedLhsOffsetsInAssignment( Node $lhs ) : array {
-		if ( $lhs->kind === \ast\AST_ARRAY ) {
-			// TODO Handle arrays at the LHS
-			return [];
-		}
-
 		if ( $lhs->kind !== \ast\AST_DIM ) {
 			return [];
 		}

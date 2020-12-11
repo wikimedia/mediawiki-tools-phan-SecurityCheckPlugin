@@ -7,6 +7,7 @@
 * (MW) Properly track taintedness of array keys in some HTMLForm specifiers
 * Created new taint types and issues for RCE and path traversal: `SecurityCheck-RCE` and `SecurityCheck-PathTraversal`
 * Added detection for ReDoS vulnerabilities. New issue: `SecurityCheck-ReDoS`
+* The plugin can now properly analyze assignments with an array at the LHS
 
 ## v3.1.1
 ### Internal changes
