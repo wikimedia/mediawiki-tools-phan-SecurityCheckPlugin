@@ -8,6 +8,6 @@ class Foo {
 	public function execute() {
 		$user = User::newFromName( $_GET['baz'] );
 		$this->output( $user->getName() ); // This is unsafe
-		User::newFromName( $_GET['baz'] ); // But this one is not.
+		User::newFromName( $_GET['baz'] ); // And we consider this one unsafe as well.
 	}
 }
