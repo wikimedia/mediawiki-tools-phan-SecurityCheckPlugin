@@ -78,7 +78,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 				continue;
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
-			$this->setTaintedness( $varObj, Taintedness::newTainted() );
+			$this->setTaintednessOld( $varObj, Taintedness::newTainted() );
 			// $this->debug( __METHOD__, "In $method setting param $varObj as tainted" );
 		}
 		// If there are no type hints, phan won't know that the parser
@@ -145,7 +145,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 				continue;
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
-			$this->setTaintedness( $varObj, Taintedness::newTainted() );
+			$this->setTaintednessOld( $varObj, Taintedness::newTainted() );
 			/* Is this needed ? Disabling for now.
 			$funcTaint = $this->getTaintOfFunction( $method );
 			if ( isset( $funcTaint[$i] ) ) {

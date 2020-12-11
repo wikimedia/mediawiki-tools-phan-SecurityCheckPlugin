@@ -31,7 +31,6 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
-use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\ClosureType;
@@ -426,9 +425,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// override the taint (Pass by reference variables are handled
 		// specially and should be ok).
 
-		// Make sure $foo[2] = 0; doesn't kill taint of $foo generally.
-		// Ditto for $this->bar, or props in general just in case.
-		$override = $lhs->kind !== \ast\AST_DIM && $lhs->kind !== \ast\AST_PROP;
+		// Make sure $this->bar doesn't kill taint of $foo generally, or props in general just in case.
+		$override = $lhs->kind !== \ast\AST_PROP;
 
 		$variableObjs = $this->getPhanObjsForNode( $lhs );
 
@@ -519,17 +517,30 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// echo $this->dbgInfo() . " " . $variableObj .
 			// " now merging in taintedness " . $rhsTaintedness
 			// . " (previously $lhsTaintedness)\n";
+
+			// Also check the variable type, because for instance we have a DIM node for $this->prop['foo']
+			$curOverride = $override && !( $variableObj instanceof Property );
 			if ( $reference ) {
-				$this->setRefTaintedness( $variableObj, $rhsTaintedness, $override );
+				$this->setRefTaintedness( $variableObj, $rhsTaintedness, $curOverride );
 			} else {
 				// First try updating specific offset taint
-				$dimUpdated = $this->setOffsetTaintInAssignment( $variableObj, $node, $rhsTaintedness );
-				if ( !$dimUpdated ) {
-					// Don't clear data if one of the objects in the RHS is the same as this object
-					// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
-					$allowClearLHSData = !in_array( $variableObj, $rhsObjs, true );
-					$this->setTaintedness( $variableObj, $rhsTaintedness, $override, $allowClearLHSData );
+				$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $node );
+				if ( $node->kind === \ast\AST_ASSIGN_OP && $node->flags === \ast\flags\BINARY_ADD ) {
+					// Special handling for A += B, where A and B can be DIM nodes
+					// TODO Direct access here not ideal, and also a bit hacky
+					$varTaint = property_exists( $variableObj, 'taintedness' )
+						? clone $variableObj->taintedness
+						: Taintedness::newSafe();
+					$keysTaint = $this->getKeysTaintednessList( $lhsOffsets );
+					$varTaint->applyArrayPlusAtOffsetList( $lhsOffsets, $keysTaint, $rhsTaintedness );
+					$rhsTaintedness = $varTaint;
+					// Everything was already included in the RHS with a huge hack.
+					$lhsOffsets = [];
 				}
+				// Don't clear data if one of the objects in the RHS is the same as this object
+				// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
+				$allowClearLHSData = !in_array( $variableObj, $rhsObjs, true );
+				$this->setTaintedness( $variableObj, $lhsOffsets, $rhsTaintedness, $curOverride, $allowClearLHSData );
 			}
 
 			foreach ( $rhsObjs as $rhsObj ) {
@@ -553,94 +564,40 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * For an assignment, try to update the lhs precisely using dim information for both LHS and RHS.
-	 * @todo Perhaps this should be decoupled from assignments and be moved into setTaintedness
-	 *
-	 * @param TypedElementInterface $variableObj The object at the LHS
-	 * @param Node $node The assignment node. Must be AST_ASSIGN or AST_ASSINGN_OP
-	 * @param Taintedness $rhsTaint Taintedness of the RHS, adjusted with numkey etc. if necessary
-	 * @return bool Whether we managed to update the dim taintedness
+	 * @param Node $node The assignment node. Must be AST_ASSIGN or AST_ASSIGN_OP
+	 * @return array List of possibly-resolved offsets
+	 * @phan-return list<Node|mixed>
 	 */
-	private function setOffsetTaintInAssignment(
-		TypedElementInterface $variableObj,
-		Node $node,
-		Taintedness $rhsTaint
-	) : bool {
+	private function getResolvedLhsOffsetsInAssignment( Node $node ) : array {
 		assert( $node->kind === \ast\AST_ASSIGN || $node->kind === \ast\AST_ASSIGN_OP );
 		$lhs = $node->children['var'];
 		if ( $lhs->kind === \ast\AST_ARRAY ) {
 			// TODO Handle arrays at the LHS
-			return false;
+			return [];
 		}
+
 		if (
 			$lhs->kind !== \ast\AST_DIM &&
 			( $node->kind !== \ast\AST_ASSIGN_OP || $node->flags !== \ast\flags\BINARY_ADD )
 		) {
 			// If we're not assigning to a dim and we don't have an array addition,
-			// setTaintedness will handle the node.
-			return false;
+			// visitAssign will handle the node.
+			return [];
 		}
 
 		$resolvedOffsetsLhs = [];
-		$resolvedAll = true;
 		$lhsDimNode = $lhs;
 		while ( $lhsDimNode instanceof Node && $lhsDimNode->kind === \ast\AST_DIM ) {
 			$offsetNode = $lhsDimNode->children['dim'];
 			if ( $offsetNode === null ) {
-				// $arr[] = 'foo'
-				// Phan doesn't infer real types here, nor will we.
-				$resolvedAll = false;
 				$curOff = null;
 			} else {
 				$curOff = $this->resolveOffset( $offsetNode );
-				if ( $curOff instanceof Node ) {
-					$resolvedAll = false;
-				}
 			}
 			$resolvedOffsetsLhs[] = $curOff;
 			$lhsDimNode = $lhsDimNode->children['expr'];
 		}
-		$resolvedOffsetsLhs = array_reverse( $resolvedOffsetsLhs );
-
-		// TODO Direct access here not ideal
-		$varTaint = property_exists( $variableObj, 'taintedness' )
-			? clone $variableObj->taintedness
-			: Taintedness::newSafe();
-
-		$keysTaint = $this->getKeysTaintednessList( $resolvedOffsetsLhs );
-		if ( $node->kind !== \ast\AST_ASSIGN_OP || $node->flags !== \ast\flags\BINARY_ADD ) {
-			assert( $lhs->kind === \ast\AST_DIM );
-			assert( count( $resolvedOffsetsLhs ) >= 1 );
-			$offsetOverride = $node->kind !== \ast\AST_ASSIGN_OP && $resolvedAll;
-			$varTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $rhsTaint, $offsetOverride );
-		} else {
-			// Special handling for A += B, where A and B can be DIM nodes
-			$varTaint->applyArrayPlusAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $rhsTaint );
-		}
-
-		$errorTaint = $rhsTaint;
-		foreach ( $keysTaint as $keyTaint ) {
-			$errorTaint->addKeysTaintedness( $keyTaint->get() );
-		}
-		// We avoid overriding just for properties here (globals etc. are handled in setTaintedness).
-		// Note 1: override for ASSIGN_OP is already handled above when setting the updating the taint
-		// Note 2: both checks are necessary, because we may have e.g. a DIM node for $this->prop['foo']
-		$dimOverride = $lhs->kind !== \ast\AST_PROP && !( $variableObj instanceof Property );
-		$this->setTaintedness( $variableObj, $varTaint, $dimOverride, false, $rhsTaint );
-		return true;
-	}
-
-	/**
-	 * Given a list of resolved offsets (as in setTaintedness), return the corresponding list of taintedness values
-	 * @param (Node|mixed)[] $offsets
-	 * @return Taintedness[]
-	 */
-	private function getKeysTaintednessList( array $offsets ) : array {
-		$ret = [];
-		foreach ( $offsets as $offset ) {
-			$ret[] = $this->getTaintedness( $offset );
-		}
-		return $ret;
+		return array_reverse( $resolvedOffsetsLhs );
 	}
 
 	/**
@@ -1240,6 +1197,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( $variable->getUnionType()->hasType( $stdClassType ) ) {
 				$this->doSetTaintedness(
 					$prop,
+					[],
 					$this->getTaintednessPhanObj( $variable ),
 					false,
 					Taintedness::newSafe()
@@ -1262,7 +1220,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		assert( $clazz->hasPropertyWithName( $this->code_base, $node->children['name'] ) );
 		$prop = $clazz->getPropertyByName( $this->code_base, $node->children['name'] );
 		// Initialize the taintedness of the prop if not set
-		$this->setTaintedness( $prop, Taintedness::newSafe(), false );
+		$this->setTaintednessOld( $prop, Taintedness::newSafe(), false );
 		$this->curTaint = Taintedness::newInapplicable();
 	}
 
