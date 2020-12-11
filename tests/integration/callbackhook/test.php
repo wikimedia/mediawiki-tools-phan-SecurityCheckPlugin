@@ -18,8 +18,10 @@ class SomeClass {
 		$parser->setFunctionHook( 'afunc', 'wfSomeFunc' );
 		$parser->setFunctionHook( 'two', function ( Parser $parser, $arg1 ) {
 				return [ $_GET['d'], 'isHTML' => true ];
-		}
-		);
+		} );
+		$parser->setFunctionHook( 'safe', function ( Parser $parser, $arg1 ) {
+			return [ 'SAFE', 'isHTML' => true ];
+		} );
 
 		$parser->setFunctionHook( 'three', $indirectClosure );
 	}

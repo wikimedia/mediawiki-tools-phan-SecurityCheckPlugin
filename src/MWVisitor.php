@@ -739,9 +739,11 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 
+		$arg = $node->children[0];
+		assert( $arg instanceof Node && $arg->kind === \ast\AST_ARRAY_ELEM );
 		$this->maybeEmitIssueSimplified(
 			new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-			$node->children[0],
+			$arg->children['value'],
 			"Outputting user controlled HTML from Parser function hook {FUNCTIONLIKE}",
 			[ $funcName ]
 		);

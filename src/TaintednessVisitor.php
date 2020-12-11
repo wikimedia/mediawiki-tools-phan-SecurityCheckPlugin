@@ -395,6 +395,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * A => B
+	 * @param Node $node
+	 */
+	public function visitArrayElem( Node $node ) : void {
+		// Key and value are handled in visitArray()
+		$this->curTaint = Taintedness::newInapplicable();
+	}
+
+	/**
 	 * @param Node $node
 	 */
 	public function visitClone( Node $node ) : void {
@@ -1105,16 +1114,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$curTaint->addKeysTaintedness( $keyTaint->get() );
 		}
 		$this->curTaint = $curTaint;
-	}
-
-	/**
-	 * @todo Is this still useful? Probably not, as it mixes key and value
-	 * A => B
-	 * @param Node $node
-	 */
-	public function visitArrayElem( Node $node ) : void {
-		$this->curTaint = $this->getTaintedness( $node->children['value'] )
-			->with( $this->getTaintedness( $node->children['key'] ) );
 	}
 
 	/**
