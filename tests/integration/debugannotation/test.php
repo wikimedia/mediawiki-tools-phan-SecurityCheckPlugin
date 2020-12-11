@@ -17,3 +17,22 @@ function testFunc() {
 	$var4 = 'safe';
 	'@phan-debug-var-taintedness $var1, $var2, $var3,$var4';
 }
+
+function withArrays() {
+	$arr1 = [
+		'safe' => 'safe',
+		'unsafe' => [
+			'safe' => 'safe',
+			'unsafe' => [
+				'safe' => 'safe',
+				'unsafe' => $_GET['foo']
+			]
+		]
+	];
+	'@phan-debug-var-taintedness $arr1';
+	$arr2 = [
+		'new' => $_GET['a'],
+		$GLOBALS['unkkey'] => $arr1
+	];
+	'@phan-debug-var-taintedness $arr2';
+}

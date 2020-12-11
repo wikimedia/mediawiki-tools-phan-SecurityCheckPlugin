@@ -256,8 +256,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					if ( $context->getScope()->hasVariableWithName( $varName ) ) {
 						$var = $context->getScope()->getVariableByName( $varName );
 						$taint = property_exists( $var, 'taintedness' )
-							// TODO Can we somehow preserve the shape here?
-							? self::taintToString( $var->taintedness->get() )
+							? $var->taintedness->toShortString()
 							: 'unset';
 						$msg = "Variable {CODE} has taintedness: {DETAILS}";
 						$params = [ "\$$varName", $taint ];

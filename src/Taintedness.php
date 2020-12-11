@@ -538,6 +538,28 @@ EOT;
 	}
 
 	/**
+	 * Get a stringified representation of this taintedness suitable for the debug annotation
+	 *
+	 * @return string
+	 */
+	public function toShortString() : string {
+		$flags = SecurityCheckPlugin::taintToString( $this->flags );
+		$unknown = SecurityCheckPlugin::taintToString( $this->unknownDimsTaint );
+		$keys = SecurityCheckPlugin::taintToString( $this->keysTaint );
+		$ret = "{Own: $flags; Unknown: $unknown; Keys: $keys";
+		if ( $this->dimTaint ) {
+			$ret .= '; Elements: {';
+			$keyParts = [];
+			foreach ( $this->dimTaint as $key => $taint ) {
+				$keyParts[] = "$key => " . $taint->toShortString();
+			}
+			$ret .= implode( '; ', $keyParts ) . '}';
+		}
+		$ret .= '}';
+		return $ret;
+	}
+
+	/**
 	 * Make sure to clone member variables, too.
 	 */
 	public function __clone() {
