@@ -31,6 +31,7 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
+use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\ClosureType;
@@ -418,18 +419,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitAssignOp( Node $node ) : void {
-		$this->visitAssign( $node );
-	}
-
-	/**
-	 * Also handles visitAssignOp
-	 *
-	 * @param Node $node
-	 */
-	public function visitAssign( Node $node ) : void {
-		// echo __METHOD__ . $this->dbgInfo() . ' ';
-		// Debug::printNode($node);
-
 		$lhs = $node->children['var'];
 		if ( !$lhs instanceof Node ) {
 			// Syntax error, don't crash
@@ -437,77 +426,83 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$rhs = $node->children['expr'];
-		// Note: If there is a local variable that is a reference
-		// to another non-local variable, this will probably incorrectly
-		// override the taint (Pass by reference variables are handled
-		// specially and should be ok).
-
-		// Make sure $this->bar doesn't kill taint of $foo generally, or props in general just in case.
-		$override = $lhs->kind !== \ast\AST_PROP;
-
-		$variableObjs = $this->getPhanObjsForNode( $lhs );
-
 		$lhsTaintedness = $this->getTaintedness( $lhs );
-		# $this->debug( __METHOD__, "Getting taint LHS = $lhsTaintedness:" );
 		$rhsTaintedness = $this->getTaintedness( $rhs );
-		# $this->debug( __METHOD__, "Getting taint RHS = $rhsTaintedness:" );
 
-		// This includes implicit taintedness from the LHS
-		$allRHSTaint = clone $rhsTaintedness;
-		$allowClearLHSData = true;
-		if ( $node->kind === \ast\AST_ASSIGN_OP ) {
-			if ( $node->flags === \ast\flags\BINARY_ADD ) {
-				// Sanity: using `+=` should restrict the list of possible LHS nodes
-				static $allowedLHS = [ \ast\AST_VAR, \ast\AST_DIM, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
-				// TODO Determine if asserting is fine (as opp. to e.g. returning inapplicable taint)
-				assert( in_array( $lhs->kind, $allowedLHS, true ) );
-			}
-			// Expand rhs to include implicit lhs ophand. $override shouldn't be used here
-			if ( property_exists( $node, 'assignTaintMask' ) ) {
-				$mask = $node->assignTaintMask;
-				// TODO Should we consume the value, since it depends on the union types?
-			} else {
-				$this->debug( __METHOD__, 'FIXME no preorder visit?' );
-				$mask = SecurityCheckPlugin::ALL_TAINT_FLAGS;
-			}
-
-			$allRHSTaint = $this->getBinOpTaint( $lhsTaintedness, $rhsTaintedness, $node->flags, $mask );
-			$allowClearLHSData = false;
+		if ( $node->flags === \ast\flags\BINARY_ADD ) {
+			// Sanity: using `+=` should restrict the list of possible LHS nodes
+			static $allowedLHS = [ \ast\AST_VAR, \ast\AST_DIM, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
+			// TODO Determine if asserting is fine (as opp. to e.g. returning inapplicable taint)
+			assert( in_array( $lhs->kind, $allowedLHS, true ) );
 		}
 
-		// Special case for SQL_NUMKEY_TAINT
-		// If we're assigning an SQL tainted value as an array key
-		// or as the value of a numeric key, then set NUMKEY taint.
-		// TODO Move this elsewhere?
+		if ( property_exists( $node, 'assignTaintMask' ) ) {
+			$mask = $node->assignTaintMask;
+			// TODO Should we consume the value, since it depends on the union types?
+		} else {
+			$this->debug( __METHOD__, 'FIXME no preorder visit?' );
+			$mask = SecurityCheckPlugin::ALL_TAINT_FLAGS;
+		}
+
+		// Expand rhs to include implicit lhs ophand.
+		$allRHSTaint = $this->getBinOpTaint( $lhsTaintedness, $rhsTaintedness, $node->flags, $mask );
+		$allowClearLHSData = false;
+		$this->curTaint = $this->doVisitAssign(
+			$lhs,
+			$rhs,
+			$lhsTaintedness,
+			$rhsTaintedness,
+			$allRHSTaint,
+			$allowClearLHSData
+		);
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitAssign( Node $node ) : void {
+		$lhs = $node->children['var'];
+		if ( !$lhs instanceof Node ) {
+			// Syntax error, don't crash
+			$this->curTaint = Taintedness::newInapplicable();
+			return;
+		}
+		$rhs = $node->children['expr'];
+
+		$lhsTaintedness = $this->getTaintedness( $lhs );
+		$rhsTaintedness = $this->getTaintedness( $rhs );
+		$allRHSTaint = clone $rhsTaintedness;
+		$allowClearLHSData = true;
+
+		$this->curTaint = $this->doVisitAssign(
+			$lhs,
+			$rhs,
+			$lhsTaintedness,
+			$rhsTaintedness,
+			$allRHSTaint,
+			$allowClearLHSData
+		);
+	}
+
+	/**
+	 * @param Node $lhs
+	 * @param Node|mixed $rhs
+	 * @param Taintedness $lhsTaintedness
+	 * @param Taintedness $rhsTaintedness
+	 * @param Taintedness $allRHSTaint
+	 * @param bool $allowClearLHSData
+	 * @return Taintedness
+	 */
+	private function doVisitAssign(
+		Node $lhs,
+		$rhs,
+		Taintedness $lhsTaintedness,
+		Taintedness $rhsTaintedness,
+		Taintedness $allRHSTaint,
+		bool $allowClearLHSData
+	) : Taintedness {
 		if ( $lhs->kind === \ast\AST_DIM ) {
-			$dim = $lhs->children['dim'];
-			if ( $allRHSTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
-				// Things like 'foo' => ['taint', 'taint']
-				// are ok.
-				$allRHSTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			} elseif ( $allRHSTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
-				// Checking the case:
-				// $foo[1] = $sqlTainted;
-				// $foo[] = $sqlTainted;
-				// But ensuring we don't catch:
-				// $foo['bar'][] = $sqlTainted;
-				// $foo[] = [ $sqlTainted ];
-				// $foo[2] = [ $sqlTainted ];
-				if (
-					( $dim === null || $this->nodeIsInt( $dim ) )
-					&& !$this->nodeIsArray( $rhs )
-					&& !( $lhs->children['expr'] instanceof Node
-						&& $lhs->children['expr']->kind === \ast\AST_DIM
-					)
-				) {
-					$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-					$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-				}
-			}
-			if ( $this->getTaintedness( $dim )->has( SecurityCheckPlugin::SQL_TAINT ) ) {
-				$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			}
+			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $rhsTaintedness, $allRHSTaint );
 		}
 
 		// If we're assigning to a variable we know will be output later
@@ -527,91 +522,205 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			[ $this->getOriginalTaintLine( $lhs, null ) ]
 		);
 
+		$this->setTaintednessForAssignmentNode(
+			$lhs,
+			$lhsTaintedness,
+			$allRHSTaint,
+			$rhsTaintedness,
+			$rhs,
+			$allowClearLHSData
+		);
+		return $allRHSTaint;
+	}
+
+	/**
+	 * @param Node $lhs
+	 * @param Taintedness $lhsTaintedness
+	 * @param Taintedness $allRHSTaint
+	 * @param Taintedness $rhsTaintedness
+	 * @param Node|mixed $rhs
+	 * @param bool $allowClearLHSData
+	 */
+	private function setTaintednessForAssignmentNode(
+		Node $lhs,
+		Taintedness $lhsTaintedness,
+		Taintedness $allRHSTaint,
+		Taintedness $rhsTaintedness,
+		$rhs,
+		bool $allowClearLHSData
+	) : void {
 		$rhsObjs = [];
 		if ( is_object( $rhs ) ) {
 			$rhsObjs = $this->getPhanObjsForNode( $rhs );
 		}
-
+		$variableObjs = $this->getPhanObjsForNode( $lhs );
+		$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $lhs );
 		foreach ( $variableObjs as $variableObj ) {
-			$reference = false;
-			if ( $variableObj instanceof PassByReferenceVariable ) {
-				$reference = true;
-				$variableObj = $this->extractReferenceArgument( $variableObj );
-			}
-			if (
-				$variableObj instanceof Property &&
-				$variableObj->getClass( $this->code_base )->getFQSEN() ===
-				FullyQualifiedClassName::getStdClassFQSEN()
-			) {
-				// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
-				// Avoid doing the same with taintedness, as that would cause weird issues (see
-				// 'stdclassconflation' test).
-				// @todo Is it possible to store prop taintedness in the Variable object?
-				// that would be similar to a fine-grained handling of arrays.
-				continue;
-			}
-			// echo $this->dbgInfo() . " " . $variableObj .
-			// " now merging in taintedness " . $rhsTaintedness
-			// . " (previously $lhsTaintedness)\n";
-
-			// Also check the variable type, because for instance we have a DIM node for $this->prop['foo']
-			$curOverride = $override && !( $variableObj instanceof Property );
-			if ( $reference ) {
-				$this->setRefTaintedness( $variableObj, $allRHSTaint, $curOverride );
-			} else {
-				// First try updating specific offset taint
-				$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $node );
-				// Don't clear data if one of the objects in the RHS is the same as this object
-				// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
-				$allowClearLHSData = $allowClearLHSData && !in_array( $variableObj, $rhsObjs, true );
-				$this->setTaintedness(
-					$variableObj,
-					$lhsOffsets,
-					$allRHSTaint,
-					$curOverride,
-					$allowClearLHSData,
-					$rhsTaintedness
-				);
-			}
-
-			foreach ( $rhsObjs as $rhsObj ) {
-				if ( $rhsObj instanceof PassByReferenceVariable ) {
-					$rhsObj = $this->extractReferenceArgument( $rhsObj );
-				}
-				// Only merge dependencies if there are no other
-				// sources of taint. Otherwise we can potentially
-				// misattribute where the taint is coming from
-				// See testcase dblescapefieldset.
-				$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
-				$adjTaint = $lhsTaintedness->with( $rhsTaintedness )->without( $taintRHSObj );
-				if ( $adjTaint->lacks( SecurityCheckPlugin::ALL_YES_EXEC_TAINT ) ) {
-					$this->mergeTaintDependencies( $variableObj, $rhsObj );
-				}
-			}
-
-			if ( $rhs instanceof Node ) {
-				$allRhsObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'all' ] );
-				// This is essentially mergeTaintError, but keeping a line only if it's participating with any taint
-				// TODO Find a prettier way to do this.
-				foreach ( $allRhsObjs as $rhsObj ) {
-					$lines = $this->getOriginalTaintArray( $rhsObj );
-					foreach ( $lines as [ $lineTaint, $line ] ) {
-						$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $variableObj, -1, $line );
-					}
-				}
-			}
+			// Don't clear data if one of the objects in the RHS is the same as this object
+			// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
+			$allowClearLHSData = $allowClearLHSData && !in_array( $variableObj, $rhsObjs, true );
+			$this->doAssignmentSingleElement(
+				$variableObj,
+				$allRHSTaint,
+				$rhsTaintedness,
+				$lhsOffsets,
+				$allowClearLHSData
+			);
+			$this->setTaintDependenciesInAssignment( $rhsObjs, $lhsTaintedness, $rhsTaintedness, $variableObj, $rhs );
 		}
-		$this->curTaint = $allRHSTaint;
 	}
 
 	/**
-	 * @param Node $node The assignment node. Must be AST_ASSIGN or AST_ASSIGN_OP
+	 * @param TypedElementInterface $variableObj
+	 * @param Taintedness $allRHSTaint
+	 * @param Taintedness $rhsTaintedness
+	 * @param array $lhsOffsets
+	 * @phan-param list<Node|mixed> $lhsOffsets
+	 * @param bool $allowClearLHSData
+	 */
+	private function doAssignmentSingleElement(
+		TypedElementInterface $variableObj,
+		Taintedness $allRHSTaint,
+		Taintedness $rhsTaintedness,
+		array $lhsOffsets,
+		bool $allowClearLHSData
+	) : void {
+		$reference = false;
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$reference = true;
+			$variableObj = $this->extractReferenceArgument( $variableObj );
+		}
+		if (
+			$variableObj instanceof Property &&
+			$variableObj->getClass( $this->code_base )->getFQSEN() ===
+			FullyQualifiedClassName::getStdClassFQSEN()
+		) {
+			// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
+			// Avoid doing the same with taintedness, as that would cause weird issues (see
+			// 'stdclassconflation' test).
+			// @todo Is it possible to store prop taintedness in the Variable object?
+			// that would be similar to a fine-grained handling of arrays.
+			return;
+		}
+
+		// Make sure $this->bar doesn't kill taint of $foo generally, or props in general just in case.
+		// Note: If there is a local variable that is a reference
+		// to another non-local variable, this will probably incorrectly
+		// override the taint (Pass by reference variables are handled
+		// specially and should be ok).
+		$override = !( $variableObj instanceof Property );
+		if ( $reference ) {
+			$this->setRefTaintedness( $variableObj, $allRHSTaint, $override );
+		} else {
+			$this->setTaintedness(
+				$variableObj,
+				$lhsOffsets,
+				$allRHSTaint,
+				$override,
+				$allowClearLHSData,
+				$rhsTaintedness
+			);
+		}
+	}
+
+	/**
+	 * @param TypedElementInterface[] $rhsObjs
+	 * @param Taintedness $lhsTaintedness
+	 * @param Taintedness $rhsTaintedness
+	 * @param TypedElementInterface $variableObj
+	 * @param Node|mixed $rhs
+	 */
+	private function setTaintDependenciesInAssignment(
+		array $rhsObjs,
+		Taintedness $lhsTaintedness,
+		Taintedness $rhsTaintedness,
+		TypedElementInterface $variableObj,
+		$rhs
+	) : void {
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$variableObj = $this->extractReferenceArgument( $variableObj );
+		}
+		foreach ( $rhsObjs as $rhsObj ) {
+			if ( $rhsObj instanceof PassByReferenceVariable ) {
+				$rhsObj = $this->extractReferenceArgument( $rhsObj );
+			}
+			// Only merge dependencies if there are no other
+			// sources of taint. Otherwise we can potentially
+			// misattribute where the taint is coming from
+			// See testcase dblescapefieldset.
+			$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
+			$adjTaint = $lhsTaintedness->with( $rhsTaintedness )->without( $taintRHSObj );
+			if ( $adjTaint->lacks( SecurityCheckPlugin::ALL_YES_EXEC_TAINT ) ) {
+				$this->mergeTaintDependencies( $variableObj, $rhsObj );
+			}
+		}
+
+		if ( $rhs instanceof Node ) {
+			$allRhsObjs = $this->getPhanObjsForNode( $rhs, [ 'all' ] );
+			// This is essentially mergeTaintError, but keeping a line only if it's participating with any taint
+			// TODO Find a prettier way to do this.
+			foreach ( $allRhsObjs as $rhsObj ) {
+				$lines = $this->getOriginalTaintArray( $rhsObj );
+				foreach ( $lines as [ $lineTaint, $line ] ) {
+					$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $variableObj, -1, $line );
+				}
+			}
+		}
+	}
+
+	/**
+	 * If we're assigning an SQL tainted value as an array key
+	 * or as the value of a numeric key, then set NUMKEY taint.
+	 * @note This method modifies $rhsTaintedness and $allRHSTaint in-place
+	 * @todo Can this be moved elsewhere, now that we resolve LHS offsets
+	 *
+	 * @param Node $lhs
+	 * @param Node|mixed $rhs
+	 * @param Taintedness $rhsTaintedness
+	 * @param Taintedness $allRHSTaint
+	 */
+	private function maybeAddNumkeyOnAssignmentLHS(
+		Node $lhs,
+		$rhs,
+		Taintedness $rhsTaintedness,
+		Taintedness $allRHSTaint
+	) : void {
+		$dim = $lhs->children['dim'];
+		if ( $allRHSTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+			// Things like 'foo' => ['taint', 'taint']
+			// are ok.
+			$allRHSTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		} elseif ( $allRHSTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+			// Checking the case:
+			// $foo[1] = $sqlTainted;
+			// $foo[] = $sqlTainted;
+			// But ensuring we don't catch:
+			// $foo['bar'][] = $sqlTainted;
+			// $foo[] = [ $sqlTainted ];
+			// $foo[2] = [ $sqlTainted ];
+			if (
+				( $dim === null || $this->nodeIsInt( $dim ) )
+				&& !$this->nodeIsArray( $rhs )
+				&& !( $lhs->children['expr'] instanceof Node
+					&& $lhs->children['expr']->kind === \ast\AST_DIM
+				)
+			) {
+				$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			}
+		}
+		if ( $this->getTaintedness( $dim )->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+			$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		}
+	}
+
+	/**
+	 * @param Node $lhs LHS of the assignment
 	 * @return array List of possibly-resolved offsets
 	 * @phan-return list<Node|mixed>
 	 */
-	private function getResolvedLhsOffsetsInAssignment( Node $node ) : array {
-		assert( $node->kind === \ast\AST_ASSIGN || $node->kind === \ast\AST_ASSIGN_OP );
-		$lhs = $node->children['var'];
+	private function getResolvedLhsOffsetsInAssignment( Node $lhs ) : array {
 		if ( $lhs->kind === \ast\AST_ARRAY ) {
 			// TODO Handle arrays at the LHS
 			return [];
