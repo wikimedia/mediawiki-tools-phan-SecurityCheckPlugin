@@ -1,1 +1,1 @@
-integration/miscpreserves/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/miscpreserves/test.php +5)
+integration/miscpreserves/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/miscpreserves/test.php +5; integration/miscpreserves/test.php +3)

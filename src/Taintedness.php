@@ -156,6 +156,7 @@ class Taintedness {
 	/**
 	 * Returns a copy of this object, with the bits in $other removed recursively.
 	 * @see Taintedness::remove() for the in-place version
+	 * @todo This should probably do what withoutShaped does.
 	 *
 	 * @param self|int $other
 	 * @return $this
@@ -164,6 +165,27 @@ class Taintedness {
 		$ret = clone $this;
 		$taint = $other instanceof self ? $other->get() : $other;
 		$ret->remove( $taint );
+		return $ret;
+	}
+
+	/**
+	 * Similar to self::without, but acts on the shape
+	 * @see Taintedness::remove() for the in-place version
+	 *
+	 * @param self $other
+	 * @return $this
+	 */
+	public function withoutShaped( self $other ) : self {
+		$ret = clone $this;
+		$ret->flags &= ~$other->flags;
+		$ret->keysTaint &= ~$other->keysTaint;
+		// Don't change unknown keys.
+		foreach ( $ret->dimTaint as $k => &$child ) {
+			if ( isset( $other->dimTaint[$k] ) ) {
+				$child = $child->withoutShaped( $other->dimTaint[$k] );
+			}
+		}
+		unset( $child );
 		return $ret;
 	}
 

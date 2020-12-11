@@ -1,5 +1,5 @@
 integration/registerhook/test.php:29 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +40; integration/registerhook/test.php +28; integration/registerhook/test.php +39)
-integration/registerhook/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +28; integration/registerhook/test.php +42)
+integration/registerhook/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +28; integration/registerhook/test.php +42; integration/registerhook/test.php +25)
 integration/registerhook/test.php:52 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/registerhook/test.php:61 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/registerhook/test.php:65 SecurityCheck-OTHER Argument to require, include or eval is user controlled

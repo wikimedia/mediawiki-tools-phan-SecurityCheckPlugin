@@ -18,8 +18,8 @@ function getArray2() {
 }
 
 $var2 = getArray2();
-echo $var2['safe']; // Unsafe
-echo $var2['unsafe']; // Unsafe
+echo $var2['safe']; // Unsafe (ideally not caused by line 14, but we don't track shapes in caused-by lines)
+echo $var2['unsafe']; // Unsafe (ideally not caused by line 16, but we don't track shapes in caused-by lines)
 echo $var2; // Unsafe
 
 

@@ -1,0 +1,4 @@
+integration/errorreport/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/errorreport/test.php +4)
+integration/errorreport/test.php:9 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/errorreport/test.php:12 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/errorreport/test.php +11; integration/errorreport/test.php +17)
+integration/errorreport/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/errorreport/test.php +11; integration/errorreport/test.php +17)

@@ -117,7 +117,7 @@ trait TaintednessBaseVisitor {
 		) use ( $func, $reason ) : void {
 			// Only copy error lines if we add some taint not
 			// previously present.
-			if ( !$baseT->without( $curT )->isSafe() ) {
+			if ( !$baseT->withoutShaped( $curT )->isSafe() ) {
 				if ( $index === 'overall' ) {
 					$this->addTaintError( $baseT, $func, -1, $reason );
 				} else {
@@ -227,7 +227,8 @@ trait TaintednessBaseVisitor {
 			}
 			return $base;
 		}
-		return array_merge( $base, $new );
+		// HACK: Set a hard limit, or this may time out
+		return array_slice( array_merge( $base, $new ), 0, 25 );
 	}
 
 	/**
@@ -250,11 +251,12 @@ trait TaintednessBaseVisitor {
 	 * have tainted $left (Or may not if the assignment is in a branch
 	 * or its not a local variable).
 	 *
-	 * @note It is assumed you already checked that right is tainted in some way.
 	 * @param TypedElementInterface $left (LHS-ish variable)
 	 * @param TypedElementInterface|Node $right (RHS-ish variable)
+	 * @param int $arg If $left is a Function, which arg
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, $right ) : void {
+	protected function mergeTaintError( TypedElementInterface $left, $right, int $arg = -1 ) : void {
+		assert( $arg === -1 || $left instanceof FunctionInterface );
 		if ( $right instanceof Node ) {
 			$phanObjs = $this->getPhanObjsForNode( $right, [ 'all' ] );
 		} else {
@@ -262,8 +264,16 @@ trait TaintednessBaseVisitor {
 			$phanObjs = [ $right ];
 		}
 
-		if ( !property_exists( $left, 'taintedOriginalError' ) ) {
-			$left->taintedOriginalError = [];
+		if ( $arg === -1 ) {
+			if ( !property_exists( $left, 'taintedOriginalError' ) ) {
+				$left->taintedOriginalError = [];
+			}
+			$newLeftError = $left->taintedOriginalError;
+		} else {
+			if ( !property_exists( $left, 'taintedOriginalErrorByArg' ) ) {
+				$left->taintedOriginalErrorByArg = [];
+			}
+			$newLeftError = $left->taintedOriginalErrorByArg[$arg] ?? [];
 		}
 
 		foreach ( $phanObjs as $rightObj ) {
@@ -271,10 +281,25 @@ trait TaintednessBaseVisitor {
 			// if the merge did not result in any new taint being set.
 			// However at this point, taint has already been merged so
 			// we don't know if we should skip or not.
-			$left->taintedOriginalError = self::mergeCausedByLines(
-				$left->taintedOriginalError,
-				$rightObj->taintedOriginalError ?? []
+			// TODO: Does this make sense? If we are merging a function
+			// to merge all its argument errors not just overall.
+			$rightErrors = array_merge(
+				property_exists( $rightObj, 'taintedOriginalError' ) ? [ $rightObj->taintedOriginalError ] : [],
+				$rightObj->taintedOriginalErrorByArg ?? []
 			);
+			foreach ( $rightErrors as $rightError ) {
+				if ( $newLeftError && self::getArraySubsetIdx( $rightError, $newLeftError ) !== false ) {
+					$newLeftError = $rightError;
+				} elseif ( $rightError && self::getArraySubsetIdx( $newLeftError, $rightError ) === false ) {
+					$newLeftError = self::mergeCausedByLines( $newLeftError, $rightError );
+				}
+			}
+		}
+
+		if ( $arg === -1 ) {
+			$left->taintedOriginalError = $newLeftError;
+		} else {
+			$left->taintedOriginalErrorByArg[$arg] = $newLeftError;
 		}
 	}
 
@@ -1275,7 +1300,7 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_CALL:
 			case \ast\AST_STATIC_CALL:
 			case \ast\AST_METHOD_CALL:
-				if ( !$options ) {
+				if ( !array_intersect( $options, [ 'all', 'return' ] ) ) {
 					return [];
 				}
 
@@ -1441,12 +1466,6 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 		assert( $rhs instanceof TypedElementInterface );
-		// $this->debug( __METHOD__, "merging $lhs <- $rhs" );
-		$taintRHS = $this->getTaintednessPhanObj( $rhs );
-
-		if ( $taintRHS->has( SecurityCheckPlugin::ALL_EXEC_TAINT | SecurityCheckPlugin::ALL_TAINT ) ) {
-			$this->mergeTaintError( $lhs, $rhs );
-		}
 
 		if ( !property_exists( $rhs, 'taintedMethodLinks' ) ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
@@ -1487,10 +1506,12 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $var The variable in question
 	 * @param Taintedness $taint What taint to mark them as.
+	 * @param Node|TypedElementInterface|null $triggeringElm To propagate caused-by lines
 	 */
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
-		Taintedness $taint
+		Taintedness $taint,
+		$triggeringElm = null
 	) : void {
 		// Ensure we only set exec bits, not normal taint bits.
 		$taint = $taint->withOnly( SecurityCheckPlugin::BACKPROP_TAINTS );
@@ -1534,6 +1555,11 @@ trait TaintednessBaseVisitor {
 					// " arg $i as $taint due to dependency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
+			// TODO: Ideally we would merge taint error per argument
+			$this->mergeTaintError( $method, $var );
+			if ( $triggeringElm ) {
+				$this->mergeTaintError( $method, $triggeringElm );
+			}
 		}
 
 		if ( $var instanceof Property || property_exists( $var, 'isGlobalVariable' ) ) {
@@ -1562,11 +1588,13 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $method The function or method in question
 	 * @param int $i The number of the argument in question.
 	 * @param Taintedness $taint The taint to apply.
+	 * @param Node $arg The evil tainted argument (to propagate caused by lines)
 	 */
 	protected function markAllDependentVarsYes(
 		FunctionInterface $method,
 		int $i,
-		Taintedness $taint
+		Taintedness $taint,
+		Node $arg
 	) : void {
 		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 		if ( $method->isPHPInternal() ) {
@@ -1591,6 +1619,7 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
 			$this->setTaintednessOld( $var, $newTaint );
+			$this->mergeTaintError( $var, $arg );
 			if (
 				$taintAdjusted->without( $curVarTaint )->isAllTaint() &&
 				$var instanceof ClassElement
@@ -1747,20 +1776,20 @@ trait TaintednessBaseVisitor {
 				}
 			} else {
 				assert( $element instanceof FunctionInterface );
-				$lines = self::mergeCausedByLines( $lines, $element->taintedOriginalErrorByArg[ $arg ] ?? [] );
+				$argErr = $element->taintedOriginalErrorByArg[$arg] ?? [];
+				$overallFuncErr = $element->taintedOriginalError ?? [];
+				if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
+					$lines = self::mergeCausedByLines( $lines, $overallFuncErr );
+				} elseif ( !$overallFuncErr || self::getArraySubsetIdx( $argErr, $overallFuncErr ) !== false ) {
+					$lines = self::mergeCausedByLines( $lines, $argErr );
+				} else {
+					$lines = self::mergeCausedByLines( self::mergeCausedByLines( $lines, $argErr ), $overallFuncErr );
+				}
 			}
 		} elseif ( $element instanceof Node ) {
-			$pobjs = $this->getPhanObjsForNode( $element );
+			$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
 			foreach ( $pobjs as $elem ) {
 				$lines = self::mergeCausedByLines( $lines, $this->getOriginalTaintArray( $elem ) );
-			}
-			if ( $lines === [] ) {
-				// try to dig deeper.
-				// This will also include method calls and whatnot.
-				$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
-				foreach ( $pobjs as $elem ) {
-					$lines = self::mergeCausedByLines( $lines, $this->getOriginalTaintArray( $elem ) );
-				}
 			}
 		} else {
 			throw new AssertionError( $this->dbgInfo() . "invalid parameter " . get_class( $element ) );
@@ -2269,7 +2298,7 @@ trait TaintednessBaseVisitor {
 				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
 				// "($curArgTaintedness). Marking dependent $funcName" );
 				// Mark all dependent vars as tainted.
-				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness );
+				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness, $argument );
 			}
 
 			// We are doing something like evilMethod( $arg );
@@ -2281,7 +2310,8 @@ trait TaintednessBaseVisitor {
 				foreach ( $phanObjs as $phanObj ) {
 					$this->markAllDependentMethodsExec(
 						$phanObj,
-						$taint->getParamTaint( $i )
+						$taint->getParamTaint( $i ),
+						$func
 					);
 				}
 			}
