@@ -607,22 +607,40 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			? clone $variableObj->taintedness
 			: Taintedness::newSafe();
 
+		$keysTaint = $this->getKeysTaintednessList( $resolvedOffsetsLhs );
 		if ( $node->kind !== \ast\AST_ASSIGN_OP || $node->flags !== \ast\flags\BINARY_ADD ) {
 			assert( $lhs->kind === \ast\AST_DIM );
 			assert( count( $resolvedOffsetsLhs ) >= 1 );
 			$offsetOverride = $node->kind !== \ast\AST_ASSIGN_OP && $resolvedAll;
-			$varTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $rhsTaint, $offsetOverride );
+			$varTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $rhsTaint, $offsetOverride );
 		} else {
 			// Special handling for A += B, where A and B can be DIM nodes
-			$varTaint->applyArrayPlusAtOffsetList( $resolvedOffsetsLhs, $rhsTaint );
+			$varTaint->applyArrayPlusAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $rhsTaint );
 		}
 
+		$errorTaint = $rhsTaint;
+		foreach ( $keysTaint as $keyTaint ) {
+			$errorTaint->addKeysTaintedness( $keyTaint->get() );
+		}
 		// We avoid overriding just for properties here (globals etc. are handled in setTaintedness).
 		// Note 1: override for ASSIGN_OP is already handled above when setting the updating the taint
 		// Note 2: both checks are necessary, because we may have e.g. a DIM node for $this->prop['foo']
 		$dimOverride = $lhs->kind !== \ast\AST_PROP && !( $variableObj instanceof Property );
 		$this->setTaintedness( $variableObj, $varTaint, $dimOverride, false, $rhsTaint );
 		return true;
+	}
+
+	/**
+	 * Given a list of resolved offsets (as in setTaintedness), return the corresponding list of taintedness values
+	 * @param (Node|mixed)[] $offsets
+	 * @return Taintedness[]
+	 */
+	private function getKeysTaintednessList( array $offsets ) : array {
+		$ret = [];
+		foreach ( $offsets as $offset ) {
+			$ret[] = $this->getTaintedness( $offset );
+		}
+		return $ret;
 	}
 
 	/**
@@ -1084,7 +1102,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				continue;
 			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-			$childTaint = $this->getTaintedness( $child );
 			$key = $child->children['key'];
 			$keyTaint = $this->getTaintedness( $key );
 			$value = $child->children['value'];
@@ -1106,15 +1123,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			//  explicitly (at least).
 			$offset = $key ?? $curNumKey++;
 			$offset = $this->resolveOffset( $offset );
-			// TODO $childTaint includes the taintedness of the key. In the future,
-			// we might want to distinguish.
 			// Note that we remove numkey taint because that's only for the outer array
-			$curTaint->setOffsetTaintedness( $offset, $childTaint->without( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) );
+			$curTaint->setOffsetTaintedness( $offset, $valTaint->without( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) );
+			$curTaint->addKeysTaintedness( $keyTaint->get() );
 		}
 		$this->curTaint = $curTaint;
 	}
 
 	/**
+	 * @todo Is this still useful? Probably not, as it mixes key and value
 	 * A => B
 	 * @param Node $node
 	 */
