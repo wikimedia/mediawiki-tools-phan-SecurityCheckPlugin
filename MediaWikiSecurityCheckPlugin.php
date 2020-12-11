@@ -279,23 +279,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\Wikimedia\Rdbms\Database::buildLike' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
-				self::YES_TAINT & ~self::SQL_TAINT,
+				( self::YES_TAINT & ~self::SQL_TAINT ) | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
 			],
 			// makeList is special cased in MWVistor::checkMakeList
@@ -314,16 +298,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::escaped' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\Message::rawParams' => [
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
-				self::HTML_TAINT | self::RAW_PARAM,
+				self::HTML_TAINT | self::RAW_PARAM | self::VARIADIC_PARAM,
 				// meh, not sure how right the overall is.
 				'overall' => self::HTML_TAINT
 			],
@@ -344,27 +319,11 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::YES_TAINT
 			],
 			'\wfEscapeShellArg' => [
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
+				( self::YES_TAINT & ~self::SHELL_TAINT ) | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
 			],
 			'\MediaWiki\Shell\Shell::escape' => [
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
-				self::YES_TAINT & ~self::SHELL_TAINT,
+				( self::YES_TAINT & ~self::SHELL_TAINT ) | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
 			],
 			'\MediaWiki\Shell\Command::unsafeParams' => [
