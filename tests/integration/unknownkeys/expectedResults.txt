@@ -1,0 +1,2 @@
+integration/unknownkeys/test.php:14 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \doStuff that outputs using tainted argument #1 (`$arr[0]['escaped']`). (Caused by: integration/unknownkeys/test.php +13; integration/unknownkeys/test.php +9)
+integration/unknownkeys/test.php:16 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \doStuff that outputs using tainted argument #1 (`$arr[150000]['escaped']`). (Caused by: integration/unknownkeys/test.php +13; integration/unknownkeys/test.php +9)

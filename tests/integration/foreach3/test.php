@@ -44,7 +44,7 @@ $arr = [
 		'safe' => $_GET['b'],
 		'unsafe' => 'safe'
 	],
-	$GLOBALS['unknown'] => [
+	$GLOBALS['unknown'] => [// NOTE: The key here might be 'switched', thus overwriting the values above
 		'safe' => 'safe',
 		'unsafe' => $_GET['taint']
 	]
@@ -55,16 +55,16 @@ foreach ( $arr as $k3 => $v3 ) {
 	echo $v3; // Unsafe
 	echo $v3['safe']; // Unsafe
 	echo $v3['unsafe']; // Unsafe
-	if ( $k3 === 'switched' ) {
+	if ( $k3 === 'switched' ) {// This doesn't exclude the case with unknown key, so everything's unsafe
 		$new1 = $v3;
 		$new2 = $arr[$k3];
 	}
 }
 
 echo $new1['safe']; // Unsafe
-echo $new1['unsafe'];  // Ideally safe, but unsafe because we don't retroactively track $v
+echo $new1['unsafe'];  // Unsafe due to unknown key
 echo $new2['safe']; // Unsafe
-echo $new2['unsafe']; // Safe
+echo $new2['unsafe']; // Unsafe due to unknown key
 
 $arr = [
 	'normal' => [

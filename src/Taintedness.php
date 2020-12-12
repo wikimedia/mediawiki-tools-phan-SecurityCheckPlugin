@@ -25,8 +25,11 @@ class Taintedness {
 	/** @var int Taintedness of the array keys */
 	private $keysTaint = SecurityCheckPlugin::NO_TAINT;
 
-	/** @var int Taintedness for array elements that we couldn't attribute to any key */
-	private $unknownDimsTaint = SecurityCheckPlugin::NO_TAINT;
+	/**
+	 * @var self|null Taintedness for array elements that we couldn't attribute to any key
+	 * @todo Can we store this under a bogus key in self::$dimTaint ?
+	 */
+	private $unknownDimsTaint;
 
 	/**
 	 * @var int Shortcut for all numkey flags. We remove these recursively from the keys, because
@@ -86,7 +89,9 @@ class Taintedness {
 	 * @return int
 	 */
 	public function get() : int {
-		return $this->flags | $this->getAllKeysTaint() | $this->unknownDimsTaint | $this->keysTaint;
+		$ret = $this->flags | $this->getAllKeysTaint() | $this->keysTaint;
+		$ret = $this->unknownDimsTaint ? ( $ret | $this->unknownDimsTaint->get() ) : $ret;
+		return $ret;
 	}
 
 	/**
@@ -222,7 +227,9 @@ class Taintedness {
 	public function keepOnly( $other ) : void {
 		$taint = $other instanceof self ? $other->flags : $other;
 		$this->flags &= $taint;
-		$this->unknownDimsTaint &= $taint;
+		if ( $this->unknownDimsTaint ) {
+			$this->unknownDimsTaint->keepOnly( $taint );
+		}
 		$this->keysTaint &= $taint;
 		foreach ( $this->dimTaint as $val ) {
 			$val->keepOnly( $taint );
@@ -251,7 +258,11 @@ class Taintedness {
 	 */
 	public function mergeWith( self $other ) : void {
 		$this->flags |= $other->flags;
-		$this->unknownDimsTaint |= $other->unknownDimsTaint;
+		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
+			$this->unknownDimsTaint = $other->unknownDimsTaint;
+		} elseif ( $other->unknownDimsTaint ) {
+			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+		}
 		$this->keysTaint |= $other->keysTaint;
 		foreach ( $other->dimTaint as $key => $val ) {
 			if ( !array_key_exists( $key, $this->dimTaint ) ) {
@@ -287,7 +298,8 @@ class Taintedness {
 		if ( is_scalar( $offset ) ) {
 			$this->dimTaint[$offset] = $value;
 		} else {
-			$this->unknownDimsTaint |= $value->get();
+			$this->unknownDimsTaint = $this->unknownDimsTaint ?? self::newSafe();
+			$this->unknownDimsTaint->mergeWith( $value );
 		}
 	}
 
@@ -307,12 +319,11 @@ class Taintedness {
 	 * @param array $offsets
 	 * @phan-param array<int,Node|mixed> $offsets
 	 * @param Taintedness[] $offsetsTaint Taintedness for each offset in $offsets
-	 * @param Taintedness $rhs
 	 * @param Closure $cb First parameter is the base element for the last key, and second parameter
 	 * is the last key. The closure should return the new value.
 	 * @phan-param Closure(self,mixed):self $cb
 	 */
-	private function applyClosureAtOffsetList( array $offsets, array $offsetsTaint, self $rhs, Closure $cb ) : void {
+	private function applyClosureAtOffsetList( array $offsets, array $offsetsTaint, Closure $cb ) : void {
 		assert( count( $offsets ) >= 1 );
 		$base = $this;
 		// Just in case keys are not consecutive
@@ -321,13 +332,21 @@ class Taintedness {
 		foreach ( $offsets as $i => $offset ) {
 			$isLast = $i === $lastIdx;
 			if ( !is_scalar( $offset ) ) {
-				// Apply all of the taintedness from the RHS at this point, and stop building the shape
-				// NOTE: This is intendedly done for Nodes AND null. We assume that null here means
-				// "implicit" dim (`$a[] = 'b'`), aka unknown dim.
-				$base->unknownDimsTaint |= $rhs->get();
 				// Note, if the offset is scalar its taint is NO_TAINT
 				$base->keysTaint |= $offsetsTaint[$i]->get();
-				return;
+
+				// NOTE: This is intendedly done for Nodes AND null. We assume that null here means
+				// "implicit" dim (`$a[] = 'b'`), aka unknown dim.
+				if ( !$base->unknownDimsTaint ) {
+					$base->unknownDimsTaint = self::newSafe();
+				}
+				if ( $isLast ) {
+					$base->unknownDimsTaint = $cb( $base, $offset );
+					return;
+				}
+
+				$base = $base->unknownDimsTaint;
+				continue;
 			}
 
 			if ( $isLast ) {
@@ -364,11 +383,16 @@ class Taintedness {
 		 * @param mixed $lastOffset
 		 */
 		$setCb = static function ( self $base, $lastOffset ) use ( $val, $override ) : self {
+			if ( !is_scalar( $lastOffset ) ) {
+				return ( !$base->unknownDimsTaint || $override )
+					? $val
+					: $base->unknownDimsTaint->asMergedWith( $val );
+			}
 			return ( !isset( $base->dimTaint[$lastOffset] ) || $override )
 				? $val
 				: $base->dimTaint[$lastOffset]->with( $val );
 		};
-		$this->applyClosureAtOffsetList( $offsets, $offsetsTaint, $val, $setCb );
+		$this->applyClosureAtOffsetList( $offsets, $offsetsTaint, $setCb );
 	}
 
 	/**
@@ -378,7 +402,11 @@ class Taintedness {
 	 */
 	public function arrayPlus( self $other ) : void {
 		$this->flags |= $other->flags;
-		$this->unknownDimsTaint |= $other->unknownDimsTaint;
+		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
+			$this->unknownDimsTaint = $other->unknownDimsTaint;
+		} elseif ( $other->unknownDimsTaint ) {
+			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+		}
 		$this->keysTaint |= $other->keysTaint;
 		// This is not recursive because array addition isn't
 		$this->dimTaint += $other->dimTaint;
@@ -407,28 +435,34 @@ class Taintedness {
 	 */
 	public function getTaintednessForOffsetOrWhole( $offset ) : self {
 		if ( $offset instanceof Node ) {
-			return $this->with( $this->unknownDimsTaint );
+			return $this->asValueFirstLevel();
 		}
 		if ( isset( $this->dimTaint[$offset] ) ) {
-			return $this->dimTaint[$offset]->with( $this->unknownDimsTaint );
+			return $this->dimTaint[$offset]->asMergedWith( $this->unknownDimsTaint ?? self::newSafe() );
 		}
-		$ret = new Taintedness( $this->flags );
-		$ret->unknownDimsTaint = $this->unknownDimsTaint;
+
+		$ret = $this->unknownDimsTaint ? clone $this->unknownDimsTaint : self::newSafe();
+		$ret->add( $this->flags );
 		return $ret;
 	}
 
 	/**
-	 * Get a representation of this taint to be used in a foreach assignment for the value. Own taint
-	 * and unknown keys taint are preserved, and then we merge in recursively all the current keys.
+	 * Get a representation of this taint at the first depth level. For instance, this can be used in a foreach
+	 * assignment for the value. Own taint and unknown keys taint are preserved, and then we merge in recursively
+	 * all the current keys.
 	 *
 	 * @return $this
 	 */
-	public function asValueForForeach() : self {
+	public function asValueFirstLevel() : self {
 		$ret = new self( $this->flags );
 		$ret->unknownDimsTaint = $this->unknownDimsTaint;
 		foreach ( $this->dimTaint as $val ) {
 			$ret->mergeWith( $val );
-			$ret->unknownDimsTaint |= $val->flags;
+			if ( $ret->unknownDimsTaint ) {
+				$ret->unknownDimsTaint->add( $val->flags );
+			} else {
+				$ret->unknownDimsTaint = new self( $val->flags );
+			}
 		}
 		return $ret;
 	}
@@ -481,7 +515,9 @@ class Taintedness {
 	public function asExecToYesTaint() : self {
 		$ret = clone $this;
 		$ret->flags = ( $ret->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
-		$ret->unknownDimsTaint = ( $ret->unknownDimsTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
+		if ( $ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asExecToYesTaint();
+		}
 		$ret->keysTaint = ( $ret->keysTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
 		foreach ( $ret->dimTaint as &$val ) {
 			$val = $val->asExecToYesTaint();
@@ -499,7 +535,9 @@ class Taintedness {
 	public function asYesToExecTaint() : self {
 		$ret = clone $this;
 		$ret->flags = ( $ret->flags & SecurityCheckPlugin::ALL_TAINT ) << 1;
-		$ret->unknownDimsTaint = ( $ret->unknownDimsTaint & SecurityCheckPlugin::ALL_TAINT ) << 1;
+		if ( $ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asYesToExecTaint();
+		}
 		$ret->keysTaint = ( $ret->keysTaint & SecurityCheckPlugin::ALL_TAINT ) << 1;
 		foreach ( $ret->dimTaint as &$val ) {
 			$val = $val->asYesToExecTaint();
@@ -515,12 +553,10 @@ class Taintedness {
 	 */
 	public function toString( $indent = '' ) : string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
-		$unknown = SecurityCheckPlugin::taintToString( $this->unknownDimsTaint );
 		$keys = SecurityCheckPlugin::taintToString( $this->keysTaint );
 		$ret = <<<EOT
 {
 $indent    Own taint: $flags
-$indent    Unknown keys: $unknown
 $indent    Keys: $keys
 $indent    Elements: {
 EOT;
@@ -531,6 +567,10 @@ EOT;
 		foreach ( $this->dimTaint as $key => $taint ) {
 			$ret .= "$first$kIndent    $key => " . $taint->toString( "$kIndent    " ) . "\n";
 			$first = '';
+			$last = $kIndent;
+		}
+		if ( $this->unknownDimsTaint ) {
+			$ret .= "$first$kIndent    UNKNOWN => " . $this->unknownDimsTaint->toString( "$kIndent    " ) . "\n";
 			$last = $kIndent;
 		}
 		$ret .= "$last}\n$indent}";
@@ -544,16 +584,19 @@ EOT;
 	 */
 	public function toShortString() : string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
-		$unknown = SecurityCheckPlugin::taintToString( $this->unknownDimsTaint );
 		$keys = SecurityCheckPlugin::taintToString( $this->keysTaint );
-		$ret = "{Own: $flags; Unknown: $unknown; Keys: $keys";
+		$ret = "{Own: $flags; Keys: $keys";
+		$keyParts = [];
 		if ( $this->dimTaint ) {
-			$ret .= '; Elements: {';
-			$keyParts = [];
 			foreach ( $this->dimTaint as $key => $taint ) {
 				$keyParts[] = "$key => " . $taint->toShortString();
 			}
-			$ret .= implode( '; ', $keyParts ) . '}';
+		}
+		if ( $this->unknownDimsTaint ) {
+			$keyParts[] = 'UNKNOWN => ' . $this->unknownDimsTaint->toShortString();
+		}
+		if ( $keyParts ) {
+			$ret .= '; Elements: {' . implode( '; ', $keyParts ) . '}';
 		}
 		$ret .= '}';
 		return $ret;
@@ -563,6 +606,9 @@ EOT;
 	 * Make sure to clone member variables, too.
 	 */
 	public function __clone() {
+		if ( $this->unknownDimsTaint ) {
+			$this->unknownDimsTaint = clone $this->unknownDimsTaint;
+		}
 		foreach ( $this->dimTaint as $k => $v ) {
 			$this->dimTaint[$k] = clone $v;
 		}

@@ -14,6 +14,7 @@ integration/foreach3/test.php:57 SecurityCheck-XSS Echoing expression that was n
 integration/foreach3/test.php:64 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +59; integration/foreach3/test.php +54; integration/foreach3/test.php +42)
 integration/foreach3/test.php:65 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +59; integration/foreach3/test.php +54; integration/foreach3/test.php +42)
 integration/foreach3/test.php:66 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +60; integration/foreach3/test.php +42)
+integration/foreach3/test.php:67 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +60; integration/foreach3/test.php +42)
 integration/foreach3/test.php:82 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +81; integration/foreach3/test.php +69)
 integration/foreach3/test.php:83 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +81; integration/foreach3/test.php +69)
 integration/foreach3/test.php:84 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/foreach3/test.php +81; integration/foreach3/test.php +69)

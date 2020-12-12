@@ -47,7 +47,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				// the right taint to the value if we discover what the key is for the current iteration
 				$this->setTaintednessOld(
 					$valueObj,
-					$lhsTaintedness->asValueForForeach(),
+					$lhsTaintedness->asValueFirstLevel(),
 					// NOTE: In overriding, we assume that the foreach has at least one iteration
 					$value->kind === \ast\AST_VAR,
 					true
