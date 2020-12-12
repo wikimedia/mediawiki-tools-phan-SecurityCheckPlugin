@@ -906,7 +906,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param string $issueMsg
 	 */
 	private function visitSinkAndPropagate( Node $node, Taintedness $sinkTaint, string $issueMsg ) : void {
-		assert( isset( $node->children['expr'] ) );
+		if ( !isset( $node->children['expr'] ) ) {
+			return;
+		}
 		$taintedness = $this->getTaintedness( $node->children['expr'] );
 
 		$this->maybeEmitIssue(
