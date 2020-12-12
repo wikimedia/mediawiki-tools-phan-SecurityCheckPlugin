@@ -13,3 +13,15 @@ function getSafeStuff() {
 
 list( $a, $b ) = getSafeStuff();
 echo $b;
+
+function testIncomplete1() {
+	$arr = [ 'safe', $_GET['unsafe'], 'safe' ];
+	[ , $unsafe ] = $arr;
+	echo $unsafe; // Unsafe
+}
+
+function testIncomplete2() {
+	$arr = [ $_GET['unsafe'], 'safe' ];
+	[ , $safe ] = $arr;
+	echo $safe; // Safe
+}

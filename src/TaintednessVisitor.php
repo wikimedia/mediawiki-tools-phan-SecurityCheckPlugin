@@ -558,6 +558,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $lhs->kind === \ast\AST_ARRAY ) {
 			$numKey = 0;
 			foreach ( $lhs->children as $child ) {
+				if ( $child === null ) {
+					$numKey++;
+					continue;
+				}
 				assert( $child instanceof Node && $child->kind === \ast\AST_ARRAY_ELEM );
 				$key = $child->children['key'] !== null ? $this->resolveOffset( $child->children['key'] ) : $numKey++;
 				$value = $child->children['value'];

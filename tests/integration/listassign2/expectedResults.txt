@@ -1,1 +1,2 @@
 integration/listassign2/test.php:8 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/listassign2/test.php +6; integration/listassign2/test.php +3)
+integration/listassign2/test.php:20 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/listassign2/test.php +19; integration/listassign2/test.php +18)
