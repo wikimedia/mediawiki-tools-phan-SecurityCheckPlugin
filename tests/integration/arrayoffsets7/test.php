@@ -24,9 +24,9 @@ $arr['foo'][$GLOBALS['unknown']]['bar'] = [ 'safe' => 'safe', 'unsafe' => $_GET[
 echo $arr; // Unsafe
 echo $arr['foo']; // Unsafe
 echo $arr['foo']['whatshere']; // Unsafe due to unknown keys
-echo $arr['foo']['whatshere']['foo']; // Unsafe
+echo $arr['foo']['whatshere']['foo']; // Safe TODO Should this be unknown?
 echo $arr['foo']['whatshere']['bar']; // Unsafe
-echo $arr['foo']['whatshere']['bar']['safe']; // Unsafe because we stop tracking shapes after an unknown offset
+echo $arr['foo']['whatshere']['bar']['safe']; // Safe
 echo $arr['foo']['whatshere']['bar']['unsafe']; // Unsafe
 
 $arr = [
@@ -67,7 +67,7 @@ echo $arr['l1'];// Unsafe
 echo $arr['l1']['safe'];// Safe
 echo $arr['l1']['unsafe'];// Unsafe
 echo $arr['foo'];// Unsafe
-echo $arr['foo']['safe']; // Unsafe, because we don't track the shape after an unknown offset
+echo $arr['foo']['safe']; // Safe
 
 $arr = [
 	null => 'safe'

@@ -8,6 +8,7 @@
 * Created new taint types and issues for RCE and path traversal: `SecurityCheck-RCE` and `SecurityCheck-PathTraversal`
 * Added detection for ReDoS vulnerabilities. New issue: `SecurityCheck-ReDoS`
 * The plugin can now properly analyze assignments with an array at the LHS
+* Array shapes are now tracked more precisely when a key that cannot be determined statically is found
 
 ## v3.1.1
 ### Internal changes
