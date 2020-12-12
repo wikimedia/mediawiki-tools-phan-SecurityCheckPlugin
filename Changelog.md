@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v3.2.0
 ### New features
 * Variadic parameters are now properly handled
 * Array keys are now tracked separately from values
