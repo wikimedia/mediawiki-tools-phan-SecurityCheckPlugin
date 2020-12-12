@@ -22,9 +22,13 @@
  *
  */
 
+use ast\Node;
+use Phan\AST\UnionTypeVisitor;
 use Phan\CodeBase;
 use Phan\Language\Context;
+use Phan\Language\Element\FunctionInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
+use SecurityCheckPlugin\FunctionTaintedness;
 use SecurityCheckPlugin\MWPreVisitor;
 use SecurityCheckPlugin\MWVisitor;
 use SecurityCheckPlugin\SecurityCheckPlugin;
@@ -516,6 +520,59 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		return false;
 	}
 
+	/**
+	 * Disable double escape checking for messages with polymorphic methods
+	 *
+	 * A common cause of false positives for double escaping is that some
+	 * methods take a string|Message, and this confuses the tool given
+	 * the __toString() behaviour of Message. So disable double escape
+	 * checking for that.
+	 *
+	 * This is quite hacky. Ideally the tool would treat methods taking
+	 * multiple types as separate for each type, and also be able to
+	 * reason out simple conditions of the form if ( $arg instanceof Message ).
+	 * However that's much more complicated due to dependence on phan.
+	 *
+	 * @inheritDoc
+	 * @suppress PhanUnusedPublicMethodParameter
+	 */
+	public function modifyArgTaint(
+		Taintedness $curArgTaintedness,
+		Node $argument,
+		int $argIndex,
+		FunctionInterface $func,
+		FunctionTaintedness $funcTaint,
+		Context $context,
+		CodeBase $code_base
+	) : Taintedness {
+		if ( $curArgTaintedness->has( self::ESCAPED_TAINT ) ) {
+			$argumentIsMaybeAMsg = false;
+			/** @var \Phan\Language\Element\Clazz[] $classes */
+			$classes = UnionTypeVisitor::unionTypeFromNode( $code_base, $context, $argument )
+				->asClassList( $code_base, $context );
+			foreach ( $classes as $cl ) {
+				if ( $cl->getFQSEN()->__toString() === '\Message' ) {
+					$argumentIsMaybeAMsg = true;
+					break;
+				}
+			}
+
+			$param = $func->getParameterForCaller( $argIndex );
+			if ( !$argumentIsMaybeAMsg || !$param || !$param->getUnionType()->hasStringType() ) {
+				return $curArgTaintedness;
+			}
+			/** @var \Phan\Language\Element\Clazz[] $classesParam */
+			$classesParam = $param->getUnionType()->asClassList( $code_base, $context );
+			foreach ( $classesParam as $cl ) {
+				if ( $cl->getFQSEN()->__toString() === '\Message' ) {
+					// So we are here. Input is a Message, and func expects either a Message or string
+					// (or something else). So disable double escape check.
+					return $curArgTaintedness->without( self::ESCAPED_TAINT );
+				}
+			}
+		}
+		return $curArgTaintedness;
+	}
 }
 
 return new MediaWikiSecurityCheckPlugin;

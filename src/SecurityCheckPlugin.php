@@ -23,11 +23,13 @@
 namespace SecurityCheckPlugin;
 
 use AssertionError;
+use ast\Node;
 use Closure;
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
 use Phan\Language\Element\Comment\Builder;
+use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\Scope;
@@ -541,6 +543,32 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			return null;
 		}
 		return $overallTaint;
+	}
+
+	/**
+	 * Hook to override how taint of an argument to method call is calculated
+	 *
+	 * @param Taintedness $curArgTaintedness
+	 * @param Node $argument Note: This hook is not called on literals
+	 * @param int $argIndex Which argument number is this
+	 * @param FunctionInterface $func The function/method being called
+	 * @param FunctionTaintedness $funcTaint Taint of method formal parameters
+	 * @param Context $context Context object
+	 * @param CodeBase $code_base CodeBase object
+	 * @return Taintedness The taint to use for actual parameter
+	 * @suppress PhanUnusedPublicMethodParameter
+	 */
+	public function modifyArgTaint(
+		Taintedness $curArgTaintedness,
+		Node $argument,
+		int $argIndex,
+		FunctionInterface $func,
+		FunctionTaintedness $funcTaint,
+		Context $context,
+		CodeBase $code_base
+	) : Taintedness {
+		// no-op
+		return $curArgTaintedness;
 	}
 
 	/**

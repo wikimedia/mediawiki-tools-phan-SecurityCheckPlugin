@@ -2332,6 +2332,18 @@ trait TaintednessBaseVisitor {
 			list( $curArgTaintedness, $effectiveArgTaintedness ) = $this->getArgTaint(
 				$taint, $argument, $i, $funcName
 			);
+			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
+			// the Message class doesn't have double escape taint if method takes Message|string.
+			// TODO This is quite hacky.
+			$curArgTaintedness = SecurityCheckPlugin::$pluginInstance->modifyArgTaint(
+				$curArgTaintedness,
+				$argument,
+				$i,
+				$func,
+				$taint,
+				$this->context,
+				$this->code_base
+			);
 
 			// If this is a call by reference parameter,
 			// link the taintedness variables.
