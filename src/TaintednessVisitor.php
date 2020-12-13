@@ -784,9 +784,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitBinaryOp( Node $node ) : void {
 		$lhs = $node->children['left'];
 		$rhs = $node->children['right'];
+		$mask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
+		if ( $mask === SecurityCheckPlugin::NO_TAINT ) {
+			// If the operation is safe, don't waste time analyzing children.This might also create bugs
+			// like the test undeclaredvar2
+			$this->curTaint = Taintedness::newSafe();
+			return;
+		}
 		$leftTaint = $this->getTaintedness( $lhs );
 		$rightTaint = $this->getTaintedness( $rhs );
-		$mask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
 		$this->curTaint = $this->getBinOpTaint( $leftTaint, $rightTaint, $node->flags, $mask );
 	}
 
@@ -808,7 +814,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// HACK: This means that a node can be array, so assume array plus
 			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
 		} else {
-			$combinedTaint = $leftTaint->with( $rightTaint )->withOnly( $mask );
+			$combinedTaint = $leftTaint->with( $rightTaint )->asCollapsed()->withOnly( $mask );
 		}
 		return $combinedTaint;
 	}
