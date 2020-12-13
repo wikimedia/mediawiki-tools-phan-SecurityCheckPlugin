@@ -432,8 +432,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $node->flags === \ast\flags\BINARY_ADD ) {
 			// Sanity: using `+=` should restrict the list of possible LHS nodes
 			static $allowedLHS = [ \ast\AST_VAR, \ast\AST_DIM, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
-			// TODO Determine if asserting is fine (as opp. to e.g. returning inapplicable taint)
-			assert( in_array( $lhs->kind, $allowedLHS, true ) );
+			if ( !in_array( $lhs->kind, $allowedLHS, true ) ) {
+				// Probably a syntax error.
+				$this->debug( __METHOD__, 'Unexpected LHS: ' . Debug::nodeName( $lhs ) );
+				return;
+			}
 		}
 
 		if ( property_exists( $node, 'assignTaintMask' ) ) {
