@@ -19,7 +19,7 @@ function test2() {
 	];
 
 	foreach ( $unsafeKeys as $k => $v ) {
-		echo $k; // Unsafe FIXME See https://github.com/phan/phan/issues/4251
+		echo $k; // Unsafe
 		echo $v; // Safe
 	}
 }
