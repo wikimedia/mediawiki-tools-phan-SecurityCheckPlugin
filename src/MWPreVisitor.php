@@ -166,4 +166,18 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			*/
 		}
 	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitAssign( Node $node ) : void {
+		parent::visitAssign( $node );
+
+		$lhs = $node->children['var'];
+		if ( $lhs instanceof Node && $lhs->kind === \ast\AST_ARRAY ) {
+			// Don't try interpreting the node as an HTMLForm specifier later on, both for performance, and because
+			// resolving values might cause phan to emit issues (see test undeclaredvar3)
+			$lhs->skipHTMLFormAnalysis = true;
+		}
+	}
 }

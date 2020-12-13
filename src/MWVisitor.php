@@ -935,7 +935,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node
 	 */
-	private function doVisitArray( Node $node ) : void {
+	private function detectHTMLForm( Node $node ) : void {
 		$authReqFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
 			'MediaWiki\Auth\AuthenticationRequest'
 		);
@@ -1161,6 +1161,8 @@ class MWVisitor extends TaintednessVisitor {
 	 */
 	public function visitArray( Node $node ) : void {
 		parent::visitArray( $node );
-		$this->doVisitArray( $node );
+		if ( !property_exists( $node, 'skipHTMLFormAnalysis' ) ) {
+			$this->detectHTMLForm( $node );
+		}
 	}
 }
