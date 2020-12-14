@@ -1,5 +1,13 @@
 # MediaWiki Security Check Plugin changelog
 
+## v3.2.1
+### Bug fixes
+* Fixed a crash observed when using the polyfill parser
+* Fixed two crashes introduced with the 3.2.0 release
+
+### Internal changes
+* Bumped phan/phan to 3.2.6
+
 ## v3.2.0
 ### New features
 * Variadic parameters are now properly handled
