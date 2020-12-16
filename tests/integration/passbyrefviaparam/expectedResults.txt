@@ -1,1 +1,1 @@
-integration/passbyrefviaparam/reftest.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefviaparam/reftest.php +5)
+integration/passbyrefviaparam/reftest.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefviaparam/reftest.php +10; integration/passbyrefviaparam/reftest.php +5)

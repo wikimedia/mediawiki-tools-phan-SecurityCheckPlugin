@@ -1,1 +1,1 @@
-integration/prop4/test.php:35 SecurityCheck-XSS Calling method \Foo::setMyProp() in [no method] that outputs using tainted argument #1 (`$_GET['do']`). (Caused by: integration/prop4/test.php +33; integration/prop4/test.php +27)
+integration/prop4/test.php:35 SecurityCheck-XSS Calling method \Foo::setMyProp() in [no method] that outputs using tainted argument #1 (`$_GET['do']`). (Caused by: integration/prop4/test.php +33; integration/prop4/test.php +9; integration/prop4/test.php +27)

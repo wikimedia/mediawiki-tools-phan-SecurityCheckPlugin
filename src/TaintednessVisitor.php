@@ -1232,7 +1232,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$curFunc = $this->context->getFunctionLikeInScope( $this->code_base );
 		// The EXEC taint flags have different meaning for variables and
 		// functions. We don't want to transmit exec flags here.
-		$taintedness = $this->getTaintedness( $node->children['expr'] )->withOnly( SecurityCheckPlugin::ALL_TAINT );
+		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
+		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
+		$taintedness = $this->getTaintedness( $node->children['expr'] )->withOnly( $keepMask );
 
 		$funcTaint = $this->matchTaintToParam(
 			$node->children['expr'],
@@ -1250,10 +1252,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$retObjs
 			);
 
-			if ( $funcTaint->getOverall()->has( SecurityCheckPlugin::YES_EXEC_TAINT ) ) {
-				foreach ( $retObjs as $pobj ) {
-					$this->mergeTaintError( $curFunc, $pobj );
-				}
+			foreach ( $retObjs as $pobj ) {
+				$this->mergeTaintError( $curFunc, $pobj );
 			}
 		}
 		$this->curTaint = Taintedness::newInapplicable();

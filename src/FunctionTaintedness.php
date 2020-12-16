@@ -177,6 +177,16 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * Check whether this object has the same values as $other
+	 * @param FunctionTaintedness $other
+	 * @return bool
+	 */
+	public function equals( self $other ) : bool {
+		// TODO This is a hack, but it works.
+		return $this->toString() === $other->toString();
+	}
+
+	/**
 	 * Make sure to clone properties when cloning the instance
 	 */
 	public function __clone() {
@@ -189,11 +199,18 @@ class FunctionTaintedness {
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function toString() : string {
 		$str = "[\n\toverall: " . $this->overall->toString( '    ' ) . ",\n";
 		foreach ( $this->paramTaints as $par => $taint ) {
 			$str .= "\t$par: " . $taint->toString() . ",\n";
 		}
 		return "$str]";
+	}
+
+	/**
+	 * @return string
+	 */
+	public function __toString() : string {
+		return $this->toString();
 	}
 }

@@ -115,9 +115,8 @@ trait TaintednessBaseVisitor {
 			Taintedness $curT,
 			$index
 		) use ( $func, $reason ) : void {
-			// Only copy error lines if we add some taint not
-			// previously present.
-			if ( !$baseT->withoutShaped( $curT )->isSafe() ) {
+			// Only copy error lines if we add some taint not previously present.
+			if ( $curT->has( SecurityCheckPlugin::PRESERVE_TAINT ) || !$baseT->withoutShaped( $curT )->isSafe() ) {
 				if ( $index === 'overall' ) {
 					$this->addTaintError( $baseT, $func, -1, $reason );
 				} else {
@@ -210,6 +209,8 @@ trait TaintednessBaseVisitor {
 	 *
 	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
 	 * even a single taintedness value in $base changes.
+	 *
+	 * @todo Handle overlaps, i.e. merge( [1,2], [2,3] ) should give [1,2,3], not [1,2,2,3]
 	 *
 	 * @param array[] $base
 	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
@@ -342,6 +343,22 @@ trait TaintednessBaseVisitor {
 		int $arg = -1,
 		$reason = null
 	) : void {
+		// NOTE: Parameters here are excluded just to keep caused-by lines shorter, although it wouldn't
+		// be wrong to include them.
+		if ( !$elem instanceof Parameter && $taintedness->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
+			// PRESERVE means all EXECs for a func, and all taints otherwise.
+			if ( !$elem instanceof FunctionInterface ) {
+				$taintedness = Taintedness::newTainted();
+			} else {
+				$funcTaint = $this->getTaintOfFunction( $elem, false );
+				if ( $funcTaint->withMaybeClearNoOverride( true )->equals( $funcTaint ) ) {
+					// Don't do anything if the function has a NO_OVERRIDE somewhere (i.e. it's probably annotated,
+					// or the taintedness is hardcoded in the plugin)
+					$taintedness = Taintedness::newTainted()->asYesToExecTaint()
+						->with( SecurityCheckPlugin::YES_TAINT );
+				}
+			}
+		}
 		if ( !$taintedness->isExecTaint() && !$taintedness->isAllTaint() ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
@@ -2483,8 +2500,13 @@ trait TaintednessBaseVisitor {
 				// approach.
 				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
+
+			$parTaint = $funcTaint->getParamTaint( $i );
+			if ( $parTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
+				$parTaint = Taintedness::newTainted();
+			}
 			$effectiveArgTaintedness = $curArgTaintedness->withOnlyObj(
-				$funcTaint->getParamTaint( $i )->withObj( $funcTaint->getParamTaint( $i )->asExecToYesTaint() )
+				$parTaint->withObj( $parTaint->asExecToYesTaint() )
 			);
 			$this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 				. " via arg $i $funcName" );

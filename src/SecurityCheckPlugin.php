@@ -143,6 +143,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		self::PATH_TAINT | self::CODE_TAINT | self::REGEX_TAINT | self::CUSTOM1_TAINT | self::CUSTOM2_TAINT |
 		self::MISC_TAINT;
 	public const EXEC_TAINT = self::YES_TAINT << 1;
+	// @phan-suppress-next-line PhanUnreferencedPublicClassConstant
 	public const YES_EXEC_TAINT = self::YES_TAINT | self::EXEC_TAINT;
 
 	// ALL taint is YES + special purpose taints, but not including special flags.
@@ -296,6 +297,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 		// Note, order matters here.
 		static $mapping = [
+			self::PRESERVE_TAINT => 'PRESERVE',
 			self::YES_TAINT => 'YES',
 			self::YES_TAINT &
 			( ~self::HTML_TAINT ) => '~HTML',
@@ -354,6 +356,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		}
 		$taintTypes = implode( ', ', $types );
 		$flags = [];
+		if ( ( $taint & self::NO_OVERRIDE ) === self::NO_OVERRIDE ) {
+			$flags[] = 'no override';
+		}
 		if ( ( $taint & self::RAW_PARAM ) === self::RAW_PARAM ) {
 			$flags[] = 'raw param';
 		}
