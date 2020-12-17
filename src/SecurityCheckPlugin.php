@@ -518,17 +518,17 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$overallTaint->add( self::RAW_PARAM );
 				continue;
 			}
-			$taintAsInt = new Taintedness( self::convertTaintNameToConstant( $taintParts['type'] ) );
+			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );
 			switch ( $taintParts['prefix'] ) {
 				case '':
 					$overallTaint->add( $taintAsInt );
 					break;
 				case 'exec':
-					$overallTaint->add( $taintAsInt->asYesToExecTaint() );
+					$overallTaint->addObj( ( new Taintedness( $taintAsInt ) )->asYesToExecTaint() );
 					break;
 				case 'escapes':
 				case 'onlysafefor':
-					$overallTaint->add( Taintedness::newTainted()->without( $taintAsInt ) );
+					$overallTaint->add( Taintedness::newTainted()->without( $taintAsInt )->get() );
 					if ( $taintParts['type'] === 'html' ) {
 						if ( $taintParts['prefix'] === 'escapes' ) {
 							$overallTaint->add( self::ESCAPED_EXEC_TAINT );

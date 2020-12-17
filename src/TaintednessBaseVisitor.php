@@ -161,7 +161,7 @@ trait TaintednessBaseVisitor {
 		// the PHPDoc type, as it may be wrong.
 		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
 		$newTaint->map( function ( Taintedness $taint ) use ( $mask ) : void {
-			$taint->keepOnly( $mask );
+			$taint->keepOnly( $mask->get() );
 		} );
 
 		$func->funcTaint = $newTaint;
@@ -212,8 +212,11 @@ trait TaintednessBaseVisitor {
 	 * even a single taintedness value in $base changes.
 	 *
 	 * @param array[] $base
+	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
 	 * @param array[] $new
+	 * @phan-param array<int,array{0:Taintedness,1:string}> $new
 	 * @return array[]
+	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
 	public static function mergeCausedByLines( array $base, array $new ) : array {
 		if ( self::getArraySubsetIdx( $base, $new ) !== false ) {
@@ -223,7 +226,7 @@ trait TaintednessBaseVisitor {
 		$subsIdx = self::getArraySubsetIdx( array_column( $base, 1 ), array_column( $new, 1 ) );
 		if ( $subsIdx !== false ) {
 			foreach ( $new as $i => $cur ) {
-				$base[ $i + $subsIdx ][0]->add( $cur[0] );
+				$base[ $i + $subsIdx ][0]->addObj( $cur[0] );
 			}
 			return $base;
 		}
@@ -377,7 +380,7 @@ trait TaintednessBaseVisitor {
 				}
 			} else {
 				$rawPart = $taintedness->withOnly( SecurityCheckPlugin::RAW_PARAM );
-				$argErrTaint = $taintedness->asExecToYesTaint()->with( $rawPart );
+				$argErrTaint = $taintedness->asExecToYesTaint()->withObj( $rawPart );
 				$newElement = [ $argErrTaint, $newError ];
 				if ( self::getArraySubsetIdx( $elem->taintedOriginalErrorByArg[$arg], [ $newElement ] ) === false ) {
 					$elem->taintedOriginalErrorByArg[$arg] = self::mergeCausedByLines(
@@ -452,7 +455,7 @@ trait TaintednessBaseVisitor {
 			$var->taintednessRef = $taint;
 		} else {
 			// NOTE: Don't merge in-place here, same as doSetTaintedness
-			$var->taintednessRef = $var->taintednessRef->with( $taint );
+			$var->taintednessRef = $var->taintednessRef->withObj( $taint );
 		}
 
 		$this->addTaintError( $taint, $var );
@@ -999,7 +1002,7 @@ trait TaintednessBaseVisitor {
 					break;
 				}
 				$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
-				$taint->add( $this->handleMethodCall( $toString, $toStringFQSEN, [] ) );
+				$taint->addObj( $this->handleMethodCall( $toString, $toStringFQSEN, [] ) );
 			}
 		}
 		return $taint;
@@ -1150,7 +1153,7 @@ trait TaintednessBaseVisitor {
 		}
 		if ( property_exists( $variableObj, 'taintedness' ) ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
-			$taintedness = $variableObj->taintedness->withOnly( $mask );
+			$taintedness = $variableObj->taintedness->withOnly( $mask->get() );
 			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
 			$type = $variableObj->getUnionType();
@@ -1589,7 +1592,7 @@ trait TaintednessBaseVisitor {
 			// info we need, and actually, this extra taint would cause false positives with variable
 			// names reuse.
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
-			$newTaint = $curVarTaint->with( $taint );
+			$newTaint = $curVarTaint->withObj( $taint );
 			$this->setTaintednessOld( $var, $newTaint );
 		}
 
@@ -1636,13 +1639,13 @@ trait TaintednessBaseVisitor {
 		foreach ( $method->taintedVarLinks[$i] as $var ) {
 			assert( $var instanceof TypedElementInterface );
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
-			$newTaint = $curVarTaint->with( $taintAdjusted );
+			$newTaint = $curVarTaint->withObj( $taintAdjusted );
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
 			$this->setTaintednessOld( $var, $newTaint );
 			$this->mergeTaintError( $var, $arg );
 			if (
-				$taintAdjusted->without( $curVarTaint )->isAllTaint() &&
+				$taintAdjusted->withoutObj( $curVarTaint )->isAllTaint() &&
 				$var instanceof ClassElement
 			) {
 				// TODO: This is subpar -
@@ -1678,7 +1681,7 @@ trait TaintednessBaseVisitor {
 		$adjustRHS = $rhs->asYesToExecTaint();
 
 		// $this->debug( __METHOD__, "lhs=$lhs; rhs=$rhs, adjustRhs=$adjustRHS" );
-		return $adjustRHS->withOnly( $lhs )->isSafe() && !(
+		return $adjustRHS->withOnlyObj( $lhs )->isSafe() && !(
 			$lhs->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) &&
 			$rhs->has( SecurityCheckPlugin::UNKNOWN_TAINT )
 		);
@@ -1732,7 +1735,7 @@ trait TaintednessBaseVisitor {
 		// Convert EXEC to YES, but keep existing YES in place, and also RAW_PARAM
 		// as that's used for error reporting.
 		$normTaints = $taintedness->withOnly( SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::RAW_PARAM );
-		$taintedness = $taintedness->asExecToYesTaint()->with( $normTaints );
+		$taintedness = $taintedness->asExecToYesTaint()->withObj( $normTaints );
 
 		if ( $taintedness->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
 			// Special case: we assume the bad case, preferring false positives over false negatives
@@ -1894,8 +1897,8 @@ trait TaintednessBaseVisitor {
 				if ( $pobj instanceof Property && !$pobj->isPrivate() ) {
 					$this->debug( __METHOD__, "FIXME should check parent class of $pobj" );
 				}
-				$otherTaint->add( $pobjTaintContribution );
-				$taintRemaining->remove( $pobjTaintContribution );
+				$otherTaint->addObj( $pobjTaintContribution );
+				$taintRemaining->removeObj( $pobjTaintContribution );
 				continue;
 			}
 
@@ -1906,15 +1909,15 @@ trait TaintednessBaseVisitor {
 				if ( (string)( $func->getFQSEN() ) === (string)( $curFunc->getFQSEN() ) ) {
 					foreach ( $paramInfo as $i => $_ ) {
 						$paramTaint->setParamTaint( $i, $pobjTaintContribution );
-						$taintRemaining->remove( $pobjTaintContribution );
+						$taintRemaining->removeObj( $pobjTaintContribution );
 					}
 				} else {
-					$taintRemaining->remove( $pobjTaintContribution );
-					$otherTaint->add( $pobjTaintContribution );
+					$taintRemaining->removeObj( $pobjTaintContribution );
+					$otherTaint->addObj( $pobjTaintContribution );
 				}
 			}
 		}
-		$paramTaint->setOverall( $otherTaint->asMergedWith( $taintRemaining )->withOnly( $taintedness ) );
+		$paramTaint->setOverall( $otherTaint->asMergedWith( $taintRemaining )->withOnlyObj( $taintedness ) );
 		return $paramTaint;
 	}
 
@@ -2221,7 +2224,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		$adjustLHS = $lhsTaint->asExecToYesTaint();
-		$combinedTaint = $rhsTaint->withOnly( $adjustLHS );
+		$combinedTaint = $rhsTaint->withOnlyObj( $adjustLHS );
 		if (
 			( $combinedTaint->isSafe() &&
 			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) ||
@@ -2440,7 +2443,7 @@ trait TaintednessBaseVisitor {
 		$preserveOrExec = SecurityCheckPlugin::PRESERVE_TAINT |
 			SecurityCheckPlugin::ALL_EXEC_TAINT;
 		return $taint->getOverall()->without( $preserveOrExec )
-			->with( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
+			->withObj( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 	}
 
 	/**
@@ -2480,8 +2483,8 @@ trait TaintednessBaseVisitor {
 				// approach.
 				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
-			$effectiveArgTaintedness = $curArgTaintedness->withOnly(
-				$funcTaint->getParamTaint( $i )->with( $funcTaint->getParamTaint( $i )->asExecToYesTaint() )
+			$effectiveArgTaintedness = $curArgTaintedness->withOnlyObj(
+				$funcTaint->getParamTaint( $i )->withObj( $funcTaint->getParamTaint( $i )->asExecToYesTaint() )
 			);
 			$this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 				. " via arg $i $funcName" );

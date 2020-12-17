@@ -518,7 +518,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// @fixme Is this really necessary? It doesn't seem helpful for local variables,
 		// and it doesn't handle props or globals.
 		// TODO: This should probably be moved to setTaintednessForAssignmentNode
-		$adjustedRHS = $rhsTaintedness->without( $lhsTaintedness );
+		$adjustedRHS = $rhsTaintedness->withoutObj( $lhsTaintedness );
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
 			$adjustedRHS,
@@ -683,7 +683,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// misattribute where the taint is coming from
 			// See testcase dblescapefieldset.
 			$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
-			$adjTaint = $lhsTaintedness->with( $rhsTaintedness )->without( $taintRHSObj );
+			$adjTaint = $lhsTaintedness->withObj( $rhsTaintedness )->withoutObj( $taintRHSObj );
 			if ( $adjTaint->lacks( SecurityCheckPlugin::ALL_YES_EXEC_TAINT ) ) {
 				$this->mergeTaintDependencies( $variableObj, $rhsObj );
 				if ( $globalVarObj ) {
@@ -700,9 +700,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			foreach ( $allRhsObjs as $rhsObj ) {
 				$lines = $this->getOriginalTaintArray( $rhsObj );
 				foreach ( $lines as [ $lineTaint, $line ] ) {
-					$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $variableObj, -1, $line );
+					$this->addTaintError( $rhsTaintedness->withOnlyObj( $lineTaint ), $variableObj, -1, $line );
 					if ( $globalVarObj ) {
-						$this->addTaintError( $rhsTaintedness->withOnly( $lineTaint ), $globalVarObj, -1, $line );
+						$this->addTaintError( $rhsTaintedness->withOnlyObj( $lineTaint ), $globalVarObj, -1, $line );
 					}
 				}
 			}
@@ -817,7 +817,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// HACK: This means that a node can be array, so assume array plus
 			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
 		} else {
-			$combinedTaint = $leftTaint->with( $rightTaint )->asCollapsed()->withOnly( $mask );
+			$combinedTaint = $leftTaint->withObj( $rightTaint )->asCollapsed()->withOnly( $mask );
 		}
 		return $combinedTaint;
 	}
@@ -1346,7 +1346,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$taint = Taintedness::newSafe();
 		foreach ( $props as $prop ) {
-			$taint->add( $this->getTaintednessPhanObj( $prop ) );
+			$taint->addObj( $this->getTaintednessPhanObj( $prop ) );
 		}
 		$this->curTaint = $taint;
 	}
@@ -1448,7 +1448,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$trueTaint = $this->getTaintedness( $node->children['true'] );
 		}
 		$falseTaint = $this->getTaintedness( $node->children['false'] );
-		$this->curTaint = $trueTaint->with( $falseTaint );
+		$this->curTaint = $trueTaint->withObj( $falseTaint );
 	}
 
 	/**
@@ -1556,7 +1556,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitEncapsList( Node $node ) : void {
 		$taint = Taintedness::newSafe();
 		foreach ( $node->children as $child ) {
-			$taint->add( $this->getTaintedness( $child ) );
+			$taint->addObj( $this->getTaintedness( $child ) );
 		}
 		$this->curTaint = $taint;
 	}

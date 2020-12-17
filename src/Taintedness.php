@@ -9,9 +9,6 @@ use Closure;
  * Value object used to store taintedness. This should always be used to manipulate taintedness values,
  * instead of directly using taint constants directly (except for comparisons etc.).
  *
- * @todo (Some) methods accepting self|int should be changed to accept int only, and the callers should
- *   be migrated to use methods preserving the shape (e.g. add -> mergeWith, with -> asMergedWith)
- *
  * Note that this class should be used as copy-on-write (like phan's UnionType), so in-place
  * manipulation should never be done on phan objects.
  */
@@ -136,13 +133,18 @@ class Taintedness {
 	 * @see Taintedness::with() if you need a clone
 	 * @see Taintedness::mergeWith() if you want to preserve the whole shape
 	 *
-	 * @param self|int $taint
+	 * @param int $taint
 	 */
-	public function add( $taint ) : void {
-		$addedTaint = $taint instanceof self ? $taint->flags : $taint;
-		// TODO: Should this clear UNKNOWN_TAINT if its present
-		// only in one of the args?
-		$this->flags |= $addedTaint;
+	public function add( int $taint ) : void {
+		// TODO: Should this clear UNKNOWN_TAINT if its present only in one of the args?
+		$this->flags |= $taint;
+	}
+
+	/**
+	 * @param Taintedness $other
+	 */
+	public function addObj( self $other ) : void {
+		$this->add( $other->get() );
 	}
 
 	/**
@@ -150,40 +152,60 @@ class Taintedness {
 	 * @see Taintedness::add() for the in-place version
 	 * @see Taintedness::asMergedWith() if you want to preserve the whole shape
 	 *
-	 * @param self|int $other
+	 * @param int $other
 	 * @return $this
 	 */
-	public function with( $other ) : self {
+	public function with( int $other ) : self {
 		$ret = clone $this;
-		$taint = $other instanceof self ? $other->get() : $other;
-		$ret->add( $taint );
+		$ret->add( $other );
 		return $ret;
+	}
+
+	/**
+	 * @param Taintedness $other
+	 * @return $this
+	 */
+	public function withObj( self $other ) : self {
+		return $this->with( $other->get() );
 	}
 
 	/**
 	 * Recursively remove the given taint from this object, *without* creating a clone
 	 * @see Taintedness::without() if you need a clone
 	 *
-	 * @param self|int $other
+	 * @param int $other
 	 */
-	public function remove( $other ) : void {
-		$taint = $other instanceof self ? $other->flags : $other;
-		$this->keepOnly( ~$taint );
+	public function remove( int $other ) : void {
+		$this->keepOnly( ~$other );
+	}
+
+	/**
+	 * @param Taintedness $other
+	 */
+	public function removeObj( self $other ) : void {
+		$this->remove( $other->get() );
 	}
 
 	/**
 	 * Returns a copy of this object, with the bits in $other removed recursively.
 	 * @see Taintedness::remove() for the in-place version
-	 * @todo This should probably do what withoutShaped does.
 	 *
-	 * @param self|int $other
+	 * @param int $other
 	 * @return $this
 	 */
-	public function without( $other ) : self {
+	public function without( int $other ) : self {
 		$ret = clone $this;
-		$taint = $other instanceof self ? $other->get() : $other;
-		$ret->remove( $taint );
+		$ret->remove( $other );
 		return $ret;
+	}
+
+	/**
+	 * @todo This should probably do what withoutShaped does.
+	 * @param Taintedness $other
+	 * @return $this
+	 */
+	public function withoutObj( self $other ) : self {
+		return $this->without( $other->get() );
 	}
 
 	/**
@@ -235,10 +257,9 @@ class Taintedness {
 	 * Keep only the taint in $taint, recursively, preserving the shape and without creating a copy.
 	 * @see Taintedness::withOnly if you need a clone
 	 *
-	 * @param self|int $other
+	 * @param int $taint
 	 */
-	public function keepOnly( $other ) : void {
-		$taint = $other instanceof self ? $other->flags : $other;
+	public function keepOnly( int $taint ) : void {
 		$this->flags &= $taint;
 		if ( $this->unknownDimsTaint ) {
 			$this->unknownDimsTaint->keepOnly( $taint );
@@ -253,14 +274,21 @@ class Taintedness {
 	 * Returns a copy of this object, with only the taint in $taint kept (recursively, preserving the shape)
 	 * @see Taintedness::keepOnly() for the in-place version
 	 *
-	 * @param self|int $other
+	 * @param int $other
 	 * @return $this
 	 */
-	public function withOnly( $other ) : self {
+	public function withOnly( int $other ) : self {
 		$ret = clone $this;
-		$taint = $other instanceof self ? $other->get() : $other;
-		$ret->keepOnly( $taint );
+		$ret->keepOnly( $other );
 		return $ret;
+	}
+
+	/**
+	 * @param Taintedness $other
+	 * @return $this
+	 */
+	public function withOnlyObj( self $other ) : self {
+		return $this->withOnly( $other->get() );
 	}
 
 	/**
@@ -403,7 +431,7 @@ class Taintedness {
 			}
 			return ( !isset( $base->dimTaint[$lastOffset] ) || $override )
 				? $val
-				: $base->dimTaint[$lastOffset]->with( $val );
+				: $base->dimTaint[$lastOffset]->withObj( $val );
 		};
 		$this->applyClosureAtOffsetList( $offsets, $offsetsTaint, $setCb );
 	}

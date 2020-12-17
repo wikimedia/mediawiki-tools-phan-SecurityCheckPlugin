@@ -492,7 +492,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		Context $context,
 		CodeBase $code_base
 	) : bool {
-		if ( $lhsTaint->withOnly( $rhsTaint )->get() === self::HTML_TAINT ) {
+		if ( $lhsTaint->withOnlyObj( $rhsTaint )->get() === self::HTML_TAINT ) {
 			$path = str_replace( '\\', '/', $context->getFile() );
 			if (
 				strpos( $path, 'maintenance/' ) === 0 ||
