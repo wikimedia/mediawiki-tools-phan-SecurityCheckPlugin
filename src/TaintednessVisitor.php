@@ -1132,11 +1132,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		if ( $this->isSuperGlobal( $varName ) ) {
-			// Superglobals are tainted, regardless of whether they're in the current scope:
-			// `function foo() use ($argv)` puts $argv in the local scope, but it retains its
-			// taintedness (see test closure2).
-			// echo "$varName is superglobal. Marking tainted\n";
-			$this->curTaint = Taintedness::newTainted();
+			$this->curTaint = $this->getTaintednessOfSuperGlobal( $varName );
 			return;
 		} elseif ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
 			// Probably the var just isn't in scope yet.
@@ -1149,6 +1145,47 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curTaint = $this->getTaintednessReference( $this->extractReferenceArgument( $variableObj ) );
 		} else {
 			$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
+		}
+	}
+
+	/**
+	 * Get the taintedness of a superglobal. Note that superglobals are tainted, regardless of whether they're in
+	 * the current scope: `function foo() use ($argv)` puts $argv in the local scope, but it retains its
+	 * taintedness (see test closure2).
+	 * @param string $varName
+	 * @return Taintedness
+	 */
+	private function getTaintednessOfSuperGlobal( string $varName ) : Taintedness {
+		switch ( $varName ) {
+			case '_GET':
+			case '_POST':
+			case 'argc':
+			case 'argv':
+			case 'GLOBALS':
+			case 'http_response_header':
+			// TODO Improve these
+			case '_SERVER':
+			case '_COOKIE':
+			case '_SESSION':
+			case '_REQUEST':
+			case '_ENV':
+				return Taintedness::newTainted();
+			case '_FILES':
+				$ret = Taintedness::newSafe();
+				$ret->addKeysTaintedness( SecurityCheckPlugin::YES_TAINT );
+				$elTaint = Taintedness::newFromArray( [
+					'name' => Taintedness::newTainted(),
+					'type' => Taintedness::newTainted(),
+					'tmp_name' => Taintedness::newSafe(),
+					'error' => Taintedness::newSafe(),
+					'size' => Taintedness::newSafe(),
+				] );
+				// Use 'null' as fake offset to set unknownDims
+				$ret->setOffsetTaintedness( null, $elTaint );
+				return $ret;
+			default:
+				$this->debug( __METHOD__, "FIXME Unknown superglobal $varName" );
+				return Taintedness::newTainted();
 		}
 	}
 

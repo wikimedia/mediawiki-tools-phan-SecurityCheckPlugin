@@ -82,6 +82,19 @@ class Taintedness {
 	}
 
 	/**
+	 * @param Taintedness[] $values
+	 * @return self
+	 */
+	public static function newFromArray( array $values ) : self {
+		$ret = self::newSafe();
+		foreach ( $values as $key => $value ) {
+			assert( $value instanceof self );
+			$ret->setOffsetTaintedness( $key, $value );
+		}
+		return $ret;
+	}
+
+	/**
 	 * Get a numeric representation of the taint stored in this object. This includes own taint,
 	 * array keys and whatnot.
 	 * @note This should almost NEVER be used outside of this class! Use accessors as much as possible!
