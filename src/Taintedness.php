@@ -451,7 +451,9 @@ class Taintedness {
 			return $this->asValueFirstLevel();
 		}
 		if ( isset( $this->dimTaint[$offset] ) ) {
-			return $this->dimTaint[$offset]->asMergedWith( $this->unknownDimsTaint ?? self::newSafe() );
+			$add = $this->unknownDimsTaint ?? self::newSafe();
+			$add->add( $this->flags );
+			return $this->dimTaint[$offset]->asMergedWith( $add );
 		}
 
 		$ret = $this->unknownDimsTaint ? clone $this->unknownDimsTaint : self::newSafe();
@@ -468,14 +470,9 @@ class Taintedness {
 	 */
 	public function asValueFirstLevel() : self {
 		$ret = new self( $this->flags );
-		$ret->unknownDimsTaint = $this->unknownDimsTaint;
+		$ret->mergeWith( $this->unknownDimsTaint ?? self::newSafe() );
 		foreach ( $this->dimTaint as $val ) {
 			$ret->mergeWith( $val );
-			if ( $ret->unknownDimsTaint ) {
-				$ret->unknownDimsTaint->add( $val->flags );
-			} else {
-				$ret->unknownDimsTaint = new self( $val->flags );
-			}
 		}
 		return $ret;
 	}

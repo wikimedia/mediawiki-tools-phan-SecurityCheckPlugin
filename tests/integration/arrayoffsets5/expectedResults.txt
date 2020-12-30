@@ -15,3 +15,4 @@ integration/arrayoffsets5/test.php:93 SecurityCheck-XSS Echoing expression that 
 integration/arrayoffsets5/test.php:94 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets5/test.php +89; integration/arrayoffsets5/test.php +90)
 integration/arrayoffsets5/test.php:95 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets5/test.php +89; integration/arrayoffsets5/test.php +90)
 integration/arrayoffsets5/test.php:96 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets5/test.php +89; integration/arrayoffsets5/test.php +90)
+integration/arrayoffsets5/test.php:97 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets5/test.php +89; integration/arrayoffsets5/test.php +90)

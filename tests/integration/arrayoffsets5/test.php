@@ -94,7 +94,7 @@ echo $arr; // Unsafe
 echo $arr['l1']; // Unsafe
 echo $arr['l1']['notexists']; // Unsafe
 echo $arr['l1']['notexists']['notexists2']; // Unsafe
-echo $arr['l1']['notexists']['notexists2']['notexists3']; // Safe
+echo $arr['l1']['notexists']['notexists2']['notexists3']; // TODO Ideally safe, considered unsafe because the plugin thinks it might come from $_GET['bar']
 echo $arr['l1']['notexists4']; // Safe
 echo $arr['l1']['notexists4']['notexists5']; // Safe
 echo $arr['l1']['notexists4']['notexists5']['notexists6']; // Safe
