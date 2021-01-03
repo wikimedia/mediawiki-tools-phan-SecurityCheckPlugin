@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### New features
+* Improved taint data for $_FILES
+
 ## v3.2.1
 ### Bug fixes
 * Fixed a crash observed when using the polyfill parser
