@@ -25,6 +25,7 @@
 use ast\Node;
 use Phan\AST\UnionTypeVisitor;
 use Phan\CodeBase;
+use Phan\Exception\CodeBaseException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
@@ -550,11 +551,16 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			/** @var \Phan\Language\Element\Clazz[] $classes */
 			$classes = UnionTypeVisitor::unionTypeFromNode( $code_base, $context, $argument )
 				->asClassList( $code_base, $context );
-			foreach ( $classes as $cl ) {
-				if ( $cl->getFQSEN()->__toString() === '\Message' ) {
-					$argumentIsMaybeAMsg = true;
-					break;
+			try {
+				foreach ( $classes as $cl ) {
+					if ( $cl->getFQSEN()->__toString() === '\Message' ) {
+						$argumentIsMaybeAMsg = true;
+						break;
+					}
 				}
+			} catch ( CodeBaseException $_ ) {
+				// A class that doesn't exist, don't crash.
+				return $curArgTaintedness;
 			}
 
 			$param = $func->getParameterForCaller( $argIndex );
