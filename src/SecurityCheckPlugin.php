@@ -794,16 +794,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			'\printf' => [
 				self::HTML_EXEC_TAINT,
 				// TODO We could check if the respective specifiers are safe
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
-				self::HTML_EXEC_TAINT,
+				self::HTML_EXEC_TAINT | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
 			],
 			'\preg_filter' => [
