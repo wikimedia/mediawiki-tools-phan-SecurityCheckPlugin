@@ -1099,7 +1099,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		} else {
 			$methodName = $node->children['method'];
 			try {
-				$func = $ctxNode->getMethod( $methodName, $isStatic );
+				$func = $ctxNode->getMethod( $methodName, $isStatic, true );
 			} catch ( NodeException | CodeBaseException | IssueException $e ) {
 				return "FIXME complicated case not handled. Maybe method not defined. " . $this->getDebugInfo( $e );
 			}

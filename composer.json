@@ -30,7 +30,7 @@
 		"psr-4": { "SecurityCheckPlugin\\": "src" }
 	},
 	"require": {
-		"phan/phan": "3.2.6",
+		"phan/phan": "4.0.2",
 		"php": "^7.2.0 | ^8.0.0",
 		"ext-json": "*"
 	},

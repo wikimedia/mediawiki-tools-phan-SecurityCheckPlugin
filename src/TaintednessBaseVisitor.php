@@ -721,7 +721,9 @@ trait TaintednessBaseVisitor {
 			foreach ( $nonParents as $nonParentFQSEN ) {
 				if ( $this->code_base->hasClassWithFQSEN( $nonParentFQSEN ) ) {
 					$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
-					if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName() ) ) {
+					// TODO Assuming this isn't a direct invocation, but does it always make sense?
+					$directInvocation = false;
+					if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName(), $directInvocation ) ) {
 						$funcsToTry[] = $nonParent->getMethodByName( $this->code_base, $func->getName() );
 					}
 				}
@@ -1390,7 +1392,7 @@ trait TaintednessBaseVisitor {
 				} else {
 					$methodName = $node->children['method'];
 					try {
-						$func = $ctxNode->getMethod( $methodName, $node->kind === \ast\AST_STATIC_CALL );
+						$func = $ctxNode->getMethod( $methodName, $node->kind === \ast\AST_STATIC_CALL, true );
 					} catch ( NodeException | CodeBaseException | IssueException $e ) {
 						$this->debug( __METHOD__, "FIXME method not found: " . $this->getDebugInfo( $e ) );
 						return [];

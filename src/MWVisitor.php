@@ -55,7 +55,8 @@ class MWVisitor extends TaintednessVisitor {
 			$methodName = $node->children['method'];
 			$method = $ctx->getMethod(
 				$methodName,
-				$node->kind === \ast\AST_STATIC_CALL
+				$node->kind === \ast\AST_STATIC_CALL,
+				true
 			);
 			// Should this be getDefiningFQSEN() instead?
 			$methodName = (string)$method->getFQSEN();
@@ -879,6 +880,7 @@ class MWVisitor extends TaintednessVisitor {
 	) : ?FullyQualifiedFunctionLikeName {
 		$cnode = $this->getCtxN( $node );
 		$var = $cnode->getVariable();
+		/** @var \Phan\Language\Type[] $types */
 		$types = $var->getUnionType()->withStaticResolvedInContext( $this->context )->getTypeSet();
 		foreach ( $types as $type ) {
 			if ( $type instanceof CallableType || $type instanceof ClosureType ) {
