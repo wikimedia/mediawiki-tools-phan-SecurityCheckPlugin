@@ -2997,15 +2997,10 @@ trait TaintednessBaseVisitor {
 			return false;
 		}
 
-		// TODO We require that all keys must be integer just to cut down on false positives.
-		// We can probably change this if phan infers some real types more precisely, e.g.
-		// if https://github.com/phan/phan/issues/4344 is resolved.
-		// Also, see TODO in backpropagateArgTaint.
-		static $preferFalseNegatives = true;
 		$keyTypes = GenericArrayType::keyUnionTypeFromTypeSetStrict( $el->getUnionType()->getRealTypeSet() );
-		return $preferFalseNegatives
-			? $keyTypes === GenericArrayType::KEY_INT
-			: ( $keyTypes & GenericArrayType::KEY_INT ) !== 0;
+		// NOTE: This might lead to false positives if the array has mixed keys, but since we're talking about
+		// SQLi, we prefer false positives. Also, the mixed keys case isn't fully handled, see backpropagateArgTaint
+		return ( $keyTypes & GenericArrayType::KEY_INT ) !== 0;
 	}
 
 	/**

@@ -149,7 +149,7 @@ function unsafe20( $unsafe ) {
 	];
 	$db->select( 'a', 'b', $stuff );
 }
-unsafe20( $_GET['x'] ); // TODO See TODO in elementCanBeNumkey
+unsafe20( $_GET['x'] );
 
 function unsafe21( $unsafe ) {
 	$db = new Database;
@@ -159,7 +159,7 @@ function unsafe21( $unsafe ) {
 	];
 	$db->select( 'a', 'b', $stuff );
 }
-unsafe21( $_GET['x'] ); // TODO See TODO in elementCanBeNumkey
+unsafe21( $_GET['x'] );
 
 function unsafe22( $unsafe ) {
 	$db = new Database;
@@ -171,7 +171,24 @@ function unsafe22( $unsafe ) {
 }
 unsafe22( $_GET['x'] );
 
+function unsafe23( $unsafe ) {
+	$db = new Database;
+	$stuff = [
+		(string)unknownType() => $unsafe // PHP will autocast numeric strings to integer, hence unsafe: https://github.com/phan/phan/issues/4344
+	];
+	$db->select( 'a', 'b', $stuff );
+}
+unsafe23( $_GET['x'] );
 
+function unsafe24( $unsafe ) {
+	$db = new Database;
+	$k = (string)rand(); // PHP will autocast numeric strings to integer, hence unsafe: https://github.com/phan/phan/issues/4344
+	$stuff = [
+		$k => $unsafe
+	];
+	$db->select( 'a', 'b', $stuff );
+}
+unsafe24( $_GET['x'] );
 
 function safe1( $unsafe ) {
 	$db = new Database;
@@ -240,22 +257,3 @@ function safe11( $unsafe ) {
 	$db->select( 'a', 'b', $stuff );
 }
 safe11( $_GET['x'] );
-
-function safe12( $unsafe ) {
-	$db = new Database;
-	$stuff = [
-		(string)unknownType() => $unsafe
-	];
-	$db->select( 'a', 'b', $stuff );
-}
-safe12( $_GET['x'] );
-
-function safe13( $unsafe ) {
-	$db = new Database;
-	$k = (string)rand();
-	$stuff = [
-		$k => $unsafe
-	];
-	$db->select( 'a', 'b', $stuff );
-}
-safe13( $_GET['x'] );
