@@ -34,8 +34,6 @@ use Phan\Language\UnionType;
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * @suppress PhanUnreferencedClass https://github.com/phan/phan/issues/2945
  */
 class MWVisitor extends TaintednessVisitor {
 	/**
@@ -139,7 +137,7 @@ class MWVisitor extends TaintednessVisitor {
 			'selectRow'
 		];
 
-		if ( !in_array( $method->getName(), $relevantMethods ) ) {
+		if ( !in_array( $method->getName(), $relevantMethods, true ) ) {
 			return;
 		}
 
@@ -1084,7 +1082,7 @@ class MWVisitor extends TaintednessVisitor {
 			$isInfo = true;
 		}
 
-		if ( in_array( $type, [ 'radio', 'multiselect' ] ) ) {
+		if ( in_array( $type, [ 'radio', 'multiselect' ], true ) ) {
 			$isOptionsSafe = false;
 		}
 
@@ -1146,14 +1144,14 @@ class MWVisitor extends TaintednessVisitor {
 				'HTMLForm label-raw needs to escape input'
 			);
 		}
-		if ( $isInfo === true && $raw === true ) {
+		if ( $isInfo && $raw === true ) {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$default,
 				'HTMLForm info field in raw mode needs to escape default key'
 			);
 		}
-		if ( $isInfo === true && ( $raw === false || $raw === null ) ) {
+		if ( $isInfo && ( $raw === false || $raw === null ) ) {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::ESCAPED_EXEC_TAINT ),
 				$default,

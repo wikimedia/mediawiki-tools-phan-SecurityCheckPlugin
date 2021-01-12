@@ -1398,7 +1398,7 @@ trait TaintednessBaseVisitor {
 						return [];
 					}
 				}
-				if ( in_array( 'return', $options ) ) {
+				if ( in_array( 'return', $options, true ) ) {
 					// intentionally resetting options to []
 					// here to ensure we don't recurse beyond
 					// a depth of 1.
@@ -1988,6 +1988,7 @@ trait TaintednessBaseVisitor {
 				$line
 			);
 		} elseif ( $this->debugOutput === '-' ) {
+			// @phan-suppress-next-line PhanPluginRemoveDebugEcho This is the only wanted debug echo
 			echo $line;
 		}
 	}

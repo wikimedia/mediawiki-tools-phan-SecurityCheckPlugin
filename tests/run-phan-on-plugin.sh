@@ -6,7 +6,7 @@ echo Starting phan
 
 php "./vendor/phan/phan/phan" \
         --project-root-directory . \
-        --config-file "tests/general-phan-config.php" \
+        --config-file "tests/self-phan-config.php" \
         --output "php://stdout" \
         --long-progress-bar $@
 result=$?
