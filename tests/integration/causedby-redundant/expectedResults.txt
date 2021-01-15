@@ -1,0 +1,1 @@
+integration/causedby-redundant/CentralAuth.php:41 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedby-redundant/Core.php +8; integration/causedby-redundant/Core.php +11; integration/causedby-redundant/CentralAuth.php +19)

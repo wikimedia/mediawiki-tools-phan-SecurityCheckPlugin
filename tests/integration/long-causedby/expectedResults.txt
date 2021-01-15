@@ -1,1 +1,1 @@
-integration/long-causedby/test.php:11 SecurityCheck-XSS Calling method \A::output() in \A::main that outputs using tainted argument #1. (Caused by: integration/long-causedby/test.php +17) (Caused by: integration/long-causedby/test.php +17; integration/long-causedby/test.php +12; integration/long-causedby/test.php +11)
+integration/long-causedby/test.php:11 SecurityCheck-XSS Calling method \A::output() in \A::main that outputs using tainted argument #1. (Caused by: integration/long-causedby/test.php +17)

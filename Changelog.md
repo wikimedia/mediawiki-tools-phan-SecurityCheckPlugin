@@ -10,6 +10,7 @@
 
 ### Bug fixes
 * Improved merging caused-by lines to avoid duplicates
+* Avoid tracking dependencies of functions with hardcoded taintedness, so to keep caused-by lines shorter and more relevant
 
 ### Internal changes
 * Bumped phan/phan to 4.0.2

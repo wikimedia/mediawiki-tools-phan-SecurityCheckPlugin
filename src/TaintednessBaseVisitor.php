@@ -1511,6 +1511,22 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Check whether we can link the $i'th param to $func. This is usually wanted, but not for function
+	 * with hardcoded taint. In this case we assume that any dangerous association was already hardcoded.
+	 * This is also good for performance, because hardcoded function tend to be used a lot (for MW, think
+	 * of methods in Database or in Html).
+	 *
+	 * @param FunctionInterface $func
+	 * @return bool
+	 */
+	protected function canLinkParamsToFunc( FunctionInterface $func ) : bool {
+		// TODO We might also want to check this parameter-wise, looking at $func's taintedness
+		// and whether the Taintdness for the i-th param has NO_OVERRIDE. However, that would require
+		// knowing the func taint, which might trigger an analysis of the function, which we can't do now.
+		return $this->getBuiltinFuncTaint( $func->getFQSEN() ) === null;
+	}
+
+	/**
 	 * Link together a Method and its parameters
 	 *
 	 * The idea being if the method gets called with something evil
@@ -1523,6 +1539,10 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) : void {
 		// $this->debug( __METHOD__, "Linking '$param' to '$func' arg $i" );
+
+		if ( !$this->canLinkParamsToFunc( $func ) ) {
+			return;
+		}
 
 		if ( !property_exists( $func, 'taintedVarLinks' ) ) {
 			$func->taintedVarLinks = [];
