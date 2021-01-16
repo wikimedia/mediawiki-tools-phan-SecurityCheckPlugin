@@ -14,16 +14,6 @@ A [web demo] is available.
 Usage
 -----
 
-### System requirements
-* `php >= 7.2.0`
-* `Phan 3.2.6`
-* Strongly suggested: `php-ast >=1.0.1`. While this is not enforced via composer,
-using the fallback parser is way slower and more memory-draining than using php-ast.
-See https://github.com/nikic/php-ast for instructions.
-* Lots of memory. Scanning MediaWiki takes several GBs of memory. Running out of memory
-may be a real issue if you try and scan something from within a VM that has limited
-memory. Small projects do not require so much memory.
-
 ### Install
 
     $ composer require --dev mediawiki/phan-taint-check-plugin
