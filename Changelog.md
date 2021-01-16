@@ -8,6 +8,9 @@
 * Improved caused-by lines for setters and some functions that pass their parameters through
 * Added support backpropagating NUMKEY taint, preferring false negatives until real type inference is improved
 
+### Internal changes
+* Bumped phan/phan to 4.0.2
+
 ## v3.2.1
 ### Bug fixes
 * Fixed a crash observed when using the polyfill parser

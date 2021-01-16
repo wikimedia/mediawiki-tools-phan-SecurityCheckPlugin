@@ -37,8 +37,8 @@ return [
 		Config::projectPath( 'MediaWikiSecurityCheckPlugin.php' ),
 	],
 
-	// We don't really need anything, except for phan
-	'exclude_file_regex' => '@vendor/(?!phan)@',
+	// We don't really need anything, except for phan and polyfills
+	'exclude_file_regex' => '@vendor/(?!phan|symfony/(polyfill|$))@',
 
 	/**
 	 * A list of directories that should be parsed for class and
