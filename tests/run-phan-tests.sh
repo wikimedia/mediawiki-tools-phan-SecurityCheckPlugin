@@ -47,6 +47,8 @@ rm -rf $TESTDIR/Phan/{CLITest.php,PluginV3Test.php,Internal}
 rm $TESTDIR/files/src/0545_require_testing.php $TESTDIR/Phan/Language/FileRefTest.php
 # Taint-check analyses the Group class earlier, thus avoiding a false positive issue from phan alone
 sed -r -i ':a;N;$!ba;s/src\/\S+41 PhanPluginNonBoolInLogicalArith[^\n]+\n//' $TESTDIR/plugin_test/expected/160_useless_return.php.expected
+# Taint-check analyses debug_trace_nonpure() earlier, and knows it returns a string
+sed -r -i 's/(src\/\S+:(30|37)) PhanPartialTypeMismatchReturn.+/&\n\1 PhanTypeInvalidLeftOperandOfNumericOp Invalid operator: left operand of * is string (expected number)/' $TESTDIR/plugin_test/expected/152_phan_pure_annotation.php.expected
 
 
 # Phan uses autoload-dev for test classes

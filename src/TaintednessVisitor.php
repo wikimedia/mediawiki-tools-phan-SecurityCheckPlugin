@@ -20,11 +20,11 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
+use Exception;
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
-use Phan\Exception\FQSENException;
 use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
 use Phan\Language\Context;
@@ -34,7 +34,7 @@ use Phan\Language\Element\Property;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
-use Phan\Language\Type\ClosureType;
+use Phan\Language\Type\FunctionLikeDeclarationType;
 use Phan\PluginV3\PluginAwarePostAnalysisVisitor;
 
 /**
@@ -1026,67 +1026,51 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitMethodCall( Node $node ) : void {
-		$func = $this->getFuncToAnalyze( $node );
-		if ( is_string( $func ) ) {
-			$this->debug( __METHOD__, $func );
+		$funcs = $this->getFuncsFromNode( $node );
+		if ( !$funcs ) {
 			$this->curTaint = Taintedness::newUnknown();
 			return;
 		}
-		$this->curTaint = $this->handleMethodCall(
-			$func,
-			$func->getFQSEN(),
-			$node->children['args']->children
-		);
+
+		$args = $node->children['args']->children;
+		$this->curTaint = Taintedness::newSafe();
+		foreach ( $funcs as $func ) {
+			// No point in analyzing abstract function declarations
+			if ( !$func instanceof FunctionLikeDeclarationType ) {
+				$this->curTaint->mergeWith( $this->handleMethodCall( $func, $func->getFQSEN(), $args ) );
+			}
+		}
 	}
 
 	/**
 	 * @param Node $node
-	 * @return FunctionInterface|string String for an error message
+	 * @return iterable<mixed,FunctionInterface>
 	 */
-	private function getFuncToAnalyze( Node $node ) {
-		$ctxNode = $this->getCtxN( $node );
-		$isStatic = ( $node->kind === \ast\AST_STATIC_CALL );
-		$isFunc = ( $node->kind === \ast\AST_CALL );
-		if ( $isFunc ) {
-			if ( !( $node->children['expr'] ) instanceof Node ) {
-				// Likely a syntax error (see test 'weirdsyntax'), don't crash.
-				return 'Likely sintax error';
-			}
-			if ( $node->children['expr']->kind === \ast\AST_NAME ) {
-				try {
-					$func = $ctxNode->getFunction( $node->children['expr']->children['name'] );
-				} catch ( IssueException | FQSENException $e ) {
-					return "FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e );
-				}
-			} elseif ( $node->children['expr']->kind === \ast\AST_VAR ) {
-				// Closure
-				$pobjs = $this->getPhanObjsForNode( $node->children['expr'] );
-				if ( !$pobjs ) {
-					return 'Closure var is not defined?';
-				}
-				assert( count( $pobjs ) === 1 );
-				$types = $pobjs[0]->getUnionType()->getTypeSet();
-				$func = null;
-				foreach ( $types as $type ) {
-					if ( $type instanceof ClosureType ) {
-						$func = $type->asFunctionInterfaceOrNull( $this->code_base, $this->context );
-					}
-				}
-				if ( $func === null ) {
-					return 'Cannot get closure from variable.';
-				}
-			} else {
-				return "Non-simple func call";
-			}
-		} else {
-			$methodName = $node->children['method'];
+	private function getFuncsFromNode( Node $node ) : iterable {
+		$caller = debug_backtrace()[1]['function'] ?? 'unknown';
+		$logError = function ( Exception $e ) use ( $caller ) : void {
+			$this->debug(
+				$caller,
+				"FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e )
+			);
+		};
+		if ( $node->kind === \ast\AST_CALL ) {
 			try {
-				$func = $ctxNode->getMethod( $methodName, $isStatic, true );
-			} catch ( NodeException | CodeBaseException | IssueException $e ) {
-				return "FIXME complicated case not handled. Maybe method not defined. " . $this->getDebugInfo( $e );
+				return $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
+			} catch ( IssueException $e ) {
+				$logError( $e );
+				return [];
 			}
 		}
-			return $func;
+
+		$methodName = $node->children['method'];
+		$isStatic = $node->kind === \ast\AST_STATIC_CALL;
+		try {
+			return [ $this->getCtxN( $node )->getMethod( $methodName, $isStatic, true ) ];
+		} catch ( NodeException | CodeBaseException | IssueException $e ) {
+			$logError( $e );
+			return [];
+		}
 	}
 
 	/**
@@ -1321,16 +1305,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitStaticProp( Node $node ) : void {
-		$props = $this->getPhanObjsForNode( $node );
-		if ( count( $props ) > 1 ) {
-			// This is unexpected.
-			$this->debug( __METHOD__, "static prop has many objects" );
+		$prop = $this->getPropFromNode( $node );
+		if ( !$prop ) {
+			$this->curTaint = Taintedness::newUnknown();
+			return;
 		}
-		$taint = Taintedness::newSafe();
-		foreach ( $props as $prop ) {
-			$taint->addObj( $this->getTaintednessPhanObj( $prop ) );
-		}
-		$this->curTaint = $taint;
+		$this->curTaint = $this->getTaintednessPhanObj( $prop );
 	}
 
 	/**
@@ -1338,8 +1318,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitProp( Node $node ) : void {
-		$props = $this->getPhanObjsForNode( $node );
-		if ( count( $props ) !== 1 ) {
+		$prop = $this->getPropFromNode( $node );
+		if ( !$prop ) {
 			if (
 				is_object( $node->children['expr'] ) &&
 				$node->children['expr']->kind === \ast\AST_VAR &&
@@ -1369,16 +1349,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				);
 			} else {
 				// FIXME, we should handle $this->foo->bar
-				$this->debug( __METHOD__, "Nested property reference " . count( $props ) . "" );
+				$this->debug( __METHOD__, 'Nested property reference' );
 				# Debug::printNode( $node );
 			}
-			if ( count( $props ) === 0 ) {
-				// Should this be NO_TAINT?
-				$this->curTaint = Taintedness::newUnknown();
-				return;
-			}
+
+			// Should this be NO_TAINT?
+			$this->curTaint = Taintedness::newUnknown();
+			return;
 		}
-		$prop = $props[0];
 
 		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
 			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();

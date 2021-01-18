@@ -903,8 +903,8 @@ trait TaintednessBaseVisitor {
 		if ( isset( SecurityCheckPlugin::$docblockCache[ $fqsen ] ) ) {
 			return clone SecurityCheckPlugin::$docblockCache[ $fqsen ];
 		}
-		// @phan-suppress-next-line PhanUndeclaredMethod All FunctionInterface implementations have it
-		if ( !$func->hasNode() ) {
+		// @phan-suppress-next-line PhanUndeclaredMethod https://github.com/phan/phan/issues/2628
+		if ( !method_exists( $func, 'hasNode' ) || !$func->hasNode() ) {
 			// No docblock available
 			return null;
 		}
@@ -1249,10 +1249,10 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Quick wrapper to get the ContextNode for a node
 	 *
-	 * @param Node $node
+	 * @param Node|mixed $node
 	 * @return ContextNode
 	 */
-	protected function getCtxN( Node $node ) : ContextNode {
+	protected function getCtxN( $node ) : ContextNode {
 		return new ContextNode(
 			$this->code_base,
 			$this->context,
@@ -1301,27 +1301,8 @@ trait TaintednessBaseVisitor {
 		switch ( $node->kind ) {
 			case \ast\AST_PROP:
 			case \ast\AST_STATIC_PROP:
-				try {
-					$prop = $cn->getProperty( $node->kind === \ast\AST_STATIC_PROP );
-					return $maybeKeepIfNumkey( $prop );
-				} catch ( NodeException | IssueException | UnanalyzableException $e ) {
-					// There won't be an expr for static prop.
-					if ( isset( $node->children['expr'] ) && $node->children['expr'] instanceof Node ) {
-						$cnClass = $this->getCtxN( $node->children['expr'] );
-						if ( $cnClass->getVariableName() === 'row' ) {
-							// Its probably a db row, so ignore.
-							// FIXME, we should handle the
-							// db row situation much better.
-							return [];
-						}
-					}
-
-					$this->debug( __METHOD__, "Cannot determine " .
-						"property [3] (Maybe don't know what class) - " .
-						$this->getDebugInfo( $e )
-					);
-					return [];
-				}
+				$prop = $this->getPropFromNode( $node );
+				return $prop ? $maybeKeepIfNumkey( $prop ) : [];
 			case \ast\AST_VAR:
 			case \ast\AST_CLOSURE_VAR:
 				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
@@ -1481,6 +1462,33 @@ trait TaintednessBaseVisitor {
 					. Debug::nodeName( $node ) . "\n"
 				);
 				return [];
+		}
+	}
+
+	/**
+	 * @param Node $node
+	 * @return Property|null
+	 */
+	protected function getPropFromNode( Node $node ) : ?Property {
+		try {
+			return $this->getCtxN( $node )->getProperty( $node->kind === \ast\AST_STATIC_PROP );
+		} catch ( NodeException | IssueException | UnanalyzableException $e ) {
+			// There won't be an expr for static prop.
+			if ( isset( $node->children['expr'] ) && $node->children['expr'] instanceof Node ) {
+				$cnClass = $this->getCtxN( $node->children['expr'] );
+				if ( $cnClass->getVariableName() === 'row' ) {
+					// Its probably a db row, so ignore.
+					// FIXME, we should handle the
+					// db row situation much better.
+					return null;
+				}
+			}
+
+			$this->debug( __METHOD__, "Cannot determine " .
+				"property [3] (Maybe don't know what class) - " .
+				$this->getDebugInfo( $e )
+			);
+			return null;
 		}
 	}
 
