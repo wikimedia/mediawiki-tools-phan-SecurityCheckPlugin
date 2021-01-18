@@ -583,7 +583,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 			return;
 		}
-		$lhsTaintedness = $this->getTaintedness( $lhs );
+
 		$variableObjs = $this->getPhanObjsForNode( $lhs );
 		$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $lhs );
 		foreach ( $variableObjs as $variableObj ) {
@@ -597,7 +597,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$lhsOffsets,
 				$allowClearLHSData
 			);
-			$this->setTaintDependenciesInAssignment( $rhsObjs, $lhsTaintedness, $rhsTaintedness, $variableObj, $rhs );
+			$this->setTaintDependenciesInAssignment( $rhsObjs, $rhsTaintedness, $variableObj, $rhs );
 		}
 	}
 
@@ -656,14 +656,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param TypedElementInterface[] $rhsObjs
-	 * @param Taintedness $lhsTaintedness
 	 * @param Taintedness $rhsTaintedness
 	 * @param TypedElementInterface $variableObj
 	 * @param Node|mixed $rhs
 	 */
 	private function setTaintDependenciesInAssignment(
 		array $rhsObjs,
-		Taintedness $lhsTaintedness,
 		Taintedness $rhsTaintedness,
 		TypedElementInterface $variableObj,
 		$rhs
@@ -678,13 +676,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( $rhsObj instanceof PassByReferenceVariable ) {
 				$rhsObj = $this->extractReferenceArgument( $rhsObj );
 			}
-			// Only merge dependencies if there are no other
-			// sources of taint. Otherwise we can potentially
-			// misattribute where the taint is coming from
-			// See testcase dblescapefieldset.
+
 			$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
-			$adjTaint = $lhsTaintedness->withObj( $rhsTaintedness )->withoutObj( $taintRHSObj );
-			if ( $adjTaint->lacks( SecurityCheckPlugin::ALL_YES_EXEC_TAINT ) ) {
+			if ( !$taintRHSObj->isSafe() ) {
 				$this->mergeTaintDependencies( $variableObj, $rhsObj );
 				if ( $globalVarObj ) {
 					// Merge dependencies on the global copy as well

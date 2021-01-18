@@ -244,16 +244,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Check whether this object does NOT have any of the given flags, recursively.
-	 *
-	 * @param int $taint
-	 * @return bool
-	 */
-	public function lacks( int $taint ) : bool {
-		return ( $this->get() & $taint ) === SecurityCheckPlugin::NO_TAINT;
-	}
-
-	/**
 	 * Keep only the taint in $taint, recursively, preserving the shape and without creating a copy.
 	 * @see Taintedness::withOnly if you need a clone
 	 *
