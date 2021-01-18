@@ -37,6 +37,13 @@ use Phan\Language\UnionType;
  */
 class MWVisitor extends TaintednessVisitor {
 	/**
+	 * @todo This is a temporary hack. Proper solution is refactoring/avoiding overrideContext
+	 * @var bool|null
+	 * @suppress PhanWriteOnlyProtectedProperty
+	 */
+	protected $isHook;
+
+	/**
 	 * Try and recognize hook registration
 	 *
 	 * Also handles static calls
@@ -211,6 +218,7 @@ class MWVisitor extends TaintednessVisitor {
 			$newContext = $newContext->withFile( $fContext->getFile() )
 				->withLineNumberStart( $fContext->getLineNumberStart() );
 			$this->overrideContext = $newContext;
+			$this->isHook = true;
 
 			if ( $hasPassByRef ) {
 				// Trigger an analysis of the function call (see e.g. ClosureReturnTypeOverridePlugin's
@@ -228,9 +236,10 @@ class MWVisitor extends TaintednessVisitor {
 				// able to analyze hooks at all).
 				$analyzer->analyzeCallableWithArgumentTypes( $argumentTypes, $func, $args );
 			}
-			$this->handleMethodCall( $func, $subscriber, $args );
+			$this->handleMethodCall( $func, $subscriber, $args, true );
 
 			$this->overrideContext = $oldContext;
+			$this->isHook = false;
 		}
 	}
 
@@ -264,17 +273,7 @@ class MWVisitor extends TaintednessVisitor {
 			if ( !( $child instanceof Node ) ) {
 				continue;
 			}
-			$arg = $child->children['value'];
-			$arguments[] = $arg;
-			if ( $arg instanceof Node ) {
-				$pobjs = $this->getPhanObjsForNode( $arg );
-				foreach ( $pobjs as $pobj ) {
-					// We mark hook args as such to avoid overriding the taintedness in assignments.
-					// This is based on the assumption that the order in which hooks are called is
-					// nondeterministic. See test registerhook.
-					$pobj->isHookRefArg = true;
-				}
-			}
+			$arguments[] = $child->children['value'];
 		}
 		return $arguments;
 	}

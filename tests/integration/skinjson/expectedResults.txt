@@ -1,2 +1,2 @@
 integration/skinjson/test.php:9 SecurityCheck-XSS Calling method \wfRegister() in \doStuff that outputs using tainted argument #2 (`$_GET['tainted']`). (Caused by: integration/skinjson/test.php +11) (Originally at: integration/skinjson/test.php:29)
-integration/skinjson/test.php:32 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/skinjson/test.php +23; integration/skinjson/test.php +31; integration/skinjson/test.php +15)
+integration/skinjson/test.php:32 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/skinjson/test.php +23; integration/skinjson/test.php +31)

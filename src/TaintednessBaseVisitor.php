@@ -401,7 +401,7 @@ trait TaintednessBaseVisitor {
 		} else {
 			$newErrors = [ trim( $reason ) ];
 		}
-		if ( $this->overrideContext ) {
+		if ( $this->overrideContext && !( $this->isHook ?? false ) ) {
 			$newErrors[] = trim( $this->dbgInfo( $this->overrideContext ) );
 		}
 		foreach ( $newErrors as $newError ) {
@@ -454,16 +454,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Whether the object is a reference argument of a hook.
-	 *
-	 * @param TypedElementInterface $obj
-	 * @return bool
-	 */
-	protected function isHookRefArg( TypedElementInterface $obj ) : bool {
-		return property_exists( $obj, 'isHookRefArg' );
-	}
-
-	/**
 	 * @param TypedElementInterface $var
 	 * @param Taintedness $taint
 	 * @param bool $override
@@ -479,11 +469,7 @@ trait TaintednessBaseVisitor {
 			);
 		}
 
-		if (
-			$this->context->getScope() instanceof BranchScope ||
-			$var instanceof Property ||
-			$this->isHookRefArg( $var )
-		) {
+		if ( $this->context->getScope() instanceof BranchScope || $var instanceof Property ) {
 			$override = false;
 		}
 		if ( !property_exists( $var, 'taintednessRef' ) || $override ) {
@@ -560,11 +546,6 @@ trait TaintednessBaseVisitor {
 			$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
 			// Merge the taint on the "true" global object, too
 			$this->doSetTaintedness( $globalVar, $resolvedOffsetsLhs, $taintedness, false, $errorTaint );
-			$override = false;
-		}
-		if ( $this->isHookRefArg( $variableObj ) ) {
-			// We do this in the general case as well. In doing so, we assume that a hook handler
-			// is only used as a hook handler.
 			$override = false;
 		}
 		if ( $resolvedOffsetsLhs ) {
@@ -2411,12 +2392,15 @@ trait TaintednessBaseVisitor {
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 * @param array $args Arguments to function/method
 	 * @phan-param array<Node|mixed> $args
+	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
+	 *   FIXME This is MW-specific
 	 * @return Taintedness Taint The resulting taint of the expression
 	 */
 	public function handleMethodCall(
 		FunctionInterface $func,
 		FullyQualifiedFunctionLikeName $funcName,
-		array $args
+		array $args,
+		$isHookHandler = false
 	) : Taintedness {
 		$oldMem = memory_get_peak_usage();
 		$taint = $this->getTaintOfFunction( $func );
@@ -2454,7 +2438,7 @@ trait TaintednessBaseVisitor {
 			// example is probably preg_match, which may very well be
 			// tainted much of the time.
 			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
-				$this->handlePassByRef( $func, $param, $argument, $i );
+				$this->handlePassByRef( $func, $param, $argument, $i, $isHookHandler );
 			}
 
 			// We are doing something like someFunc( $evilArg );
@@ -2682,13 +2666,16 @@ trait TaintednessBaseVisitor {
 	 * @param Parameter $param
 	 * @param Node $argument
 	 * @param int $i Position of the param
+	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
+	 *   FIXME This is MW-specific
 	 * @throws Exception
 	 */
 	private function handlePassByRef(
 		FunctionInterface $func,
 		Parameter $param,
 		Node $argument,
-		int $i
+		int $i,
+		bool $isHookHandler
 	) : void {
 		if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
 			$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
@@ -2706,7 +2693,9 @@ trait TaintednessBaseVisitor {
 				$overrideTaint = false;
 			}
 			// Move the ref taintedness to the "actual" taintedness of the object
-			$overrideTaint = $overrideTaint && !( $argObj instanceof Property );
+			// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
+			// we never override arg taint for reference params in this case.
+			$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
 			$this->setTaintednessOld( $argObj, $this->getTaintednessReference( $argObj ), $overrideTaint );
 			if ( $overrideTaint ) {
 				unset( $argObj->taintednessRef );

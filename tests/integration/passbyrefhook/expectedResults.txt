@@ -1,1 +1,1 @@
-integration/passbyrefhook/test.php:17 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefhook/test.php +10; integration/passbyrefhook/test.php +16; integration/passbyrefhook/test.php +9)
+integration/passbyrefhook/test.php:17 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefhook/test.php +10; integration/passbyrefhook/test.php +16)
