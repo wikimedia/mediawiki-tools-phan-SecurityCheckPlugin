@@ -918,36 +918,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( !isset( $node->children['expr'] ) ) {
 			return;
 		}
-		$taintedness = $this->getTaintedness( $node->children['expr'] );
+		$expr = $node->children['expr'];
+		$taintedness = $this->getTaintedness( $expr );
 
 		$this->maybeEmitIssue(
 			$sinkTaint,
 			$taintedness,
 			"$issueMsg{DETAILS}",
-			[ $this->getOriginalTaintLine( $node->children['expr'], $sinkTaint ) ]
+			[ $this->getOriginalTaintLine( $expr, $sinkTaint ) ]
 		);
 
-		if (
-			$node->children['expr'] instanceof Node &&
-			$this->isSafeAssignment( $sinkTaint, $taintedness )
-		) {
-			// In the event the assignment looks safe, keep track of it,
-			// in case it later turns out not to be safe.
-			$phanObjs = $this->getPhanObjsForNode( $node->children['expr'], [ 'return' ] );
-			foreach ( $phanObjs as $phanObj ) {
-				if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $sinkTaint->get() ) ) {
-					$this->debug(
-						__METHOD__,
-						"Setting {$phanObj->getName()} exec $sinkTaint for node " . Debug::nodeToString( $node )
-					);
-					// FIXME, maybe not do this for local variables
-					// since they don't have other code paths that can set them.
-					$this->markAllDependentMethodsExec(
-						$phanObj,
-						$sinkTaint
-					);
-				}
-			}
+		if ( $expr instanceof Node && $this->isSafeAssignment( $sinkTaint, $taintedness ) ) {
+			$this->backpropagateArgTaint( $expr, $sinkTaint );
 		}
 	}
 

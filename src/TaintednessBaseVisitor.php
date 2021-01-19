@@ -1276,7 +1276,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $node AST node in question
 	 * @param string[] $options Change type of objects returned
 	 *    * 'all' -> Given a method call, include the method and its args
-	 *    * 'return' -> Given a method call, include objects in its return.
+	 *    * 'return' -> Given a method call, include *non-local* objects in its return (e.g. include props but not vars)
 	 *    * 'numkey' -> Given an array, only include values whose key can potentially be int
 	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
@@ -1439,11 +1439,17 @@ trait TaintednessBaseVisitor {
 					// here to ensure we don't recurse beyond
 					// a depth of 1.
 					try {
-						return $this->getReturnObjsOfFunc( $func );
+						$retObjs = $this->getReturnObjsOfFunc( $func );
 					} catch ( Exception $e ) {
 						$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
 						return [];
 					}
+					return array_filter(
+						$retObjs,
+						static function ( TypedElementInterface $el ) : bool {
+							return !( $el instanceof Variable );
+						}
+					);
 				}
 				$args = $node->children['args']->children;
 				$pObjs = [ $func ];
@@ -2549,6 +2555,9 @@ trait TaintednessBaseVisitor {
 	 * right now. However, collecting all args would create false positives with functions where
 	 * the arg taint isn't propagated to the return value. Ideally, we'd want to include an argument
 	 * iff the corresponding parameter passes $taint through.
+	 *
+	 * @note It's important that we don't backpropagate taintedness to every returned object in case
+	 * of function calls, but just props and the like (so excluding vars). See test 'toomanydeps'.
 	 */
 	protected function backpropagateArgTaint(
 		Node $argument,
@@ -2581,7 +2590,10 @@ trait TaintednessBaseVisitor {
 	 */
 	private function doBackpropArgTaint( array $phanObjs, Taintedness $taint, FunctionInterface $func = null ) : void {
 		foreach ( $phanObjs as $phanObj ) {
-			$this->markAllDependentMethodsExec( $phanObj, $taint, $func );
+			if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $taint->get() ) ) {
+				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec {$taint->toShortString()}" );
+				$this->markAllDependentMethodsExec( $phanObj, $taint, $func );
+			}
 		}
 	}
 

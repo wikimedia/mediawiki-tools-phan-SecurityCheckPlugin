@@ -296,6 +296,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 		// Note, order matters here.
 		static $mapping = [
+			self::UNKNOWN_TAINT => 'UNKNOWN',
 			self::PRESERVE_TAINT => 'PRESERVE',
 			self::YES_TAINT => 'YES',
 			self::YES_TAINT &
