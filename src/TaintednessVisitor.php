@@ -614,7 +614,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 					$numKey++;
 					continue;
 				}
-				assert( $child instanceof Node && $child->kind === \ast\AST_ARRAY_ELEM );
+				if ( !$child instanceof Node || $child->kind !== \ast\AST_ARRAY_ELEM ) {
+					// Syntax error.
+					return;
+				}
 				$key = $child->children['key'] !== null ? $this->resolveOffset( $child->children['key'] ) : $numKey++;
 				$value = $child->children['value'];
 				if ( !$value instanceof Node ) {

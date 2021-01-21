@@ -18,6 +18,7 @@
 * Improved merging caused-by lines to avoid duplicates
 * Avoid tracking dependencies of functions with hardcoded taintedness, so to keep caused-by lines shorter and more relevant
 * Fixed a bug that caused EXEC taints to be backpropagated to local variables, thus creating weird-looking issues
+* Fixed some edge cases which would make phan issues disappear with taint-check enabled
 
 ### Internal changes
 * Bumped phan/phan to 4.0.4

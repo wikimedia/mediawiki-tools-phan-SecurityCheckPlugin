@@ -1,0 +1,1 @@
+phan-interaction/stdclass/test.php:6 PhanTypeArraySuspiciousNullable Suspicious array access to $content of nullable type ?bool|?float|?int|?list<mixed>|?string

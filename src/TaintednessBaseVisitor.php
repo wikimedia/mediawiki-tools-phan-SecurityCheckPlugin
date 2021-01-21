@@ -2909,13 +2909,19 @@ trait TaintednessBaseVisitor {
 	 * @return UnionType|null
 	 */
 	protected function getNodeType( Node $node ) : ?UnionType {
+		// Don't emit issues, as this method might be called e.g. on a LHS (see T249647).
+		// FIXME Improve this. Is it still necessary now that we cache taintedness?
+		$catchIssueException = false;
+		// And since we don't emit issues, use a cloned context so phan won't cache any union type. In particular,
+		// in the event of possibly-undefined union types, the issue about a variable being possibly undeclared would
+		// get lost, because we don't emit it, and phan will cache the union type without the undefined bit.
+		$ctx = clone $this->context;
 		try {
 			return UnionTypeVisitor::unionTypeFromNode(
 				$this->code_base,
-				$this->context,
+				$ctx,
 				$node,
-				// Don't check types, as this might be called e.g. on the LHS (see T249647)
-				false
+				$catchIssueException
 			);
 		} catch ( IssueException $e ) {
 			$this->debug( __METHOD__, "Got error " . $this->getDebugInfo( $e ) );
