@@ -1714,13 +1714,11 @@ trait TaintednessBaseVisitor {
 	 * @return bool Is it safe
 	 */
 	protected function isSafeAssignment( Taintedness $lhs, Taintedness $rhs ) : bool {
-		$adjustRHS = $rhs->asYesToExecTaint();
+		if ( $lhs->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) && $rhs->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) {
+			return false;
+		}
 
-		// $this->debug( __METHOD__, "lhs=$lhs; rhs=$rhs, adjustRhs=$adjustRHS" );
-		return $adjustRHS->withOnlyObj( $lhs )->isSafe() && !(
-			$lhs->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) &&
-			$rhs->has( SecurityCheckPlugin::UNKNOWN_TAINT )
-		);
+		return Taintedness::intersectForSink( $lhs, $rhs )->isSafe();
 	}
 
 	/**

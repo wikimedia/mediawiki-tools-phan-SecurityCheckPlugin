@@ -282,6 +282,36 @@ class Taintedness {
 	}
 
 	/**
+	 * Intersect the taintedness of a value against that of a sink, to later determine whether the
+	 * expression is safe.
+	 *
+	 * @param Taintedness $sink
+	 * @param Taintedness $rawValue
+	 * @return self
+	 */
+	public static function intersectForSink( self $sink, self $rawValue ) : self {
+		$value = $rawValue->asYesToExecTaint();
+		// If the sink has anything in its flags, preserve it regardless of where it comes from in $value
+		$intersect = new self( $sink->flags & $value->get() );
+		// If the RHS has unknown keys, copy the taintedness to every other key to facilitate things
+		if ( $value->unknownDimsTaint ) {
+			foreach ( $value->dimTaint as $el ) {
+				$el->mergeWith( $value->unknownDimsTaint );
+			}
+		}
+		// Also preserve any unknown keys. $value->getAllKeysTaint() now includes taintedness of unknown keys
+		if ( $sink->unknownDimsTaint ) {
+			$intersect->unknownDimsTaint = $sink->unknownDimsTaint->withOnly( $value->getAllKeysTaint() );
+		}
+		$intersect->keysTaint = $sink->keysTaint & $value->keysTaint;
+		$commonKeys = array_intersect_key( $sink->dimTaint, $value->dimTaint );
+		foreach ( $commonKeys as $key => $_ ) {
+			$intersect->dimTaint[$key] = self::intersectForSink( $sink->dimTaint[$key], $value->dimTaint[$key] );
+		}
+		return $intersect;
+	}
+
+	/**
 	 * Merge this object with $other, recursively and without creating a copy.
 	 * @see Taintedness::asMergedWith() if you need a copy
 	 *
