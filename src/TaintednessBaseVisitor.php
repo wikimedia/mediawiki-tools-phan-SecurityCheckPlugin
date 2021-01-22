@@ -298,12 +298,6 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function mergeTaintError( TypedElementInterface $left, $right, int $arg = -1 ) : void {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
-		if ( $right instanceof Node ) {
-			$phanObjs = $this->getPhanObjsForNode( $right, [ 'all' ] );
-		} else {
-			assert( $right instanceof TypedElementInterface );
-			$phanObjs = [ $right ];
-		}
 
 		if ( $arg === -1 ) {
 			if ( !property_exists( $left, 'taintedOriginalError' ) ) {
@@ -317,24 +311,11 @@ trait TaintednessBaseVisitor {
 			$newLeftError = $left->taintedOriginalErrorByArg[$arg] ?? [];
 		}
 
-		foreach ( $phanObjs as $rightObj ) {
-			// TODO: Possibly we would want to skip merging the errors,
-			// if the merge did not result in any new taint being set.
-			// However at this point, taint has already been merged so
-			// we don't know if we should skip or not.
-			// TODO: Does this make sense? If we are merging a function
-			// to merge all its argument errors not just overall.
-			$rightErrors = array_merge(
-				property_exists( $rightObj, 'taintedOriginalError' ) ? [ $rightObj->taintedOriginalError ] : [],
-				$rightObj->taintedOriginalErrorByArg ?? []
-			);
-			foreach ( $rightErrors as $rightError ) {
-				if ( $newLeftError && self::getArraySubsetIdx( $rightError, $newLeftError ) !== false ) {
-					$newLeftError = $rightError;
-				} elseif ( $rightError && self::getArraySubsetIdx( $newLeftError, $rightError ) === false ) {
-					$newLeftError = self::mergeCausedByLines( $newLeftError, $rightError );
-				}
-			}
+		$rightError = $this->getOriginalTaintArray( $right );
+		if ( $newLeftError && self::getArraySubsetIdx( $rightError, $newLeftError ) !== false ) {
+			$newLeftError = $rightError;
+		} elseif ( $rightError && self::getArraySubsetIdx( $newLeftError, $rightError ) === false ) {
+			$newLeftError = self::mergeCausedByLines( $newLeftError, $rightError );
 		}
 
 		if ( $arg === -1 ) {
