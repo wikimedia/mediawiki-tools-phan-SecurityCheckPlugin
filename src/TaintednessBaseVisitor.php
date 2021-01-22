@@ -1543,8 +1543,6 @@ trait TaintednessBaseVisitor {
 		}
 
 		self::ensureVarLinksForArgExist( $func, $i );
-		$funcArgLinks = self::getVarLinks( $func, $i );
-		$funcArgLinks->attach( $param );
 
 		$paramLinks = self::getMethodLinksCloneOrEmpty( $param );
 		$paramLinks->initializeParamForFunc( $func, $i );
@@ -1591,7 +1589,17 @@ trait TaintednessBaseVisitor {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				$varLinks->attach( $lhs );
+				if (
+					$lhs instanceof Property ||
+					$lhs instanceof GlobalVariable ||
+					$lhs instanceof PassByReferenceVariable
+				) {
+					// Don't attach things like Variable and Parameter. These are local elements, and setting taint
+					// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
+					// Parameter object for each analysis, we will end up with duplicated links that do nothing but
+					// eating memory.
+					$varLinks->attach( $lhs );
+				}
 			}
 		}
 
@@ -1779,6 +1787,7 @@ trait TaintednessBaseVisitor {
 				$var = $var->getElement();
 			}
 			assert( $var instanceof TypedElementInterface );
+
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $curVarTaint->withObj( $taintAdjusted );
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
