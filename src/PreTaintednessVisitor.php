@@ -107,6 +107,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	public function visitAssignOp( Node $node ) : void {
 		$lhs = $node->children['var'];
 		$rhs = $node->children['expr'];
+		// @phan-suppress-next-line PhanUndeclaredProperty
 		$node->assignTaintMask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
 	}
 }

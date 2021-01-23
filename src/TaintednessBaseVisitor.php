@@ -65,6 +65,8 @@ use Phan\Library\Set;
  * @property-read \Phan\CodeBase $code_base
  */
 trait TaintednessBaseVisitor {
+	use TaintednessAccessorsTrait;
+
 	/** @var null|string|bool|resource filehandle to output debug messages */
 	private $debugOutput;
 
@@ -96,7 +98,7 @@ trait TaintednessBaseVisitor {
 			// As it stands, this case probably can't be reached.
 		}
 
-		$funcTaint = $this->getFuncTaint( $func );
+		$funcTaint = self::getFuncTaint( $func );
 		if ( $funcTaint !== null ) {
 			$curTaint = $funcTaint;
 		} elseif ( !$override ) {
@@ -164,7 +166,7 @@ trait TaintednessBaseVisitor {
 			$taint->keepOnly( $mask->get() );
 		} );
 
-		$func->funcTaint = $newTaint;
+		self::doSetFuncTaint( $func, $newTaint );
 	}
 
 	/**
@@ -273,18 +275,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get a copy of $func's taint, or null if not set.
-	 *
-	 * @param FunctionInterface $func
-	 * @return FunctionTaintedness|null
-	 */
-	protected function getFuncTaint( FunctionInterface $func ) : ?FunctionTaintedness {
-		return isset( $func->funcTaint )
-			? clone $func->funcTaint
-			: null;
-	}
-
-	/**
 	 * Merge the info on original cause of taint to left variable
 	 *
 	 * If you have something like $left = $right, merge any information
@@ -300,15 +290,17 @@ trait TaintednessBaseVisitor {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
 
 		if ( $arg === -1 ) {
-			if ( !property_exists( $left, 'taintedOriginalError' ) ) {
-				$left->taintedOriginalError = [];
+			$newLeftError = self::getCausedByRaw( $left );
+			if ( $newLeftError === null ) {
+				$newLeftError = [];
+				self::setCausedByRaw( $left, $newLeftError );
 			}
-			$newLeftError = $left->taintedOriginalError;
 		} else {
-			if ( !property_exists( $left, 'taintedOriginalErrorByArg' ) ) {
-				$left->taintedOriginalErrorByArg = [];
+			$newLeftError = self::getCausedByArgRaw( $left, $arg );
+			if ( $newLeftError === null ) {
+				self::initCausedByArgRaw( $left );
+				$newLeftError = [];
 			}
-			$newLeftError = $left->taintedOriginalErrorByArg[$arg] ?? [];
 		}
 
 		$rightError = $this->getOriginalTaintArray( $right );
@@ -319,30 +311,10 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( $arg === -1 ) {
-			$left->taintedOriginalError = $newLeftError;
+			self::setCausedByRaw( $left, $newLeftError );
 		} else {
-			$left->taintedOriginalErrorByArg[$arg] = $newLeftError;
+			self::setCausedByArgRaw( $left, $arg, $newLeftError );
 		}
-	}
-
-	/**
-	 * Clears any previous error on the given element.
-	 *
-	 * @param TypedElementInterface $elem
-	 */
-	protected function clearTaintError( TypedElementInterface $elem ) : void {
-		if ( property_exists( $elem, 'taintedOriginalError' ) ) {
-			$elem->taintedOriginalError = [];
-		}
-	}
-
-	/**
-	 * Clears any taintedness links on this object
-	 *
-	 * @param TypedElementInterface $elem
-	 */
-	protected function clearTaintLinks( TypedElementInterface $elem ) : void {
-		unset( $elem->taintedMethodLinks, $elem->taintedVarLinks );
 	}
 
 	/**
@@ -385,16 +357,12 @@ trait TaintednessBaseVisitor {
 		assert( $arg === -1 || $elem instanceof FunctionInterface );
 
 		if ( $arg === -1 ) {
-			if ( !property_exists( $elem, 'taintedOriginalError' ) ) {
-				$elem->taintedOriginalError = [];
-			}
+			self::setCausedByRaw( $elem, self::getCausedByRaw( $elem ) ?? [] );
 		} else {
-			if ( !property_exists( $elem, 'taintedOriginalErrorByArg' ) ) {
-				$elem->taintedOriginalErrorByArg = [];
+			if ( !self::getAllCausedByArgRaw( $elem ) ) {
+				self::initCausedByArgRaw( $elem );
 			}
-			if ( !isset( $elem->taintedOriginalErrorByArg[$arg] ) ) {
-				$elem->taintedOriginalErrorByArg[$arg] = [];
-			}
+			self::setCausedByArgRaw( $elem, $arg, self::getCausedByArgRaw( $elem, $arg ) ?? [] );
 		}
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ trim( $this->dbgInfo( $reason ?? $this->context ) ) ];
@@ -402,26 +370,27 @@ trait TaintednessBaseVisitor {
 			$newErrors = [ trim( $reason ) ];
 		}
 		if ( $this->overrideContext && !( $this->isHook ?? false ) ) {
+			// @phan-suppress-previous-line PhanUndeclaredProperty
 			$newErrors[] = trim( $this->dbgInfo( $this->overrideContext ) );
 		}
 		foreach ( $newErrors as $newError ) {
 			if ( $arg === -1 ) {
 				$newElement = [ clone $taintedness, $newError ];
-				if ( self::getArraySubsetIdx( $elem->taintedOriginalError, [ $newElement ] ) === false ) {
-					$elem->taintedOriginalError = self::mergeCausedByLines(
-						$elem->taintedOriginalError,
-						[ $newElement ]
+				$elemError = self::getCausedByRaw( $elem );
+				assert( is_array( $elemError ) );
+				if ( self::getArraySubsetIdx( $elemError, [ $newElement ] ) === false ) {
+					self::setCausedByRaw(
+						$elem,
+						self::mergeCausedByLines( $elemError, [ $newElement ] )
 					);
 				}
 			} else {
 				$rawPart = $taintedness->withOnly( SecurityCheckPlugin::RAW_PARAM );
 				$argErrTaint = $taintedness->asExecToYesTaint()->withObj( $rawPart );
 				$newElement = [ $argErrTaint, $newError ];
-				if ( self::getArraySubsetIdx( $elem->taintedOriginalErrorByArg[$arg], [ $newElement ] ) === false ) {
-					$elem->taintedOriginalErrorByArg[$arg] = self::mergeCausedByLines(
-						$elem->taintedOriginalErrorByArg[$arg],
-						[ $newElement ]
-					);
+				$argErr = self::getCausedByArgRaw( $elem, $arg );
+				if ( self::getArraySubsetIdx( $argErr, [ $newElement ] ) === false ) {
+					self::setCausedByArgRaw( $elem, $arg, self::mergeCausedByLines( $argErr, [ $newElement ] ) );
 				}
 			}
 		}
@@ -435,7 +404,7 @@ trait TaintednessBaseVisitor {
 		if ( $var instanceof PassByReferenceVariable ) {
 			throw new AssertionError( __METHOD__ . ' takes the element inside PassByRefs' );
 		}
-		return $var->taintednessRef ?? Taintedness::newSafe();
+		return self::getTaintednessRef( $var ) ?? Taintedness::newSafe();
 	}
 
 	/**
@@ -472,11 +441,12 @@ trait TaintednessBaseVisitor {
 		if ( $this->context->getScope() instanceof BranchScope || $var instanceof Property ) {
 			$override = false;
 		}
-		if ( !property_exists( $var, 'taintednessRef' ) || $override ) {
-			$var->taintednessRef = $taint;
+		$curTaintRef = self::getTaintednessRef( $var );
+		if ( $curTaintRef === null || $override ) {
+			self::setTaintednessRef( $var, $taint );
 		} else {
 			// NOTE: Don't merge in-place here, same as doSetTaintedness
-			$var->taintednessRef = $var->taintednessRef->withObj( $taint );
+			self::setTaintednessRef( $var, $curTaintRef->withObj( $taint ) );
 		}
 
 		$this->addTaintError( $taint, $var );
@@ -523,11 +493,6 @@ trait TaintednessBaseVisitor {
 		bool $allowClearLHSData = false,
 		Taintedness $errorTaint = null
 	) : void {
-		// $this->debug( __METHOD__, "begin for \$" . $variableObj->getName()
-		// . " <- $taintedness (override=$override) prev " . ( $variableObj->taintedness ?? 'unset' )
-		// . ' Caller: ' . ( debug_backtrace()[1]['function'] ?? 'n/a' )
-		// . ', ' . ( debug_backtrace()[2]['function'] ?? 'n/a' ) );
-
 		$errorTaint = $errorTaint ?? $taintedness;
 
 		if ( $variableObj instanceof FunctionInterface ) {
@@ -557,8 +522,8 @@ trait TaintednessBaseVisitor {
 			// Clear any error and link before setting taintedness if we're overriding taint.
 			// Checking for $override here already takes into account globals, props,
 			// outer scope, and whatnot.
-			$this->clearTaintError( $variableObj );
-			$this->clearTaintLinks( $variableObj );
+			self::clearTaintError( $variableObj );
+			self::clearTaintLinks( $variableObj );
 		}
 
 		$this->doSetTaintedness( $variableObj, $resolvedOffsetsLhs, $taintedness, $override, $errorTaint );
@@ -574,6 +539,7 @@ trait TaintednessBaseVisitor {
 	public function isGlobalVariableInLocalScope( TypedElementInterface $var ) : bool {
 		return $var instanceof Variable
 			&& property_exists( $this->context->getScope(), 'globalsInScope' )
+			// @phan-suppress-next-line PhanUndeclaredProperty
 			&& in_array( $var->getName(), $this->context->getScope()->globalsInScope, true );
 	}
 
@@ -597,11 +563,7 @@ trait TaintednessBaseVisitor {
 	) : void {
 		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 		// objects of which $variableObj is a clone!
-		/** @var Taintedness $curTaint */
-		$curTaint = property_exists( $variableObj, 'taintedness' )
-			? clone $variableObj->taintedness
-			: Taintedness::newSafe();
-		'@phan-var Taintedness $curTaint';
+		$curTaint = self::getTaintednessRaw( $variableObj ) ?? Taintedness::newSafe();
 
 		if ( $resolvedOffsetsLhs ) {
 			$offsetOverride = $override && $this->wereAllKeysResolved( $resolvedOffsetsLhs );
@@ -613,9 +575,7 @@ trait TaintednessBaseVisitor {
 		} else {
 			$curTaint = $override ? $taintedness : $curTaint->asMergedWith( $taintedness );
 		}
-		$variableObj->taintedness = $curTaint;
-		// $this->debug( __METHOD__, $variableObj->getName() . " now has taint " .
-		// ( $variableObj->taintedness ?? 'unset' ) );
+		self::setTaintednessRaw( $variableObj, $curTaint );
 		$this->addTaintError( $errorTaint, $variableObj );
 	}
 
@@ -744,7 +704,7 @@ trait TaintednessBaseVisitor {
 			return $this->getTaintOfFunctionPHP( $func )->withMaybeClearNoOverride( $clearOverride );
 		}
 
-		$funcTaint = $this->getFuncTaint( $func );
+		$funcTaint = self::getFuncTaint( $func );
 		if ( $funcTaint !== null ) {
 			return $funcTaint->withMaybeClearNoOverride( $clearOverride );
 		}
@@ -775,7 +735,7 @@ trait TaintednessBaseVisitor {
 			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
 		) {
 			$this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
-			if ( $this->getFuncTaint( $definingFunc ) === null ) {
+			if ( self::getFuncTaint( $definingFunc ) === null ) {
 				// Optim: don't reanalyze if we already have taint data. This might rarely hide
 				// some issues, see T203651#6046483.
 				try {
@@ -786,7 +746,7 @@ trait TaintednessBaseVisitor {
 				$this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
 			}
 
-			$definingFuncTaint = $this->getFuncTaint( $definingFunc );
+			$definingFuncTaint = self::getFuncTaint( $definingFunc );
 			// var_dump( $definingFuncTaint ?? "NO INFO" );
 			if ( $definingFuncTaint !== null ) {
 				return $definingFuncTaint->withMaybeClearNoOverride( $clearOverride );
@@ -1169,9 +1129,10 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof PassByReferenceVariable ) {
 			throw new AssertionError( 'Handle PassByRefs before calling this method' );
 		}
-		if ( property_exists( $variableObj, 'taintedness' ) ) {
+		$taintOrNull = self::getTaintednessRaw( $variableObj );
+		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
-			$taintedness = $variableObj->taintedness->withOnly( $mask->get() );
+			$taintedness = $taintOrNull->withOnly( $mask->get() );
 			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
 			$type = $variableObj->getUnionType();
@@ -1523,25 +1484,26 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		if ( !property_exists( $func, 'taintedVarLinks' ) ) {
-			$func->taintedVarLinks = [];
+		$funcLinks = self::getAllVarLinks( $func );
+		if ( $funcLinks === null ) {
+			self::initVarLinks( $func );
 		}
-		if ( !isset( $func->taintedVarLinks[$i] ) ) {
-			$func->taintedVarLinks[$i] = new Set;
+		$funcArgLinks = self::getVarLinks( $func, $i );
+		if ( $funcArgLinks === null ) {
+			$funcArgLinks = new Set;
+			self::setVarLinks( $func, $i, $funcArgLinks );
 		}
-		if ( !property_exists( $param, 'taintedMethodLinks' ) ) {
-			// This is a map of FunctionInterface -> int[]
-			$param->taintedMethodLinks = new Set;
-		}
+		$paramLinks = self::getMethodLinks( $param ) ?? new Set;
 
-		$func->taintedVarLinks[$i]->attach( $param );
-		if ( $param->taintedMethodLinks->contains( $func ) ) {
-			$data = $param->taintedMethodLinks[$func];
+		$funcArgLinks->attach( $param );
+		if ( $paramLinks->contains( $func ) ) {
+			$data = $paramLinks[$func];
 			$data[$i] = true;
-			$param->taintedMethodLinks[$func] = $data;
+			$paramLinks[$func] = $data;
 		} else {
-			$param->taintedMethodLinks[$func] = [ $i => true ];
+			$paramLinks[$func] = [ $i => true ];
 		}
+		self::setMethodLinks( $param, $paramLinks );
 	}
 
 	/**
@@ -1575,34 +1537,33 @@ trait TaintednessBaseVisitor {
 		}
 		assert( $rhs instanceof TypedElementInterface );
 
-		if ( !property_exists( $rhs, 'taintedMethodLinks' ) ) {
+		$rhsLinks = self::getMethodLinks( $rhs );
+		if ( $rhsLinks === null ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
 		}
 
-		if ( !property_exists( $lhs, 'taintedMethodLinks' ) ) {
-			$lhs->taintedMethodLinks = new Set;
-		}
+		$lhsLinks = self::getMethodLinks( $lhs ) ?? new Set;
 
 		// So if we have $a = $b;
 		// First we find out all the methods that can set $b
 		// Then we add $a to the list of variables that those methods can set.
 		// Last we add these methods to $a's list of all methods that can set it.
-		foreach ( $rhs->taintedMethodLinks as $method ) {
-			$paramInfo = $rhs->taintedMethodLinks[$method];
+		foreach ( $rhsLinks as $method ) {
+			$paramInfo = $rhsLinks[$method];
 			foreach ( $paramInfo as $index => $_ ) {
-				assert( property_exists( $method, 'taintedVarLinks' ) );
-				assert( isset( $method->taintedVarLinks[$index] ) );
-				assert( $method->taintedVarLinks[$index] instanceof Set );
+				$varLinks = self::getVarLinks( $method, $index );
+				assert( $varLinks instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				$method->taintedVarLinks[$index]->attach( $lhs );
+				$varLinks->attach( $lhs );
 			}
-			if ( isset( $lhs->taintedMethodLinks[$method] ) ) {
-				$lhs->taintedMethodLinks[$method] += $paramInfo;
+			if ( isset( $lhsLinks[$method] ) ) {
+				$lhsLinks[$method] += $paramInfo;
 			} else {
-				$lhs->taintedMethodLinks[ $method ] = $paramInfo;
+				$lhsLinks[ $method ] = $paramInfo;
 			}
 		}
+		self::setMethodLinks( $lhs, $lhsLinks );
 	}
 
 	/**
@@ -1626,24 +1587,23 @@ trait TaintednessBaseVisitor {
 	) : void {
 		// Ensure we only set exec bits, not normal taint bits.
 		$taint = $taint->withOnly( SecurityCheckPlugin::BACKPROP_TAINTS );
+		if ( $taint->isSafe() || $this->isIssueSuppressedOrFalsePositive( $taint ) ) {
+			return;
+		}
 
 		if ( $var instanceof PassByReferenceVariable ) {
 			$var = $this->extractReferenceArgument( $var );
 		}
-		if (
-			$taint->isSafe() ||
-			$this->isIssueSuppressedOrFalsePositive( $taint ) ||
-			!property_exists( $var, 'taintedMethodLinks' ) ||
-			!count( $var->taintedMethodLinks )
-		) {
+		$varLinks = self::getMethodLinks( $var );
+		if ( $varLinks === null || !count( $varLinks ) ) {
 			return;
 		}
 
 		$oldMem = memory_get_peak_usage();
 
 		/** @var FunctionInterface $method */
-		foreach ( $var->taintedMethodLinks as $method ) {
-			$paramInfo = $var->taintedMethodLinks[$method];
+		foreach ( $varLinks as $method ) {
+			$paramInfo = $varLinks[$method];
 			// Note, not forCaller, as that doesn't see variadic parameters
 			/** @var Parameter[] $calleeParamList */
 			$calleeParamList = $method->getParameterList();
@@ -1702,10 +1662,8 @@ trait TaintednessBaseVisitor {
 		if ( $method->isPHPInternal() ) {
 			return;
 		}
-		if (
-			!property_exists( $method, 'taintedVarLinks' )
-			|| !isset( $method->taintedVarLinks[$i] )
-		) {
+		$varLinks = self::getVarLinks( $method, $i );
+		if ( $varLinks === null ) {
 			$this->debug( __METHOD__, "returning early no backlinks" );
 			return;
 		}
@@ -1714,7 +1672,7 @@ trait TaintednessBaseVisitor {
 		// methods of the class, as the previous taint of the methods may
 		// have assumed the class member was not tainted.
 		$classesNeedRefresh = new Set;
-		foreach ( $method->taintedVarLinks[$i] as $var ) {
+		foreach ( $varLinks as $var ) {
 			assert( $var instanceof TypedElementInterface );
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $curVarTaint->withObj( $taintAdjusted );
@@ -1864,13 +1822,11 @@ trait TaintednessBaseVisitor {
 				if ( $element instanceof PassByReferenceVariable ) {
 					$element = $this->extractReferenceArgument( $element );
 				}
-				if ( property_exists( $element, 'taintedOriginalError' ) ) {
-					$lines = self::mergeCausedByLines(
-						$lines,
-						$element->taintedOriginalError
-					);
+				$origErrorOrNull = self::getCausedByRaw( $element );
+				if ( $origErrorOrNull !== null ) {
+					$lines = self::mergeCausedByLines( $lines, $origErrorOrNull );
 				}
-				foreach ( $element->taintedOriginalErrorByArg ?? [] as $origArg ) {
+				foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
 					// FIXME is this right? In the generic
 					// case should we include all arguments as
 					// well?
@@ -1879,7 +1835,7 @@ trait TaintednessBaseVisitor {
 			} else {
 				assert( $element instanceof FunctionInterface );
 				$argErr = $this->getTaintErrorByArg( $element, $arg );
-				$overallFuncErr = $element->taintedOriginalError ?? [];
+				$overallFuncErr = self::getCausedByRaw( $element ) ?? [];
 				if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
 					$lines = self::mergeCausedByLines( $lines, $overallFuncErr );
 				} elseif ( !$overallFuncErr || self::getArraySubsetIdx( $argErr, $overallFuncErr ) !== false ) {
@@ -1907,21 +1863,21 @@ trait TaintednessBaseVisitor {
 	 * @phan-return list<array{0:Taintedness,1:string}>
 	 */
 	private function getTaintErrorByArg( FunctionInterface $element, int $arg ) : array {
-		if ( isset( $element->taintedOriginalErrorByArg[ $arg ] ) ) {
-			return $element->taintedOriginalErrorByArg[ $arg ];
+		$errorOrNull = self::getCausedByArgRaw( $element, $arg );
+		if ( $errorOrNull !== null ) {
+			return $errorOrNull;
 		}
 		// Check the variadic case. TODO Ideally, we might store caused-by and taintedness close together
-		$funcTaint = $element->funcTaint ?? null;
+		$funcTaint = self::getFuncTaint( $element );
 		if ( !$funcTaint ) {
 			return [];
 		}
-		assert( $funcTaint instanceof FunctionTaintedness );
 		if (
 			$funcTaint->hasParam( $arg ) &&
 			$funcTaint->getParamTaint( $arg )->has( SecurityCheckPlugin::VARIADIC_PARAM )
 		) {
 			$lastIdx = max( $funcTaint->getParamKeys() );
-			return $arg >= $lastIdx ? $element->taintedOriginalErrorByArg[ $lastIdx ] : [];
+			return $arg >= $lastIdx ? self::getCausedByArgRaw( $element, $lastIdx ) : [];
 		}
 		return [];
 	}
@@ -1967,7 +1923,7 @@ trait TaintednessBaseVisitor {
 			}
 			$pobjTaintContribution = $this->getTaintednessPhanObj( $pobj );
 			// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
-			$links = $pobj->taintedMethodLinks ?? null;
+			$links = self::getMethodLinks( $pobj );
 			if ( !$links ) {
 				// No method links.
 				// $this->debug( __METHOD__, "no method links for $pobj in " . $curFunc->getFQSEN() );
@@ -1980,7 +1936,6 @@ trait TaintednessBaseVisitor {
 				continue;
 			}
 
-			/** @var Set $links Its not a normal array */
 			foreach ( $links as $func ) {
 				/** @var $paramInfo array Array of int -> true */
 				$paramInfo = $links[$func];
@@ -2698,7 +2653,7 @@ trait TaintednessBaseVisitor {
 			$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
 			$this->setTaintednessOld( $argObj, $this->getTaintednessReference( $argObj ), $overrideTaint );
 			if ( $overrideTaint ) {
-				unset( $argObj->taintednessRef );
+				self::clearTaintednessRef( $argObj );
 			}
 		}
 	}
@@ -3034,7 +2989,8 @@ trait TaintednessBaseVisitor {
 	 * @return TypedElementInterface[] An array of phan objects
 	 */
 	public function getReturnObjsOfFunc( FunctionInterface $func ) : array {
-		if ( !property_exists( $func, 'retObjs' ) ) {
+		$retObjs = self::getRetObjs( $func );
+		if ( $retObjs === null ) {
 			if (
 				$this->context->isInFunctionLikeScope() &&
 				$func->getFQSEN() === $this->context->getFunctionLikeFQSEN()
@@ -3044,7 +3000,8 @@ trait TaintednessBaseVisitor {
 			}
 			// We still have to see the function. Analyze it now.
 			$this->analyzeFunc( $func );
-			if ( !property_exists( $func, 'retObjs' ) ) {
+			$retObjs = self::getRetObjs( $func );
+			if ( $retObjs === null ) {
 				// If it still doesn't exist, perhaps we reached the recursion limit, or it might be
 				// a kind of function that we can't handle.
 				return [];
@@ -3055,7 +3012,7 @@ trait TaintednessBaseVisitor {
 		// This could be remediated with another dynamic property (e.g. retObjsCollected), initialized
 		// inside visitMethod in preorder, and set to true inside visitMethod in postorder.
 		// It would be pointless, though, as returning a partial list is better than returning no list.
-		return $func->retObjs;
+		return $retObjs;
 	}
 
 	/**

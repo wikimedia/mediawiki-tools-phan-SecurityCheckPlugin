@@ -51,6 +51,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	MergeVariableInfoCapability,
 	AnalyzeLiteralStatementCapability
 {
+	use TaintednessAccessorsTrait;
 
 	// Various taint flags. The _EXEC_ varieties mean
 	// that it is unsafe to assign that type of taint
@@ -227,20 +228,21 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					continue;
 				}
 
-				if ( property_exists( $localVar, 'taintedness' ) ) {
-					$taintedness->mergeWith( $localVar->taintedness );
+				$taintOrNull = self::getTaintednessRaw( $localVar );
+				if ( $taintOrNull !== null ) {
+					$taintedness->mergeWith( $taintOrNull );
 				}
 
-				$variableObjLinks = $localVar->taintedMethodLinks ?? new Set;
+				$variableObjLinks = self::getMethodLinks( $localVar ) ?? new Set;
 				$methodLinks->addAll( $variableObjLinks );
 
-				$varError = $localVar->taintedOriginalError ?? [];
+				$varError = self::getCausedByRaw( $localVar ) ?? [];
 				$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varError );
 			}
 
-			$variable->taintedness = $taintedness;
-			$variable->taintedMethodLinks = $methodLinks;
-			$variable->taintedOriginalError = $error;
+			self::setTaintednessRaw( $variable, $taintedness );
+			self::setMethodLinks( $variable, $methodLinks );
+			self::setCausedByRaw( $variable, $error );
 		};
 	}
 
@@ -257,9 +259,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					$varName = ltrim( trim( $rawVar ), '$' );
 					if ( $context->getScope()->hasVariableWithName( $varName ) ) {
 						$var = $context->getScope()->getVariableByName( $varName );
-						$taint = property_exists( $var, 'taintedness' )
-							? $var->taintedness->toShortString()
-							: 'unset';
+						$taintOrNull = self::getTaintednessRaw( $var );
+						$taint = $taintOrNull ? $taintOrNull->toShortString() : 'unset';
 						$msg = "Variable {CODE} has taintedness: {DETAILS}";
 						$params = [ "\$$varName", $taint ];
 					} else {

@@ -234,7 +234,7 @@ class Taintedness {
 	 *
 	 * @param int $taint
 	 * @param bool $all For composite flags, this determines whether we should check for
-	 *  a subset of $taint, or all of the flags in $taint should also be in $this->taintedness.
+	 *  a subset of $taint, or all of the flags in $taint should also be in $this.
 	 * @return bool
 	 */
 	public function has( int $taint, bool $all = false ) : bool {

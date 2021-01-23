@@ -69,7 +69,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		Taintedness &$taint = null
 	) {
 		parent::__construct( $code_base, $context );
-		$this->plugin = SecurityCheckPlugin::$pluginInstance;
 		$this->curTaint =& $taint;
 	}
 
@@ -154,7 +153,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function analyzeFunctionLike( FunctionInterface $func ) : Taintedness {
 		if (
-			$this->getFuncTaint( $func ) === null &&
+			self::getFuncTaint( $func ) === null &&
 			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
 			!$func->hasYield() &&
@@ -440,6 +439,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		if ( property_exists( $node, 'assignTaintMask' ) ) {
+			// @phan-suppress-next-line PhanUndeclaredProperty
 			$mask = $node->assignTaintMask;
 			// TODO Should we consume the value, since it depends on the union types?
 		} else {
@@ -1153,6 +1153,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * A global declaration. Assume most globals are untainted.
 	 *
 	 * @param Node $node
+	 * @suppress PhanUndeclaredProperty
 	 */
 	public function visitGlobal( Node $node ) : void {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
@@ -1207,10 +1208,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $node->children['expr'] instanceof Node ) {
 			// Save this object in the Function object
 			$retObjs = $this->getPhanObjsForNode( $node->children['expr'] );
-			$curFunc->retObjs = array_merge(
-				$curFunc->retObjs ?? [],
-				$retObjs
-			);
+			self::setRetObjs( $curFunc, array_merge( self::getRetObjs( $curFunc ) ?? [], $retObjs ) );
 
 			foreach ( $retObjs as $pobj ) {
 				$this->mergeTaintError( $curFunc, $pobj );

@@ -15,8 +15,6 @@ return [
 	"exclude_analysis_directory_list" => [
 		Config::projectPath( 'vendor' )
 	],
-	// Taint-check heavily sets dynamic properties on phan objects
-	'allow_missing_properties' => true,
 	'null_casts_as_any_type' => false,
 	'scalar_implicit_cast' => false,
 	'dead_code_detection' => true,
