@@ -93,10 +93,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			$varObj = $scope->getVariableByName( $paramName );
 
 			if ( $varObj instanceof PassByReferenceVariable ) {
-				$this->addTaintError(
-					Taintedness::newSafe(),
-					$this->extractReferenceArgument( $varObj )
-				);
+				$this->setTaintednessOld( $varObj, Taintedness::newSafe() );
 				continue;
 			}
 

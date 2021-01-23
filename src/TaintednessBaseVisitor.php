@@ -4,7 +4,6 @@ namespace SecurityCheckPlugin;
 
 use AssertionError;
 use ast\Node;
-use Error;
 use Exception;
 use Generator;
 use Phan\AST\ASTReverter;
@@ -32,7 +31,6 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
-use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
@@ -396,62 +394,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param TypedElementInterface $var
-	 * @return Taintedness
-	 */
-	protected function getTaintednessReference( TypedElementInterface $var ) : Taintedness {
-		if ( $var instanceof PassByReferenceVariable ) {
-			throw new AssertionError( __METHOD__ . ' takes the element inside PassByRefs' );
-		}
-		return self::getTaintednessRef( $var ) ?? Taintedness::newSafe();
-	}
-
-	/**
-	 * Given a PassByRef, recursively extract the argument it refers to.
-	 *
-	 * @param PassByReferenceVariable $obj
-	 * @return TypedElementInterface
-	 */
-	protected function extractReferenceArgument(
-		PassByReferenceVariable $obj
-	) : TypedElementInterface {
-		do {
-			$obj = $obj->getElement();
-		} while ( $obj instanceof PassByReferenceVariable );
-		return $obj;
-	}
-
-	/**
-	 * @param TypedElementInterface $var
-	 * @param Taintedness $taint
-	 * @param bool $override
-	 */
-	protected function setRefTaintedness(
-		TypedElementInterface $var,
-		Taintedness $taint,
-		bool $override
-	) : void {
-		if ( $var instanceof PassByReferenceVariable ) {
-			throw new Error(
-				__METHOD__ . ' not meant for PassByReferenceVariable objects, but for their element'
-			);
-		}
-
-		if ( $this->context->getScope() instanceof BranchScope || $var instanceof Property ) {
-			$override = false;
-		}
-		$curTaintRef = self::getTaintednessRef( $var );
-		if ( $curTaintRef === null || $override ) {
-			self::setTaintednessRef( $var, $taint );
-		} else {
-			// NOTE: Don't merge in-place here, same as doSetTaintedness
-			self::setTaintednessRef( $var, $curTaintRef->withObj( $taint ) );
-		}
-
-		$this->addTaintError( $taint, $var );
-	}
-
-	/**
 	 * TEMPORARY METHOD
 	 * @param TypedElementInterface $variableObj
 	 * @param Taintedness $taintedness
@@ -497,10 +439,6 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof FunctionInterface ) {
 			// FIXME what about closures?
 			throw new AssertionError( "Must use setFuncTaint for functions" );
-		}
-
-		if ( $variableObj instanceof PassByReferenceVariable ) {
-			throw new AssertionError( 'Handle passbyrefs before calling this method' );
 		}
 
 		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
@@ -1124,9 +1062,6 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new AssertionError( "This method cannot be used with methods" );
 		}
-		if ( $variableObj instanceof PassByReferenceVariable ) {
-			throw new AssertionError( 'Handle PassByRefs before calling this method' );
-		}
 		$taintOrNull = self::getTaintednessRaw( $variableObj );
 		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
@@ -1182,11 +1117,6 @@ trait TaintednessBaseVisitor {
 		array $lhsOffsets,
 		bool $allowClearLHSData
 	) : void {
-		$reference = false;
-		if ( $variableObj instanceof PassByReferenceVariable ) {
-			$reference = true;
-			$variableObj = $this->extractReferenceArgument( $variableObj );
-		}
 		if (
 			$variableObj instanceof Property &&
 			$variableObj->getClass( $this->code_base )->getFQSEN() ===
@@ -1206,18 +1136,14 @@ trait TaintednessBaseVisitor {
 		// override the taint (Pass by reference variables are handled
 		// specially and should be ok).
 		$override = !( $variableObj instanceof Property );
-		if ( $reference ) {
-			$this->setRefTaintedness( $variableObj, $allRHSTaint, $override );
-		} else {
-			$this->setTaintedness(
-				$variableObj,
-				$lhsOffsets,
-				$allRHSTaint,
-				$override,
-				$allowClearLHSData,
-				$rhsTaintedness
-			);
-		}
+		$this->setTaintedness(
+			$variableObj,
+			$lhsOffsets,
+			$allRHSTaint,
+			$override,
+			$allowClearLHSData,
+			$rhsTaintedness
+		);
 	}
 
 	/**
@@ -1232,17 +1158,10 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $variableObj,
 		$rhs
 	) : void {
-		if ( $variableObj instanceof PassByReferenceVariable ) {
-			$variableObj = $this->extractReferenceArgument( $variableObj );
-		}
 		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
 			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
 			: null;
 		foreach ( $rhsObjs as $rhsObj ) {
-			if ( $rhsObj instanceof PassByReferenceVariable ) {
-				$rhsObj = $this->extractReferenceArgument( $rhsObj );
-			}
-
 			$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
 			if ( !$taintRHSObj->isSafe() ) {
 				$this->mergeTaintDependencies( $variableObj, $rhsObj );
@@ -1717,9 +1636,6 @@ trait TaintednessBaseVisitor {
 			// Recurse.
 			$phanObjs = $this->getPhanObjsForNode( $rhs );
 			foreach ( $phanObjs as $phanObj ) {
-				if ( $phanObj instanceof PassByReferenceVariable ) {
-					$phanObj = $this->extractReferenceArgument( $phanObj );
-				}
 				$this->mergeTaintDependencies( $lhs, $phanObj );
 			}
 			return;
@@ -1780,9 +1696,6 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		if ( $var instanceof PassByReferenceVariable ) {
-			$var = $this->extractReferenceArgument( $var );
-		}
 		$varLinks = self::getMethodLinks( $var );
 		if ( $varLinks === null || !count( $varLinks ) ) {
 			return;
@@ -1862,6 +1775,10 @@ trait TaintednessBaseVisitor {
 		// have assumed the class member was not tainted.
 		$classesNeedRefresh = new Set;
 		foreach ( $varLinks as $var ) {
+			if ( $var instanceof PassByReferenceVariable ) {
+				// TODO This check is probably misplaced.f
+				$var = $var->getElement();
+			}
 			assert( $var instanceof TypedElementInterface );
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
 			$newTaint = $curVarTaint->withObj( $taintAdjusted );
@@ -2006,9 +1923,6 @@ trait TaintednessBaseVisitor {
 		$lines = [];
 		if ( $element instanceof TypedElementInterface ) {
 			if ( $arg === -1 ) {
-				if ( $element instanceof PassByReferenceVariable ) {
-					$element = $this->extractReferenceArgument( $element );
-				}
 				$origErrorOrNull = self::getCausedByRaw( $element );
 				if ( $origErrorOrNull !== null ) {
 					$lines = self::mergeCausedByLines( $lines, $origErrorOrNull );
@@ -2105,9 +2019,6 @@ trait TaintednessBaseVisitor {
 
 		$pobjs = $this->getPhanObjsForNode( $node );
 		foreach ( $pobjs as $pobj ) {
-			if ( $pobj instanceof PassByReferenceVariable ) {
-				$pobj = $this->extractReferenceArgument( $pobj );
-			}
 			$pobjTaintContribution = $this->getTaintednessPhanObj( $pobj );
 			// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
 			$links = self::getMethodLinks( $pobj );
@@ -2766,14 +2677,14 @@ trait TaintednessBaseVisitor {
 			$overrideTaint = true;
 			if ( $argObj instanceof PassByReferenceVariable ) {
 				// Watch out for nested references, and do not reset taint in that case, yet
-				$argObj = $this->extractReferenceArgument( $argObj );
 				$overrideTaint = false;
 			}
 			// Move the ref taintedness to the "actual" taintedness of the object
 			// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
 			// we never override arg taint for reference params in this case.
 			$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
-			$this->setTaintednessOld( $argObj, $this->getTaintednessReference( $argObj ), $overrideTaint );
+			$refTaint = self::getTaintednessRef( $argObj ) ?? Taintedness::newSafe();
+			$this->setTaintednessOld( $argObj, $refTaint, $overrideTaint );
 			if ( $overrideTaint ) {
 				self::clearTaintednessRef( $argObj );
 			}

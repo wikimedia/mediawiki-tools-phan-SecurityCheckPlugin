@@ -3,6 +3,7 @@
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Library\Set;
 
@@ -27,6 +28,9 @@ trait TaintednessAccessorsTrait {
 	 */
 	protected static function setTaintednessRaw( TypedElementInterface $element, Taintedness $taintedness ) : void {
 		$element->taintedness = $taintedness;
+		if ( $element instanceof PassByReferenceVariable ) {
+			self::setTaintednessRef( $element->getElement(), $taintedness );
+		}
 	}
 
 	/**
@@ -45,6 +49,15 @@ trait TaintednessAccessorsTrait {
 	 */
 	protected static function setCausedByRaw( TypedElementInterface $element, array $lines ) : void {
 		$element->taintedOriginalError = $lines;
+		if ( $element instanceof PassByReferenceVariable ) {
+			self::setCausedByRaw(
+				$element->getElement(),
+				TaintednessBaseVisitor::mergeCausedByLines(
+					self::getCausedByRaw( $element->getElement() ) ?? [],
+					$lines
+				)
+			);
+		}
 	}
 
 	/**

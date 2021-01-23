@@ -62,7 +62,7 @@ class PassByRef {
 	}
 
 	function testBoth1() {
-		$var4 = $_GET['x'];
+		$var4 = $_GET['x']; // Should not be in caused-by
 		$this->passByRefRandomMixed( $var4 );
 		echo $var4;
 	}

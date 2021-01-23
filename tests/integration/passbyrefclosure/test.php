@@ -7,8 +7,8 @@ function outerFunc( &$ref ) {
 	};
 	$var = 'safe';
 	$clos( $var );
-	echo $var; // NOTE: This is unsafe, but not caught because Analyzable::analyse skips closures with `use`.
-	echo $ref;
+	echo $var; // TODO: This is unsafe, but not caught because Analyzable::analyse skips closures with `use`.
+	echo $ref; // TODO: This is unsafe, but not caught because Analyzable::analyse skips closures with `use`.
 }
 
 $globVar = 'safe';

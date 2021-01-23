@@ -30,7 +30,6 @@ use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
-use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
@@ -465,6 +464,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$allRHSTaint,
 			$allowClearLHSData
 		);
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitAssignRef( Node $node ) : void {
+		$this->visitAssign( $node );
 	}
 
 	/**
@@ -941,11 +947,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
-		if ( $variableObj instanceof PassByReferenceVariable ) {
-			$this->curTaint = $this->getTaintednessReference( $this->extractReferenceArgument( $variableObj ) );
-		} else {
-			$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
-		}
+		$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
 	}
 
 	/**
@@ -1191,9 +1193,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
 			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
-			if ( $variable instanceof PassByReferenceVariable ) {
-				$variable = $this->extractReferenceArgument( $variable );
-			}
 			// If the LHS is a variable and it can potentially be a stdClass, share its taintedness
 			// with the property. TODO Improve this.
 			$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();

@@ -1,0 +1,1 @@
+integration/assignref/test.php:5 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignref/test.php +4; integration/assignref/test.php +3)
