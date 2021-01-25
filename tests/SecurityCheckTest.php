@@ -136,6 +136,22 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	/**
+	 * @todo Temporary method until numkey propagation is fixed
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider provideNumkeyTests
+	 */
+	public function testNumkey( $name, $expected ) {
+		putenv( 'SECCHECK_NUMKEY_SPERIMENTAL=1' );
+		$res = $this->runPhan( "numkey/$name", 'integration-test-config.php' );
+		$this->assertEquals( $expected, $res );
+	}
+
+	public function provideNumkeyTests() : Generator {
+		return $this->extractTestCases( 'numkey' );
+	}
+
+	/**
 	 * @param string $name Test name, and name of the folder
 	 * @param string $expected Expected seccheck output for the directory
 	 * @dataProvider providePhanInteractionTests

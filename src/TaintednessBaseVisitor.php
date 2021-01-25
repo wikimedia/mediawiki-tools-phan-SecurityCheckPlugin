@@ -1287,9 +1287,12 @@ trait TaintednessBaseVisitor {
 		 * @phan-return array{0?:TypedElementInterface}
 		 */
 		$maybeKeepIfNumkey = function ( TypedElementInterface $el ) use ( $options ) : array {
+			// TODO For now we only backprop in the simple case, to avoid tons of false positives, unless
+			// the env flag is set (chiefly for tests)
+			$definitely = !getenv( 'SECCHECK_NUMKEY_SPERIMENTAL' );
 			if (
 				!in_array( 'numkey', $options, true ) ||
-				$this->elementCanBeNumkey( $el )
+				$this->elementCanBeNumkey( $el, $definitely )
 			) {
 				return [ $el ];
 			}
@@ -2986,12 +2989,13 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * @param TypedElementInterface $el
+	 * @param bool $definitely Whether $el is *definitely* numkey, not just possibly
 	 * @return bool
 	 */
-	protected function elementCanBeNumkey( TypedElementInterface $el ) : bool {
+	protected function elementCanBeNumkey( TypedElementInterface $el, bool $definitely ) : bool {
 		$type = $el->getUnionType()->getRealUnionType();
 		if ( $type->hasMixedType() || $type->isEmpty() ) {
-			return true;
+			return !$definitely;
 		}
 		if ( !$type->hasArray() ) {
 			return false;
@@ -3000,7 +3004,9 @@ trait TaintednessBaseVisitor {
 		$keyTypes = GenericArrayType::keyUnionTypeFromTypeSetStrict( $el->getUnionType()->getRealTypeSet() );
 		// NOTE: This might lead to false positives if the array has mixed keys, but since we're talking about
 		// SQLi, we prefer false positives. Also, the mixed keys case isn't fully handled, see backpropagateArgTaint
-		return ( $keyTypes & GenericArrayType::KEY_INT ) !== 0;
+		return $definitely
+			? $keyTypes === GenericArrayType::KEY_INT
+			: ( $keyTypes & GenericArrayType::KEY_INT ) !== 0;
 	}
 
 	/**

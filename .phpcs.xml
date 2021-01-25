@@ -15,5 +15,6 @@
 	<exclude-pattern>./vendor</exclude-pattern>
 	<!-- No point in linting tests -->
 	<exclude-pattern>./tests/integration</exclude-pattern>
+	<exclude-pattern>./tests/numkey</exclude-pattern>
 	<exclude-pattern>./tests/phan-interaction</exclude-pattern>
 </ruleset>
