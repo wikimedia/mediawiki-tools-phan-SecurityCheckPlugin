@@ -569,12 +569,17 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			}
 			/** @var \Phan\Language\Element\Clazz[] $classesParam */
 			$classesParam = $param->getUnionType()->asClassList( $code_base, $context );
-			foreach ( $classesParam as $cl ) {
-				if ( $cl->getFQSEN()->__toString() === '\Message' ) {
-					// So we are here. Input is a Message, and func expects either a Message or string
-					// (or something else). So disable double escape check.
-					return $curArgTaintedness->without( self::ESCAPED_TAINT );
+			try {
+				foreach ( $classesParam as $cl ) {
+					if ( $cl->getFQSEN()->__toString() === '\Message' ) {
+						// So we are here. Input is a Message, and func expects either a Message or string
+						// (or something else). So disable double escape check.
+						return $curArgTaintedness->without( self::ESCAPED_TAINT );
+					}
 				}
+			} catch ( CodeBaseException $_ ) {
+				// A class that doesn't exist, don't crash.
+				return $curArgTaintedness;
 			}
 		}
 		return $curArgTaintedness;
