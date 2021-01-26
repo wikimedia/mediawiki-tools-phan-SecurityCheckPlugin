@@ -1,0 +1,1 @@
+integration/passbyrefprop2/test.php:32 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefprop2/test.php +8; integration/passbyrefprop2/test.php +21)

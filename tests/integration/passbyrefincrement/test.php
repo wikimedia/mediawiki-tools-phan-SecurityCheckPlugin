@@ -6,4 +6,4 @@ function incVar( &$par ) {
 
 $arg = $_GET['x'];
 incVar( $arg );
-echo $arg; // Safe!
+echo $arg; // Still unsafe

@@ -1,6 +1,6 @@
 <?php
 
-/* Tests for constant conditionals. These are not fully implemented yet. */
+/* Tests for constant conditionals. These are not fully implemented yet, mainly due to upstream limitations. */
 
 function neverTainted( $arg ) {
 	if ( false ) {
@@ -73,15 +73,26 @@ function alwaysEscapedRef( &$ref ) {
 	}
 }
 
-$ref = 'x';
-neverTaintedRef( $ref );
-echo $ref; // Safe
-$ref = 'x';
-alwaysTaintedRef( $ref );
-echo $ref; // Unsafe
-$ref = $_GET['foo'];
-neverEscapedRef( $ref );
-echo $ref; // Unsafe
-$ref = $_GET['foo'];
-alwaysEscapedRef( $ref );
-echo $ref; // Safe
+function safe1() {
+	$ref = 'x';
+	neverTaintedRef( $ref );
+	echo $ref; // TODO: This shouldn't be reported (https://github.com/phan/phan/issues/3965)
+}
+
+function unsafe1() {
+	$ref = 'x';
+	alwaysTaintedRef( $ref );
+	echo $ref;
+}
+
+function unsafe2() {
+	$ref = $_GET['foo'];
+	neverEscapedRef( $ref );
+	echo $ref; // TODO: This should be reported (https://github.com/phan/phan/issues/3965)
+}
+
+function safe2() {
+	$ref = $_GET['foo'];
+	alwaysEscapedRef( $ref );
+	echo $ref;
+}

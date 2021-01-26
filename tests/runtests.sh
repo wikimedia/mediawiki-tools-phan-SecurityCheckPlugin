@@ -28,6 +28,7 @@ do
 	php ../vendor/phan/phan/phan \
         	--project-root-directory "." \
         	--config-file "integration-test-config.php" \
+        	--no-progress-bar \
         	--output "php://stdout" \
 		-l "integration/$i" | tee "$SECCHECK_DEBUG"   > $tmpFile
 	diff -u "integration/$i/expectedResults.txt" "$tmpFile"

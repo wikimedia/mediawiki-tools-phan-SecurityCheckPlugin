@@ -2684,7 +2684,16 @@ trait TaintednessBaseVisitor {
 			// we never override arg taint for reference params in this case.
 			$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
 			$refTaint = self::getTaintednessRef( $argObj ) ?? Taintedness::newSafe();
-			$this->setTaintednessOld( $argObj, $refTaint, $overrideTaint );
+			// The call itself is only responsible if it adds some taintedness
+			$errTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT );
+			if ( $refTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
+				// TODO: Is it OK to keep UNKNOWN from $argObj here? Uninitialized vars passed by ref are common,
+				// but this is only relevant if the by-ref method also doesn't use the arg. See test passbyrefimplicit
+				$refTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT )
+					->asMergedWith( $this->getTaintednessPhanObj( $argObj ) );
+			}
+
+			$this->setTaintednessOld( $argObj, $refTaint, $overrideTaint, false, $errTaint );
 			if ( $overrideTaint ) {
 				self::clearTaintednessRef( $argObj );
 			}

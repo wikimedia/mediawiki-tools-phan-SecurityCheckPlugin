@@ -12,6 +12,7 @@
 * Added partial support for backpropagating NUMKEY taint, in the very few cases where false positives are highly unlikely (this will be improved)
 * (MW) Improved hook registration, being now able to infer the callback in more cases
 * (MW) Added partial support for HookHandlers in extension.json
+* Improved handling of pass-by-reference parameters when the parameter is essentially left unchanged
 
 ### Bug fixes
 * Improved merging caused-by lines to avoid duplicates

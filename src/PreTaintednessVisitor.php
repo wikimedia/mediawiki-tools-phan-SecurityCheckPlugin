@@ -92,18 +92,15 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			}
 			$varObj = $scope->getVariableByName( $paramName );
 
-			if ( $varObj instanceof PassByReferenceVariable ) {
-				$this->setTaintednessOld( $varObj, Taintedness::newSafe() );
-				continue;
-			}
-
 			$paramTypeTaint = $this->getTaintByType( $varObj->getUnionType() );
 			// Initially, the variable starts off with no taint, but we set the PRESERVE flag so we can check
 			// whether the argument is passed through, at least in simple cases.
 			$startTaint = new Taintedness( SecurityCheckPlugin::PRESERVE_TAINT );
-			$this->setTaintednessOld( $varObj, $startTaint );
+			// No point in adding a caused-by line here.
+			$errTaint = Taintedness::newSafe();
+			$this->setTaintednessOld( $varObj, $startTaint, true, false, $errTaint );
 
-			if ( !$paramTypeTaint->isSafe() ) {
+			if ( !$varObj instanceof PassByReferenceVariable && !$paramTypeTaint->isSafe() ) {
 				// If the param is not an integer or something, link it to the func
 				$this->linkParamAndFunc( $varObj, $method, $i );
 			}

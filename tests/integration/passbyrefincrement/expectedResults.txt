@@ -1,0 +1,1 @@
+integration/passbyrefincrement/test.php:9 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefincrement/test.php +7)
