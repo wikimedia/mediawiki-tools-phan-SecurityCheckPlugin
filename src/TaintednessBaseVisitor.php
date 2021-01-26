@@ -2565,7 +2565,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface|null $func
 	 */
 	private function doBackpropArgTaint( array $phanObjs, Taintedness $taint, FunctionInterface $func = null ) : void {
-		foreach ( $phanObjs as $phanObj ) {
+		foreach ( array_unique( $phanObjs ) as $phanObj ) {
 			if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $taint->get() ) ) {
 				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec {$taint->toShortString()}" );
 				$this->markAllDependentMethodsExec( $phanObj, $taint, $func );
