@@ -175,6 +175,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		if ( $lhs instanceof Node && $lhs->kind === \ast\AST_ARRAY ) {
 			// Don't try interpreting the node as an HTMLForm specifier later on, both for performance, and because
 			// resolving values might cause phan to emit issues (see test undeclaredvar3)
+			// @phan-suppress-next-line PhanUndeclaredProperty
 			$lhs->skipHTMLFormAnalysis = true;
 		}
 	}
