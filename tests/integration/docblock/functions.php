@@ -1,14 +1,14 @@
 <?php
 
 /**
- * @param-taint $t escapes_html
+ * @param-taint $t escapes_html Testing text after annotation
  */
 function escapeHTML( $t ) {
 	return $t;
 }
 
 /**
- * @return-taint html
+ * @return-taint html Testing text after annotation
  */
 function getUnsafeHTML() {
 	return '<blink>evil</blink>';
@@ -30,7 +30,7 @@ function doQuery( $query ) {
 }
 
 /**
- * @param-taint $line exec_shell, array_ok
+ * @param-taint $line exec_shell, array_ok Testing text after annotation
  */
 function wfShellExec2( $line ) {
 	return 0;
@@ -65,7 +65,7 @@ function invalidTaint() {
 }
 
 /**
- * @param-taint $t exec_sql,exec_misc,exec_custom1,exec_htmlnoent
+ * @param-taint $t exec_sql,exec_misc,exec_custom1,exec_htmlnoent Testing text after annotation
  */
 function multiTaint( $t ) {
 	return null;
