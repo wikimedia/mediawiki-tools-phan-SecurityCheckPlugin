@@ -2686,7 +2686,13 @@ trait TaintednessBaseVisitor {
 			case 'reset':
 				return $paramIdx === 0 ? $curArgTaint->asValueFirstLevel() : $curArgTaint->asCollapsed();
 			case 'array_values':
-				return $paramIdx === 0 ? $curArgTaint->withoutKeys() : $curArgTaint->asCollapsed();
+				if ( $paramIdx === 0 ) {
+					$ret = $curArgTaint->withoutKeys();
+					return $ret->has( SecurityCheckPlugin::SQL_TAINT )
+						? $ret->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT )
+						: $ret;
+				}
+				return $curArgTaint->asCollapsed();
 			// These return one or more keys
 			case 'key':
 			case 'array_key_first':

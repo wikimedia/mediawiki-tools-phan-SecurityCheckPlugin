@@ -107,3 +107,11 @@ $db->select(
 
 // unsafe
 echo $subquery;
+
+$safe = [ 'safe' => $_GET['baz'] ];
+$unsafe = array_values( $safe );
+$db->select( 'foo', '*', $unsafe ); // SQLi
+
+$newSafe = [ 'safe' => 'safe' ];
+$alsoSafe = array_values( $newSafe );
+$db->select( 'foo', '*', $alsoSafe ); // Safe
