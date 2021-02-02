@@ -2,7 +2,7 @@
 
 ## UNRELEASED
 ### New features
-* Added support for the following PHP 7.4 and PHP 8 features: arrow functions, `match`, named arguments, nullsafe method calls and property access, typed properties
+* Added support for the following PHP 7.4 and PHP 8 features: arrow functions, `match`, named arguments, nullsafe method calls and property access, typed properties, constructor property promotion
 * Infer array shape mutations for several array-related builtin functions
 * Improved taint data for $_FILES
 * Infer when a parameter is passed through by a function (even partially or conditionally), at least in non-complicated cases

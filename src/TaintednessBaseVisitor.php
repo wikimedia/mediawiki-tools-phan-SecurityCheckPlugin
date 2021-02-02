@@ -1169,6 +1169,193 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * @param TypedElementInterface $variableObj
+	 * @param Taintedness $allRHSTaint
+	 * @param Taintedness $rhsTaintedness
+	 * @param array $lhsOffsets
+	 * @phan-param list<Node|mixed> $lhsOffsets
+	 * @param bool $allowClearLHSData
+	 */
+	private function doAssignmentSingleElement(
+		TypedElementInterface $variableObj,
+		Taintedness $allRHSTaint,
+		Taintedness $rhsTaintedness,
+		array $lhsOffsets,
+		bool $allowClearLHSData
+	) : void {
+		$reference = false;
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$reference = true;
+			$variableObj = $this->extractReferenceArgument( $variableObj );
+		}
+		if (
+			$variableObj instanceof Property &&
+			$variableObj->getClass( $this->code_base )->getFQSEN() ===
+			FullyQualifiedClassName::getStdClassFQSEN()
+		) {
+			// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
+			// Avoid doing the same with taintedness, as that would cause weird issues (see
+			// 'stdclassconflation' test).
+			// @todo Is it possible to store prop taintedness in the Variable object?
+			// that would be similar to a fine-grained handling of arrays.
+			return;
+		}
+
+		// Make sure $this->bar doesn't kill taint of $foo generally, or props in general just in case.
+		// Note: If there is a local variable that is a reference
+		// to another non-local variable, this will probably incorrectly
+		// override the taint (Pass by reference variables are handled
+		// specially and should be ok).
+		$override = !( $variableObj instanceof Property );
+		if ( $reference ) {
+			$this->setRefTaintedness( $variableObj, $allRHSTaint, $override );
+		} else {
+			$this->setTaintedness(
+				$variableObj,
+				$lhsOffsets,
+				$allRHSTaint,
+				$override,
+				$allowClearLHSData,
+				$rhsTaintedness
+			);
+		}
+	}
+
+	/**
+	 * @param TypedElementInterface[] $rhsObjs
+	 * @param Taintedness $rhsTaintedness
+	 * @param TypedElementInterface $variableObj
+	 * @param Node|mixed $rhs
+	 */
+	private function setTaintDependenciesInAssignment(
+		array $rhsObjs,
+		Taintedness $rhsTaintedness,
+		TypedElementInterface $variableObj,
+		$rhs
+	) : void {
+		if ( $variableObj instanceof PassByReferenceVariable ) {
+			$variableObj = $this->extractReferenceArgument( $variableObj );
+		}
+		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
+			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
+			: null;
+		foreach ( $rhsObjs as $rhsObj ) {
+			if ( $rhsObj instanceof PassByReferenceVariable ) {
+				$rhsObj = $this->extractReferenceArgument( $rhsObj );
+			}
+
+			$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
+			if ( !$taintRHSObj->isSafe() ) {
+				$this->mergeTaintDependencies( $variableObj, $rhsObj );
+				if ( $globalVarObj ) {
+					// Merge dependencies on the global copy as well
+					$this->mergeTaintDependencies( $globalVarObj, $rhsObj );
+				}
+			}
+		}
+
+		if ( $rhs instanceof Node ) {
+			$allRhsObjs = $this->getPhanObjsForNode( $rhs, [ 'all' ] );
+			// This is essentially mergeTaintError, but keeping a line only if it's participating with any taint
+			// TODO Find a prettier way to do this.
+			foreach ( $allRhsObjs as $rhsObj ) {
+				$lines = $this->getOriginalTaintArray( $rhsObj );
+				foreach ( $lines as [ $lineTaint, $line ] ) {
+					$this->addTaintError( $rhsTaintedness->withOnlyObj( $lineTaint ), $variableObj, -1, $line );
+					if ( $globalVarObj ) {
+						$this->addTaintError( $rhsTaintedness->withOnlyObj( $lineTaint ), $globalVarObj, -1, $line );
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * If we're assigning an SQL tainted value as an array key
+	 * or as the value of a numeric key, then set NUMKEY taint.
+	 * @note This method modifies $rhsTaintedness and $allRHSTaint in-place
+	 * @todo Can this be moved elsewhere, now that we resolve LHS offsets
+	 *
+	 * @param Node $lhs
+	 * @param Node|mixed $rhs
+	 * @param Taintedness $rhsTaintedness
+	 * @param Taintedness $allRHSTaint
+	 */
+	private function maybeAddNumkeyOnAssignmentLHS(
+		Node $lhs,
+		$rhs,
+		Taintedness $rhsTaintedness,
+		Taintedness $allRHSTaint
+	) : void {
+		$dim = $lhs->children['dim'];
+		if ( $allRHSTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+			// Things like 'foo' => ['taint', 'taint']
+			// are ok.
+			$allRHSTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		} elseif ( $allRHSTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+			// Checking the case:
+			// $foo[1] = $sqlTainted;
+			// $foo[] = $sqlTainted;
+			// But ensuring we don't catch:
+			// $foo['bar'][] = $sqlTainted;
+			// $foo[] = [ $sqlTainted ];
+			// $foo[2] = [ $sqlTainted ];
+			if (
+				( $dim === null || $this->nodeIsInt( $dim ) )
+				&& !$this->nodeIsArray( $rhs )
+				&& !( $lhs->children['expr'] instanceof Node
+					&& $lhs->children['expr']->kind === \ast\AST_DIM
+				)
+			) {
+				$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			}
+		}
+		if ( $this->getTaintedness( $dim )->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+			$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		}
+	}
+
+	/**
+	 * @param Node $lhs LHS of the assignment
+	 * @return array List of possibly-resolved offsets
+	 * @phan-return list<Node|mixed>
+	 */
+	private function getResolvedLhsOffsetsInAssignment( Node $lhs ) : array {
+		if ( $lhs->kind !== \ast\AST_DIM ) {
+			return [];
+		}
+
+		$resolvedOffsetsLhs = [];
+		$lhsDimNode = $lhs;
+		while ( $lhsDimNode instanceof Node && $lhsDimNode->kind === \ast\AST_DIM ) {
+			$offsetNode = $lhsDimNode->children['dim'];
+			if ( $offsetNode === null ) {
+				$curOff = null;
+			} else {
+				$curOff = $this->resolveOffset( $offsetNode );
+			}
+			$resolvedOffsetsLhs[] = $curOff;
+			$lhsDimNode = $lhsDimNode->children['expr'];
+		}
+		return array_reverse( $resolvedOffsetsLhs );
+	}
+
+	/**
+	 * Get a property by name in the current scope, failing hard if it cannot be found.
+	 * @param string $propName
+	 * @return Property
+	 */
+	private function getPropInCurrentScopeByName( string $propName ) : Property {
+		assert( $this->context->isInClassScope() );
+		$clazz = $this->context->getClassInScope( $this->code_base );
+
+		assert( $clazz->hasPropertyWithName( $this->code_base, $propName ) );
+		return $clazz->getPropertyByName( $this->code_base, $propName );
+	}
+
+	/**
 	 * Quick wrapper to get the ContextNode for a node
 	 *
 	 * @param Node|mixed $node

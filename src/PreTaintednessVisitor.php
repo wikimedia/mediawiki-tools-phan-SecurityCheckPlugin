@@ -3,6 +3,7 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
+use Phan\Language\Element\Parameter;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\PluginV3\PluginAwarePreAnalysisVisitor;
 
@@ -71,16 +72,25 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	public function visitMethod( Node $node ) : void {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
+		$promotedProps = [];
+		if ( $node->kind === \ast\AST_METHOD && $node->children['name'] === '__construct' ) {
+			foreach ( $method->getParameterList() as $i => $param ) {
+				if ( $param->getFlags() & Parameter::PARAM_MODIFIER_VISIBILITY_FLAGS ) {
+					$promotedProps[$i] = $this->getPropInCurrentScopeByName( $param->getName() );
+				}
+			}
+		}
 
 		$params = $node->children['params']->children;
 		foreach ( $params as $i => $param ) {
+			$paramName = $param->children['name'];
 			$scope = $this->context->getScope();
-			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
+			if ( !$scope->hasVariableWithName( $paramName ) ) {
 				// Well uh-oh.
-				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+				$this->debug( __METHOD__, "Missing variable for param \$" . $paramName );
 				continue;
 			}
-			$varObj = $scope->getVariableByName( $param->children['name'] );
+			$varObj = $scope->getVariableByName( $paramName );
 
 			if ( $varObj instanceof PassByReferenceVariable ) {
 				$this->addTaintError(
@@ -100,6 +110,16 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				// If the param is not an integer or something, link it to the func
 				$this->linkParamAndFunc( $varObj, $method, $i );
 			}
+			if ( isset( $promotedProps[$i] ) ) {
+				$this->doAssignmentSingleElement(
+					$promotedProps[$i],
+					$startTaint,
+					$startTaint,
+					[],
+					false
+				);
+				$this->setTaintDependenciesInAssignment( [ $varObj ], $startTaint, $promotedProps[$i], $param );
+			}
 		}
 	}
 
@@ -116,5 +136,14 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 		$rhs = $node->children['expr'];
 		// @phan-suppress-next-line PhanUndeclaredProperty
 		$node->assignTaintMask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
+	}
+
+	/**
+	 * When a class property is declared
+	 * @param Node $node
+	 */
+	public function visitPropElem( Node $node ) : void {
+		$prop = $this->getPropInCurrentScopeByName( $node->children['name'] );
+		$this->setTaintednessOld( $prop, Taintedness::newSafe(), false );
 	}
 }
