@@ -1,0 +1,4 @@
+integration/pdo/test.php:6 SecurityCheck-SQLInjection Calling method \PDO::query() in [no method] that outputs using tainted argument #1. (Caused by: integration/pdo/test.php +5)
+integration/pdo/test.php:7 SecurityCheck-SQLInjection Calling method \PDO::prepare() in [no method] that outputs using tainted argument #1. (Caused by: integration/pdo/test.php +5)
+integration/pdo/test.php:8 SecurityCheck-SQLInjection Calling method \PDO::exec() in [no method] that outputs using tainted argument #1 (`"UPDATE {$taintedVar}"`). (Caused by: integration/pdo/test.php +5)
+integration/pdo/test.php:15 SecurityCheck-SQLInjection Calling method \PDO::prepare() in [no method] that outputs using tainted argument #1.

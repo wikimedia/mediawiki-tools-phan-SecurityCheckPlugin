@@ -766,6 +766,22 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\PDO::query' => [
+				self::SQL_EXEC_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\PDO::prepare' => [
+				self::SQL_EXEC_TAINT,
+				self::NO_TAINT,
+				'overall' => self::UNKNOWN_TAINT
+			],
+			'\PDO::exec' => [
+				self::SQL_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			'\base64_encode' => [
 				self::YES_TAINT & ~self::HTML_TAINT,
 				'overall' => self::NO_TAINT
