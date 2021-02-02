@@ -1,0 +1,4 @@
+integration/match/test.php:7 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/match/test.php +3)
+integration/match/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/match/test.php +15)
+integration/match/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/match/test.php +23)
+integration/match/test.php:33 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/match/test.php +29)

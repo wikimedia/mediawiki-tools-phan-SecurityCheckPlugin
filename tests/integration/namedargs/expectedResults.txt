@@ -1,0 +1,2 @@
+integration/namedargs/test.php:7 SecurityCheck-XSS Calling method \named1() in [no method] that outputs using tainted argument `used` (`$_GET['A']`). (Caused by: integration/namedargs/test.php +4)
+integration/namedargs/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/namedargs/test.php +11)

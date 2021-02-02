@@ -21,6 +21,7 @@ namespace SecurityCheckPlugin;
 
 use ast\Node;
 use Exception;
+use Phan\Analysis\BlockExitStatusChecker;
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
 use Phan\Debug;
@@ -139,6 +140,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitMethod( Node $node ) : void {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		$this->curTaint = $this->analyzeFunctionLike( $method );
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitArrowFunc( Node $node ) : void {
+		$this->visitClosure( $node );
 	}
 
 	/**
@@ -1038,6 +1046,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param Node $node
+	 */
+	public function visitNullsafeMethodCall( Node $node ) : void {
+		$this->visitMethodCall( $node );
+	}
+
+	/**
+	 * @param Node $node
 	 * @return iterable<mixed,FunctionInterface>
 	 */
 	private function getFuncsFromNode( Node $node ) : iterable {
@@ -1184,8 +1199,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitReturn( Node $node ) : void {
 		if ( !$this->context->isInFunctionLikeScope() ) {
-			$this->debug( __METHOD__, "return outside func?" );
-			// Debug::printNode( $node );
+			// E.g. a file that can be included.
 			$this->curTaint = Taintedness::newUnknown();
 			return;
 		}
@@ -1374,6 +1388,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * @param Node $node
+	 */
+	public function visitNullsafeProp( Node $node ) : void {
+		$this->visitProp( $node );
+	}
+
+	/**
 	 * When a class property is declared
 	 * @param Node $node
 	 */
@@ -1547,5 +1568,22 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitInstanceOf( Node $node ) : void {
 		$this->curTaint = Taintedness::newSafe();
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitMatch( Node $node ) : void {
+		$taint = Taintedness::newSafe();
+		// Based on UnionTypeVisitor
+		foreach ( $node->children['stmts']->children as $armNode ) {
+			// It sounds a bit weird to have to call this ourselves, but aight.
+			if ( !BlockExitStatusChecker::willUnconditionallyThrowOrReturn( $armNode ) ) {
+				// Note, we're straight using the expr to avoid implementing visitMatchArm
+				$taint->mergeWith( $this->getTaintedness( $armNode->children['expr'] ) );
+			}
+		}
+
+		$this->curTaint = $taint;
 	}
 }

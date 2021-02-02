@@ -1,0 +1,1 @@
+integration/typedprops/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/typedprops/test.php +13)

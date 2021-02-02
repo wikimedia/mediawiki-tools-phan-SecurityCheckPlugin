@@ -49,6 +49,13 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	}
 
 	/**
+	 * @param Node $node
+	 */
+	public function visitArrowFunc( Node $node ) : void {
+		$this->visitMethod( $node );
+	}
+
+	/**
 	 * Set the taintedness of parameters to method/function.
 	 *
 	 * Parameters that are ints (etc) are clearly safe so

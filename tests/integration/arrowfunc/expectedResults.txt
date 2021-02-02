@@ -1,0 +1,4 @@
+integration/arrowfunc/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrowfunc/test.php:8 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrowfunc/test.php:10 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrowfunc/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrowfunc/test.php +16)

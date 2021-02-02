@@ -995,11 +995,10 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : Taintedness {
 		if (
-			$var instanceof Property ||
 			$this->isGlobalVariableInLocalScope( $var ) ||
-			$this->context->isInGlobalScope()
+			( $var instanceof Variable && $this->context->isInGlobalScope() )
 		) {
-			// TODO Improve handling of globals and props
+			// TODO Improve handling of globals?
 			return Taintedness::newAll();
 		}
 		// Note, we must use the real union type because:
@@ -1223,6 +1222,7 @@ trait TaintednessBaseVisitor {
 		};
 		switch ( $node->kind ) {
 			case \ast\AST_PROP:
+			case \ast\AST_NULLSAFE_PROP:
 			case \ast\AST_STATIC_PROP:
 				$prop = $this->getPropFromNode( $node );
 				return $prop ? $maybeKeepIfNumkey( $prop ) : [];
@@ -1316,6 +1316,7 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_CALL:
 			case \ast\AST_STATIC_CALL:
 			case \ast\AST_METHOD_CALL:
+			case \ast\AST_NULLSAFE_METHOD_CALL:
 				if ( !array_intersect( $options, [ 'all', 'return' ] ) ) {
 					return [];
 				}
@@ -1324,6 +1325,7 @@ trait TaintednessBaseVisitor {
 				// @todo Future todo might be to still return arguments when catching an exception.
 				if ( $node->kind === \ast\AST_CALL ) {
 					if ( $node->children['expr']->kind !== \ast\AST_NAME ) {
+						// TODO Handle this case!
 						return [];
 					}
 					try {
@@ -1378,6 +1380,7 @@ trait TaintednessBaseVisitor {
 				assert( count( $children ) === 1 );
 				return $this->getPhanObjsForNode( reset( $children ) );
 			default:
+				// TODO Should probably handle AST_MATCH & friends
 				// Debug::printNode( $node );
 				// This should really be a visitor that recurses into
 				// things.
@@ -2367,6 +2370,17 @@ trait TaintednessBaseVisitor {
 				continue;
 			}
 
+			if ( $argument->kind === \ast\AST_NAMED_ARG ) {
+				[ $i, $argument, $argName ] = $this->translateNamedArg( $argument, $func );
+				if ( $i === null || !$argument instanceof Node ) {
+					// Cannot find argument or it's literal
+					continue;
+				}
+				$argName = "`$argName`";
+			} else {
+				$argName = '#' . ( $i + 1 );
+			}
+
 			list( $curArgTaintedness, $effectiveArgTaintedness ) = $this->getArgTaint(
 				$taint, $argument, $i, $func, $funcName
 			);
@@ -2415,7 +2429,7 @@ trait TaintednessBaseVisitor {
 				$this->backpropagateArgTaint( $argument, $taint->getParamTaint( $i ), $func );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
-			$taintedArg = '#' . ( $i + 1 );
+			$taintedArg = $argName;
 			$argStr = ASTReverter::toShortString( $argument );
 			if ( !( $argStr instanceof Node ) && strlen( $argStr ) < 25 ) {
 				// If we have a short representation of the arg, include it as well.
@@ -2472,6 +2486,26 @@ trait TaintednessBaseVisitor {
 			SecurityCheckPlugin::ALL_EXEC_TAINT;
 		return $taint->getOverall()->without( $preserveOrExec )
 			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
+	}
+
+	/**
+	 * @todo This should possibly be part of the public interface upstream
+	 * @see \Phan\Analysis\ArgumentType::analyzeParameterListForCallback
+	 * @param Node $argument
+	 * @param FunctionInterface $func
+	 * @return array
+	 * @phan-return array{0:int|null,1:Node|mixed,2:?string}
+	 */
+	private function translateNamedArg( Node $argument, FunctionInterface $func ) : array {
+		[ 'name' => $argName, 'expr' => $argExpr ] = $argument->children;
+		assert( $argExpr !== null );
+
+		foreach ( $func->getRealParameterList() as $i => $parameter ) {
+			if ( $parameter->getName() === $argName ) {
+				return [ $i, $argExpr, $argName ];
+			}
+		}
+		return [ null, null, null ];
 	}
 
 	/**

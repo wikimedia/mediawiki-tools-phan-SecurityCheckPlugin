@@ -1,0 +1,1 @@
+integration/nullsafeprop/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/nullsafeprop/test.php +9)

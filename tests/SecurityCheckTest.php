@@ -41,6 +41,16 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		]
 	];
 
+	private const TESTS_WITH_MINIMUM_PHP_VERSION = [
+		'arrowfunc' => 70400,
+		'assignop' => 70400,
+		'match' => 80000,
+		'namedargs' => 80000,
+		'nullsafemethod' => 80000,
+		'nullsafeprop' => 80000,
+		'typedprops' => 70400,
+	];
+
 	/**
 	 * @inheritDoc
 	 */
@@ -106,9 +116,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration( $name, $expected ) {
-		if ( $name === 'assignop' && PHP_VERSION_ID < 70400 ) {
-			$this->markTestSkipped( 'This test requires PHP 7.4+ due to the use of ??=' );
-		}
+		$this->checkSkipTest( $name );
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php' );
 		$this->assertEquals( $expected, $res );
 	}
@@ -119,11 +127,24 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration_Polyfill( $name, $expected ) {
-		if ( $name === 'assignop' && PHP_VERSION_ID < 70400 ) {
-			$this->markTestSkipped( 'This test requires PHP 7.4+ due to the use of ??=' );
+		if ( $name === 'namedargs' ) {
+			$this->markTestSkipped( 'Analyzing named arguments with the polyfill parser is not yet supported' );
 		}
+		$this->checkSkipTest( $name );
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', true );
 		$this->assertEquals( $expected, $res );
+	}
+
+	/**
+	 * @param string $testName
+	 */
+	private function checkSkipTest( string $testName ) : void {
+		if ( isset( self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName] ) ) {
+			$version = self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName];
+			if ( PHP_VERSION_ID < $version ) {
+				$this->markTestSkipped( "This test requires PHP >= $version" );
+			}
+		}
 	}
 
 	/**

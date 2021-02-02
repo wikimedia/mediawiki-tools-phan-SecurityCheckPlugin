@@ -1,0 +1,2 @@
+integration/nullsafemethod/test.php:20 SecurityCheck-XSS Calling method \MyObj::echoArg() in [no method] that outputs using tainted argument #1 (`$_GET['unsafe']`). (Caused by: integration/nullsafemethod/test.php +5)
+integration/nullsafemethod/test.php:22 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/nullsafemethod/test.php +8)
