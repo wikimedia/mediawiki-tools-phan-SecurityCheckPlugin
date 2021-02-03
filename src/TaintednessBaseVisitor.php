@@ -2176,19 +2176,23 @@ trait TaintednessBaseVisitor {
 	 * This is intended for functions that register callbacks.
 	 *
 	 * @param Node|mixed $node The thingy from AST expected to be a Callable
-	 * @return FullyQualifiedMethodName|FullyQualifiedFunctionName|null The corresponding FQSEN
+	 * @return FunctionInterface|null
 	 */
-	protected function getFQSENFromCallable( $node ) : ?FullyQualifiedFunctionLikeName {
+	protected function getCallableFromNode( $node ) : ?FunctionInterface {
 		if ( is_string( $node ) ) {
 			// Easy case, 'Foo::Bar'
 			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
 			// And also NOTE: 'self::methodname()' is not valid PHP.
 			if ( strpos( $node, '::' ) === false ) {
 				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
-				return $this->code_base->hasFunctionWithFQSEN( $callback ) ? $callback : null;
+				return $this->code_base->hasFunctionWithFQSEN( $callback )
+					? $this->code_base->getFunctionByFQSEN( $callback )
+					: null;
 			}
 			$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $node );
-			return $this->code_base->hasMethodWithFQSEN( $callback ) ? $callback : null;
+			return $this->code_base->hasMethodWithFQSEN( $callback )
+				? $this->code_base->getMethodByFQSEN( $callback )
+				: null;
 		}
 		if ( !$node instanceof Node ) {
 			return null;
@@ -2204,9 +2208,7 @@ trait TaintednessBaseVisitor {
 				// @todo Should probably be emitted instead
 				return null;
 			}
-			/** @var FunctionInterface|null $func */
-			$func = self::getFirstElmFromArrayOrGenerator( $funcs );
-			return $func ? $func->getFQSEN() : null;
+			return self::getFirstElmFromArrayOrGenerator( $funcs );
 		}
 		return null;
 	}

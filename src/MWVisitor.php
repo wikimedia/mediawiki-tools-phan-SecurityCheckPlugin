@@ -334,7 +334,7 @@ class MWVisitor extends TaintednessVisitor {
 		if ( count( $args ) < 2 ) {
 			return;
 		}
-		$callback = $this->getFQSENFromCallable( $args[1] );
+		$callback = $this->getCallableFromNode( $args[1] );
 		if ( $callback ) {
 			$this->registerHook( $hookType, $callback );
 		}
@@ -342,45 +342,31 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * @param string $hookType
-	 * @param FullyQualifiedFunctionLikeName $callback
+	 * @param FunctionInterface $callback
 	 */
-	private function registerHook( string $hookType, FullyQualifiedFunctionLikeName $callback ) : void {
-		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $callback );
+	private function registerHook( string $hookType, FunctionInterface $callback ) : void {
+		$fqsen = $callback->getFQSEN();
+		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $fqsen );
 		if ( !$alreadyRegistered ) {
-			$this->debug( __METHOD__, "registering $callback for hook $hookType" );
+			$this->debug( __METHOD__, "registering $fqsen for hook $hookType" );
 			// If this is the first time seeing this, re-analyze the
 			// node, just in case we had already passed it by.
-			$func = null;
-			if ( $callback->isClosure() ) {
+			if ( $fqsen->isClosure() ) {
 				// For closures we have to reanalyze the parent
 				// function, as we can't reanalyze the closure, and
 				// we definitely need to since the closure would
 				// have already been analyzed at this point since
 				// we are operating in post-order.
 				if ( $this->context->isInFunctionLikeScope() ) {
-					$func = $this->context->getFunctionLikeInScope( $this->code_base );
+					$callback = $this->context->getFunctionLikeInScope( $this->code_base );
+				} else {
+					return;
 				}
-			} elseif (
-				$callback instanceof FullyQualifiedMethodName &&
-				$this->code_base->hasMethodWithFQSEN( $callback )
-			) {
-				$func = $this->code_base->getMethodByFQSEN( $callback );
-			} elseif (
-				$callback instanceof FullyQualifiedFunctionName &&
-				$this->code_base->hasFunctionWithFQSEN( $callback )
-			) {
-				$func = $this->code_base->getFunctionByFQSEN( $callback );
-			} else {
-				// Probably the handler doesn't exist; ignore it.
-				$this->debug( __METHOD__, "No handler found for $callback" );
-				return;
 			}
 			// Make sure we reanalyze the hook function now that
 			// we know what it is, in case its already been
 			// analyzed.
-			if ( $func ) {
-				$this->analyzeFunc( $func );
-			}
+			$this->analyzeFunc( $callback );
 		}
 	}
 
@@ -782,12 +768,12 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node|mixed $node
 	 * @param string $hookName
-	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
+	 * @return FunctionInterface|null
 	 */
-	private function getCallableFromHookRegistration( $node, string $hookName ) : ?FullyQualifiedFunctionLikeName {
+	private function getCallableFromHookRegistration( $node, string $hookName ) : ?FunctionInterface {
 		// "wfSomething", "Class::Method", closure
 		if ( !$node instanceof Node || $node->kind === \ast\AST_CLOSURE ) {
-			return $this->getFQSENFromCallable( $node );
+			return $this->getCallableFromNode( $node );
 		}
 
 		$cb = $this->getSingleCallable( $node, 'on' . $hookName );
@@ -830,9 +816,9 @@ class MWVisitor extends TaintednessVisitor {
 	/**
 	 * @param Node $node
 	 * @param string $methodName
-	 * @return FullyQualifiedFunctionLikeName|null
+	 * @return FunctionInterface|null
 	 */
-	private function getSingleCallable( Node $node, string $methodName ) : ?FullyQualifiedFunctionLikeName {
+	private function getSingleCallable( Node $node, string $methodName ) : ?FunctionInterface {
 		if ( $node->kind === \ast\AST_VAR && is_string( $node->children['name'] ) ) {
 			return $this->getCallbackForVar( $node, $methodName );
 		}
@@ -840,9 +826,7 @@ class MWVisitor extends TaintednessVisitor {
 			$cxn = $this->getCtxN( $node );
 			try {
 				$ctor = $cxn->getMethod( '__construct', false, false, true );
-				return $ctor->getClass( $this->code_base )
-					->getMethodByName( $this->code_base, $methodName )
-					->getFQSEN();
+				return $ctor->getClass( $this->code_base )->getMethodByName( $this->code_base, $methodName );
 			} catch ( CodeBaseException | IssueException | NodeException $e ) {
 				// @todo Should probably emit the issue
 				$this->debug( __METHOD__, "Missing hook handle: " . $this->getDebugInfo( $e ) );
@@ -856,9 +840,9 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The variable
 	 * @param string $defaultMethod If the var is an object, what method to use
-	 * @return FullyQualifiedFunctionLikeName|null The corresponding FQSEN
+	 * @return FunctionInterface|null
 	 */
-	private function getCallbackForVar( Node $node, $defaultMethod = '' ) : ?FullyQualifiedFunctionLikeName {
+	private function getCallbackForVar( Node $node, $defaultMethod = '' ) : ?FunctionInterface {
 		assert( $node->kind === \ast\AST_VAR );
 		$cnode = $this->getCtxN( $node );
 		// Try the class case first, because the callable case might emit issues (about missing __invoke) if executed
@@ -875,7 +859,7 @@ class MWVisitor extends TaintednessVisitor {
 				continue;
 			}
 			try {
-				return $class->getMethodByName( $this->code_base, $defaultMethod )->getFQSEN();
+				return $class->getMethodByName( $this->code_base, $defaultMethod );
 			} catch ( CodeBaseException $_ ) {
 				return null;
 			}
@@ -886,9 +870,7 @@ class MWVisitor extends TaintednessVisitor {
 		} catch ( IssueException $_ ) {
 			$funcs = [];
 		}
-		$func = self::getFirstElmFromArrayOrGenerator( $funcs );
-		assert( $func instanceof FunctionInterface || $func === null );
-		return $func ? $func->getFQSEN() : null;
+		return self::getFirstElmFromArrayOrGenerator( $funcs );
 	}
 
 	/**
