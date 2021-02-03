@@ -2264,6 +2264,7 @@ trait TaintednessBaseVisitor {
 						$classNode->children['class']->kind === \ast\AST_NAME &&
 						is_string( $classNode->children['class']->children['name'] )
 					) {
+						// FIXME Doesn't work with namespace
 						$className = $classNode->children['class']->children['name'];
 					} else {
 						return null;

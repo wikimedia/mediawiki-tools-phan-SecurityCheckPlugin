@@ -5,6 +5,8 @@ use \Parser;
 use Wikimedia\Rdbms\MysqlDatabase;
 
 class SomeClass {
+	private $ownInstance;
+
 	public function register() {
 		$parser = new Parser;
 
@@ -24,6 +26,11 @@ class SomeClass {
 		} );
 
 		$parser->setFunctionHook( 'three', $indirectClosure );
+		$parser->setFunctionHook( 'unsafe', [ SomeClass::class, 'unsafeHook' ] );
+		$parser->setFunctionHook( 'unsafe2', [ self::class, 'unsafeHook2' ] );
+		$parser->setFunctionHook( 'unsafe3', [ $this, 'unsafeHook3' ] );
+		$this->ownInstance = $this;
+		$parser->setFunctionHook( 'unsafe4', [ $this->ownInstance, 'unsafeHook4' ] );
 	}
 
 	public function bar( Parser $parser, $arg1, $arg2 ) {
@@ -40,6 +47,22 @@ class SomeClass {
 
 	public function baz( Parser $parser, $arg1 ) {
 		return [ $arg1, 'isHTML' => true ];
+	}
+
+	public function unsafeHook( Parser $parser, $arg ) {
+		return [ $arg, 'isHTML' => true ];
+	}
+
+	public function unsafeHook2( Parser $parser, $arg ) {
+		return [ $arg, 'isHTML' => true ];
+	}
+
+	public function unsafeHook3( Parser $parser, $arg ) {
+		return [ $arg, 'isHTML' => true ];
+	}
+
+	public function unsafeHook4( Parser $parser, $arg ) {
+		return [ $arg, 'isHTML' => true ];
 	}
 }
 
