@@ -6,6 +6,7 @@ use AssertionError;
 use ast\Node;
 use Error;
 use Exception;
+use Generator;
 use Phan\AST\ASTReverter;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
@@ -33,8 +34,6 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Scope\BranchScope;
 use Phan\Language\Type;
-use Phan\Language\Type\CallableType;
-use Phan\Language\Type\ClosureType;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
@@ -2174,154 +2173,58 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given an AST node that's a callable, try and determine what it is
 	 *
-	 * This is intended for functions that register callbacks. It will
-	 * only really work for callbacks that are basically literals.
-	 *
-	 * @note $node may not be the current node in $this->context.
+	 * This is intended for functions that register callbacks.
 	 *
 	 * @param Node|mixed $node The thingy from AST expected to be a Callable
 	 * @return FullyQualifiedMethodName|FullyQualifiedFunctionName|null The corresponding FQSEN
 	 */
-	protected function getFQSENFromCallable( $node ) {
-		$callback = null;
+	protected function getFQSENFromCallable( $node ) : ?FullyQualifiedFunctionLikeName {
 		if ( is_string( $node ) ) {
 			// Easy case, 'Foo::Bar'
+			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
+			// And also NOTE: 'self::methodname()' is not valid PHP.
 			if ( strpos( $node, '::' ) === false ) {
-				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString(
-					$node
-				);
-			} else {
-				$callback = FullyQualifiedMethodName::fromFullyQualifiedString(
-					$node
-				);
+				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
+				return $this->code_base->hasFunctionWithFQSEN( $callback ) ? $callback : null;
 			}
-		} elseif ( $node instanceof Node && $node->kind === \ast\AST_CLOSURE ) {
-			$method = (
-				new ContextNode(
-					$this->code_base,
-					$this->context->withLineNumberStart(
-						$node->lineno ?? 0
-					),
-					$node
-				)
-			)->getClosure();
-			$callback = $method->getFQSEN();
-		} elseif (
-			$node instanceof Node
-			&& $node->kind === \ast\AST_VAR
-			&& is_string( $node->children['name'] )
-		) {
-			$cnode = $this->getCtxN( $node );
-			$var = $cnode->getVariable();
-			$types = $var->getUnionType()->getTypeSet();
-			foreach ( $types as $type ) {
-				if (
-					( $type instanceof CallableType || $type instanceof ClosureType ) &&
-					$type->asFQSEN() instanceof FullyQualifiedFunctionLikeName
-				) {
-					// @todo FIXME This doesn't work if the closure
-					// is defined in a different function scope
-					// then the one we are currently in. Perhaps
-					// we could look up the closure in
-					// $this->code_base to figure out what func
-					// its defined on via its parent scope. Or
-					// something.
-					$callback = $type->asFQSEN();
-					break;
-				}
-			}
-		} elseif ( $node instanceof Node && $node->kind === \ast\AST_ARRAY ) {
-			if ( count( $node->children ) !== 2 ) {
-				return null;
-			}
-			if (
-				$node->children[0]->children['key'] !== null ||
-				$node->children[1]->children['key'] !== null ||
-				!is_string( $node->children[1]->children['value'] )
-			) {
-				return null;
-			}
-			$methodName = $node->children[1]->children['value'];
-			$classNode = $node->children[0]->children['value'];
-			if ( is_string( $node->children[0]->children['value'] ) ) {
-				$className = $classNode;
-			} elseif ( $classNode instanceof Node ) {
-				switch ( $classNode->kind ) {
-				case \ast\AST_MAGIC_CONST:
-					// Mostly a special case for MediaWiki
-					// CoreParserFunctions.php
-					if (
-						( $classNode->flags & \ast\flags\MAGIC_CLASS ) !== 0
-						&& $this->context->isInClassScope()
-					) {
-						$className = (string)$this->context->getClassFQSEN();
-					} else {
-						return null;
-					}
-					break;
-				case \ast\AST_CLASS_NAME:
-					if (
-						$classNode->children['class']->kind === \ast\AST_NAME &&
-						is_string( $classNode->children['class']->children['name'] )
-					) {
-						// FIXME Doesn't work with namespace
-						$className = $classNode->children['class']->children['name'];
-					} else {
-						return null;
-					}
-					break;
-				case \ast\AST_CLASS_CONST:
-					return null;
-				case \ast\AST_VAR:
-				case \ast\AST_PROP:
-					$var = $classNode->kind === \ast\AST_VAR
-						? $this->getCtxN( $classNode )->getVariable()
-						: $this->getCtxN( $classNode )->getProperty( false );
-					$type = $var->getUnionType();
-					if ( $type->typeCount() !== 1 || $type->isScalar() ) {
-						return null;
-					}
-					$cl = $type->asClassList(
-						$this->code_base,
-						$this->context
-					);
-					$clazz = false;
-					foreach ( $cl as $item ) {
-						$clazz = $item;
-						break;
-					}
-					if ( !$clazz ) {
-						return null;
-					}
-					$className = (string)$clazz->getFQSEN();
-					break;
-				default:
-					return null;
-				}
-
-			} else {
-				return null;
-			}
-			// Note, not from in context, since this goes to call_user_func.
-			$callback = FullyQualifiedMethodName::fromFullyQualifiedString(
-				$className . '::' . $methodName
-			);
-		} else {
+			$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $node );
+			return $this->code_base->hasMethodWithFQSEN( $callback ) ? $callback : null;
+		}
+		if ( !$node instanceof Node ) {
 			return null;
 		}
-
 		if (
-			( $callback instanceof FullyQualifiedMethodName &&
-			$this->code_base->hasMethodWithFQSEN( $callback ) )
-			|| ( $callback instanceof FullyQualifiedFunctionName &&
-			 $this->code_base->hasFunctionWithFQSEN( $callback ) )
+			$node->kind === \ast\AST_CLOSURE ||
+			$node->kind === \ast\AST_VAR ||
+			( $node->kind === \ast\AST_ARRAY && count( $node->children ) === 2 )
 		) {
-			return $callback;
-		} else {
-			// @todo Should almost emit a non-security issue for this
-			$this->debug( __METHOD__, "Missing Callable $callback" );
-			return null;
+			try {
+				$funcs = $this->getCtxN( $node )->getFunctionFromNode();
+			} catch ( IssueException $_ ) {
+				// @todo Should probably be emitted instead
+				return null;
+			}
+			/** @var FunctionInterface|null $func */
+			$func = self::getFirstElmFromArrayOrGenerator( $funcs );
+			return $func ? $func->getFQSEN() : null;
 		}
+		return null;
+	}
+
+	/**
+	 * Utility function to get the first element from an iterable that can be either an array or a generator
+	 * @phan-template T
+	 * @param iterable $iter
+	 * @phan-param iterable<T> $iter
+	 * @return mixed|null Null if $iter is empty
+	 * @phan-return T|null
+	 */
+	protected static function getFirstElmFromArrayOrGenerator( iterable $iter ) {
+		if ( is_array( $iter ) ) {
+			return $iter ? $iter[0] : null;
+		}
+		assert( $iter instanceof Generator );
+		return $iter->current() ?: null;
 	}
 
 	/**
