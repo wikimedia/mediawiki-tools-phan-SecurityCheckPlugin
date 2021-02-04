@@ -34,7 +34,6 @@ class TaintednessWithError {
 	/**
 	 * @return array
 	 * @phan-return list<array{0:Taintedness,1:string}>
-	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function getError() : array {
 		return $this->error;

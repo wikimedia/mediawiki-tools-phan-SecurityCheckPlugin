@@ -280,10 +280,10 @@ trait TaintednessBaseVisitor {
 	 * or its not a local variable).
 	 *
 	 * @param TypedElementInterface $left (LHS-ish variable)
-	 * @param TypedElementInterface|Node $right (RHS-ish variable)
+	 * @param array|TypedElementInterface $rightError Error, or a phan object to get error from
 	 * @param int $arg If $left is a Function, which arg
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, $right, int $arg = -1 ) : void {
+	protected function mergeTaintError( TypedElementInterface $left, $rightError, int $arg = -1 ) : void {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
 
 		if ( $arg === -1 ) {
@@ -300,7 +300,10 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		$rightError = $this->getOriginalTaintArray( $right );
+		if ( $rightError instanceof TypedElementInterface ) {
+			$rightError = $this->getOriginalTaintArray( $rightError );
+		}
+		assert( is_array( $rightError ) );
 		if ( $newLeftError && self::getArraySubsetIdx( $rightError, $newLeftError ) !== false ) {
 			$newLeftError = $rightError;
 		} elseif ( $rightError && self::getArraySubsetIdx( $newLeftError, $rightError ) === false ) {
@@ -1685,6 +1688,7 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $var The variable in question
 	 * @param Taintedness $taint What taint to mark them as.
 	 * @param Node|TypedElementInterface|null $triggeringElm To propagate caused-by lines
+	 * TODO Maybe don't take a Node as $triggeringElm
 	 */
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
@@ -1723,7 +1727,10 @@ trait TaintednessBaseVisitor {
 			// TODO: Ideally we would merge taint error per argument
 			$this->mergeTaintError( $method, $var );
 			if ( $triggeringElm ) {
-				$this->mergeTaintError( $method, $triggeringElm );
+				$rightErr = $triggeringElm instanceof Node
+					? $this->getTaintedness( $triggeringElm )->getError()
+					: $triggeringElm;
+				$this->mergeTaintError( $method, $rightErr );
 			}
 		}
 
@@ -1786,7 +1793,7 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
 			$this->setTaintednessOld( $var, $newTaint );
-			$this->mergeTaintError( $var, $arg );
+			$this->mergeTaintError( $var, $this->getTaintedness( $arg )->getError() );
 			if (
 				$taintAdjusted->withoutObj( $curVarTaint )->isAllTaint() &&
 				$var instanceof ClassElement
@@ -1850,7 +1857,7 @@ trait TaintednessBaseVisitor {
 	 * Get the line number of the original cause of taint.
 	 * @todo Keep per-offset caused-by lines
 	 *
-	 * @param TypedElementInterface|Node|mixed $element
+	 * @param TypedElementInterface|mixed $element
 	 * @param Taintedness|null $taintedness Only consider caused-by lines having (at least) these bits, null
 	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
@@ -1858,12 +1865,21 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getOriginalTaintLine( $element, ?Taintedness $taintedness, $arg = -1 ) : string {
 		$lines = $this->getOriginalTaintArray( $element, $arg );
-		$filteredLines = $this->extractInterestingCausedbyLines( $lines, $taintedness );
+		return $this->getStringTaintLine( $lines, $taintedness );
+	}
+
+	/**
+	 * @param array $rawLines
+	 * @phan-param array<int,array{0:Taintedness,1:string}> $rawLines
+	 * @param Taintedness|null $taintedness
+	 * @return string
+	 */
+	protected function getStringTaintLine( array $rawLines, ?Taintedness $taintedness ) : string {
+		$filteredLines = $this->extractInterestingCausedbyLines( $rawLines, $taintedness );
 		if ( $filteredLines ) {
 			return ' (Caused by: ' . $this->stringifyCausedByLines( $filteredLines ) . ')';
-		} else {
-			return '';
 		}
+		return '';
 	}
 
 	/**
@@ -1911,48 +1927,39 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the line number of the original cause of taint without "Caused by" string.
 	 *
-	 * @param TypedElementInterface|Node|mixed $element
+	 * @param TypedElementInterface|mixed $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return array[]
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
 	private function getOriginalTaintArray( $element, $arg = -1 ) : array {
-		if ( !is_object( $element ) ) {
+		if ( !$element instanceof TypedElementInterface ) {
 			return [];
 		}
 
 		$lines = [];
-		if ( $element instanceof TypedElementInterface ) {
-			if ( $arg === -1 ) {
-				$origErrorOrNull = self::getCausedByRaw( $element );
-				if ( $origErrorOrNull !== null ) {
-					$lines = self::mergeCausedByLines( $lines, $origErrorOrNull );
-				}
-				foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
-					// FIXME is this right? In the generic
-					// case should we include all arguments as
-					// well?
-					$lines = self::mergeCausedByLines( $lines, $origArg );
-				}
-			} else {
-				assert( $element instanceof FunctionInterface );
-				$argErr = $this->getTaintErrorByArg( $element, $arg );
-				$overallFuncErr = self::getCausedByRaw( $element ) ?? [];
-				if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
-					$lines = self::mergeCausedByLines( $lines, $overallFuncErr );
-				} elseif ( !$overallFuncErr || self::getArraySubsetIdx( $argErr, $overallFuncErr ) !== false ) {
-					$lines = self::mergeCausedByLines( $lines, $argErr );
-				} else {
-					$lines = self::mergeCausedByLines( self::mergeCausedByLines( $lines, $argErr ), $overallFuncErr );
-				}
+		if ( $arg === -1 ) {
+			$origErrorOrNull = self::getCausedByRaw( $element );
+			if ( $origErrorOrNull !== null ) {
+				$lines = self::mergeCausedByLines( $lines, $origErrorOrNull );
 			}
-		} elseif ( $element instanceof Node ) {
-			$pobjs = $this->getPhanObjsForNode( $element, [ 'all' ] );
-			foreach ( $pobjs as $elem ) {
-				$lines = self::mergeCausedByLines( $lines, $this->getOriginalTaintArray( $elem ) );
+			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
+				// FIXME is this right? In the generic
+				// case should we include all arguments as
+				// well?
+				$lines = self::mergeCausedByLines( $lines, $origArg );
 			}
 		} else {
-			throw new AssertionError( $this->dbgInfo() . "invalid parameter " . get_class( $element ) );
+			assert( $element instanceof FunctionInterface );
+			$argErr = $this->getTaintErrorByArg( $element, $arg );
+			$overallFuncErr = self::getCausedByRaw( $element ) ?? [];
+			if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
+				$lines = self::mergeCausedByLines( $lines, $overallFuncErr );
+			} elseif ( !$overallFuncErr || self::getArraySubsetIdx( $argErr, $overallFuncErr ) !== false ) {
+				$lines = self::mergeCausedByLines( $lines, $argErr );
+			} else {
+				$lines = self::mergeCausedByLines( self::mergeCausedByLines( $lines, $argErr ), $overallFuncErr );
+			}
 		}
 
 		return $lines;
@@ -2224,11 +2231,12 @@ trait TaintednessBaseVisitor {
 		string $msg,
 		array $params = []
 	) : void {
+		$rhsTaint = $this->getTaintedness( $rhsElement );
 		$this->maybeEmitIssue(
 			$lhsTaint,
-			$this->getTaintedness( $rhsElement )->getTaintedness(),
+			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
-			array_merge( $params, [ $this->getOriginalTaintLine( $rhsElement, $lhsTaint ) ] )
+			array_merge( $params, [ $this->getStringTaintLine( $rhsTaint->getError(), $lhsTaint ) ] )
 		);
 	}
 
@@ -2454,7 +2462,8 @@ trait TaintednessBaseVisitor {
 					$containingMethod,
 					$taintedArg,
 					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
-					$this->getOriginalTaintLine( $argument, $thisTaint )
+					// TODO Get caused-by lines from above
+					$this->getStringTaintLine( $this->getTaintedness( $argument )->getError(), $thisTaint )
 				]
 			);
 

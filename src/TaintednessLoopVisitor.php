@@ -23,7 +23,8 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 	 */
 	public function visitForeach( Node $node ) : void {
 		$expr = $node->children['expr'];
-		$lhsTaintedness = $this->getTaintedness( $expr )->getTaintedness();
+		$lhsTaintednessWithError = $this->getTaintedness( $expr );
+		$lhsTaintedness = $lhsTaintednessWithError->getTaintedness();
 
 		$value = $node->children['value'];
 		if ( $value->kind === \ast\AST_REF ) {
@@ -53,7 +54,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 					true
 				);
 				$this->mergeTaintDependencies( $valueObj, $expr );
-				$this->mergeTaintError( $valueObj, $expr );
+				$this->mergeTaintError( $valueObj, $lhsTaintednessWithError->getError() );
 			}
 		} else {
 			$this->debug( __METHOD__, "FIXME foreach complex value not handled: " . Debug::nodeToString( $value ) );
@@ -80,7 +81,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 						true
 					);
 					$this->mergeTaintDependencies( $keyObj, $expr );
-					$this->mergeTaintError( $keyObj, $expr );
+					$this->mergeTaintError( $keyObj, $lhsTaintednessWithError->getError() );
 				}
 			} else {
 				$this->debug( __METHOD__, "FIXME foreach complex key not handled: " . Debug::nodeToString( $key ) );

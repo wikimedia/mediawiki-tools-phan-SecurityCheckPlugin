@@ -1131,11 +1131,12 @@ class MWVisitor extends TaintednessVisitor {
 		}
 		if ( !$isOptionsSafe && $options instanceof Node ) {
 			$htmlExecTaint = new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT );
+			$optTaint = $this->getTaintedness( $options );
 			$this->maybeEmitIssue(
 				$htmlExecTaint,
-				$this->getTaintedness( $options )->getTaintedness()->asKeyForForeach(),
+				$optTaint->getTaintedness()->asKeyForForeach(),
 				'HTMLForm option label needs escaping{DETAILS}',
-				[ $this->getOriginalTaintLine( $options, $htmlExecTaint ) ]
+				[ $this->getStringTaintLine( $optTaint->getError(), $htmlExecTaint ) ]
 			);
 		}
 	}
