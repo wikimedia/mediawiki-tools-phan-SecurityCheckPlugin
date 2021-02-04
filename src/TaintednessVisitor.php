@@ -60,15 +60,26 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	protected $curTaint;
 
 	/**
+	 * @var array
+	 * @phan-var list<array{0:Taintedness,1:string}>
+	 */
+	protected $curError;
+
+	/**
 	 * @inheritDoc
+	 * @param Taintedness|null &$taint
+	 * @param array &$taintError
+	 * @phan-param list<array{0:Taintedness,1:string}> $taintError
 	 */
 	public function __construct(
 		CodeBase $code_base,
 		Context $context,
-		Taintedness &$taint = null
+		Taintedness &$taint = null,
+		array &$taintError = []
 	) {
 		parent::__construct( $code_base, $context );
 		$this->curTaint =& $taint;
+		$this->curError =& $taintError;
 	}
 
 	/**
@@ -416,7 +427,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// @todo This should first check the __clone method, acknowledge its side effects
 		// (probably via handleMethodCall), and *then* return the taintedness of the cloned
 		// item. But finding the __clone definition might be hard...
-		$this->curTaint = $this->getTaintedness( $node->children['expr'] );
+		$this->curTaint = $this->getTaintedness( $node->children['expr'] )->getTaintedness();
 	}
 
 	/**
@@ -431,8 +442,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$rhs = $node->children['expr'];
-		$lhsTaintedness = $this->getTaintedness( $lhs );
-		$rhsTaintedness = $this->getTaintedness( $rhs );
+		$lhsTaintedness = $this->getTaintedness( $lhs )->getTaintedness();
+		$rhsTaintedness = $this->getTaintedness( $rhs )->getTaintedness();
 
 		if ( $node->flags === \ast\flags\BINARY_ADD ) {
 			// Sanity: using `+=` should restrict the list of possible LHS nodes
@@ -485,8 +496,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$rhs = $node->children['expr'];
 
-		$lhsTaintedness = $this->getTaintedness( $lhs );
-		$rhsTaintedness = $this->getTaintedness( $rhs );
+		$lhsTaintedness = $this->getTaintedness( $lhs )->getTaintedness();
+		$rhsTaintedness = $this->getTaintedness( $rhs )->getTaintedness();
 		$allRHSTaint = clone $rhsTaintedness;
 		$allowClearLHSData = true;
 
@@ -627,8 +638,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curTaint = Taintedness::newSafe();
 			return;
 		}
-		$leftTaint = $this->getTaintedness( $lhs );
-		$rightTaint = $this->getTaintedness( $rhs );
+		$leftTaint = $this->getTaintedness( $lhs )->getTaintedness();
+		$rightTaint = $this->getTaintedness( $rhs )->getTaintedness();
 		$this->curTaint = $this->getBinOpTaint( $leftTaint, $rightTaint, $node->flags, $mask );
 	}
 
@@ -665,7 +676,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curTaint = Taintedness::newSafe();
 			return;
 		}
-		$nodeTaint = $this->getTaintednessNode( $varNode );
+		$nodeTaint = $this->getTaintednessNode( $varNode )->getTaintedness();
 		if ( $node->children['dim'] === null ) {
 			// This should only happen in assignments: $x[] = 'foo'. Just return
 			// the taint of the whole object.
@@ -752,7 +763,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$expr = $node->children['expr'];
-		$taintedness = $this->getTaintedness( $expr );
+		$taintedness = $this->getTaintedness( $expr )->getTaintedness();
 
 		$this->maybeEmitIssue(
 			$sinkTaint,
@@ -1036,7 +1047,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// functions. We don't want to transmit exec flags here.
 		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
 		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
-		$taintedness = $this->getTaintedness( $node->children['expr'] )->withOnly( $keepMask );
+		$taintedness = $this->getTaintedness( $node->children['expr'] )->getTaintedness()->withOnly( $keepMask );
 
 		$funcTaint = $this->matchTaintToParam(
 			$node->children['expr'],
@@ -1078,9 +1089,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$key = $child->children['key'];
-			$keyTaint = $this->getTaintedness( $key );
+			$keyTaint = $this->getTaintedness( $key )->getTaintedness();
 			$value = $child->children['value'];
-			$valTaint = $this->getTaintedness( $value );
+			$valTaint = $this->getTaintedness( $value )->getTaintedness();
 			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
 
 			if ( $valTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
@@ -1225,11 +1236,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitConditional( Node $node ) : void {
 		if ( $node->children['true'] === null ) {
 			// $foo ?: $bar;
-			$trueTaint = $this->getTaintedness( $node->children['cond'] );
+			$trueTaint = $this->getTaintedness( $node->children['cond'] )->getTaintedness();
 		} else {
-			$trueTaint = $this->getTaintedness( $node->children['true'] );
+			$trueTaint = $this->getTaintedness( $node->children['true'] )->getTaintedness();
 		}
-		$falseTaint = $this->getTaintedness( $node->children['false'] );
+		$falseTaint = $this->getTaintedness( $node->children['false'] )->getTaintedness();
 		$this->curTaint = $trueTaint->withObj( $falseTaint );
 	}
 
@@ -1266,7 +1277,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			\ast\flags\UNARY_SILENCE
 		];
 		if ( in_array( $node->flags, $unsafe, true ) ) {
-			$this->curTaint = $this->getTaintedness( $node->children['expr'] );
+			$this->curTaint = $this->getTaintedness( $node->children['expr'] )->getTaintedness();
 		} else {
 			$this->curTaint = Taintedness::newSafe();
 		}
@@ -1307,7 +1318,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	private function analyzeIncOrDec( Node $node ) : void {
-		$this->curTaint = $this->getTaintedness( $node->children['var'] );
+		$this->curTaint = $this->getTaintedness( $node->children['var'] )->getTaintedness();
 	}
 
 	/**
@@ -1326,7 +1337,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( !in_array( $node->flags, $dangerousCasts, true ) ) {
 			$this->curTaint = Taintedness::newSafe();
 		} else {
-			$this->curTaint = $this->getTaintedness( $node->children['expr'] );
+			$this->curTaint = $this->getTaintedness( $node->children['expr'] )->getTaintedness();
 		}
 	}
 
@@ -1338,7 +1349,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitEncapsList( Node $node ) : void {
 		$taint = Taintedness::newSafe();
 		foreach ( $node->children as $child ) {
-			$taint->addObj( $this->getTaintedness( $child ) );
+			$taint->addObj( $this->getTaintedness( $child )->getTaintedness() );
 		}
 		$this->curTaint = $taint;
 	}
@@ -1389,7 +1400,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// It sounds a bit weird to have to call this ourselves, but aight.
 			if ( !BlockExitStatusChecker::willUnconditionallyThrowOrReturn( $armNode ) ) {
 				// Note, we're straight using the expr to avoid implementing visitMatchArm
-				$taint->mergeWith( $this->getTaintedness( $armNode->children['expr'] ) );
+				$taint->mergeWith( $this->getTaintedness( $armNode->children['expr'] )->getTaintedness() );
 			}
 		}
 

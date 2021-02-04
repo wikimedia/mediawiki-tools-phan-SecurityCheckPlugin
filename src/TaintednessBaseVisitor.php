@@ -524,7 +524,7 @@ trait TaintednessBaseVisitor {
 	protected function getKeysTaintednessList( array $offsets ) : array {
 		$ret = [];
 		foreach ( $offsets as $offset ) {
-			$ret[] = $this->getTaintedness( $offset );
+			$ret[] = $this->getTaintedness( $offset )->getTaintedness();
 		}
 		return $ret;
 	}
@@ -1002,9 +1002,9 @@ trait TaintednessBaseVisitor {
 	 *
 	 * FIXME maybe it should try and turn into phan object.
 	 * @param mixed $expr An expression from the AST tree.
-	 * @return Taintedness
+	 * @return TaintednessWithError
 	 */
-	protected function getTaintedness( $expr ) : Taintedness {
+	protected function getTaintedness( $expr ) : TaintednessWithError {
 		$type = gettype( $expr );
 		switch ( $type ) {
 		case "string":
@@ -1013,7 +1013,7 @@ trait TaintednessBaseVisitor {
 		case "double":
 		case "NULL":
 			// simple literal
-			return Taintedness::newSafe();
+			return new TaintednessWithError( Taintedness::newSafe(), [] );
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
@@ -1031,21 +1031,22 @@ trait TaintednessBaseVisitor {
 	 * Give an AST node, find its taint. This always returns a copy.
 	 *
 	 * @param Node $node
-	 * @return Taintedness
+	 * @return TaintednessWithError
 	 */
-	protected function getTaintednessNode( Node $node ) : Taintedness {
+	protected function getTaintednessNode( Node $node ) : TaintednessWithError {
 		// Debug::printNode( $node );
 		// Make sure to update the line number, or the same issue may be reported
 		// more than once on different lines (see test 'multilineissue').
 		$oldLine = $this->context->getLineNumberStart();
 		$this->context->setLineNumberStart( $node->lineno );
-		$ret = null;
+		$taint = null;
+		$lines = [];
 
 		try {
-			( new TaintednessVisitor( $this->code_base, $this->context, $ret ) )(
+			( new TaintednessVisitor( $this->code_base, $this->context, $taint, $lines ) )(
 				$node
 			);
-			return clone $ret;
+			return new TaintednessWithError( clone $taint, $lines );
 		} finally {
 			$this->context->setLineNumberStart( $oldLine );
 		}
@@ -1229,7 +1230,7 @@ trait TaintednessBaseVisitor {
 				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 		}
-		if ( $this->getTaintedness( $dim )->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+		if ( $this->getTaintedness( $dim )->getTaintedness()->has( SecurityCheckPlugin::SQL_TAINT ) ) {
 			$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 		}
@@ -2225,7 +2226,7 @@ trait TaintednessBaseVisitor {
 	) : void {
 		$this->maybeEmitIssue(
 			$lhsTaint,
-			$this->getTaintedness( $rhsElement ),
+			$this->getTaintedness( $rhsElement )->getTaintedness(),
 			$msg . '{DETAILS}',
 			array_merge( $params, [ $this->getOriginalTaintLine( $rhsElement, $lhsTaint ) ] )
 		);
@@ -2588,7 +2589,7 @@ trait TaintednessBaseVisitor {
 			return [ Taintedness::newSafe(), Taintedness::newSafe() ];
 		}
 
-		$curArgTaintedness = $this->getTaintednessNode( $argument );
+		$curArgTaintedness = $this->getTaintednessNode( $argument )->getTaintedness();
 		if ( $funcTaint->hasParam( $i ) ) {
 			if (
 				( $funcTaint->getParamTaint( $i )->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )

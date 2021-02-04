@@ -23,7 +23,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 	 */
 	public function visitForeach( Node $node ) : void {
 		$expr = $node->children['expr'];
-		$lhsTaintedness = $this->getTaintedness( $expr );
+		$lhsTaintedness = $this->getTaintedness( $expr )->getTaintedness();
 
 		$value = $node->children['value'];
 		if ( $value->kind === \ast\AST_REF ) {
