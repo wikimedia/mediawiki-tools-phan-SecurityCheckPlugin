@@ -526,11 +526,20 @@ class Taintedness {
 	}
 
 	/**
+	 * Creates a copy of this object without known offsets, and without keysTaint
 	 * @return $this
 	 */
 	public function withoutKeys() : self {
 		$ret = clone $this;
 		$ret->keysTaint = SecurityCheckPlugin::NO_TAINT;
+		if ( !$ret->dimTaint ) {
+			return $ret;
+		}
+		$ret->unknownDimsTaint = $ret->unknownDimsTaint ?? self::newSafe();
+		foreach ( $ret->dimTaint as $dim => $taint ) {
+			$ret->unknownDimsTaint->mergeWith( $taint );
+			unset( $ret->dimTaint[$dim] );
+		}
 		return $ret;
 	}
 

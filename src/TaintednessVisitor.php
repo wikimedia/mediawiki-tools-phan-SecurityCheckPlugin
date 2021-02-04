@@ -442,8 +442,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$rhs = $node->children['expr'];
-		$lhsTaintedness = $this->getTaintedness( $lhs )->getTaintedness();
-		$rhsTaintedness = $this->getTaintedness( $rhs )->getTaintedness();
+		$lhsTaintedness = $this->getTaintedness( $lhs );
+		$rhsTaintedness = $this->getTaintedness( $rhs );
 
 		if ( $node->flags === \ast\flags\BINARY_ADD ) {
 			// Sanity: using `+=` should restrict the list of possible LHS nodes
@@ -465,7 +465,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		// Expand rhs to include implicit lhs ophand.
-		$allRHSTaint = $this->getBinOpTaint( $lhsTaintedness, $rhsTaintedness, $node->flags, $mask );
+		$allRHSTaint = $this->getBinOpTaint(
+			$lhsTaintedness->getTaintedness(),
+			$rhsTaintedness->getTaintedness(),
+			$node->flags,
+			$mask
+		);
 		$allowClearLHSData = false;
 		$this->curTaint = $this->doVisitAssign(
 			$lhs,
@@ -496,9 +501,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$rhs = $node->children['expr'];
 
-		$lhsTaintedness = $this->getTaintedness( $lhs )->getTaintedness();
-		$rhsTaintedness = $this->getTaintedness( $rhs )->getTaintedness();
-		$allRHSTaint = clone $rhsTaintedness;
+		$lhsTaintedness = $this->getTaintedness( $lhs );
+		$rhsTaintedness = $this->getTaintedness( $rhs );
+		$allRHSTaint = clone $rhsTaintedness->getTaintedness();
 		$allowClearLHSData = true;
 
 		$this->curTaint = $this->doVisitAssign(
@@ -514,8 +519,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $lhs
 	 * @param Node|mixed $rhs
-	 * @param Taintedness $lhsTaintedness
-	 * @param Taintedness $rhsTaintedness
+	 * @param TaintednessWithError $lhsTaintednessWithError
+	 * @param TaintednessWithError $rhsTaintednessWithError
 	 * @param Taintedness $allRHSTaint
 	 * @param bool $allowClearLHSData
 	 * @return Taintedness
@@ -523,11 +528,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private function doVisitAssign(
 		Node $lhs,
 		$rhs,
-		Taintedness $lhsTaintedness,
-		Taintedness $rhsTaintedness,
+		TaintednessWithError $lhsTaintednessWithError,
+		TaintednessWithError $rhsTaintednessWithError,
 		Taintedness $allRHSTaint,
 		bool $allowClearLHSData
 	) : Taintedness {
+		$rhsTaintedness = $rhsTaintednessWithError->getTaintedness();
 		if ( $lhs->kind === \ast\AST_DIM ) {
 			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $rhsTaintedness, $allRHSTaint );
 		}
@@ -542,13 +548,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// @fixme Is this really necessary? It doesn't seem helpful for local variables,
 		// and it doesn't handle props or globals.
 		// TODO: This should probably be moved to setTaintednessForAssignmentNode
+		$lhsTaintedness = $lhsTaintednessWithError->getTaintedness();
 		$adjustedRHS = $rhsTaintedness->withoutObj( $lhsTaintedness );
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
 			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it{DETAILS}",
-			// TODO don't retrieve error here
-			[ $this->getStringTaintLine( $this->getTaintedness( $lhs )->getError(), null ) ]
+			[ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ]
 		);
 
 		$rhsObjs = [];
@@ -559,8 +565,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setTaintednessForAssignmentNode(
 			$lhs,
 			$allRHSTaint,
-			$rhsTaintedness,
-			$rhs,
+			$rhsTaintednessWithError,
 			$rhsObjs,
 			$allowClearLHSData
 		);
@@ -570,16 +575,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $lhs
 	 * @param Taintedness $allRHSTaint
-	 * @param Taintedness $rhsTaintedness
-	 * @param Node|mixed $rhs
+	 * @param TaintednessWithError $rhsTaintedness
 	 * @param TypedElementInterface[] $rhsObjs
 	 * @param bool $allowClearLHSData
 	 */
 	private function setTaintednessForAssignmentNode(
 		Node $lhs,
 		Taintedness $allRHSTaint,
-		Taintedness $rhsTaintedness,
-		$rhs,
+		TaintednessWithError $rhsTaintedness,
 		array $rhsObjs,
 		bool $allowClearLHSData
 	) : void {
@@ -600,8 +603,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->setTaintednessForAssignmentNode(
 					$value,
 					$allRHSTaint->getTaintednessForOffsetOrWhole( $key ),
-					$rhsTaintedness->getTaintednessForOffsetOrWhole( $key ),
-					$rhs,
+					new TaintednessWithError(
+						$rhsTaintedness->getTaintedness()->getTaintednessForOffsetOrWhole( $key ),
+						$rhsTaintedness->getError()
+					),
 					$rhsObjs,
 					$allowClearLHSData
 				);
@@ -618,11 +623,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->doAssignmentSingleElement(
 				$variableObj,
 				$allRHSTaint,
-				$rhsTaintedness,
+				$rhsTaintedness->getTaintedness(),
 				$lhsOffsets,
 				$allowClearLHSData
 			);
-			$this->setTaintDependenciesInAssignment( $rhsObjs, $rhsTaintedness, $variableObj, $rhs );
+			$this->setTaintDependenciesInAssignment( $rhsObjs, $rhsTaintedness, $variableObj );
 		}
 	}
 
@@ -859,7 +864,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$toString,
 				$toString->getFQSEN(),
 				[] // __toString() has no args
-			);
+			)->getTaintedness();
 		} else {
 			$this->debug( __METHOD__, "cannot understand new" );
 			$this->curTaint = Taintedness::newUnknown();
@@ -890,13 +895,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		foreach ( $funcs as $func ) {
 			// No point in analyzing abstract function declarations
 			if ( !$func instanceof FunctionLikeDeclarationType ) {
-				$this->curTaint->mergeWith( $this->handleMethodCall( $func, $func->getFQSEN(), $args ) );
-				$this->curError = array_merge( $this->curError, $this->getOriginalTaintArray( $func ) );
+				$callTaint = $this->handleMethodCall( $func, $func->getFQSEN(), $args );
+				$this->curTaint->mergeWith( $callTaint->getTaintedness() );
+				$this->curError = self::mergeCausedByLines( $this->curError, $callTaint->getError() );
 			}
-		}
-		// TODO Have handleMethodCall return this
-		foreach ( $args as $arg ) {
-			$this->curError = array_merge( $this->curError, $this->getTaintedness( $arg )->getError() );
 		}
 	}
 
@@ -1062,7 +1064,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// functions. We don't want to transmit exec flags here.
 		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
 		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
-		$taintedness = $this->getTaintedness( $node->children['expr'] )->getTaintedness()->withOnly( $keepMask );
+		$retTaintednessWithError = $this->getTaintedness( $node->children['expr'] );
+		$taintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
 
 		$funcTaint = $this->matchTaintToParam(
 			$node->children['expr'],
@@ -1076,8 +1079,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// Save this object in the Function object
 			$retObjs = $this->getPhanObjsForNode( $node->children['expr'] );
 			self::setRetObjs( $curFunc, array_merge( self::getRetObjs( $curFunc ) ?? [], $retObjs ) );
-
 			foreach ( $retObjs as $pobj ) {
+				// TODO We might merge from $retTaintednessWithError, but it would add redundant lines
 				$this->mergeTaintError( $curFunc, $pobj );
 			}
 		}

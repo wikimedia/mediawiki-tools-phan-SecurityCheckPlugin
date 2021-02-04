@@ -1,6 +1,6 @@
 integration/arrayoffsets/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets/test.php +3; integration/arrayoffsets/test.php +7)
 integration/arrayoffsets/test.php:12 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets/test.php +3; integration/arrayoffsets/test.php +7)
-integration/arrayoffsets/test.php:14 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$arr['escaped']`). (Caused by: integration/arrayoffsets/test.php +3; integration/arrayoffsets/test.php +7; integration/arrayoffsets/test.php +8)
+integration/arrayoffsets/test.php:14 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$arr['escaped']`). (Caused by: integration/arrayoffsets/test.php +8)
 integration/arrayoffsets/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets/test.php +3; integration/arrayoffsets/test.php +7)
 integration/arrayoffsets/test.php:16 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$arr`). (Caused by: integration/arrayoffsets/test.php +3; integration/arrayoffsets/test.php +7; integration/arrayoffsets/test.php +8)
 integration/arrayoffsets/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets/test.php +3; integration/arrayoffsets/test.php +7)

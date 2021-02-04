@@ -108,7 +108,7 @@ $db->select(
 // unsafe
 echo $subquery;
 
-$safe = [ 'safe' => $_GET['baz'] ];
+$safe = [ 'safe' => $_GET['baz'] ];//TODO: This line should appear in caused-by, it currently doesn't due to special handling of numkey (which is only added at line 112)
 $unsafe = array_values( $safe );
 $db->select( 'foo', '*', $unsafe ); // SQLi
 

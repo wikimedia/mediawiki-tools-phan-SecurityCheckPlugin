@@ -112,7 +112,11 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 					[],
 					false
 				);
-				$this->setTaintDependenciesInAssignment( [ $varObj ], $startTaint, $promotedProps[$i], $param );
+				$this->setTaintDependenciesInAssignment(
+					[ $varObj ],
+					new TaintednessWithError( $startTaint, [] ),
+					$promotedProps[$i]
+				);
 			}
 		}
 	}

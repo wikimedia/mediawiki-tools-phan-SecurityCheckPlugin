@@ -920,7 +920,7 @@ trait TaintednessBaseVisitor {
 					break;
 				}
 				$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
-				$taint->addObj( $this->handleMethodCall( $toString, $toStringFQSEN, [] ) );
+				$taint->addObj( $this->handleMethodCall( $toString, $toStringFQSEN, [] )->getTaintedness() );
 			}
 		}
 		return $taint;
@@ -1152,15 +1152,13 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * @param TypedElementInterface[] $rhsObjs
-	 * @param Taintedness $rhsTaintedness
+	 * @param TaintednessWithError $rhsTaintedness
 	 * @param TypedElementInterface $variableObj
-	 * @param Node|mixed $rhs
 	 */
 	private function setTaintDependenciesInAssignment(
 		array $rhsObjs,
-		Taintedness $rhsTaintedness,
-		TypedElementInterface $variableObj,
-		$rhs
+		TaintednessWithError $rhsTaintedness,
+		TypedElementInterface $variableObj
 	) : void {
 		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
 			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
@@ -1176,19 +1174,10 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		if ( $rhs instanceof Node ) {
-			$allRhsObjs = $this->getPhanObjsForNode( $rhs, [ 'all' ] );
-			// This is essentially mergeTaintError, but keeping a line only if it's participating with any taint
-			// TODO Find a prettier way to do this.
-			foreach ( $allRhsObjs as $rhsObj ) {
-				$lines = $this->getOriginalTaintArray( $rhsObj );
-				foreach ( $lines as [ $lineTaint, $line ] ) {
-					$this->addTaintError( $rhsTaintedness->withOnlyObj( $lineTaint ), $variableObj, -1, $line );
-					if ( $globalVarObj ) {
-						$this->addTaintError( $rhsTaintedness->withOnlyObj( $lineTaint ), $globalVarObj, -1, $line );
-					}
-				}
-			}
+		$lines = $rhsTaintedness->getError();
+		$this->mergeTaintError( $variableObj, $lines );
+		if ( $globalVarObj ) {
+			$this->mergeTaintError( $globalVarObj, $lines );
 		}
 	}
 
@@ -1687,13 +1676,12 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $var The variable in question
 	 * @param Taintedness $taint What taint to mark them as.
-	 * @param Node|TypedElementInterface|null $triggeringElm To propagate caused-by lines
-	 * TODO Maybe don't take a Node as $triggeringElm
+	 * @param TypedElementInterface|null $triggeringElm To propagate caused-by lines
 	 */
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
 		Taintedness $taint,
-		$triggeringElm = null
+		TypedElementInterface $triggeringElm = null
 	) : void {
 		// Ensure we only set exec bits, not normal taint bits.
 		$taint = $taint->withOnly( SecurityCheckPlugin::BACKPROP_TAINTS );
@@ -1727,10 +1715,7 @@ trait TaintednessBaseVisitor {
 			// TODO: Ideally we would merge taint error per argument
 			$this->mergeTaintError( $method, $var );
 			if ( $triggeringElm ) {
-				$rightErr = $triggeringElm instanceof Node
-					? $this->getTaintedness( $triggeringElm )->getError()
-					: $triggeringElm;
-				$this->mergeTaintError( $method, $rightErr );
+				$this->mergeTaintError( $method, $triggeringElm );
 			}
 		}
 
@@ -1760,13 +1745,14 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $method The function or method in question
 	 * @param int $i The number of the argument in question.
 	 * @param Taintedness $taint The taint to apply.
-	 * @param Node $arg The evil tainted argument (to propagate caused by lines)
+	 * @param array $error Caused-by lines to propagate
+	 * @phan-param list<array{0:Taintedness,1:string}> $error
 	 */
 	protected function markAllDependentVarsYes(
 		FunctionInterface $method,
 		int $i,
 		Taintedness $taint,
-		Node $arg
+		array $error
 	) : void {
 		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 		if ( $method->isPHPInternal() ) {
@@ -1793,7 +1779,7 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "handling $var as dependent yes" .
 			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
 			$this->setTaintednessOld( $var, $newTaint );
-			$this->mergeTaintError( $var, $this->getTaintedness( $arg )->getError() );
+			$this->mergeTaintError( $var, $error );
 			if (
 				$taintAdjusted->withoutObj( $curVarTaint )->isAllTaint() &&
 				$var instanceof ClassElement
@@ -1920,6 +1906,21 @@ trait TaintednessBaseVisitor {
 			if ( $taintedness->has( $lineTaint->get() ) ) {
 				$ret[] = $lineText;
 			}
+		}
+		return $ret;
+	}
+
+	/**
+	 * @param array $lines
+	 * @phan-param list<array{0:Taintedness,1:string}> $lines
+	 * @param Taintedness $taintedness
+	 * @return array
+	 * @phan-return list<array{0:Taintedness,1:string}>
+	 */
+	private function intersectCausedByTaintedness( array $lines, Taintedness $taintedness ) : array {
+		$ret = [];
+		foreach ( $lines as [ $eTaint, $eLine ] ) {
+			$ret[] = [ $eTaint->withOnlyObj( $taintedness ), $eLine ];
 		}
 		return $ret;
 	}
@@ -2360,20 +2361,21 @@ trait TaintednessBaseVisitor {
 	 * @phan-param array<Node|mixed> $args
 	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
 	 *   FIXME This is MW-specific
-	 * @return Taintedness Taint The resulting taint of the expression
+	 * @return TaintednessWithError Taint The resulting taint of the expression
 	 */
 	public function handleMethodCall(
 		FunctionInterface $func,
 		FullyQualifiedFunctionLikeName $funcName,
 		array $args,
 		$isHookHandler = false
-	) : Taintedness {
+	) : TaintednessWithError {
 		$oldMem = memory_get_peak_usage();
 		$taint = $this->getTaintOfFunction( $func );
 
 		// We need to look at the taintedness of the arguments
 		// we are passing to the method.
 		$overallArgTaint = Taintedness::newSafe();
+		$argErrors = [];
 		foreach ( $args as $i => $argument ) {
 			if ( !( $argument instanceof Node ) ) {
 				// Literal value
@@ -2391,9 +2393,11 @@ trait TaintednessBaseVisitor {
 				$argName = '#' . ( $i + 1 );
 			}
 
-			list( $curArgTaintedness, $effectiveArgTaintedness ) = $this->getArgTaint(
+			/** @var Taintedness $effectiveArgTaintedness */
+			[ $curArgTaintedness, $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
 				$taint, $argument, $i, $func, $funcName
 			);
+
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
 			// the Message class doesn't have double escape taint if method takes Message|string.
 			// TODO This is quite hacky.
@@ -2428,7 +2432,7 @@ trait TaintednessBaseVisitor {
 				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
 				// "($curArgTaintedness). Marking dependent $funcName" );
 				// Mark all dependent vars as tainted.
-				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness, $argument );
+				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness, $curArgError );
 			}
 
 			// We are doing something like evilMethod( $arg );
@@ -2462,12 +2466,12 @@ trait TaintednessBaseVisitor {
 					$containingMethod,
 					$taintedArg,
 					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
-					// TODO Get caused-by lines from above
-					$this->getStringTaintLine( $this->getTaintedness( $argument )->getError(), $thisTaint )
+					$this->getStringTaintLine( $curArgError, $effectiveArgTaintedness )
 				]
 			);
 
 			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
+			$argErrors = self::mergeCausedByLines( $argErrors, $curArgError );
 		}
 
 		$containingMethod = $this->getCurrentMethod();
@@ -2495,8 +2499,10 @@ trait TaintednessBaseVisitor {
 		// With all the exec bits removed from args.
 		$preserveOrExec = SecurityCheckPlugin::PRESERVE_TAINT |
 			SecurityCheckPlugin::ALL_EXEC_TAINT;
-		return $taint->getOverall()->without( $preserveOrExec )
+		$callTaintedness = $taint->getOverall()->without( $preserveOrExec )
 			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
+		$argErrors = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
+		return new TaintednessWithError( $callTaintedness, $argErrors );
 	}
 
 	/**
@@ -2579,7 +2585,8 @@ trait TaintednessBaseVisitor {
 	 * @param int $i Position of the param
 	 * @param FunctionInterface $func
 	 * @param FullyQualifiedFunctionLikeName $funcName
-	 * @return Taintedness[] [ cur, effective ]
+	 * @return array [ cur taintedness, effective taintedness, error ]
+	 * @phan-return array{0:Taintedness,1:Taintedness,2:list<array{0:Taintedness,1:string}>}
 	 */
 	private function getArgTaint(
 		FunctionTaintedness $funcTaint,
@@ -2595,10 +2602,11 @@ trait TaintednessBaseVisitor {
 		) {
 			// This function specifies that arrays are always ok
 			// So treat as if untainted.
-			return [ Taintedness::newSafe(), Taintedness::newSafe() ];
+			return [ Taintedness::newSafe(), Taintedness::newSafe(), [] ];
 		}
 
-		$curArgTaintedness = $this->getTaintednessNode( $argument )->getTaintedness();
+		$argTaintednessWithError = $this->getTaintednessNode( $argument );
+		$curArgTaintedness = $argTaintednessWithError->getTaintedness();
 		if ( $funcTaint->hasParam( $i ) ) {
 			if (
 				( $funcTaint->getParamTaint( $i )->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )
@@ -2640,7 +2648,11 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 			// . " via no taint info $funcName" );
 		}
-		return [ $curArgTaintedness, $effectiveArgTaintedness ];
+		$baseArgError = $argTaintednessWithError->getError();
+		$argError = $effectiveArgTaintedness->isSafe()
+			? $baseArgError
+			: $this->intersectCausedByTaintedness( $baseArgError, $effectiveArgTaintedness );
+		return [ $curArgTaintedness, $effectiveArgTaintedness, $argError ];
 	}
 
 	/**
