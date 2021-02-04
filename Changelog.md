@@ -21,6 +21,7 @@
 
 ### Internal changes
 * Bumped phan/phan to 4.0.2
+* The plugin now caches taintedness data inside AST nodes. This requires additional memory (300 MB for MW core), but reduces the runtime (30 seconds for MW core)
 
 ## v3.2.1
 ### Bug fixes

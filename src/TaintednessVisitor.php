@@ -89,6 +89,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * Cache taintedness data in an AST node. Ideally we'd want this to happen at the end of __invoke, but phan
+	 * calls visit* methods by name, so that doesn't work.
+	 * @param Node $node
+	 */
+	private function setCachedData( Node $node ) : void {
+		// @phan-suppress-next-line PhanUndeclaredProperty
+		$node->taint = new TaintednessWithError( clone $this->curTaint, $this->curError, $this->curLinks );
+	}
+
+	/**
 	 * Generic visitor when we haven't defined a more specific one.
 	 *
 	 * @param Node $node
@@ -102,6 +112,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		# Debug::printNode( $node );
 		$this->debug( __METHOD__, "unhandled case " . Debug::nodeName( $node ) );
 		$this->curTaint = Taintedness::newUnknown();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -118,6 +129,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->debug( __METHOD__, 'closure doesn\'t exist' );
 			$this->curTaint = Taintedness::newInapplicable();
 		}
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -145,6 +157,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitFuncDecl( Node $node ) : void {
 		$func = $this->context->getFunctionLikeInScope( $this->code_base );
 		$this->curTaint = $this->analyzeFunctionLike( $func );
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -155,6 +168,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitMethod( Node $node ) : void {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		$this->curTaint = $this->analyzeFunctionLike( $method );
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -433,7 +447,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// @todo This should first check the __clone method, acknowledge its side effects
 		// (probably via handleMethodCall), and *then* return the taintedness of the cloned
 		// item. But finding the __clone definition might be hard...
-		$this->curTaint = $this->getTaintedness( $node->children['expr'] )->getTaintedness();
+		$val = $this->getTaintedness( $node->children['expr'] );
+		$this->curTaint = $val->getTaintedness();
+		$this->curError = $val->getError();
+		$this->curLinks = $val->getMethodLinks();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -457,6 +475,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( !in_array( $lhs->kind, $allowedLHS, true ) ) {
 				// Probably a syntax error.
 				$this->debug( __METHOD__, 'Unexpected LHS: ' . Debug::nodeName( $lhs ) );
+				$this->curTaint = Taintedness::newInapplicable();
 				return;
 			}
 		}
@@ -487,6 +506,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$allRHSTaint,
 			$allowClearLHSData
 		);
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -521,6 +541,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$allRHSTaint,
 			$allowClearLHSData
 		);
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -638,6 +659,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// If the operation is safe, don't waste time analyzing children.This might also create bugs
 			// like the test undeclaredvar2
 			$this->curTaint = Taintedness::newSafe();
+			$this->setCachedData( $node );
 			return;
 		}
 		$leftTaint = $this->getTaintedness( $lhs );
@@ -650,6 +672,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		);
 		$this->curError = self::mergeCausedByLines( $leftTaint->getError(), $rightTaint->getError() );
 		$this->curLinks = self::mergeTaintLinks( $leftTaint->getMethodLinks(), $rightTaint->getMethodLinks() );
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -683,6 +706,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( !$varNode instanceof Node ) {
 			// Accessing offset of a string literal
 			$this->curTaint = Taintedness::newSafe();
+			$this->setCachedData( $node );
 			return;
 		}
 		$nodeTaint = $this->getTaintednessNode( $varNode );
@@ -691,12 +715,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// the taint of the whole object.
 			$this->curTaint = $nodeTaint->getTaintedness();
 			$this->curError = $nodeTaint->getError();
+			$this->setCachedData( $node );
 			return;
 		}
 		$offset = $this->resolveOffset( $node->children['dim'] );
 		$this->curTaint = $nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset );
 		$this->curError = $nodeTaint->getError();
 		$this->curLinks = $nodeTaint->getMethodLinks();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -727,6 +753,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		);
 		// Its unclear if we should consider this tainted or not
 		$this->curTaint = Taintedness::newTainted();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -746,6 +773,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// don't know, and at least in the require() case its
 		// fairly likely to be safe, no point in complaining.
 		$this->curTaint = Taintedness::newSafe();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -763,6 +791,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			'Echoing expression that was not html escaped'
 		);
 		$this->curTaint = Taintedness::newSafe();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -838,6 +867,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			} catch ( CodeBaseException | IssueException $e ) {
 				$this->debug( __METHOD__, 'Cannot get class: ' . $this->getDebugInfo( $e ) );
 				$this->curTaint = Taintedness::newUnknown();
+				$this->setCachedData( $node );
 				return;
 			}
 
@@ -846,6 +876,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// TODO None or too many, we give up for now
 				$this->debug( __METHOD__, "got $clazzesCount, giving up" );
 				$this->curTaint = Taintedness::newUnknown();
+				$this->setCachedData( $node );
 				return;
 			}
 			$clazz = $clazzes[0];
@@ -855,6 +886,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// There is no __toString(), then presumably the object can't be outputted, so should be safe.
 				$this->debug( __METHOD__, "no __toString() in $clazz" );
 				$this->curTaint = Taintedness::newSafe();
+				$this->setCachedData( $node );
 				return;
 			}
 
@@ -867,6 +899,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->debug( __METHOD__, "cannot understand new" );
 			$this->curTaint = Taintedness::newUnknown();
 		}
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -885,6 +918,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$funcs = $this->getFuncsFromNode( $node );
 		if ( !$funcs ) {
 			$this->curTaint = Taintedness::newUnknown();
+			$this->setCachedData( $node );
 			return;
 		}
 
@@ -898,6 +932,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->curError = self::mergeCausedByLines( $this->curError, $callTaint->getError() );
 			}
 		}
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -964,17 +999,20 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		if ( $this->isSuperGlobal( $varName ) ) {
 			$this->curTaint = $this->getTaintednessOfSuperGlobal( $varName );
+			$this->setCachedData( $node );
 			return;
 		} elseif ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
 			// Probably the var just isn't in scope yet.
 			// $this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
 			$this->curTaint = Taintedness::newUnknown();
+			$this->setCachedData( $node );
 			return;
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
 		$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
 		$this->curError = self::getCausedByRaw( $variableObj ) ?? [];
 		$this->curLinks = self::getMethodLinks( $variableObj ) ?? new Set;
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1030,6 +1068,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( !is_string( $varName ) ) {
 			// Something like global $$indirectReference;
 			$this->curTaint = Taintedness::newInapplicable();
+			$this->setCachedData( $node );
 			return;
 		}
 		$scope = $this->context->getScope();
@@ -1040,6 +1079,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$scope->globalsInScope[] = $varName;
 		}
 		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1055,6 +1095,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( !$this->context->isInFunctionLikeScope() ) {
 			// E.g. a file that can be included.
 			$this->curTaint = Taintedness::newUnknown();
+			$this->setCachedData( $node );
 			return;
 		}
 
@@ -1084,6 +1125,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 		}
 		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1139,6 +1181,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$this->curTaint = $curTaint;
 		$this->curLinks = $links;
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1182,6 +1225,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
 		$this->curError = self::getCausedByRaw( $prop ) ?? [];
 		$this->curLinks = self::getMethodLinks( $prop ) ?? new Set;
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1206,6 +1250,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// in the generic visitor.
 				$taint = SecurityCheckPlugin::YES_TAINT & ~SecurityCheckPlugin::SERIALIZE_TAINT;
 				$this->curTaint = new Taintedness( $taint );
+				$this->setCachedData( $node );
 				return;
 			}
 			if (
@@ -1226,6 +1271,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 			// Should this be NO_TAINT?
 			$this->curTaint = Taintedness::newUnknown();
+			$this->setCachedData( $node );
 			return;
 		}
 
@@ -1249,6 +1295,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
 		$this->curError = self::getCausedByRaw( $prop ) ?? [];
 		$this->curLinks = self::getMethodLinks( $prop ) ?? new Set;
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1273,6 +1320,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaint = $trueTaint->getTaintedness()->withObj( $falseTaint->getTaintedness() );
 		$this->curError = self::mergeCausedByLines( $trueTaint->getError(), $falseTaint->getError() );
 		$this->curLinks = self::mergeTaintLinks( $trueTaint->getMethodLinks(), $falseTaint->getMethodLinks() );
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1315,6 +1363,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		} else {
 			$this->curTaint = Taintedness::newSafe();
 		}
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1356,6 +1405,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaint = $varTaint->getTaintedness();
 		$this->curError = $varTaint->getError();
 		$this->curLinks = $varTaint->getMethodLinks();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1379,6 +1429,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curError = $exprTaint->getError();
 			$this->curLinks = $exprTaint->getMethodLinks();
 		}
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1397,6 +1448,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$this->curTaint = $taint;
 		$this->curLinks = $links;
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -1453,5 +1505,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$this->curTaint = $taint;
+		$this->setCachedData( $node );
 	}
 }

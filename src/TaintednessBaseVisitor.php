@@ -1035,13 +1035,22 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Node $node
 	 * @return TaintednessWithError
+	 * @suppress PhanUndeclaredProperty
 	 */
 	protected function getTaintednessNode( Node $node ) : TaintednessWithError {
+		if ( property_exists( $node, 'taint' ) ) {
+			// Return cached result. Cache hit ratio should ideally be 100%, because we should never have to retrieve
+			// the taintedness of a node without having analyzed it first. For now the ratio is lower because
+			// we don't cache the result of cheap nodes.
+			return $node->taint;
+		}
+
 		// Debug::printNode( $node );
 		// Make sure to update the line number, or the same issue may be reported
 		// more than once on different lines (see test 'multilineissue').
 		$oldLine = $this->context->getLineNumberStart();
 		$this->context->setLineNumberStart( $node->lineno );
+		/** @var Taintedness $taint */
 		$taint = null;
 		$lines = [];
 		$links = null;
@@ -1050,7 +1059,9 @@ trait TaintednessBaseVisitor {
 			( new TaintednessVisitor( $this->code_base, $this->context, $taint, $lines, $links ) )(
 				$node
 			);
-			return new TaintednessWithError( clone $taint, $lines, $links );
+
+			$node->taint = new TaintednessWithError( clone $taint, $lines, $links );
+			return $node->taint;
 		} finally {
 			$this->context->setLineNumberStart( $oldLine );
 		}
