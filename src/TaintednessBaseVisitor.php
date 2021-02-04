@@ -2183,6 +2183,7 @@ trait TaintednessBaseVisitor {
 			// Easy case, 'Foo::Bar'
 			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
 			// And also NOTE: 'self::methodname()' is not valid PHP.
+			// And also, TODO: We should probably emit a non-security issue in the missing case
 			if ( strpos( $node, '::' ) === false ) {
 				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
 				return $this->code_base->hasFunctionWithFQSEN( $callback )
@@ -2202,12 +2203,8 @@ trait TaintednessBaseVisitor {
 			$node->kind === \ast\AST_VAR ||
 			( $node->kind === \ast\AST_ARRAY && count( $node->children ) === 2 )
 		) {
-			try {
-				$funcs = $this->getCtxN( $node )->getFunctionFromNode();
-			} catch ( IssueException $_ ) {
-				// @todo Should probably be emitted instead
-				return null;
-			}
+			// Note: intentionally emitting any issues here.
+			$funcs = $this->getCtxN( $node )->getFunctionFromNode();
 			return self::getFirstElmFromArrayOrGenerator( $funcs );
 		}
 		return null;

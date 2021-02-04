@@ -9,6 +9,7 @@
 * Improved caused-by lines for setters and some functions that pass their parameters through
 * It is now possible to put comments after `@param-taint` and `@return-taint` annotations
 * Added partial support for backpropagating NUMKEY taint, in the very few cases where false positives are highly unlikely (this will be improved)
+* (MW) Improved hook registration, being now able to infer the callback in more cases
 
 ### Bug fixes
 * Improved merging caused-by lines to avoid duplicates
