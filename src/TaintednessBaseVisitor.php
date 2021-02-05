@@ -1151,27 +1151,22 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param TypedElementInterface[] $rhsObjs
+	 * @param Set $rhsLinks
 	 * @param TaintednessWithError $rhsTaintedness
 	 * @param TypedElementInterface $variableObj
 	 */
 	private function setTaintDependenciesInAssignment(
-		array $rhsObjs,
+		Set $rhsLinks,
 		TaintednessWithError $rhsTaintedness,
 		TypedElementInterface $variableObj
 	) : void {
 		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
 			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
 			: null;
-		foreach ( $rhsObjs as $rhsObj ) {
-			$taintRHSObj = $this->getTaintednessPhanObj( $rhsObj );
-			if ( !$taintRHSObj->isSafe() ) {
-				$this->mergeTaintDependencies( $variableObj, $rhsObj );
-				if ( $globalVarObj ) {
-					// Merge dependencies on the global copy as well
-					$this->mergeTaintDependencies( $globalVarObj, $rhsObj );
-				}
-			}
+		$this->mergeTaintDependencies( $variableObj, $rhsLinks );
+		if ( $globalVarObj ) {
+			// Merge dependencies on the global copy as well
+			$this->mergeTaintDependencies( $globalVarObj, $rhsLinks );
 		}
 
 		$lines = $rhsTaintedness->getError();
@@ -1622,7 +1617,7 @@ trait TaintednessBaseVisitor {
 	 * This also merges the information on what line caused the taint.
 	 *
 	 * @param TypedElementInterface $lhs Source of method list
-	 * @param TypedElementInterface|Node $rhs Destination of merged method list
+	 * @param TypedElementInterface|Node|Set $rhs Destination of merged method list
 	 */
 	protected function mergeTaintDependencies( TypedElementInterface $lhs, $rhs ) : void {
 		if ( $rhs instanceof Node ) {
@@ -1633,10 +1628,13 @@ trait TaintednessBaseVisitor {
 			}
 			return;
 		}
-		assert( $rhs instanceof TypedElementInterface );
-
-		$rhsLinks = self::getMethodLinks( $rhs );
-		if ( $rhsLinks === null ) {
+		if ( $rhs instanceof TypedElementInterface ) {
+			$rhsLinks = self::getMethodLinks( $rhs ) ?? new Set;
+		} else {
+			$rhsLinks = $rhs;
+		}
+		assert( $rhsLinks instanceof Set );
+		if ( count( $rhsLinks ) === 0 ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
 		}

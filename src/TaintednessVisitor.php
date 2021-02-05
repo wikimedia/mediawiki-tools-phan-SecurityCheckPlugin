@@ -30,10 +30,10 @@ use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
-use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\FunctionLikeDeclarationType;
+use Phan\Library\Set;
 use Phan\PluginV3\PluginAwarePostAnalysisVisitor;
 
 /**
@@ -471,6 +471,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$node->flags,
 			$mask
 		);
+		// TODO We don't need $allowClearLHSData if we merge caused-by lines and links from the LHS now.
 		$allowClearLHSData = false;
 		$this->curTaint = $this->doVisitAssign(
 			$lhs,
@@ -557,16 +558,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			[ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ]
 		);
 
-		$rhsObjs = [];
-		if ( is_object( $rhs ) ) {
-			$rhsObjs = $this->getPhanObjsForNode( $rhs );
+		$rhsObjs = $rhs instanceof Node ? $this->getPhanObjsForNode( $rhs ) : [];
+		$rhsLinks = new Set;
+		foreach ( $rhsObjs as $rObj ) {
+			$rhsLinks->addAll( self::getMethodLinks( $rObj ) ?? new Set );
 		}
 
 		$this->setTaintednessForAssignmentNode(
 			$lhs,
 			$allRHSTaint,
 			$rhsTaintednessWithError,
-			$rhsObjs,
+			$rhsLinks,
 			$allowClearLHSData
 		);
 		return $allRHSTaint;
@@ -576,14 +578,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $lhs
 	 * @param Taintedness $allRHSTaint
 	 * @param TaintednessWithError $rhsTaintedness
-	 * @param TypedElementInterface[] $rhsObjs
+	 * @param Set $rhsLinks
 	 * @param bool $allowClearLHSData
 	 */
 	private function setTaintednessForAssignmentNode(
 		Node $lhs,
 		Taintedness $allRHSTaint,
 		TaintednessWithError $rhsTaintedness,
-		array $rhsObjs,
+		Set $rhsLinks,
 		bool $allowClearLHSData
 	) : void {
 		if ( $lhs->kind === \ast\AST_ARRAY ) {
@@ -607,7 +609,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 						$rhsTaintedness->getTaintedness()->getTaintednessForOffsetOrWhole( $key ),
 						$rhsTaintedness->getError()
 					),
-					$rhsObjs,
+					$rhsLinks,
 					$allowClearLHSData
 				);
 			}
@@ -617,9 +619,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$variableObjs = $this->getPhanObjsForNode( $lhs );
 		$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $lhs );
 		foreach ( $variableObjs as $variableObj ) {
-			// Don't clear data if one of the objects in the RHS is the same as this object
-			// in the LHS. This is especially important in conditionals e.g. tainted = tainted ?: null.
-			$allowClearLHSData = $allowClearLHSData && !in_array( $variableObj, $rhsObjs, true );
 			$this->doAssignmentSingleElement(
 				$variableObj,
 				$allRHSTaint,
@@ -627,7 +626,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$lhsOffsets,
 				$allowClearLHSData
 			);
-			$this->setTaintDependenciesInAssignment( $rhsObjs, $rhsTaintedness, $variableObj );
+			$this->setTaintDependenciesInAssignment( $rhsLinks, $rhsTaintedness, $variableObj );
 		}
 	}
 
