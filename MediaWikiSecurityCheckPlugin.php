@@ -81,6 +81,13 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'overall' => self::ESCAPED_TAINT
 		];
 
+		$shellCommandOutput = [
+			// This is a bit unclear. Most of the time
+			// you should probably be escaping the results
+			// of a shell command, but not all the time.
+			'overall' => self::YES_TAINT
+		];
+
 		return [
 			// Note, at the moment, this checks where the function
 			// is implemented, so you can't use IDatabase.
@@ -332,21 +339,22 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\MediaWiki\Shell\Command::unsafeParams' => [
-				self::SHELL_EXEC_TAINT,
+				self::SHELL_EXEC_TAINT | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
 			],
-			'\MediaWiki\Shell\Result::getStdout' => [
-				// This is a bit unclear. Most of the time
-				// you should probably be escaping the results
-				// of a shell command, but not all the time.
-				'overall' => self::YES_TAINT
+			'\MediaWiki\Shell\Result::getStdout' => $shellCommandOutput,
+			'\MediaWiki\Shell\Result::getStderr' => $shellCommandOutput,
+			// Methods from wikimedia/Shellbox
+			'\Shellbox\Shellbox::escape' => [
+				( self::YES_TAINT & ~self::SHELL_TAINT ) | self::VARIADIC_PARAM,
+				'overall' => self::NO_TAINT
 			],
-			'\MediaWiki\Shell\Result::getStderr' => [
-				// This is a bit unclear. Most of the time
-				// you should probably be escaping the results
-				// of a shell command, but not all the time.
-				'overall' => self::YES_TAINT
+			'\Shellbox\Command\Command::unsafeParams' => [
+				self::SHELL_EXEC_TAINT | self::VARIADIC_PARAM,
+				'overall' => self::NO_TAINT
 			],
+			'\Shellbox\Command\UnboxedResult::getStdout' => $shellCommandOutput,
+			'\Shellbox\Command\UnboxedResult::getStderr' => $shellCommandOutput,
 			'\Html::rawElement' => [
 				self::YES_TAINT,
 				self::ESCAPES_HTML,
