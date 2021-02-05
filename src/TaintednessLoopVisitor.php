@@ -53,7 +53,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 					$value->kind === \ast\AST_VAR,
 					true
 				);
-				$this->mergeTaintDependencies( $valueObj, $expr );
+				$this->mergeTaintDependencies( $valueObj, $lhsTaintednessWithError->getMethodLinks() );
 				$this->mergeTaintError( $valueObj, $lhsTaintednessWithError->getError() );
 			}
 		} else {
@@ -80,7 +80,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 						$key->kind === \ast\AST_VAR,
 						true
 					);
-					$this->mergeTaintDependencies( $keyObj, $expr );
+					$this->mergeTaintDependencies( $keyObj, $lhsTaintednessWithError->getMethodLinks() );
 					$this->mergeTaintError( $keyObj, $lhsTaintednessWithError->getError() );
 				}
 			} else {

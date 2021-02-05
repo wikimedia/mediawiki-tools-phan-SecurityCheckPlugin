@@ -234,7 +234,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				}
 
 				$variableObjLinks = self::getMethodLinks( $localVar ) ?? new Set;
-				$methodLinks->addAll( $variableObjLinks );
+				$methodLinks = TaintednessVisitor::mergeTaintLinks( $methodLinks, $variableObjLinks );
 
 				$varError = self::getCausedByRaw( $localVar ) ?? [];
 				$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varError );

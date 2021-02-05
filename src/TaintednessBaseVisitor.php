@@ -1016,7 +1016,7 @@ trait TaintednessBaseVisitor {
 		case "double":
 		case "NULL":
 			// simple literal
-			return new TaintednessWithError( Taintedness::newSafe(), [] );
+			return new TaintednessWithError( Taintedness::newSafe(), [], new Set );
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
@@ -1044,12 +1044,13 @@ trait TaintednessBaseVisitor {
 		$this->context->setLineNumberStart( $node->lineno );
 		$taint = null;
 		$lines = [];
+		$links = null;
 
 		try {
-			( new TaintednessVisitor( $this->code_base, $this->context, $taint, $lines ) )(
+			( new TaintednessVisitor( $this->code_base, $this->context, $taint, $lines, $links ) )(
 				$node
 			);
-			return new TaintednessWithError( clone $taint, $lines );
+			return new TaintednessWithError( clone $taint, $lines, $links );
 		} finally {
 			$this->context->setLineNumberStart( $oldLine );
 		}
@@ -1151,22 +1152,20 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Set $rhsLinks
 	 * @param TaintednessWithError $rhsTaintedness
 	 * @param TypedElementInterface $variableObj
 	 */
 	private function setTaintDependenciesInAssignment(
-		Set $rhsLinks,
 		TaintednessWithError $rhsTaintedness,
 		TypedElementInterface $variableObj
 	) : void {
 		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
 			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
 			: null;
-		$this->mergeTaintDependencies( $variableObj, $rhsLinks );
+		$this->mergeTaintDependencies( $variableObj, $rhsTaintedness->getMethodLinks() );
 		if ( $globalVarObj ) {
 			// Merge dependencies on the global copy as well
-			$this->mergeTaintDependencies( $globalVarObj, $rhsLinks );
+			$this->mergeTaintDependencies( $globalVarObj, $rhsTaintedness->getMethodLinks() );
 		}
 
 		$lines = $rhsTaintedness->getError();
@@ -1603,6 +1602,30 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Merge two sources of method links, without overriding anything.
+	 * @param Set $l1
+	 * @param Set $l2
+	 * @return Set
+	 */
+	public static function mergeTaintLinks( Set $l1, Set $l2 ) : Set {
+		$ret = $l1;
+		$remainingL2 = new Set;
+		foreach ( $l2 as $method ) {
+			if ( $ret->contains( $method ) ) {
+				$leftLinks = $ret[$method];
+				$rightLinks = $l2[$method];
+				foreach ( $rightLinks as $k => $val ) {
+					$leftLinks[$k] = ( $leftLinks[$k] ?? false ) || $val;
+				}
+				$ret[$method] = $leftLinks;
+			} else {
+				$remainingL2->attach( $method, $l2[$method] );
+			}
+		}
+		return $ret->union( $remainingL2 );
+	}
+
+	/**
 	 * Given a LHS and RHS make all the methods that can set RHS also for LHS
 	 *
 	 * Given 2 variables (e.g. $lhs = $rhs ), see to it that any function/method
@@ -1617,23 +1640,9 @@ trait TaintednessBaseVisitor {
 	 * This also merges the information on what line caused the taint.
 	 *
 	 * @param TypedElementInterface $lhs Source of method list
-	 * @param TypedElementInterface|Node|Set $rhs Destination of merged method list
+	 * @param Set $rhsLinks New links
 	 */
-	protected function mergeTaintDependencies( TypedElementInterface $lhs, $rhs ) : void {
-		if ( $rhs instanceof Node ) {
-			// Recurse.
-			$phanObjs = $this->getPhanObjsForNode( $rhs );
-			foreach ( $phanObjs as $phanObj ) {
-				$this->mergeTaintDependencies( $lhs, $phanObj );
-			}
-			return;
-		}
-		if ( $rhs instanceof TypedElementInterface ) {
-			$rhsLinks = self::getMethodLinks( $rhs ) ?? new Set;
-		} else {
-			$rhsLinks = $rhs;
-		}
-		assert( $rhsLinks instanceof Set );
+	protected function mergeTaintDependencies( TypedElementInterface $lhs, Set $rhsLinks ) : void {
 		if ( count( $rhsLinks ) === 0 ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
@@ -2500,7 +2509,7 @@ trait TaintednessBaseVisitor {
 		$callTaintedness = $taint->getOverall()->without( $preserveOrExec )
 			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 		$argErrors = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
-		return new TaintednessWithError( $callTaintedness, $argErrors );
+		return new TaintednessWithError( $callTaintedness, $argErrors, new Set );
 	}
 
 	/**
