@@ -927,7 +927,7 @@ trait TaintednessBaseVisitor {
 			$var instanceof GlobalVariable ||
 			( $var instanceof Variable && $this->context->isInGlobalScope() )
 		) {
-			// TODO Improve handling of globals?
+			// TODO Improve handling of globals? (https://github.com/phan/phan/issues/4370)
 			return Taintedness::newAll();
 		}
 		// Note, we must use the real union type because:
@@ -1438,17 +1438,11 @@ trait TaintednessBaseVisitor {
 					// here to ensure we don't recurse beyond
 					// a depth of 1.
 					try {
-						$retObjs = $this->getReturnObjsOfFunc( $func );
+						return $this->getReturnObjsOfFunc( $func );
 					} catch ( Exception $e ) {
 						$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
 						return [];
 					}
-					return array_filter(
-						$retObjs,
-						static function ( TypedElementInterface $el ) : bool {
-							return !( $el instanceof Variable );
-						}
-					);
 				}
 				$args = $node->children['args']->children;
 				$pObjs = [ $func ];
@@ -1688,6 +1682,9 @@ trait TaintednessBaseVisitor {
 		Taintedness $taint,
 		TypedElementInterface $triggeringElm = null
 	) : void {
+		if ( !$this->getPossibleFutureTaintOfElement( $var )->has( $taint->get() ) ) {
+			return;
+		}
 		// Ensure we only set exec bits, not normal taint bits.
 		$taint = $taint->withOnly( SecurityCheckPlugin::BACKPROP_TAINTS );
 		if ( $taint->isSafe() || $this->isIssueSuppressedOrFalsePositive( $taint ) ) {
@@ -1699,22 +1696,22 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
+		$this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
 
 		/** @var FunctionInterface $method */
 		foreach ( $varLinks as $method ) {
 			$paramInfo = $varLinks[$method];
 			// Note, not forCaller, as that doesn't see variadic parameters
-			/** @var Parameter[] $calleeParamList */
 			$calleeParamList = $method->getParameterList();
 			$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
 			foreach ( $paramInfo as $i => $_ ) {
+				$curTaint = clone $taint;
 				if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-					$taint = $taint->with( SecurityCheckPlugin::VARIADIC_PARAM );
+					$curTaint = $taint->with( SecurityCheckPlugin::VARIADIC_PARAM );
 				}
-				$paramTaint->setParamTaint( $i, $taint );
-				// $this->debug( __METHOD__, "Setting method $method" .
-					// " arg $i as $taint due to dependency on $var" );
+				$paramTaint->setParamTaint( $i, $curTaint );
+				// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
 			// TODO: Ideally we would merge taint error per argument
@@ -1729,15 +1726,40 @@ trait TaintednessBaseVisitor {
 			// when examining a function call. Inside the function body, we'll already have all the
 			// info we need, and actually, this extra taint would cause false positives with variable
 			// names reuse.
-			$curVarTaint = $this->getTaintednessPhanObj( $var );
-			$newTaint = $curVarTaint->withObj( $taint );
-			$this->setTaintednessOld( $var, $newTaint );
+			$this->setTaintednessOld( $var, $taint, false );
 		}
 
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for variable " . $var->getName() );
+		}
+	}
+
+	/**
+	 * Mark any function setting a specific variable as EXEC taint
+	 *
+	 * If you do something like echo $this->foo;
+	 * This method is called to make all things that set $this->foo
+	 * as TAINT_EXEC.
+	 *
+	 * @note This might have annoying false positives with widely used properties
+	 * that are used with different levels of escaping, which is not a good idea anyway.
+	 *
+	 * @param Node $node
+	 * @param Taintedness $taint What taint to mark them as.
+	 * @param TypedElementInterface|null $triggeringElm To propagate caused-by lines
+	 * @param bool $tempNumkey Temporary param
+	 */
+	protected function markAllDependentMethodsExecForNode(
+		Node $node,
+		Taintedness $taint,
+		TypedElementInterface $triggeringElm = null,
+		bool $tempNumkey = false
+	) : void {
+		$phanObjs = $this->getPhanObjsForNode( $node, $tempNumkey ? [ 'numkey', 'return' ] : [ 'return' ] );
+		foreach ( array_unique( $phanObjs ) as $phanObj ) {
+			$this->markAllDependentMethodsExec( $phanObj, $taint, $triggeringElm );
 		}
 	}
 
@@ -2554,32 +2576,15 @@ trait TaintednessBaseVisitor {
 			// TODO This doesn't return arrays with mixed keys. Currently, doing so would result
 			// in arrays being considered as a unit, and the taint would be backpropagated to all
 			// values, even ones with string keys. See TODO in elementCanBeNumkey
-			$numkeyObjs = $this->getPhanObjsForNode( $argument, [ 'return', 'numkey' ] );
+
 			// TODO This should be limited to the outer array, see TODO in backpropnumkey test
 			// Note that this is true in general for NUMKEY taint, not just when backpropagating it
-			$numkeyTaint = new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
-			$this->doBackpropArgTaint( $numkeyObjs, $numkeyTaint, $func );
+			$numkeyTaint = $taint->withOnly( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
+			$this->markAllDependentMethodsExecForNode( $argument, $numkeyTaint, $func, true );
 			$taint = $taint->without( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
 		}
 
-		$phanObjs = $this->getPhanObjsForNode( $argument, [ 'return' ] );
-		$this->doBackpropArgTaint( $phanObjs, $taint, $func );
-	}
-
-	/**
-	 * Internal helper for backpropagateArgTaint to ease recursion
-	 *
-	 * @param TypedElementInterface[] $phanObjs
-	 * @param Taintedness $taint
-	 * @param FunctionInterface|null $func
-	 */
-	private function doBackpropArgTaint( array $phanObjs, Taintedness $taint, FunctionInterface $func = null ) : void {
-		foreach ( array_unique( $phanObjs ) as $phanObj ) {
-			if ( $this->getPossibleFutureTaintOfElement( $phanObj )->has( $taint->get() ) ) {
-				$this->debug( __METHOD__, "Setting {$phanObj->getName()} exec {$taint->toShortString()}" );
-				$this->markAllDependentMethodsExec( $phanObj, $taint, $func );
-			}
-		}
+		$this->markAllDependentMethodsExecForNode( $argument, $taint, $func );
 	}
 
 	/**
@@ -3093,7 +3098,12 @@ trait TaintednessBaseVisitor {
 		// This could be remediated with another dynamic property (e.g. retObjsCollected), initialized
 		// inside visitMethod in preorder, and set to true inside visitMethod in postorder.
 		// It would be pointless, though, as returning a partial list is better than returning no list.
-		return $retObjs;
+		return array_filter(
+			$retObjs,
+			static function ( TypedElementInterface $el ) : bool {
+				return !( $el instanceof Variable );
+			}
+		);
 	}
 
 	/**

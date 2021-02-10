@@ -219,8 +219,15 @@ trait TaintednessAccessorsTrait {
 	 * @param TypedElementInterface[] $retObjs
 	 * @suppress PhanUnreferencedProtectedMethod Used in TaintednessVisitor
 	 */
-	protected static function setRetObjs( FunctionInterface $func, array $retObjs ) : void {
-		$func->retObjs = $retObjs;
+	protected static function addRetObjs( FunctionInterface $func, array $retObjs ) : void {
+		$func->retObjs = array_merge( $func->retObjs ?? [], $retObjs );
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 */
+	protected static function initRetObjs( FunctionInterface $func ) : void {
+		$func->retObjs = $func->retObjs ?? [];
 	}
 
 }

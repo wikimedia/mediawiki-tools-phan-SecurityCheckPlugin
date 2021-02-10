@@ -13,7 +13,7 @@ function makeSafe() {
 	$myGlobal = htmlspecialchars( $myGlobal );
 	echo $myGlobal; // Ideally safe, but with globals it's complicated (see test 'scope')
 }
-
+makeUnsafe();
 echo $myGlobal; // XSS
 htmlspecialchars( $myGlobal ); // DoubleEscaped
 

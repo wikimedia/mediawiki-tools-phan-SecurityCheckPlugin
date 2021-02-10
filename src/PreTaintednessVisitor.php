@@ -73,6 +73,8 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	public function visitMethod( Node $node ) : void {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
+		// Initialize retObjs to avoid recursing on methods that don't return anything.
+		self::initRetObjs( $method );
 		$promotedProps = [];
 		if ( $node->kind === \ast\AST_METHOD && $node->children['name'] === '__construct' ) {
 			foreach ( $method->getParameterList() as $i => $param ) {
