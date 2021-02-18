@@ -8,13 +8,7 @@
 # Assumes that either MediaWiki is installed in ../../
 # or the user has set MW_INSTALL_PATH environment variable.
 
-php=`which php7.0`
-if [ "$?" != 0 ]
-then
-	php=`which php`
-fi
-
-$php vendor/phan/phan/phan \
+php vendor/phan/phan/phan \
 	-d . \
 	-k vendor/mediawiki/phan-taint-check-plugin/scripts/generic-config.php \
 	--output "php://stdout" "$@"
