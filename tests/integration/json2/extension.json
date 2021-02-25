@@ -1,0 +1,15 @@
+{
+	"HookHandlers": {
+		"Not-A-Valid-Class-Name": {
+			"class": "MyHookHandler",
+			"services": [ "SomeIgnoredService" ]
+		}
+	},
+	"Hooks": {
+		"FirstHook": "Not-A-Valid-Class-Name",
+		"SecondHook": [
+			"Not-A-Valid-Class-Name",
+			"MyHookHandler::additionalSecondHookHandler"
+		]
+	}
+}

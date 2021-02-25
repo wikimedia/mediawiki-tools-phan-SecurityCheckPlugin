@@ -100,28 +100,46 @@ class MediaWikiHooksHelper {
 				$jsonPath = Config::projectPath( $filename );
 			}
 			if ( file_exists( $jsonPath ) ) {
-				$json = json_decode( file_get_contents( $jsonPath ), true );
-				if ( !is_array( $json ) ) {
-					continue;
-				}
-				if ( isset( $json['Hooks'] ) && is_array( $json['Hooks'] ) ) {
-					foreach ( $json['Hooks'] as $hookName => $cbList ) {
-						foreach ( (array)$cbList as $cb ) {
-							// All callbacks here are simple
-							// "someFunction" or "Class::SomeMethod"
-							if ( strpos( $cb, '::' ) === false ) {
-								$callback = FullyQualifiedFunctionName::fromFullyQualifiedString(
-									$cb
-								);
-							} else {
-								$callback = FullyQualifiedMethodName::fromFullyQualifiedString(
-									$cb
-								);
-							}
-							$this->registerHook( $hookName, $callback );
-						}
+				$this->readJsonFile( $jsonPath );
+			}
+		}
+	}
+
+	/**
+	 * @param string $jsonPath
+	 */
+	private function readJsonFile( string $jsonPath ) : void {
+		$json = json_decode( file_get_contents( $jsonPath ), true );
+		if ( !is_array( $json ) || !isset( $json['Hooks'] ) || !is_array( $json['Hooks'] ) ) {
+			return;
+		}
+		$namedHandlers = [];
+		foreach ( $json['HookHandlers'] ?? [] as $name => $handler ) {
+			// TODO: This key is not unique if more than one extension is being analyzed. Is that wanted, though?
+			$namedHandlers[$name] = $handler;
+		}
+
+		foreach ( $json['Hooks'] as $hookName => $cbList ) {
+			foreach ( (array)$cbList as $cb ) {
+				if ( isset( $namedHandlers[$cb] ) ) {
+					// TODO ObjectFactory not fully handled here. Would deserve some code in a general-purpose
+					// MediaWiki plugin, see T275742.
+					if ( isset( $namedHandlers[$cb]['class'] ) ) {
+						$callbackString = $namedHandlers[$cb]['class'] . "::on$hookName";
+					} elseif ( isset( $namedHandlers[$cb]['factory'] ) ) {
+						// TODO: We'd need a CodeBase to retrieve the factory method and check its return value
+						continue;
+					} else {
+						// @phan-suppress-previous-line PhanPluginDuplicateIfStatements
+						continue;
 					}
+					$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $callbackString );
+				} elseif ( strpos( $cb, '::' ) === false ) {
+					$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $cb );
+				} else {
+					$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $cb );
 				}
+				$this->registerHook( $hookName, $callback );
 			}
 		}
 	}
