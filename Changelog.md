@@ -7,6 +7,7 @@
 * Improved taint data for $_FILES
 * Infer when a parameter is passed through by a function (even partially or conditionally), at least in non-complicated cases
 * Improved caused-by lines for setters and some functions that pass their parameters through
+* It is now possible to put comments after `@param-taint` and `@return-taint` annotations
 * Added partial support for backpropagating NUMKEY taint, in the very few cases where false positives are highly unlikely (this will be improved)
 
 ### Bug fixes

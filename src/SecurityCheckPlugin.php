@@ -499,16 +499,17 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|code|path|regex|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
-		$taintExpr = "/^(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override|raw_param)$/";
+		$taintExpr = "(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override|raw_param)";
 
-		$taints = explode( ',', strtolower( $line ) );
+		$filteredLine = preg_replace( "/((?:$taintExpr,? *)+)(?: .*)?$/", '$1', $line );
+		$taints = explode( ',', strtolower( $filteredLine ) );
 		$taints = array_map( 'trim', $taints );
 
 		$overallTaint = new Taintedness( self::NO_OVERRIDE );
 		$numberOfTaintsProcessed = 0;
 		foreach ( $taints as $taint ) {
 			$taintParts = [];
-			if ( !preg_match( $taintExpr, $taint, $taintParts ) ) {
+			if ( !preg_match( "/^$taintExpr$/", $taint, $taintParts ) ) {
 				continue;
 			}
 			$numberOfTaintsProcessed++;
