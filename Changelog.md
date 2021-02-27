@@ -8,6 +8,7 @@
 * Infer when a parameter is passed through by a function (even partially or conditionally), at least in non-complicated cases
 * Improved caused-by lines for setters and some functions that pass their parameters through
 * It is now possible to put comments after `@param-taint` and `@return-taint` annotations
+* Added taintedness data for PDO functions
 * Added partial support for backpropagating NUMKEY taint, in the very few cases where false positives are highly unlikely (this will be improved)
 * (MW) Improved hook registration, being now able to infer the callback in more cases
 * (MW) Added partial support for HookHandlers in extension.json
