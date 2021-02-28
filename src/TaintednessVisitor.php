@@ -30,6 +30,7 @@ use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\GlobalVariable;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\Type\FunctionLikeDeclarationType;
@@ -1060,26 +1061,27 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * A global declaration. Assume most globals are untainted.
 	 *
 	 * @param Node $node
-	 * @suppress PhanUndeclaredProperty
 	 */
 	public function visitGlobal( Node $node ) : void {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
-		$varName = $node->children['var']->children['name'];
-		if ( !is_string( $varName ) ) {
-			// Something like global $$indirectReference;
-			$this->curTaint = Taintedness::newInapplicable();
-			$this->setCachedData( $node );
-			return;
-		}
-		$scope = $this->context->getScope();
-		if ( $scope->hasGlobalVariableWithName( $varName ) && !$this->context->isInGlobalScope() ) {
-			// Hack: keep track of what local variables are actually global.
-			// TODO Isn't there a way to do this without hacks?
-			$scope->globalsInScope = $scope->globalsInScope ?? [];
-			$scope->globalsInScope[] = $varName;
-		}
 		$this->curTaint = Taintedness::newInapplicable();
 		$this->setCachedData( $node );
+
+		$varName = $node->children['var']->children['name'];
+		if ( !is_string( $varName ) || !$this->context->getScope()->hasVariableWithName( $varName ) ) {
+			// Something like global $$indirectReference; or the variable wasn't created somehow
+			return;
+		}
+		// Copy taintedness data from the actual global into the scoped clone
+		$gvar = $this->context->getScope()->getVariableByName( $varName );
+		if ( !$gvar instanceof GlobalVariable ) {
+			// Likely a superglobal, nothing to do.
+			return;
+		}
+		$actualGlobal = $gvar->getElement();
+		self::setTaintednessRaw( $gvar, self::getTaintednessRaw( $actualGlobal ) ?: Taintedness::newSafe() );
+		self::setCausedByRaw( $gvar, self::getCausedByRaw( $actualGlobal ) ?: [] );
+		self::setMethodLinks( $gvar, self::getMethodLinks( $actualGlobal ) ?: new Set() );
 	}
 
 	/**

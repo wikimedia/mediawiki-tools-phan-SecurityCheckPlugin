@@ -20,7 +20,7 @@
 * Fixed a bug that caused EXEC taints to be backpropagated to local variables, thus creating weird-looking issues
 
 ### Internal changes
-* Bumped phan/phan to 4.0.2
+* Bumped phan/phan to 4.0.4
 * The plugin now caches taintedness data inside AST nodes. This requires additional memory (300 MB for MW core), but reduces the runtime (30 seconds for MW core)
 
 ## v3.2.1

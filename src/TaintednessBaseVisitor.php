@@ -21,6 +21,7 @@ use Phan\Issue;
 use Phan\Language\Context;
 use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\GlobalVariable;
 use Phan\Language\Element\Method;
 use Phan\Language\Element\Parameter;
 use Phan\Language\Element\PassByReferenceVariable;
@@ -447,8 +448,10 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
 		// . get_class( $this->context->getScope() ) . "" );
 
-		if ( $this->isGlobalVariableInLocalScope( $variableObj ) ) {
-			$globalVar = $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() );
+		if ( $variableObj instanceof GlobalVariable ) {
+			// TODO: Every piece of code doing something like this should probably be handled in
+			// TaintednessAccessorsTrait instead.
+			$globalVar = $variableObj->getElement();
 			// Merge the taint on the "true" global object, too
 			$this->doSetTaintedness( $globalVar, $resolvedOffsetsLhs, $taintedness, false, $errorTaint );
 			$override = false;
@@ -467,20 +470,6 @@ trait TaintednessBaseVisitor {
 		}
 
 		$this->doSetTaintedness( $variableObj, $resolvedOffsetsLhs, $taintedness, $override, $errorTaint );
-	}
-
-	/**
-	 * Whether $var is a global variable in the *current* *local* scope.
-	 * (More precisely, whether it was imported in this scope via the 'global' keyword)
-	 *
-	 * @param TypedElementInterface $var
-	 * @return bool
-	 */
-	public function isGlobalVariableInLocalScope( TypedElementInterface $var ) : bool {
-		return $var instanceof Variable
-			&& property_exists( $this->context->getScope(), 'globalsInScope' )
-			// @phan-suppress-next-line PhanUndeclaredProperty
-			&& in_array( $var->getName(), $this->context->getScope()->globalsInScope, true );
 	}
 
 	/**
@@ -935,7 +924,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : Taintedness {
 		if (
-			$this->isGlobalVariableInLocalScope( $var ) ||
+			$var instanceof GlobalVariable ||
 			( $var instanceof Variable && $this->context->isInGlobalScope() )
 		) {
 			// TODO Improve handling of globals?
@@ -1170,9 +1159,7 @@ trait TaintednessBaseVisitor {
 		TaintednessWithError $rhsTaintedness,
 		TypedElementInterface $variableObj
 	) : void {
-		$globalVarObj = $this->isGlobalVariableInLocalScope( $variableObj )
-			? $this->context->getScope()->getGlobalVariableByName( $variableObj->getName() )
-			: null;
+		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
 		$this->mergeTaintDependencies( $variableObj, $rhsTaintedness->getMethodLinks() );
 		if ( $globalVarObj ) {
 			// Merge dependencies on the global copy as well
@@ -1737,7 +1724,7 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		if ( $var instanceof Property || $this->isGlobalVariableInLocalScope( $var ) ) {
+		if ( $var instanceof Property || $var instanceof GlobalVariable ) {
 			// For local variables, don't set the taint: the taintedness set here should only be used
 			// when examining a function call. Inside the function body, we'll already have all the
 			// info we need, and actually, this extra taint would cause false positives with variable
