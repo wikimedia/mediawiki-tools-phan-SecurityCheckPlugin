@@ -1757,7 +1757,17 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $triggeringElm = null,
 		bool $tempNumkey = false
 	) : void {
-		$phanObjs = $this->getPhanObjsForNode( $node, $tempNumkey ? [ 'numkey', 'return' ] : [ 'return' ] );
+		if ( !$tempNumkey ) {
+			$backpropVisitor = new TaintednessBackpropVisitor(
+				$this->code_base,
+				$this->context,
+				$taint,
+				$triggeringElm
+			);
+			$backpropVisitor( $node );
+			return;
+		}
+		$phanObjs = $this->getPhanObjsForNode( $node, [ 'numkey', 'return' ] );
 		foreach ( array_unique( $phanObjs ) as $phanObj ) {
 			$this->markAllDependentMethodsExec( $phanObj, $taint, $triggeringElm );
 		}
