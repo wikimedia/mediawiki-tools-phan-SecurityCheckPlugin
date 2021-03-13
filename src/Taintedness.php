@@ -318,24 +318,23 @@ class Taintedness {
 	 */
 	public static function intersectForSink( self $sink, self $value ) : self {
 		$intersect = self::newSafe();
-		// If the sink has anything in its flags, preserve it regardless of where it comes from in $value
+		// If the sink has non-zero flags, intersect it with the whole other side. This particularly preserves
+		// the shape of $sink, discarding anything from $value if the sink has a NO_TAINT in that position.
 		if ( $sink->flags ) {
 			$intersect->flags = $sink->flags & $value->get();
 		}
-		// If the RHS has unknown keys, copy the taintedness to every other key to facilitate things
-		if ( $value->unknownDimsTaint ) {
-			foreach ( $value->dimTaint as $el ) {
-				$el->mergeWith( $value->unknownDimsTaint );
-			}
-		}
-		// Also preserve any unknown keys. $value->getAllKeysTaint() now includes taintedness of unknown keys
 		if ( $sink->unknownDimsTaint ) {
-			$intersect->unknownDimsTaint = $sink->unknownDimsTaint->withOnly( $value->getAllKeysTaint() );
+			$intersect->unknownDimsTaint = self::intersectForSink(
+				$sink->unknownDimsTaint,
+				$value->asValueFirstLevel()
+			);
 		}
 		$intersect->keysTaint = $sink->keysTaint & $value->keysTaint;
-		$commonKeys = array_intersect_key( $sink->dimTaint, $value->dimTaint );
-		foreach ( $commonKeys as $key => $_ ) {
-			$intersect->dimTaint[$key] = self::intersectForSink( $sink->dimTaint[$key], $value->dimTaint[$key] );
+		foreach ( $sink->dimTaint as $key => $dTaint ) {
+			$intersect->dimTaint[$key] = self::intersectForSink(
+				$dTaint,
+				$value->getTaintednessForOffsetOrWhole( $key )
+			);
 		}
 		return $intersect;
 	}
@@ -535,6 +534,23 @@ class Taintedness {
 
 		$ret = $this->unknownDimsTaint ? clone $this->unknownDimsTaint : self::newSafe();
 		$ret->add( $this->flags );
+		return $ret;
+	}
+
+	/**
+	 * Create a new object with $this at the given $offset (if scalar) or as unknown object.
+	 *
+	 * @param Node|string|int|bool|float|null $offset
+	 * @return self Always a copy
+	 */
+	public function asMaybeMovedAtOffset( $offset ) : self {
+		$ret = self::newSafe();
+		if ( $offset instanceof Node || $offset === null ) {
+			$ret->unknownDimsTaint = clone $this;
+			$ret->flags = $this->flags;
+			return $ret;
+		}
+		$ret->dimTaint[$offset] = clone $this;
 		return $ret;
 	}
 
