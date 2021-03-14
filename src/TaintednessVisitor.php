@@ -601,70 +601,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			[ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ]
 		);
 
-		$this->setTaintednessForAssignmentNode(
-			$lhs,
+		$vis = new TaintednessAssignVisitor(
+			$this->code_base,
+			$this->context,
 			$allRHSTaint,
 			$rhsTaintednessWithError,
 			$allowClearLHSData
 		);
+		$vis( $lhs );
 		return $allRHSTaint;
-	}
-
-	/**
-	 * @param Node $lhs
-	 * @param Taintedness $allRHSTaint
-	 * @param TaintednessWithError $rhsTaintedness
-	 * @param bool $allowClearLHSData
-	 */
-	private function setTaintednessForAssignmentNode(
-		Node $lhs,
-		Taintedness $allRHSTaint,
-		TaintednessWithError $rhsTaintedness,
-		bool $allowClearLHSData
-	) : void {
-		if ( $lhs->kind === \ast\AST_ARRAY ) {
-			$numKey = 0;
-			foreach ( $lhs->children as $child ) {
-				if ( $child === null ) {
-					$numKey++;
-					continue;
-				}
-				if ( !$child instanceof Node || $child->kind !== \ast\AST_ARRAY_ELEM ) {
-					// Syntax error.
-					return;
-				}
-				$key = $child->children['key'] !== null ? $this->resolveOffset( $child->children['key'] ) : $numKey++;
-				$value = $child->children['value'];
-				if ( !$value instanceof Node ) {
-					// Syntax error, don't crash, and bail out immediately.
-					return;
-				}
-				$this->setTaintednessForAssignmentNode(
-					$value,
-					$allRHSTaint->getTaintednessForOffsetOrWhole( $key ),
-					new TaintednessWithError(
-						$rhsTaintedness->getTaintedness()->getTaintednessForOffsetOrWhole( $key ),
-						$rhsTaintedness->getError(),
-						$rhsTaintedness->getMethodLinks()
-					),
-					$allowClearLHSData
-				);
-			}
-			return;
-		}
-
-		$variableObjs = $this->getPhanObjsForNode( $lhs );
-		$lhsOffsets = $this->getResolvedLhsOffsetsInAssignment( $lhs );
-		foreach ( $variableObjs as $variableObj ) {
-			$this->doAssignmentSingleElement(
-				$variableObj,
-				$allRHSTaint,
-				$rhsTaintedness->getTaintedness(),
-				$lhsOffsets,
-				$allowClearLHSData
-			);
-			$this->setTaintDependenciesInAssignment( $rhsTaintedness, $variableObj, $lhsOffsets );
-		}
 	}
 
 	/**

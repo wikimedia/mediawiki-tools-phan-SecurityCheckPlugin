@@ -1261,31 +1261,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param Node $lhs LHS of the assignment
-	 * @return array List of possibly-resolved offsets
-	 * @phan-return list<Node|mixed>
-	 */
-	private function getResolvedLhsOffsetsInAssignment( Node $lhs ) : array {
-		if ( $lhs->kind !== \ast\AST_DIM ) {
-			return [];
-		}
-
-		$resolvedOffsetsLhs = [];
-		$lhsDimNode = $lhs;
-		while ( $lhsDimNode instanceof Node && $lhsDimNode->kind === \ast\AST_DIM ) {
-			$offsetNode = $lhsDimNode->children['dim'];
-			if ( $offsetNode === null ) {
-				$curOff = null;
-			} else {
-				$curOff = $this->resolveOffset( $offsetNode );
-			}
-			$resolvedOffsetsLhs[] = $curOff;
-			$lhsDimNode = $lhsDimNode->children['expr'];
-		}
-		return array_reverse( $resolvedOffsetsLhs );
-	}
-
-	/**
 	 * Get a property by name in the current scope, failing hard if it cannot be found.
 	 * @param string $propName
 	 * @return Property
