@@ -39,17 +39,17 @@ class MethodLinks {
 	 */
 	public function getForDim( $dim ) : self {
 		if ( !is_scalar( $dim ) ) {
-			return $this->asValueFirstLevel();
+			return $this->asValueFirstLevel()->withAddedOffset( $dim );
 		}
 		if ( isset( $this->dimLinks[$dim] ) ) {
 			$ret = clone $this->dimLinks[$dim];
 			$ret->mergeWith( $this->unknownDimLinks ?? self::newEmpty() );
 			$ret->links = self::mergeSets( $ret->links, $this->links );
-			return $ret;
+			return $ret->withAddedOffset( $dim );
 		}
 		$ret = $this->unknownDimLinks ? clone $this->unknownDimLinks : self::newEmpty();
 		$ret->links = self::mergeSets( $ret->links, $this->links );
-		return $ret;
+		return $ret->withAddedOffset( $dim );
 	}
 
 	/**
@@ -133,6 +133,18 @@ class MethodLinks {
 	}
 
 	/**
+	 * @param Node|mixed $offset
+	 * @return self
+	 */
+	public function withAddedOffset( $offset ) : self {
+		$ret = clone $this;
+		foreach ( $ret->links as $func ) {
+			$ret->links[$func]->pushOffsetToAll( $offset );
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param array $offsets
 	 * @phan-param array<Node|mixed> $offsets
 	 * @param MethodLinks $links
@@ -169,6 +181,54 @@ class MethodLinks {
 			}
 			$base = $base->dimLinks[$offset];
 		}
+		$this->normalize();
+	}
+
+	/**
+	 * Remove offset links which are already present in the "main" links. This is done for performance
+	 * (see test backpropoffsets-blowup).
+	 *
+	 * @todo Improve (e.g. recurse)
+	 * @todo Might happen sometime earlier
+	 */
+	private function normalize() : void {
+		if ( !count( $this->links ) ) {
+			return;
+		}
+		foreach ( $this->dimLinks as $k => $links ) {
+			foreach ( $links->links as $func ) {
+				if ( $this->links->contains( $func ) ) {
+					$dimParams = array_keys( $links->links[$func]->getParams() );
+					$thisParams = array_keys( $this->links[$func]->getParams() );
+					$keepParams = array_diff( $dimParams, $thisParams );
+					if ( !$keepParams ) {
+						unset( $links->links[$func] );
+					} else {
+						$links->links[$func]->keepOnlyParams( $keepParams );
+					}
+				}
+			}
+			if ( $links->isEmpty() ) {
+				unset( $this->dimLinks[$k] );
+			}
+		}
+		if ( $this->unknownDimLinks ) {
+			foreach ( $this->unknownDimLinks->links as $func ) {
+				if ( $this->links->contains( $func ) ) {
+					$dimParams = array_keys( $this->unknownDimLinks->links[$func]->getParams() );
+					$thisParams = array_keys( $this->links[$func]->getParams() );
+					$keepParams = array_diff( $dimParams, $thisParams );
+					if ( !$keepParams ) {
+						unset( $this->unknownDimLinks->links[$func] );
+					} else {
+						$this->unknownDimLinks->links[$func]->keepOnlyParams( $keepParams );
+					}
+				}
+			}
+			if ( $this->unknownDimLinks->isEmpty() ) {
+				$this->unknownDimLinks = null;
+			}
+		}
 	}
 
 	/**
@@ -192,9 +252,7 @@ class MethodLinks {
 	 * Make sure to clone member variables, too.
 	 */
 	public function __clone() {
-		foreach ( $this->links as $method ) {
-			$this->links[$method] = clone $this->links[$method];
-		}
+		$this->links = clone $this->links;
 		foreach ( $this->dimLinks as $k => $links ) {
 			$this->dimLinks[$k] = clone $links;
 		}
@@ -209,7 +267,7 @@ class MethodLinks {
 	 * @return LinksSet
 	 */
 	public function getLinks() : LinksSet {
-		$ret = $this->links;
+		$ret = clone $this->links;
 		foreach ( $this->dimLinks as $link ) {
 			$ret = self::mergeSets( $ret, $link->getLinks() );
 		}
@@ -268,28 +326,29 @@ class MethodLinks {
 	}
 
 	/**
+	 * @param string $indent
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function toString( $indent = '' ) : string {
 		$ret = 'OWN: ' . $this->links->__toString() . ';';
 		if ( !$this->dimLinks ) {
 			return $ret;
 		}
 		$ret .= ' CHILDREN: ';
+		$childrenIndent = $indent . "\t";
 		foreach ( $this->dimLinks as $key => $links ) {
-			$ret .= "\n\t$key: " . $links->__toString();
+			$ret .= "\n$childrenIndent$key: " . $links->toString( $childrenIndent );
 		}
 		if ( $this->unknownDimLinks ) {
-			$ret .= "\n\t(UNKNOWN): " . $this->unknownDimLinks->__toString();
+			$ret .= "\n\t(UNKNOWN): " . $this->unknownDimLinks->toString( $childrenIndent );
 		}
 		return $ret;
 	}
 
 	/**
-	 * @suppress PhanUnreferencedPublicMethod
 	 * @return string
 	 */
-	public function toString() : string {
-		return $this->__toString();
+	public function __toString() : string {
+		return $this->toString();
 	}
 }

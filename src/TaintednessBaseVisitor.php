@@ -1648,7 +1648,7 @@ trait TaintednessBaseVisitor {
 		$rhsActualLinks = $rhsLinks->getLinks();
 		foreach ( $rhsActualLinks as $method ) {
 			$paramInfo = $rhsActualLinks[$method];
-			foreach ( $paramInfo->getParams() as $index ) {
+			foreach ( $paramInfo->getParams() as $index => $_ ) {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
@@ -1710,8 +1710,8 @@ trait TaintednessBaseVisitor {
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
 				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
-				foreach ( $paramInfo->getParams() as $i ) {
-					$curParTaint = clone $curTaint;
+				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
+					$curParTaint = $curTaint->asMovedAtRelevantOffsets( $paramOffsets );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint->setVariadicParamTaint( $i, $curParTaint );
 					} else {
@@ -2111,13 +2111,15 @@ trait TaintednessBaseVisitor {
 				if ( (string)( $func->getFQSEN() ) === (string)( $curFunc->getFQSEN() ) ) {
 					// Note, not forCaller, as that doesn't see variadic parameters
 					$calleeParamList = $func->getParameterList();
-					foreach ( $paramInfo->getParams() as $i ) {
+					foreach ( $paramInfo->getParams() as $i => $offsets ) {
+						// TODO: This still doesn't work very well
+						$pTaint = $pobjTaintContribution->asMovedAtRelevantOffsets( $offsets );
 						if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-							$paramTaint->setVariadicParamTaint( $i, $pobjTaintContribution );
+							$paramTaint->setVariadicParamTaint( $i, $pTaint );
 						} else {
-							$paramTaint->setParamTaint( $i, $pobjTaintContribution );
+							$paramTaint->setParamTaint( $i, $pTaint );
 						}
-						$taintRemaining->removeObj( $pobjTaintContribution );
+						$taintRemaining->removeObj( $pTaint );
 					}
 				} else {
 					$taintRemaining->removeObj( $pobjTaintContribution );

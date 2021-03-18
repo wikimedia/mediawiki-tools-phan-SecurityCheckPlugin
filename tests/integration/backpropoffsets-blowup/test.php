@@ -1,5 +1,94 @@
 <?php
 
+// In these tests, the offset from the RHS of the assignments should only be added once. Failing to do so
+// would be wrong, and would probably lead to memory exhaustion on large codebases.
+// Unfortunately we need to use a hacky annotation to ensure that this bug doesn't happen: if we set HTML_EXEC
+// on both ['x'] and ['x']['x'], the latter is ignored due to the former, so there's no difference in terms of
+// issues being emitted.
+// For recursive variants, basically any result is correct (since the recursion is potentially infinite, and even if it
+// wasn't, we couldn't tell), as long as:
+// - The outer taintedness has no OWN flags
+// - It has *HTML on 'x'
+// - It should have *HTML on 'x'->'x'
+// Then the actual depth (beyond 'x'->'x') is irrelevant, and just depends on how thoroughly we/phan decide to analyze
+// the method. However, it's also important that we don't recurse too much, or the memory usage might explode. We call
+// the recursive variants more than once in order to assert this.
+// All XSSs are suppressed so it's easier to focus on the important annotations.
+
+class TestProp {
+	public $prop;
+	function echoUnsafe( $arg ) {
+		$this->prop = $arg['x'];
+		echo $this->prop;
+	}
+}
+( new TestProp() )->echoUnsafe( [ 'x' => 'a' ] );
+'@taint-check-debug-method-first-arg TestProp::echoUnsafe';
+
+class TestPropRecursive {
+	public $prop;
+	function echoRecursive( $arg ) {
+		$this->prop = $arg['x'];
+		if ( rand() ) {
+			$this->echoRecursive( $this->prop );//@phan-suppress-current-line SecurityCheck-XSS
+		}
+		echo $this->prop;//@phan-suppress-current-line SecurityCheck-XSS
+	}
+}
+( new TestPropRecursive() )->echoRecursive( [ 'x' => 'a' ] );
+( new TestPropRecursive() )->echoRecursive( [ 'x' => [ 'x' => 's', 'y' => $_GET['a'] ] ] );//@phan-suppress-current-line SecurityCheck-XSS
+( new TestPropRecursive() )->echoRecursive( [ 'x' => [ 'x' => [ 'x' => [ 'x' => 's', 'y' => $_GET['a'] ] ] ] ] );//@phan-suppress-current-line SecurityCheck-XSS
+'@taint-check-debug-method-first-arg TestPropRecursive::echoRecursive';
+
+class TestGlobal {
+	function echoUnsafe( $arg ) {
+		global $foo;
+		$foo = $arg['x'];
+		echo $foo;
+	}
+}
+( new TestGlobal() )->echoUnsafe( [ 'x' => 'a' ] );
+'@taint-check-debug-method-first-arg TestGlobal::echoUnsafe';
+
+class TestGlobalRecursive {
+	function echoRecursive( $arg ) {
+		global $foo;
+		$foo = $arg['x'];
+		if ( rand() ) {
+			$this->echoRecursive( $foo );//@phan-suppress-current-line SecurityCheck-XSS
+		}
+		echo $foo;//@phan-suppress-current-line SecurityCheck-XSS
+	}
+}
+( new TestGlobalRecursive() )->echoRecursive( [ 'x' => 'a' ] );
+( new TestGlobalRecursive() )->echoRecursive( [ 'x' => [ 'x' => 's', 'y' => $_GET['a'] ] ] );//@phan-suppress-current-line SecurityCheck-XSS
+( new TestGlobalRecursive() )->echoRecursive( [ 'x' => [ 'x' => [ 'x' => [ 'x' => 's', 'y' => $_GET['a'] ] ] ] ] );//@phan-suppress-current-line SecurityCheck-XSS
+'@taint-check-debug-method-first-arg TestGlobalRecursive::echoRecursive';
+
+class TestVar {
+	function echoUnsafe( $arg ) {
+		$local = $arg['x'];
+		echo $local;
+	}
+}
+( new TestVar() )->echoUnsafe( [ 'x' => 'a' ] );
+'@taint-check-debug-method-first-arg TestVar::echoUnsafe';
+
+class TestVarRecursive {
+	function echoRecursive( $arg ) {
+		$local = $arg['x'];
+		if ( rand() ) {
+			$this->echoRecursive( $local );
+		}
+		echo $local;
+	}
+}
+( new TestVarRecursive() )->echoRecursive( [ 'x' => 'a' ] );
+( new TestVarRecursive() )->echoRecursive( [ 'x' => [ 'x' => 's', 'y' => $_GET['a'] ] ] );//@phan-suppress-current-line SecurityCheck-XSS
+( new TestVarRecursive() )->echoRecursive( [ 'x' => [ 'x' => [ 'x' => [ 'x' => 's', 'y' => $_GET['a'] ] ] ] ] );//@phan-suppress-current-line SecurityCheck-XSS
+'@taint-check-debug-method-first-arg TestVarRecursive::echoRecursive';
+
+
 // This is adapted from an actual example taken from PHPUnit's TestRunner (when it handles config options).
 // This would cause a very long list of dependencies to be merged together, a total of 2^(assignments-1) offsets.
 // That would make the plugin hang, or exhaust the memory of your machine for a large exponent.
@@ -268,3 +357,17 @@ class PHPUnitExample {
 		echo $arguments;
 	}
 }
+'@taint-check-debug-method-first-arg PHPUnitExample::exhaustionTest';
+
+
+// Similar to the PHPUnit example above, but with a different variable at the LHS
+class SameOffsetDifferentVar {
+	function testStuff( $argument ) {
+		$x = [];
+		$x['a'] = $argument['a'];
+		$x['b'] = $argument['b'];
+		$x['c'] = $argument['c'];
+		echo $x;
+	}
+}
+'@taint-check-debug-method-first-arg SameOffsetDifferentVar::testStuff';
