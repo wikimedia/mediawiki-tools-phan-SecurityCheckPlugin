@@ -2597,10 +2597,11 @@ trait TaintednessBaseVisitor {
 
 			$parTaint = $funcTaint->getParamTaint( $i );
 			if ( $parTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
-				$parTaint = Taintedness::newTainted();
+				$parTaint = $parTaint->asPreserveReplacedWith( SecurityCheckPlugin::YES_TAINT );
 			}
-			$effectiveArgTaintedness = $curArgTaintedness->withOnlyObj(
-				$parTaint->withObj( $parTaint->asExecToYesTaint() )
+			$effectiveArgTaintedness = Taintedness::intersectForSink(
+				$parTaint->withObj( $parTaint->asExecToYesTaint() ),
+				$curArgTaintedness
 			);
 			$this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 				. " via arg $i $funcName" );

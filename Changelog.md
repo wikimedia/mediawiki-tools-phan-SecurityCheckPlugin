@@ -13,6 +13,7 @@
 * (MW) Improved hook registration, being now able to infer the callback in more cases
 * (MW) Added partial support for HookHandlers in extension.json
 * Improved handling of pass-by-reference parameters when the parameter is essentially left unchanged
+* The plugin can now track array shapes when backpropagating EXEC taintedness. This brings increased accuracy when analyzing method calls.
 
 ### Bug fixes
 * Improved merging caused-by lines to avoid duplicates
