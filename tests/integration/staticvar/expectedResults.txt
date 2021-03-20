@@ -1,0 +1,1 @@
+integration/staticvar/test.php:4 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE}

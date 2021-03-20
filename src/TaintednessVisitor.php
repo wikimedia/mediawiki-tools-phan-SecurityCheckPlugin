@@ -526,6 +526,20 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * `static $var = 'foo'` Handle it as an assignment of a safe value, to initialize the taintedness
+	 * on $var. Ideally, we'd want to retain any taintedness on this object, but it's currently impossible
+	 * (upstream has the same limitation with union types).
+	 *
+	 * @param Node $node
+	 */
+	public function visitStatic( Node $node ) : void {
+		$var = $this->getCtxN( $node->children['var'] )->getVariable();
+		$this->setTaintednessOld( $var, Taintedness::newSafe(), false );
+		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCachedData( $node );
+	}
+
+	/**
 	 * @param Node $node
 	 */
 	public function visitAssignRef( Node $node ) : void {
