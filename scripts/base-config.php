@@ -51,12 +51,12 @@ return [
 	 */
 	'processes' => 1,
 
-	/** We use the whitelist instead */
+	/** We selectively enable the checks we want, rather than disabling the ones we don't want */
 	'suppress_issue_types' => [],
 
 	/**
 	 * If empty, no filter against issues types will be applied.
-	 * If this white-list is non-empty, only issues within the list
+	 * If this allowed list is non-empty, only issues within the list
 	 * will be emitted by Phan.
 	 */
 	'whitelist_issue_types' => [
@@ -71,7 +71,7 @@ return [
 		'SecurityCheck-PathTraversal',
 		'SecurityCheck-ReDoS',
 		'SecurityCheck-OTHER',
-		// Rely on severity setting to blacklist false positive.
+		// Rely on severity setting to prevent false positive.
 		'SecurityCheck-LikelyFalsePositive',
 		'PhanSyntaxError',
 		'SecurityCheckDebugTaintedness',

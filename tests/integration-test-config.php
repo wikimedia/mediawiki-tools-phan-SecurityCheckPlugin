@@ -219,14 +219,14 @@ return [
 
 	/**
 	 * Add any issue types (such as 'PhanUndeclaredMethod')
-	 * to this black-list to inhibit them from being reported.
+	 * to this list to inhibit them from being reported.
 	 */
 	'suppress_issue_types' => [
 	],
 
 	/**
 	 * If empty, no filter against issues types will be applied.
-	 * If this white-list is non-empty, only issues within the list
+	 * If this allowed list is non-empty, only issues within the list
 	 * will be emitted by Phan.
 	 */
 	'whitelist_issue_types' => [
