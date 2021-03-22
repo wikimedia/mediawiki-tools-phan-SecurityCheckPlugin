@@ -1,0 +1,1 @@
+integration/preservebug/test.php:8 SecurityCheckDebugTaintedness Variable $y has taintedness: {Own: NONE; Keys: NONE}

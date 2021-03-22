@@ -506,6 +506,12 @@ trait TaintednessBaseVisitor {
 		} else {
 			$curTaint = $override ? $taintedness : $curTaint->asMergedWith( $taintedness );
 		}
+		if ( $variableObj instanceof Property || $variableObj instanceof GlobalVariable ) {
+			// See test "preservebug". Don't let PRESERVE exit from the current function.
+			// Not removing it from error taint because it might be useful sometimes.
+			// TODO Improve this
+			$curTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
+		}
 		self::setTaintednessRaw( $variableObj, $curTaint );
 		$this->addTaintError( $errorTaint, $variableObj );
 	}
