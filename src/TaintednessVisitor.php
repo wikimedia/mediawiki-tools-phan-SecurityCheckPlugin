@@ -100,6 +100,22 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
+	 * Sets $this->curTaint to INAPPLICABLE. Shorthand to filter the usages of curTaint.
+	 * @note This shouldn't usually be cached, because computing is not expensive (time-wise) but can
+	 * take quite a lot of memory.
+	 */
+	private function setCurTaintInapplicable() : void {
+		$this->curTaint = Taintedness::newInapplicable();
+	}
+
+	/**
+	 * Sets $this->curTaint to UNKNOWN. Shorthand to filter the usages of curTaint.
+	 */
+	private function setCurTaintUnknown() : void {
+		$this->curTaint = Taintedness::newUnknown();
+	}
+
+	/**
 	 * Generic visitor when we haven't defined a more specific one.
 	 *
 	 * @param Node $node
@@ -112,7 +128,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// you can run `Debug::printNode($node)`.
 		# Debug::printNode( $node );
 		$this->debug( __METHOD__, "unhandled case " . Debug::nodeName( $node ) );
-		$this->curTaint = Taintedness::newUnknown();
+		$this->setCurTaintUnknown();
 		$this->setCachedData( $node );
 	}
 
@@ -128,7 +144,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curTaint = $this->analyzeFunctionLike( $func );
 		} else {
 			$this->debug( __METHOD__, 'closure doesn\'t exist' );
-			$this->curTaint = Taintedness::newInapplicable();
+			$this->setCurTaintInapplicable();
 		}
 		$this->setCachedData( $node );
 	}
@@ -140,7 +156,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitClosureVar( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -149,7 +165,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitClosureUses( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -222,35 +238,35 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitStmtList( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitUseElem( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitType( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitArgList( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitParamList( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -258,49 +274,49 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitParam( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitClass( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitClassConstDecl( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitConstDecl( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitIf( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitIfElem( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitThrow( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -308,105 +324,105 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitPropDecl( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitConstElem( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitUse( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitUseTrait( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitBreak( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitContinue( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitGoto( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitCatch( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitNamespace( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitSwitch( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitSwitchCase( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitWhile( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitDoWhile( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitFor( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitSwitchList( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -415,21 +431,21 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitExprList( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitUnset( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
 	public function visitTry( Node $node ) : void {
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -438,7 +454,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitArrayElem( Node $node ) : void {
 		// Key and value are handled in visitArray()
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 	}
 
 	/**
@@ -463,7 +479,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$lhs = $node->children['var'];
 		if ( !$lhs instanceof Node ) {
 			// Syntax error, don't crash
-			$this->curTaint = Taintedness::newInapplicable();
+			$this->setCurTaintInapplicable();
 			return;
 		}
 		$rhs = $node->children['expr'];
@@ -476,7 +492,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( !in_array( $lhs->kind, $allowedLHS, true ) ) {
 				// Probably a syntax error.
 				$this->debug( __METHOD__, 'Unexpected LHS: ' . Debug::nodeName( $lhs ) );
-				$this->curTaint = Taintedness::newInapplicable();
+				$this->setCurTaintInapplicable();
 				return;
 			}
 		}
@@ -524,7 +540,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$lhs = $node->children['var'];
 		if ( !$lhs instanceof Node ) {
 			// Syntax error, don't crash
-			$this->curTaint = Taintedness::newInapplicable();
+			$this->setCurTaintInapplicable();
 			return;
 		}
 		$rhs = $node->children['expr'];
@@ -836,7 +852,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$ctxNode = $this->getCtxN( $node );
 		if ( !$node->children['class'] instanceof Node ) {
 			// Syntax error, don't crash
-			$this->curTaint = Taintedness::newInapplicable();
+			$this->setCurTaintInapplicable();
 			return;
 		}
 		if ( $node->children['class']->kind === \ast\AST_NAME ) {
@@ -870,7 +886,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				);
 			} catch ( CodeBaseException | IssueException $e ) {
 				$this->debug( __METHOD__, 'Cannot get class: ' . $this->getDebugInfo( $e ) );
-				$this->curTaint = Taintedness::newUnknown();
+				$this->setCurTaintUnknown();
 				$this->setCachedData( $node );
 				return;
 			}
@@ -879,7 +895,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( $clazzesCount !== 1 ) {
 				// TODO None or too many, we give up for now
 				$this->debug( __METHOD__, "got $clazzesCount, giving up" );
-				$this->curTaint = Taintedness::newUnknown();
+				$this->setCurTaintUnknown();
 				$this->setCachedData( $node );
 				return;
 			}
@@ -901,7 +917,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			)->getTaintedness();
 		} else {
 			$this->debug( __METHOD__, "cannot understand new" );
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 		}
 		$this->setCachedData( $node );
 	}
@@ -921,7 +937,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitMethodCall( Node $node ) : void {
 		$funcs = $this->getFuncsFromNode( $node );
 		if ( !$funcs ) {
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
@@ -998,7 +1014,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $varName === '' ) {
 			$this->debug( __METHOD__, "FIXME: Complex variable case not handled." );
 			// Debug::printNode( $node );
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 			return;
 		}
 		if ( $this->isSuperGlobal( $varName ) ) {
@@ -1008,7 +1024,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		} elseif ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
 			// Probably the var just isn't in scope yet.
 			// $this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
@@ -1067,7 +1083,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitGlobal( Node $node ) : void {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 		$this->setCachedData( $node );
 
 		$varName = $node->children['var']->children['name'];
@@ -1099,7 +1115,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitReturn( Node $node ) : void {
 		if ( !$this->context->isInFunctionLikeScope() ) {
 			// E.g. a file that can be included.
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
@@ -1129,7 +1145,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->mergeTaintError( $curFunc, $pobj );
 			}
 		}
-		$this->curTaint = Taintedness::newInapplicable();
+		$this->setCurTaintInapplicable();
 		$this->setCachedData( $node );
 	}
 
@@ -1224,7 +1240,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitStaticProp( Node $node ) : void {
 		$prop = $this->getPropFromNode( $node );
 		if ( !$prop ) {
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 			return;
 		}
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
@@ -1275,7 +1291,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 
 			// Should this be NO_TAINT?
-			$this->curTaint = Taintedness::newUnknown();
+			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
