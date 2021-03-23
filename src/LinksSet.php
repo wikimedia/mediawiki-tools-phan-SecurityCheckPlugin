@@ -27,4 +27,12 @@ class LinksSet extends Set {
 		$set->addAll( $other );
 		return $set;
 	}
+
+	public function __toString() : string {
+		$children = [];
+		foreach ( $this as $func ) {
+			$children[] = $func->getFQSEN()->__toString() . ': ' . $this[$func]->__toString();
+		}
+		return '[' . implode( ',', $children ) . ']';
+	}
 }

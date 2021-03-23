@@ -1630,26 +1630,23 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		$rhsLinks = $rhsLinks->getLinks();
 		$lhsLinks = self::getMethodLinks( $lhs ) ?? MethodLinks::newEmpty();
-		$actualLhsLinks = $lhsLinks->getLinks();
 
 		// So if we have $a = $b;
 		// First we find out all the methods that can set $b
 		// Then we add $a to the list of variables that those methods can set.
 		// Last we add these methods to $a's list of all methods that can set it.
-		foreach ( $rhsLinks as $method ) {
-			$paramInfo = $rhsLinks[$method];
+		$rhsActualLinks = $rhsLinks->getLinks();
+		foreach ( $rhsActualLinks as $method ) {
+			$paramInfo = $rhsActualLinks[$method];
 			foreach ( $paramInfo->getParams() as $index ) {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$varLinks->attach( $lhs );
 			}
-			$actualLhsLinks[$method] = $actualLhsLinks[$method] ?? new SingleMethodLinks();
-			$actualLhsLinks[$method]->mergeWith( $paramInfo );
 		}
-		self::setMethodLinks( $lhs, $lhsLinks );
+		self::setMethodLinks( $lhs, $lhsLinks->asMergedWith( $rhsLinks ) );
 	}
 
 	/**
@@ -1685,30 +1682,33 @@ trait TaintednessBaseVisitor {
 		if ( $varLinks === null || $varLinks->isEmpty() ) {
 			return;
 		}
-		$varLinks = $varLinks->getLinks();
 
 		$this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
 
-		foreach ( $varLinks as $method ) {
-			$paramInfo = $varLinks[$method];
-			// Note, not forCaller, as that doesn't see variadic parameters
-			$calleeParamList = $method->getParameterList();
-			$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
-			foreach ( $paramInfo->getParams() as $i ) {
-				$curTaint = clone $taint;
-				if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-					$paramTaint->setVariadicParamTaint( $i, $curTaint );
-				} else {
-					$paramTaint->setParamTaint( $i, $curTaint );
+		foreach ( self::getRelevantLinksForTaintedness( $varLinks, $taint ) as [ $curLinks, $curTaint ] ) {
+			/** @var MethodLinks $curLinks */
+			/** @var Taintedness $curTaint */
+			foreach ( $curLinks->getLinks() as $method ) {
+				$paramInfo = $curLinks->getLinks()[$method];
+				// Note, not forCaller, as that doesn't see variadic parameters
+				$calleeParamList = $method->getParameterList();
+				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
+				foreach ( $paramInfo->getParams() as $i ) {
+					$curParTaint = clone $curTaint;
+					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
+						$paramTaint->setVariadicParamTaint( $i, $curParTaint );
+					} else {
+						$paramTaint->setParamTaint( $i, $curParTaint );
+					}
+					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
-				// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
-			}
-			$this->setFuncTaint( $method, $paramTaint );
-			// TODO: Ideally we would merge taint error per argument
-			$this->mergeTaintError( $method, $var );
-			if ( $triggeringElm ) {
-				$this->mergeTaintError( $method, $triggeringElm );
+				$this->setFuncTaint( $method, $paramTaint );
+				// TODO: Ideally we would merge taint error per argument
+				$this->mergeTaintError( $method, $var );
+				if ( $triggeringElm ) {
+					$this->mergeTaintError( $method, $triggeringElm );
+				}
 			}
 		}
 
@@ -1725,6 +1725,27 @@ trait TaintednessBaseVisitor {
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for variable " . $var->getName() );
 		}
+	}
+
+	/**
+	 * @param MethodLinks $allLinks
+	 * @param Taintedness $taintedness
+	 * @return array[]
+	 * @phan-return array<array{0:MethodLinks,1:Taintedness}>
+	 */
+	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ) : array {
+		if ( $taintedness->hasSomethingOutOfKnownDims() || $allLinks->hasSomethingOutOfKnownDims() ) {
+			// TODO Improve this case (e.g. unknown offsets).
+			return [ [ $allLinks, $taintedness ] ];
+		}
+		$pairs = [];
+		foreach ( $taintedness->getDimTaint() as $k => $dimTaint ) {
+			$pairs = array_merge(
+				$pairs,
+				self::getRelevantLinksForTaintedness( $allLinks->getForDim( $k ), $dimTaint )
+			);
+		}
+		return $pairs;
 	}
 
 	/**

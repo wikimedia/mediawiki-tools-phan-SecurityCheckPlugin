@@ -41,4 +41,11 @@ class SingleMethodLinks {
 	public function getParams() : array {
 		return array_keys( $this->params );
 	}
+
+	/**
+	 * @return string
+	 */
+	public function __toString() : string {
+		return '[' . implode( ', ', array_keys( $this->params ) ) . ']';
+	}
 }
