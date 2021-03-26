@@ -1138,8 +1138,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setFuncTaint( $curFunc, $funcTaint );
 
 		if ( $node->children['expr'] instanceof Node ) {
-			// Save this object in the Function object
-			$retObjs = $this->getPhanObjsForNode( $node->children['expr'] );
+			$collector = new ReturnObjectsCollectVisitor( $this->code_base, $this->context );
+			$retObjs = $collector->collectFromNode( $node );
 			self::addRetObjs( $curFunc, $retObjs );
 			foreach ( $retObjs as $pobj ) {
 				// TODO We might merge from $retTaintednessWithError, but it would add redundant lines
