@@ -29,12 +29,6 @@ class Taintedness {
 	private $unknownDimsTaint;
 
 	/**
-	 * @var int Shortcut for all numkey flags. We remove these recursively from the keys, because
-	 * numkey should only refer to the outer array.
-	 */
-	private const ALL_NUMKEY = SecurityCheckPlugin::SQL_NUMKEY_TAINT | SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT;
-
-	/**
 	 * @param int $val One of the class constants
 	 */
 	public function __construct( int $val ) {
@@ -69,13 +63,6 @@ class Taintedness {
 	 */
 	public static function newTainted() : self {
 		return new self( SecurityCheckPlugin::YES_TAINT );
-	}
-
-	/**
-	 * @return self
-	 */
-	public static function newAll() : self {
-		return new self( SecurityCheckPlugin::ALL_TAINT_FLAGS );
 	}
 
 	/**
@@ -114,14 +101,13 @@ class Taintedness {
 
 	/**
 	 * Recursively extract the taintedness from each key.
-	 * @note This removes numkey flags from the returned value!
 	 *
 	 * @return int
 	 */
 	private function getAllKeysTaint() : int {
 		$ret = SecurityCheckPlugin::NO_TAINT;
 		foreach ( $this->dimTaint as $val ) {
-			$ret |= $val->without( self::ALL_NUMKEY )->get();
+			$ret |= $val->get();
 		}
 		return $ret;
 	}
@@ -231,16 +217,38 @@ class Taintedness {
 
 	/**
 	 * Check whether this object has the given flag, recursively.
+	 * @note If $taint has more than one flag, this will check for at least one, not all.
 	 *
 	 * @param int $taint
-	 * @param bool $all For composite flags, this determines whether we should check for
-	 *  a subset of $taint, or all of the flags in $taint should also be in $this.
 	 * @return bool
 	 */
-	public function has( int $taint, bool $all = false ) : bool {
-		return $all
-			? ( $this->get() & $taint ) === $taint
-			: ( $this->get() & $taint ) !== SecurityCheckPlugin::NO_TAINT;
+	public function has( int $taint ) : bool {
+		// Avoid using get() for performance
+		if ( ( $this->flags & $taint ) !== SecurityCheckPlugin::NO_TAINT ) {
+			return true;
+		}
+		if ( ( $this->keysTaint & $taint ) !== SecurityCheckPlugin::NO_TAINT ) {
+			return true;
+		}
+		if ( $this->unknownDimsTaint && $this->unknownDimsTaint->has( $taint ) ) {
+			return true;
+		}
+		foreach ( $this->dimTaint as $val ) {
+			if ( $val->has( $taint ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Check whether this object has only the given flag, recursively.
+	 *
+	 * @param int $taint
+	 * @return bool
+	 */
+	public function hasOnly( int $taint ) : bool {
+		return ( $this->get() & $taint ) === $taint;
 	}
 
 	/**
@@ -285,14 +293,18 @@ class Taintedness {
 	 * Intersect the taintedness of a value against that of a sink, to later determine whether the
 	 * expression is safe.
 	 *
+	 * @note The order of the arguments is important! This method preserves the shape of $sink, not $value.
+	 *
 	 * @param Taintedness $sink
-	 * @param Taintedness $rawValue
+	 * @param Taintedness $value
 	 * @return self
 	 */
-	public static function intersectForSink( self $sink, self $rawValue ) : self {
-		$value = $rawValue->asYesToExecTaint();
+	public static function intersectForSink( self $sink, self $value ) : self {
+		$intersect = self::newSafe();
 		// If the sink has anything in its flags, preserve it regardless of where it comes from in $value
-		$intersect = new self( $sink->flags & $value->get() );
+		if ( $sink->flags ) {
+			$intersect->flags = $sink->flags & $value->get();
+		}
 		// If the RHS has unknown keys, copy the taintedness to every other key to facilitate things
 		if ( $value->unknownDimsTaint ) {
 			foreach ( $value->dimTaint as $el ) {
@@ -578,7 +590,22 @@ class Taintedness {
 	 * @return bool
 	 */
 	public function isSafe() : bool {
-		return $this->get() === SecurityCheckPlugin::NO_TAINT;
+		// Don't use get() for performance
+		if ( $this->flags !== SecurityCheckPlugin::NO_TAINT ) {
+			return false;
+		}
+		if ( $this->keysTaint !== SecurityCheckPlugin::NO_TAINT ) {
+			return false;
+		}
+		if ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isSafe() ) {
+			return false;
+		}
+		foreach ( $this->dimTaint as $val ) {
+			if ( !$val->isSafe() ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -586,17 +613,18 @@ class Taintedness {
 	 * Any YES flags are also discarded. Note that this returns a copy of the
 	 * original object. The shape is preserved.
 	 *
+	 * @warning This function is nilpotent: f^2(x) = 0
+	 *
 	 * @return self
 	 */
 	public function asExecToYesTaint() : self {
-		$ret = clone $this;
-		$ret->flags = ( $ret->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
-		if ( $ret->unknownDimsTaint ) {
-			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asExecToYesTaint();
+		$ret = new self( ( $this->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
+		if ( $this->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $this->unknownDimsTaint->asExecToYesTaint();
 		}
-		$ret->keysTaint = ( $ret->keysTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
-		foreach ( $ret->dimTaint as &$val ) {
-			$val = $val->asExecToYesTaint();
+		$ret->keysTaint = ( $this->keysTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
+		foreach ( $this->dimTaint as $k => $val ) {
+			$ret->dimTaint[$k] = $val->asExecToYesTaint();
 		}
 		return $ret;
 	}
@@ -606,17 +634,18 @@ class Taintedness {
 	 * Any UNKNOWN_TAINT or INAPPLICABLE_TAINT is discarded. Note that this returns a copy of the
 	 * original object. The shape is preserved.
 	 *
+	 * @warning This function is nilpotent: f^2(x) = 0
+	 *
 	 * @return self
 	 */
 	public function asYesToExecTaint() : self {
-		$ret = clone $this;
-		$ret->flags = ( $ret->flags & SecurityCheckPlugin::ALL_TAINT ) << 1;
-		if ( $ret->unknownDimsTaint ) {
-			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asYesToExecTaint();
+		$ret = new self( ( $this->flags & SecurityCheckPlugin::ALL_TAINT ) << 1 );
+		if ( $this->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $this->unknownDimsTaint->asYesToExecTaint();
 		}
-		$ret->keysTaint = ( $ret->keysTaint & SecurityCheckPlugin::ALL_TAINT ) << 1;
-		foreach ( $ret->dimTaint as &$val ) {
-			$val = $val->asYesToExecTaint();
+		$ret->keysTaint = ( $this->keysTaint & SecurityCheckPlugin::ALL_TAINT ) << 1;
+		foreach ( $this->dimTaint as $k => $val ) {
+			$ret->dimTaint[$k] = $val->asYesToExecTaint();
 		}
 		return $ret;
 	}

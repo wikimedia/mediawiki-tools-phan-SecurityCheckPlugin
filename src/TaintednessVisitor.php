@@ -96,7 +96,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function setCachedData( Node $node ) : void {
 		// @phan-suppress-next-line PhanUndeclaredProperty
-		$node->taint = new TaintednessWithError( clone $this->curTaint, $this->curError, $this->curLinks );
+		$node->taint = new TaintednessWithError( $this->curTaint, $this->curError, $this->curLinks );
 	}
 
 	/**
@@ -465,7 +465,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// (probably via handleMethodCall), and *then* return the taintedness of the cloned
 		// item. But finding the __clone definition might be hard...
 		$val = $this->getTaintedness( $node->children['expr'] );
-		$this->curTaint = $val->getTaintedness();
+		$this->curTaint = clone $val->getTaintedness();
 		$this->curError = $val->getError();
 		$this->curLinks = $val->getMethodLinks();
 		$this->setCachedData( $node );
@@ -733,13 +733,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $node->children['dim'] === null ) {
 			// This should only happen in assignments: $x[] = 'foo'. Just return
 			// the taint of the whole object.
-			$this->curTaint = $nodeTaint->getTaintedness();
+			$this->curTaint = clone $nodeTaint->getTaintedness();
 			$this->curError = $nodeTaint->getError();
 			$this->setCachedData( $node );
 			return;
 		}
 		$offset = $this->resolveOffset( $node->children['dim'] );
-		$this->curTaint = $nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset );
+		$this->curTaint = clone $nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset );
 		$this->curError = $nodeTaint->getError();
 		$this->curLinks = $nodeTaint->getMethodLinks();
 		$this->setCachedData( $node );
@@ -1338,7 +1338,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$trueTaint = $this->getTaintedness( $node->children['true'] );
 		}
 		$falseTaint = $this->getTaintedness( $node->children['false'] );
-		$this->curTaint = $trueTaint->getTaintedness()->withObj( $falseTaint->getTaintedness() );
+		$this->curTaint = clone $trueTaint->getTaintedness()->withObj( $falseTaint->getTaintedness() );
 		$this->curError = self::mergeCausedByLines( $trueTaint->getError(), $falseTaint->getError() );
 		$this->curLinks = self::mergeTaintLinks( $trueTaint->getMethodLinks(), $falseTaint->getMethodLinks() );
 		$this->setCachedData( $node );
@@ -1378,7 +1378,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		];
 		if ( in_array( $node->flags, $unsafe, true ) ) {
 			$exprTaint = $this->getTaintedness( $node->children['expr'] );
-			$this->curTaint = $exprTaint->getTaintedness();
+			$this->curTaint = clone $exprTaint->getTaintedness();
 			$this->curError = $exprTaint->getError();
 			$this->curLinks = $exprTaint->getMethodLinks();
 		} else {
@@ -1423,7 +1423,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function analyzeIncOrDec( Node $node ) : void {
 		$varTaint = $this->getTaintedness( $node->children['var'] );
-		$this->curTaint = $varTaint->getTaintedness();
+		$this->curTaint = clone $varTaint->getTaintedness();
 		$this->curError = $varTaint->getError();
 		$this->curLinks = $varTaint->getMethodLinks();
 		$this->setCachedData( $node );
@@ -1446,7 +1446,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curTaint = Taintedness::newSafe();
 		} else {
 			$exprTaint = $this->getTaintedness( $node->children['expr'] );
-			$this->curTaint = $exprTaint->getTaintedness();
+			$this->curTaint = clone $exprTaint->getTaintedness();
 			$this->curError = $exprTaint->getError();
 			$this->curLinks = $exprTaint->getMethodLinks();
 		}

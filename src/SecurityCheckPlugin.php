@@ -535,7 +535,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					break;
 				case 'escapes':
 				case 'onlysafefor':
-					$overallTaint->add( Taintedness::newTainted()->without( $taintAsInt )->get() );
+					$overallTaint->add( self::YES_TAINT & ~$taintAsInt );
 					if ( $taintParts['type'] === 'html' ) {
 						if ( $taintParts['prefix'] === 'escapes' ) {
 							$overallTaint->add( self::ESCAPED_EXEC_TAINT );

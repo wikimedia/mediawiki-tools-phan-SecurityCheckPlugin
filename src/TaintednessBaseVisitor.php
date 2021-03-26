@@ -102,7 +102,7 @@ trait TaintednessBaseVisitor {
 		} elseif ( !$override ) {
 			// If we are not overriding, and we don't know
 			// current taint, figure it out.
-			$curTaint = clone $this->getTaintOfFunction( $func, false );
+			$curTaint = $this->getTaintOfFunction( $func, false );
 		} else {
 			$curTaint = new FunctionTaintedness( Taintedness::newUnknown() );
 		}
@@ -160,9 +160,11 @@ trait TaintednessBaseVisitor {
 		// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
 		// the PHPDoc type, as it may be wrong.
 		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
-		$newTaint->map( function ( Taintedness $taint ) use ( $mask ) : void {
-			$taint->keepOnly( $mask->get() );
-		} );
+		if ( $mask !== null ) {
+			$newTaint->map( function ( Taintedness $taint ) use ( $mask ) : void {
+				$taint->keepOnly( $mask->get() );
+			} );
+		}
 
 		self::doSetFuncTaint( $func, $newTaint );
 	}
@@ -342,7 +344,7 @@ trait TaintednessBaseVisitor {
 				$taintedness = Taintedness::newTainted();
 			} else {
 				$funcTaint = $this->getTaintOfFunction( $elem, false );
-				if ( $funcTaint->withMaybeClearNoOverride( true )->equals( $funcTaint ) ) {
+				if ( !$funcTaint->hasNoOverride() ) {
 					// Don't do anything if the function has a NO_OVERRIDE somewhere (i.e. it's probably annotated,
 					// or the taintedness is hardcoded in the plugin)
 					$taintedness = Taintedness::newTainted()->asYesToExecTaint()
@@ -624,7 +626,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func What function/method to look up
 	 * @param bool $clearOverride Include SecurityCheckPlugin::NO_OVERRIDE
-	 * @return FunctionTaintedness
+	 * @return FunctionTaintedness Always a clone
 	 */
 	protected function getTaintOfFunction( FunctionInterface $func, $clearOverride = true ) : FunctionTaintedness {
 		// Fast case, either a builtin to php function or we already
@@ -786,7 +788,7 @@ trait TaintednessBaseVisitor {
 					$taint->add( $isVariadic ? SecurityCheckPlugin::VARIADIC_PARAM : SecurityCheckPlugin::NO_TAINT );
 					$funcTaint->setParamTaint( $paramNumber, $taint );
 					$validTaintEncountered = true;
-					if ( $taint->has( SecurityCheckPlugin::ESCAPES_HTML, true ) ) {
+					if ( $taint->hasOnly( SecurityCheckPlugin::ESCAPES_HTML ) ) {
 						// Special case to auto-set anything that escapes html to detect double escaping.
 						$funcTaint->setOverall( $funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT ) );
 					}
@@ -920,15 +922,15 @@ trait TaintednessBaseVisitor {
 	 * impossible taint types).
 	 *
 	 * @param TypedElementInterface $var
-	 * @return Taintedness
+	 * @return Taintedness|null Null means all taints, checking for null is faster than ORing
 	 */
-	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : Taintedness {
+	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : ?Taintedness {
 		if (
 			$var instanceof GlobalVariable ||
 			( $var instanceof Variable && $this->context->isInGlobalScope() )
 		) {
 			// TODO Improve handling of globals? (https://github.com/phan/phan/issues/4370)
-			return Taintedness::newAll();
+			return null;
 		}
 		// Note, we must use the real union type because:
 		// 1 - The non-real type might be wrong
@@ -941,13 +943,13 @@ trait TaintednessBaseVisitor {
 	 * Get what taint types are allowed on an element with the given type.
 	 *
 	 * @param UnionType $type
-	 * @return Taintedness
+	 * @return Taintedness|null Null for all flags
 	 */
-	protected function getTaintMaskForType( UnionType $type ) : Taintedness {
+	protected function getTaintMaskForType( UnionType $type ) : ?Taintedness {
 		$typeTaint = $this->getTaintByType( $type );
 
 		if ( $typeTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) {
-			return Taintedness::newAll();
+			return null;
 		}
 		return $typeTaint;
 	}
@@ -958,9 +960,9 @@ trait TaintednessBaseVisitor {
 	 * @todo Ensure this won't miss any case (aside from when phan infers a wrong real type)
 	 *
 	 * @param TypedElementInterface $el
-	 * @return Taintedness
+	 * @return Taintedness|null Null for all taints
 	 */
-	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ) : Taintedness {
+	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ) : ?Taintedness {
 		return $this->getTaintMaskForTypedElement( $el );
 	}
 
@@ -1070,7 +1072,7 @@ trait TaintednessBaseVisitor {
 		$taintOrNull = self::getTaintednessRaw( $variableObj );
 		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
-			$taintedness = $taintOrNull->withOnly( $mask->get() );
+			$taintedness = $mask !== null ? $taintOrNull->withOnly( $mask->get() ) : $taintOrNull;
 			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
 			$type = $variableObj->getUnionType();
@@ -1682,7 +1684,8 @@ trait TaintednessBaseVisitor {
 		Taintedness $taint,
 		TypedElementInterface $triggeringElm = null
 	) : void {
-		if ( !$this->getPossibleFutureTaintOfElement( $var )->has( $taint->get() ) ) {
+		$futureTaint = $this->getPossibleFutureTaintOfElement( $var );
+		if ( $futureTaint !== null && !$futureTaint->has( $taint->get() ) ) {
 			return;
 		}
 		// Ensure we only set exec bits, not normal taint bits.
@@ -1851,10 +1854,10 @@ trait TaintednessBaseVisitor {
 	 * @return bool Is it safe
 	 */
 	protected function isSafeAssignment( Taintedness $lhs, Taintedness $rhs ) : bool {
-		if ( $lhs->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) && $rhs->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) {
+		if ( $rhs->has( SecurityCheckPlugin::UNKNOWN_TAINT ) && $lhs->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
 			return false;
 		}
-
+		$rhs = $rhs->asYesToExecTaint();
 		return Taintedness::intersectForSink( $lhs, $rhs )->isSafe();
 	}
 

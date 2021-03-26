@@ -107,12 +107,19 @@ class FunctionTaintedness {
 	 * @return Taintedness
 	 */
 	public function getParamTaint( int $param ) : Taintedness {
-		if ( !$this->hasParam( $param ) ) {
+		if ( isset( $this->paramTaints[$param] ) ) {
+			return clone $this->paramTaints[$param];
+		}
+		if ( !$this->paramTaints ) {
 			return Taintedness::newSafe();
 		}
 		// TODO: array_key_last once we support PHP 7.3+
-		$idx = min( $param, max( array_keys( $this->paramTaints ) ) );
-		return clone $this->paramTaints[$idx];
+		$lastKey = max( array_keys( $this->paramTaints ) );
+		$lastEl = $this->paramTaints[$lastKey];
+		if ( $param >= $lastKey && $lastEl->has( SecurityCheckPlugin::VARIADIC_PARAM ) ) {
+			return clone $lastEl;
+		}
+		return Taintedness::newSafe();
 	}
 
 	/**
@@ -177,13 +184,20 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Check whether this object has the same values as $other
-	 * @param FunctionTaintedness $other
+	 * Check whether NO_OVERRIDE is set anywhere in this object.
+	 *
 	 * @return bool
 	 */
-	public function equals( self $other ) : bool {
-		// TODO This is a hack, but it works.
-		return $this->toString() === $other->toString();
+	public function hasNoOverride() : bool {
+		if ( $this->overall->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+			return true;
+		}
+		foreach ( $this->paramTaints as $t ) {
+			if ( $t->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

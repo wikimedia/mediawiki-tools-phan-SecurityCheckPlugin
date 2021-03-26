@@ -19,7 +19,8 @@ trait TaintednessAccessorsTrait {
 	 * @return Taintedness|null
 	 */
 	protected static function getTaintednessRaw( TypedElementInterface $element ) : ?Taintedness {
-		return property_exists( $element, 'taintedness' ) ? clone $element->taintedness : null;
+		// Performance: use isset(), not property_exists()
+		return isset( $element->taintedness ) ? clone $element->taintedness : null;
 	}
 
 	/**
@@ -101,7 +102,8 @@ trait TaintednessAccessorsTrait {
 	 * @return Set|null
 	 */
 	protected static function getMethodLinks( TypedElementInterface $element ) : ?Set {
-		return property_exists( $element, 'taintedMethodLinks' ) ? clone $element->taintedMethodLinks : null;
+		// Performance: use isset(), not property_exists()
+		return isset( $element->taintedMethodLinks ) ? clone $element->taintedMethodLinks : null;
 	}
 
 	/**
@@ -150,7 +152,8 @@ trait TaintednessAccessorsTrait {
 	 * @return Taintedness|null
 	 */
 	protected static function getTaintednessRef( TypedElementInterface $element ) : ?Taintedness {
-		return property_exists( $element, 'taintednessRef' ) ? clone $element->taintednessRef : null;
+		// Performance: use isset(), not property_exists()
+		return isset( $element->taintednessRef ) ? clone $element->taintednessRef : null;
 	}
 
 	/**
