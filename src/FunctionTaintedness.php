@@ -31,6 +31,12 @@ class FunctionTaintedness {
 	private $variadicParamIndex;
 	/** @var Taintedness|null Taintedness for a variadic parameter, if any */
 	private $variadicParamTaint;
+	/** @var int Special overall flags */
+	private $overallFlags = 0;
+	/** @var int[] Special flags for parameters */
+	private $paramFlags = [];
+	/** @var int */
+	private $variadicParamFlags = 0;
 
 	/**
 	 * @param Taintedness $overall
@@ -47,6 +53,13 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * @param int $flags
+	 */
+	public function addOverallFlags( int $flags ) : void {
+		$this->overallFlags |= $flags;
+	}
+
+	/**
 	 * Get a copy of the overall taint
 	 *
 	 * @return Taintedness
@@ -56,6 +69,13 @@ class FunctionTaintedness {
 			throw new LogicException( 'Found null overall' );
 		}
 		return clone $this->overall;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getOverallFlags() : int {
+		return $this->overallFlags;
 	}
 
 	/**
@@ -69,12 +89,27 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * @param int $param
+	 * @param int $flags
+	 */
+	public function addParamFlags( int $param, int $flags ) : void {
+		$this->paramFlags[$param] = ( $this->paramFlags[$param] ?? 0 ) | $flags;
+	}
+
+	/**
 	 * @param int $index
 	 * @param Taintedness $taint
 	 */
 	public function setVariadicParamTaint( int $index, Taintedness $taint ) : void {
 		$this->variadicParamIndex = $index;
 		$this->variadicParamTaint = $taint;
+	}
+
+	/**
+	 * @param int $flags
+	 */
+	public function addVariadicParamFlags( int $flags ) : void {
+		$this->variadicParamFlags |= $flags;
 	}
 
 	/**
@@ -94,6 +129,14 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * @param int $param
+	 * @return int
+	 */
+	public function getParamFlags( int $param ) : int {
+		return $this->paramFlags[$param] ?? 0;
+	}
+
+	/**
 	 * @return Taintedness|null
 	 */
 	public function getVariadicParamTaint() : ?Taintedness {
@@ -105,6 +148,13 @@ class FunctionTaintedness {
 	 */
 	public function getVariadicParamIndex() : ?int {
 		return $this->variadicParamIndex;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getVariadicParamFlags() : int {
+		return $this->variadicParamFlags;
 	}
 
 	/**
@@ -161,13 +211,11 @@ class FunctionTaintedness {
 		if ( !$clear ) {
 			return $ret;
 		}
-		$ret->overall->remove( SecurityCheckPlugin::NO_OVERRIDE );
-		foreach ( $ret->paramTaints as $t ) {
-			$t->remove( SecurityCheckPlugin::NO_OVERRIDE );
+		$ret->overallFlags &= ~SecurityCheckPlugin::NO_OVERRIDE;
+		foreach ( $ret->paramFlags as $i => $_ ) {
+			$ret->paramFlags[$i] &= ~SecurityCheckPlugin::NO_OVERRIDE;
 		}
-		if ( $ret->variadicParamTaint ) {
-			$ret->variadicParamTaint->remove( SecurityCheckPlugin::NO_OVERRIDE );
-		}
+		$ret->variadicParamFlags &= ~SecurityCheckPlugin::NO_OVERRIDE;
 		return $ret;
 	}
 
@@ -177,15 +225,15 @@ class FunctionTaintedness {
 	 * @return bool
 	 */
 	public function hasNoOverride() : bool {
-		if ( $this->overall->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+		if ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) {
 			return true;
 		}
-		foreach ( $this->paramTaints as $t ) {
-			if ( $t->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+		foreach ( $this->paramFlags as $f ) {
+			if ( $f & SecurityCheckPlugin::NO_OVERRIDE ) {
 				return true;
 			}
 		}
-		if ( $this->variadicParamTaint && $this->variadicParamTaint->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+		if ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) {
 			return true;
 		}
 		return false;
@@ -208,14 +256,28 @@ class FunctionTaintedness {
 	 * @return string
 	 */
 	public function toString() : string {
-		$str = "[\n\toverall: " . $this->overall->toString( '    ' ) . ",\n";
+		$str = "[\n\toverall: " . $this->overall->toString( '    ' ) .
+			self::flagsToString( $this->overallFlags ) . ",\n";
 		foreach ( $this->paramTaints as $par => $taint ) {
-			$str .= "\t$par: " . $taint->toString() . ",\n";
+			$str .= "\t$par: " . $taint->toString() . self::flagsToString( $this->paramFlags[$par] ?? 0 ) . ",\n";
 		}
 		if ( $this->variadicParamTaint ) {
-			$str .= "\t...{$this->variadicParamIndex}: " . $this->variadicParamTaint->toString() . ",\n";
+			$str .= "\t...{$this->variadicParamIndex}: " . $this->variadicParamTaint->toString() .
+				self::flagsToString( $this->variadicParamFlags ) . ",\n";
 		}
 		return "$str]";
+	}
+
+	/**
+	 * @param int $flags
+	 * @return string
+	 */
+	private static function flagsToString( int $flags ) : string {
+		$bits = [];
+		if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
+			$bits[] = 'no override';
+		}
+		return $bits ? ' (' . implode( ', ', $bits ) . ')' : '';
 	}
 
 	/**

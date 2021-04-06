@@ -125,8 +125,9 @@ trait TaintednessBaseVisitor {
 				}
 			}
 		};
-		$getTaintToAdd = function ( Taintedness $curT, Taintedness $baseT ) : Taintedness {
-			if ( $curT->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+		// TODO Perhaps this should happen inside FunctionTaintedness
+		$getTaintToAdd = function ( int $flags, Taintedness $curT, Taintedness $baseT ) : Taintedness {
+			if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
 				// We have some hard coded taint (e.g. from
 				// docblock) and do not want to override it
 				// from stuff deduced from src code.
@@ -145,7 +146,11 @@ trait TaintednessBaseVisitor {
 			$baseT = $taint->getParamTaint( $index );
 			$curT = $curTaint->getParamTaint( $index );
 			if ( !$override ) {
-				$newTaint->setParamTaint( $index, $getTaintToAdd( $curT, $baseT ) );
+				$newTaint->setParamTaint( $index, $getTaintToAdd( $curTaint->getParamFlags( $index ), $curT, $baseT ) );
+				$newTaint->addParamFlags(
+					$index,
+					$taint->getParamFlags( $index ) | $curTaint->getParamFlags( $index )
+				);
 			}
 			$maybeAddTaintError( $baseT, $curT, $index );
 		}
@@ -154,7 +159,13 @@ trait TaintednessBaseVisitor {
 			$taintVariadic = $taint->getVariadicParamTaint() ?? Taintedness::newSafe();
 			$curVariadic = $curTaint->getVariadicParamTaint() ?? Taintedness::newSafe();
 			if ( !$override ) {
-				$newTaint->setVariadicParamTaint( $variadicIndex, $getTaintToAdd( $curVariadic, $taintVariadic ) );
+				$newTaint->setVariadicParamTaint(
+					$variadicIndex,
+					$getTaintToAdd( $curTaint->getVariadicParamFlags(), $curVariadic, $taintVariadic )
+				);
+				$newTaint->addVariadicParamFlags(
+					$taint->getVariadicParamFlags() | $curTaint->getVariadicParamFlags()
+				);
 			}
 			$maybeAddTaintError( $taintVariadic, $curVariadic, $variadicIndex );
 		}
@@ -162,7 +173,8 @@ trait TaintednessBaseVisitor {
 		$baseOverall = $taint->getOverall();
 		$curOverall = $curTaint->getOverall();
 		if ( !$override ) {
-			$newTaint->setOverall( $getTaintToAdd( $curOverall, $baseOverall ) );
+			$newTaint->setOverall( $getTaintToAdd( $curTaint->getOverallFlags(), $curOverall, $baseOverall ) );
+			$newTaint->addOverallFlags( $taint->getOverallFlags() | $curTaint->getOverallFlags() );
 		}
 		$maybeAddTaintError( $baseOverall, $curOverall, 'overall' );
 
@@ -798,12 +810,15 @@ trait TaintednessBaseVisitor {
 				if ( $paramNumber === null ) {
 					continue;
 				}
-				$taint = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
-				if ( $taint !== null ) {
+				$taintData = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
+				if ( $taintData !== null ) {
+					[ $taint, $flags ] = $taintData;
 					if ( $isVariadic ) {
 						$funcTaint->setVariadicParamTaint( $paramNumber, $taint );
+						$funcTaint->addVariadicParamFlags( $flags );
 					} else {
 						$funcTaint->setParamTaint( $paramNumber, $taint );
+						$funcTaint->addParamFlags( $paramNumber, $flags );
 					}
 					$validTaintEncountered = true;
 					if ( $taint->hasOnly( SecurityCheckPlugin::ESCAPES_HTML ) ) {
@@ -819,9 +834,11 @@ trait TaintednessBaseVisitor {
 					$line,
 					strpos( $line, '@return-taint' ) + strlen( '@return-taint' ) + 1
 				);
-				$taint = SecurityCheckPlugin::parseTaintLine( $taintLine );
-				if ( $taint !== null ) {
+				$taintData = SecurityCheckPlugin::parseTaintLine( $taintLine );
+				if ( $taintData !== null ) {
+					[ $taint, $flags ] = $taintData;
 					$funcTaint->setOverall( $taint );
+					$funcTaint->addOverallFlags( $flags );
 					$validTaintEncountered = true;
 				} else {
 					$this->debug( __METHOD__, "Could not " .
