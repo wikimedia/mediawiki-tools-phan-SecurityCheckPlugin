@@ -19,6 +19,14 @@ trait TaintednessAccessorsTrait {
 	 * @return Taintedness|null
 	 */
 	protected static function getTaintednessRaw( TypedElementInterface $element ) : ?Taintedness {
+		return $element->taintedness ?? null;
+	}
+
+	/**
+	 * @param TypedElementInterface $element
+	 * @return Taintedness|null
+	 */
+	protected static function getTaintednessRawClone( TypedElementInterface $element ) : ?Taintedness {
 		// Performance: use isset(), not property_exists()
 		return isset( $element->taintedness ) ? clone $element->taintedness : null;
 	}
@@ -192,13 +200,13 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * Get a copy of $func's taint, or null if not set.
+	 * Get $func's taint, or null if not set. NOTE: This doesn't create a clone.
 	 *
 	 * @param FunctionInterface $func
 	 * @return FunctionTaintedness|null
 	 */
 	protected static function getFuncTaint( FunctionInterface $func ) : ?FunctionTaintedness {
-		return isset( $func->funcTaint ) ? clone $func->funcTaint : null;
+		return $func->funcTaint ?? null;
 	}
 
 	/**

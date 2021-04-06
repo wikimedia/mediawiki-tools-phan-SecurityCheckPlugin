@@ -1098,7 +1098,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$actualGlobal = $gvar->getElement();
-		self::setTaintednessRaw( $gvar, self::getTaintednessRaw( $actualGlobal ) ?: Taintedness::newSafe() );
+		self::setTaintednessRaw( $gvar, self::getTaintednessRawClone( $actualGlobal ) ?: Taintedness::newSafe() );
 		self::setCausedByRaw( $gvar, self::getCausedByRaw( $actualGlobal ) ?: [] );
 		self::setMethodLinks( $gvar, self::getMethodLinks( $actualGlobal ) ?: new Set() );
 	}

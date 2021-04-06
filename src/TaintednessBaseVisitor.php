@@ -98,7 +98,7 @@ trait TaintednessBaseVisitor {
 
 		$funcTaint = self::getFuncTaint( $func );
 		if ( $funcTaint !== null ) {
-			$curTaint = $funcTaint;
+			$curTaint = clone $funcTaint;
 		} elseif ( !$override ) {
 			// If we are not overriding, and we don't know
 			// current taint, figure it out.
@@ -494,7 +494,7 @@ trait TaintednessBaseVisitor {
 	) : void {
 		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 		// objects of which $variableObj is a clone!
-		$curTaint = self::getTaintednessRaw( $variableObj ) ?? Taintedness::newSafe();
+		$curTaint = self::getTaintednessRawClone( $variableObj ) ?? Taintedness::newSafe();
 
 		if ( $resolvedOffsetsLhs ) {
 			$offsetOverride = $override && $this->wereAllKeysResolved( $resolvedOffsetsLhs );
@@ -1075,7 +1075,7 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new AssertionError( "This method cannot be used with methods" );
 		}
-		$taintOrNull = self::getTaintednessRaw( $variableObj );
+		$taintOrNull = self::getTaintednessRawClone( $variableObj );
 		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
 			$taintedness = $mask !== null ? $taintOrNull->withOnly( $mask->get() ) : $taintOrNull;

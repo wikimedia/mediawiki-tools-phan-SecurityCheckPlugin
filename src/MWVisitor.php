@@ -1148,7 +1148,9 @@ class MWVisitor extends TaintednessVisitor {
 	 */
 	public function visitArray( Node $node ) : void {
 		parent::visitArray( $node );
-		if ( !property_exists( $node, 'skipHTMLFormAnalysis' ) ) {
+		// Performance: use isset(), not property_exists
+		// @phan-suppress-next-line PhanUndeclaredProperty
+		if ( !isset( $node->skipHTMLFormAnalysis ) ) {
 			$this->detectHTMLForm( $node );
 		}
 	}

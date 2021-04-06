@@ -128,6 +128,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public const ARRAY_OK = 1 << 28;
 
 	// Do not allow autodetected taint info override given taint.
+	// TODO Store this and other special flags somewhere else in the FunctionTaintedness object, not
+	// as normal taint flags.
 	public const NO_OVERRIDE = 1 << 29;
 
 	// Represents a parameter expecting a raw value, for which escaping should have already
