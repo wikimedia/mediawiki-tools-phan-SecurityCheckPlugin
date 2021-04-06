@@ -126,6 +126,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public const ESCAPED_EXEC_TAINT = 1 << 26;
 
 	// Special purpose flags (Starting at 2^28)
+	// TODO Renumber these. Requires changing format of the hardcoded arrays
 	// Cancel's out all EXEC flags on a function arg if arg is array.
 	public const ARRAY_OK = 1 << 28;
 
@@ -143,7 +144,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	// *All* function flags
 	//TODO Add a structure test for this
-	public const FUNCTION_FLAGS = self::NO_OVERRIDE;
+	public const FUNCTION_FLAGS = self::ARRAY_OK | self::NO_OVERRIDE | self::RAW_PARAM;
 
 	// Combination flags.
 
@@ -167,8 +168,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public const ESCAPES_HTML = ( self::YES_TAINT & ~self::HTML_TAINT ) | self::ESCAPED_EXEC_TAINT;
 
 	// As the name would suggest, this must include *ALL* possible taint flags.
-	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::ARRAY_OK | self::RAW_PARAM |
-		self::FUNCTION_FLAGS | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT |
+	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::FUNCTION_FLAGS |
+		self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT |
 		self::VARIADIC_PARAM;
 
 	/**
@@ -388,15 +389,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		if ( ( $taint & self::ALL_TAINT ) !== 0 ) {
 			$types[] = 'ALL';
 		}
-		$taintTypes = implode( ', ', $types );
-		$flags = [];
-		if ( ( $taint & self::RAW_PARAM ) === self::RAW_PARAM ) {
-			$flags[] = 'raw param';
-		}
-		if ( $flags ) {
-			$taintTypes .= ' (' . implode( ', ', $flags ) . ')';
-		}
-		return $taintTypes;
+		return implode( ', ', $types );
 	}
 
 	/**
@@ -426,16 +419,21 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			$intTaint = $funcTaints[$name];
 			self::assertFunctionTaintArrayWellFormed( $intTaint );
 			// Note: for backcompat, we set NO_OVERRIDE everywhere.
-			$res = new FunctionTaintedness( new Taintedness( $intTaint['overall'] ) );
-			$res->addOverallFlags( self::NO_OVERRIDE );
+			$overallFlags = ( $intTaint['overall'] & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
+			$res = new FunctionTaintedness( new Taintedness( $intTaint['overall'] & ~$overallFlags ) );
+			$res->addOverallFlags( $overallFlags );
 			unset( $intTaint['overall'] );
 			foreach ( $intTaint as $i => $val ) {
+				$paramFlags = ( $val & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
 				if ( $val & self::VARIADIC_PARAM ) {
-					$res->setVariadicParamTaint( $i, new Taintedness( $val & ~self::VARIADIC_PARAM ) );
-					$res->addVariadicParamFlags( self::NO_OVERRIDE );
+					$res->setVariadicParamTaint(
+						$i,
+						new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) )
+					);
+					$res->addVariadicParamFlags( $paramFlags );
 				} else {
-					$res->setParamTaint( $i, new Taintedness( $val ) );
-					$res->addParamFlags( $i, self::NO_OVERRIDE );
+					$res->setParamTaint( $i, new Taintedness( $val & ~$paramFlags ) );
+					$res->addParamFlags( $i, $paramFlags );
 				}
 			}
 			self::$builtinFuncTaintCache[$name] = $res;
@@ -573,7 +571,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			}
 			$numberOfTaintsProcessed++;
 			if ( $taintParts['taint'] === 'array_ok' ) {
-				$overallTaint->add( self::ARRAY_OK );
+				$overallFlags |= self::ARRAY_OK;
 				continue;
 			}
 			if ( $taintParts['taint'] === 'allow_override' ) {
@@ -581,7 +579,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				continue;
 			}
 			if ( $taintParts['taint'] === 'raw_param' ) {
-				$overallTaint->add( self::RAW_PARAM );
+				$overallFlags |= self::RAW_PARAM;
 				continue;
 			}
 			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );

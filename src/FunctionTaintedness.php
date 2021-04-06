@@ -129,11 +129,31 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * Similar to getParamTaint, but normalizes the taintedness for a function call
+	 *
+	 * @param int $param
+	 * @return Taintedness
+	 */
+	public function getParamTaintForFunctionCall( int $param ) : Taintedness {
+		$ret = $this->getParamTaint( $param );
+		if ( $this->getParamFlags( $param ) & SecurityCheckPlugin::RAW_PARAM ) {
+			return $ret->asYesToExecTaint();
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param int $param
 	 * @return int
 	 */
 	public function getParamFlags( int $param ) : int {
-		return $this->paramFlags[$param] ?? 0;
+		if ( isset( $this->paramFlags[$param] ) ) {
+			return $this->paramFlags[$param];
+		}
+		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
+			return $this->variadicParamFlags;
+		}
+		return 0;
 	}
 
 	/**
@@ -198,28 +218,6 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Sometimes we don't want NO_OVERRIDE. This is primarily used to ensure that NO_OVERRIDE
-	 * doesn't propagate into other variables.
-	 *
-	 * Note that this always creates a clone of $this.
-	 *
-	 * @param bool $clear Whether to clear it or not
-	 * @return $this
-	 */
-	public function withMaybeClearNoOverride( bool $clear ) : self {
-		$ret = clone $this;
-		if ( !$clear ) {
-			return $ret;
-		}
-		$ret->overallFlags &= ~SecurityCheckPlugin::NO_OVERRIDE;
-		foreach ( $ret->paramFlags as $i => $_ ) {
-			$ret->paramFlags[$i] &= ~SecurityCheckPlugin::NO_OVERRIDE;
-		}
-		$ret->variadicParamFlags &= ~SecurityCheckPlugin::NO_OVERRIDE;
-		return $ret;
-	}
-
-	/**
 	 * Check whether NO_OVERRIDE is set anywhere in this object.
 	 *
 	 * @return bool
@@ -276,6 +274,9 @@ class FunctionTaintedness {
 		$bits = [];
 		if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
 			$bits[] = 'no override';
+		}
+		if ( $flags & SecurityCheckPlugin::RAW_PARAM ) {
+			$bits[] = 'raw param';
 		}
 		return $bits ? ' (' . implode( ', ', $bits ) . ')' : '';
 	}
