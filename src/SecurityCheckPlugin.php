@@ -25,6 +25,7 @@ namespace SecurityCheckPlugin;
 use AssertionError;
 use ast\Node;
 use Closure;
+use Error;
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
@@ -365,9 +366,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		if ( ( $taint & self::RAW_PARAM ) === self::RAW_PARAM ) {
 			$flags[] = 'raw param';
 		}
-		if ( ( $taint & self::VARIADIC_PARAM ) === self::VARIADIC_PARAM ) {
-			$flags[] = 'variadic param';
-		}
 		if ( $flags ) {
 			$taintTypes .= ' (' . implode( ', ', $flags ) . ')';
 		}
@@ -399,17 +397,47 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 		if ( isset( $funcTaints[$name] ) ) {
 			$intTaint = $funcTaints[$name];
-			$taint = [];
-			foreach ( $intTaint as $i => $val ) {
-				$objVal = new Taintedness( $val );
+			self::assertFunctionTaintArrayWellFormed( $intTaint );
+			foreach ( $intTaint as $i => $_ ) {
 				// For backcompat, make self::NO_OVERRIDE always be set.
-				$objVal->add( self::NO_OVERRIDE );
-				$taint[$i] = $objVal;
+				$intTaint[$i] |= self::NO_OVERRIDE;
 			}
-			self::$builtinFuncTaintCache[$name] = FunctionTaintedness::newFromArray( $taint );
+			$res = new FunctionTaintedness( new Taintedness( $intTaint['overall'] ) );
+			unset( $intTaint['overall'] );
+			foreach ( $intTaint as $i => $val ) {
+				if ( $val & self::VARIADIC_PARAM ) {
+					$res->setVariadicParamTaint( $i, new Taintedness( $val & ~self::VARIADIC_PARAM ) );
+				} else {
+					$res->setParamTaint( $i, new Taintedness( $val ) );
+				}
+			}
+			self::$builtinFuncTaintCache[$name] = $res;
 			return clone self::$builtinFuncTaintCache[$name];
 		}
 		return null;
+	}
+
+	/**
+	 * Assert that a taintednes array is well formed, and fail hard if it isn't.
+	 *
+	 * @param int[] $taint
+	 */
+	private static function assertFunctionTaintArrayWellFormed( array $taint ) : void {
+		if ( !isset( $taint['overall'] ) ) {
+			throw new Error( 'Overall taint must be set' );
+		}
+
+		foreach ( $taint as $i => $t ) {
+			if ( !is_int( $i ) && $i !== 'overall' ) {
+				throw new Error( "Taint indexes must be int or 'overall', got '$i'" );
+			}
+			if ( !is_int( $t ) || ( $t & ~self::ALL_TAINT_FLAGS ) ) {
+				throw new Error( "Wrong taint index $i, got: " . var_export( $t, true ) );
+			}
+			if ( $t & ~self::ALL_TAINT_FLAGS ) {
+				throw new Error( "Taint index $i has unknown flags: " . decbin( $t ) );
+			}
+		}
 	}
 
 	/**

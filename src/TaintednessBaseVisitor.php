@@ -140,7 +140,7 @@ trait TaintednessBaseVisitor {
 			}
 		};
 
-		$allParams = array_merge( $taint->getParamKeys(), $curTaint->getParamKeys() );
+		$allParams = array_merge( $taint->getParamKeysNoVariadic(), $curTaint->getParamKeysNoVariadic() );
 		foreach ( $allParams as $index ) {
 			$baseT = $taint->getParamTaint( $index );
 			$curT = $curTaint->getParamTaint( $index );
@@ -148,6 +148,15 @@ trait TaintednessBaseVisitor {
 				$newTaint->setParamTaint( $index, $getTaintToAdd( $curT, $baseT ) );
 			}
 			$maybeAddTaintError( $baseT, $curT, $index );
+		}
+		$variadicIndex = $taint->getVariadicParamIndex() ?? $curTaint->getVariadicParamIndex();
+		if ( $variadicIndex !== null ) {
+			$taintVariadic = $taint->getVariadicParamTaint() ?? Taintedness::newSafe();
+			$curVariadic = $curTaint->getVariadicParamTaint() ?? Taintedness::newSafe();
+			if ( !$override ) {
+				$newTaint->setVariadicParamTaint( $variadicIndex, $getTaintToAdd( $curVariadic, $taintVariadic ) );
+			}
+			$maybeAddTaintError( $taintVariadic, $curVariadic, $variadicIndex );
 		}
 
 		$baseOverall = $taint->getOverall();
@@ -791,8 +800,11 @@ trait TaintednessBaseVisitor {
 				}
 				$taint = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
 				if ( $taint !== null ) {
-					$taint->add( $isVariadic ? SecurityCheckPlugin::VARIADIC_PARAM : SecurityCheckPlugin::NO_TAINT );
-					$funcTaint->setParamTaint( $paramNumber, $taint );
+					if ( $isVariadic ) {
+						$funcTaint->setVariadicParamTaint( $paramNumber, $taint );
+					} else {
+						$funcTaint->setParamTaint( $paramNumber, $taint );
+					}
 					$validTaintEncountered = true;
 					if ( $taint->hasOnly( SecurityCheckPlugin::ESCAPES_HTML ) ) {
 						// Special case to auto-set anything that escapes html to detect double escaping.
@@ -1717,9 +1729,10 @@ trait TaintednessBaseVisitor {
 			foreach ( $paramInfo as $i => $_ ) {
 				$curTaint = clone $taint;
 				if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-					$curTaint = $taint->with( SecurityCheckPlugin::VARIADIC_PARAM );
+					$paramTaint->setVariadicParamTaint( $i, $curTaint );
+				} else {
+					$paramTaint->setParamTaint( $i, $curTaint );
 				}
-				$paramTaint->setParamTaint( $i, $curTaint );
 				// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 			}
 			$this->setFuncTaint( $method, $paramTaint );
@@ -2028,12 +2041,9 @@ trait TaintednessBaseVisitor {
 		if ( !$funcTaint ) {
 			return [];
 		}
-		if (
-			$funcTaint->hasParam( $arg ) &&
-			$funcTaint->getParamTaint( $arg )->has( SecurityCheckPlugin::VARIADIC_PARAM )
-		) {
-			$lastIdx = max( $funcTaint->getParamKeys() );
-			return $arg >= $lastIdx ? self::getCausedByArgRaw( $element, $lastIdx ) : [];
+		$variadicIdx = $funcTaint->getVariadicParamIndex();
+		if ( $variadicIdx !== null ) {
+			return $arg >= $variadicIdx ? self::getCausedByArgRaw( $element, $variadicIdx ) : [];
 		}
 		return [];
 	}
@@ -2093,8 +2103,14 @@ trait TaintednessBaseVisitor {
 				/** @var $paramInfo array Array of int -> true */
 				$paramInfo = $links[$func];
 				if ( (string)( $func->getFQSEN() ) === (string)( $curFunc->getFQSEN() ) ) {
+					// Note, not forCaller, as that doesn't see variadic parameters
+					$calleeParamList = $func->getParameterList();
 					foreach ( $paramInfo as $i => $_ ) {
-						$paramTaint->setParamTaint( $i, $pobjTaintContribution );
+						if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
+							$paramTaint->setVariadicParamTaint( $i, $pobjTaintContribution );
+						} else {
+							$paramTaint->setParamTaint( $i, $pobjTaintContribution );
+						}
 						$taintRemaining->removeObj( $pobjTaintContribution );
 					}
 				} else {

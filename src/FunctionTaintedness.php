@@ -3,7 +3,6 @@
 namespace SecurityCheckPlugin;
 
 use Closure;
-use Error;
 use LogicException;
 
 /**
@@ -28,47 +27,16 @@ class FunctionTaintedness {
 	private $overall;
 	/** @var Taintedness[] Taintedness for each param */
 	public $paramTaints = [];
+	/** @var int|null Index of a variadic parameter, if any */
+	private $variadicParamIndex;
+	/** @var Taintedness|null Taintedness for a variadic parameter, if any */
+	private $variadicParamTaint;
 
 	/**
 	 * @param Taintedness $overall
 	 */
 	public function __construct( Taintedness $overall ) {
 		$this->overall = $overall;
-	}
-
-	/**
-	 * Construct a FunctionTaintedness from an old-style array.
-	 * @note This should only be used by SecurityCheckPlugin::getBuiltinFuncTaint!
-	 *
-	 * @param Taintedness[] $taint
-	 * @return self
-	 */
-	public static function newFromArray( array $taint ) : self {
-		self::assertWellFormedArray( $taint );
-		$ret = new self( $taint['overall'] );
-		unset( $taint['overall'] );
-		$ret->paramTaints = $taint;
-		return $ret;
-	}
-
-	/**
-	 * Assert that a taintednes array is well formed, and fail hard if it isn't.
-	 *
-	 * @param Taintedness[] $taint
-	 */
-	private static function assertWellFormedArray( array $taint ) : void {
-		if ( !isset( $taint['overall'] ) ) {
-			throw new Error( 'Overall taint must be set' );
-		}
-
-		foreach ( $taint as $i => $t ) {
-			if ( !is_int( $i ) && $i !== 'overall' ) {
-				throw new Error( "Taint indexes must be int or 'overall', got '$i'" );
-			}
-			if ( !$t instanceof Taintedness ) {
-				throw new Error( "Wrong taint index $i, got: " . var_export( $t, true ) );
-			}
-		}
 	}
 
 	/**
@@ -101,6 +69,15 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * @param int $index
+	 * @param Taintedness $taint
+	 */
+	public function setVariadicParamTaint( int $index, Taintedness $taint ) : void {
+		$this->variadicParamIndex = $index;
+		$this->variadicParamTaint = $taint;
+	}
+
+	/**
 	 * Get a clone of the taintedness of the given param, and NO_TAINT if not set.
 	 *
 	 * @param int $param
@@ -110,24 +87,32 @@ class FunctionTaintedness {
 		if ( isset( $this->paramTaints[$param] ) ) {
 			return clone $this->paramTaints[$param];
 		}
-		if ( !$this->paramTaints ) {
-			return Taintedness::newSafe();
-		}
-		// TODO: array_key_last once we support PHP 7.3+
-		$lastKey = max( array_keys( $this->paramTaints ) );
-		$lastEl = $this->paramTaints[$lastKey];
-		if ( $param >= $lastKey && $lastEl->has( SecurityCheckPlugin::VARIADIC_PARAM ) ) {
-			return clone $lastEl;
+		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
+			return clone $this->variadicParamTaint;
 		}
 		return Taintedness::newSafe();
 	}
 
 	/**
-	 * Get the *keys* of the params for which we have data
+	 * @return Taintedness|null
+	 */
+	public function getVariadicParamTaint() : ?Taintedness {
+		return $this->variadicParamTaint;
+	}
+
+	/**
+	 * @return int|null
+	 */
+	public function getVariadicParamIndex() : ?int {
+		return $this->variadicParamIndex;
+	}
+
+	/**
+	 * Get the *keys* of the params for which we have data, excluding variadic parameters
 	 *
 	 * @return int[]
 	 */
-	public function getParamKeys() : array {
+	public function getParamKeysNoVariadic() : array {
 		return array_keys( $this->paramTaints );
 	}
 
@@ -141,13 +126,10 @@ class FunctionTaintedness {
 		if ( isset( $this->paramTaints[$param] ) ) {
 			return true;
 		}
-		if ( !$this->paramTaints ) {
-			return false;
+		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
+			return true;
 		}
-		// TODO: array_key_last once we support PHP 7.3+
-		$lastKey = max( array_keys( $this->paramTaints ) );
-		$lastEl = $this->paramTaints[$lastKey];
-		return $param >= $lastKey && $lastEl->has( SecurityCheckPlugin::VARIADIC_PARAM );
+		return false;
 	}
 
 	/**
@@ -160,6 +142,9 @@ class FunctionTaintedness {
 			$fn( $taint );
 		}
 		$fn( $this->overall );
+		if ( $this->variadicParamTaint ) {
+			$fn( $this->variadicParamTaint );
+		}
 	}
 
 	/**
@@ -180,6 +165,9 @@ class FunctionTaintedness {
 		foreach ( $ret->paramTaints as $t ) {
 			$t->remove( SecurityCheckPlugin::NO_OVERRIDE );
 		}
+		if ( $ret->variadicParamTaint ) {
+			$ret->variadicParamTaint->remove( SecurityCheckPlugin::NO_OVERRIDE );
+		}
 		return $ret;
 	}
 
@@ -197,6 +185,9 @@ class FunctionTaintedness {
 				return true;
 			}
 		}
+		if ( $this->variadicParamTaint && $this->variadicParamTaint->has( SecurityCheckPlugin::NO_OVERRIDE ) ) {
+			return true;
+		}
 		return false;
 	}
 
@@ -208,6 +199,9 @@ class FunctionTaintedness {
 		foreach ( $this->paramTaints as $k => $e ) {
 			$this->paramTaints[$k] = clone $e;
 		}
+		if ( $this->variadicParamTaint ) {
+			$this->variadicParamTaint = clone $this->variadicParamTaint;
+		}
 	}
 
 	/**
@@ -217,6 +211,9 @@ class FunctionTaintedness {
 		$str = "[\n\toverall: " . $this->overall->toString( '    ' ) . ",\n";
 		foreach ( $this->paramTaints as $par => $taint ) {
 			$str .= "\t$par: " . $taint->toString() . ",\n";
+		}
+		if ( $this->variadicParamTaint ) {
+			$str .= "\t...{$this->variadicParamIndex}: " . $this->variadicParamTaint->toString() . ",\n";
 		}
 		return "$str]";
 	}
