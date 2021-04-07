@@ -341,7 +341,7 @@ class Taintedness {
 	 * @return self
 	 */
 	public static function intersectForSink( self $sink, self $value ) : self {
-		$intersect = self::newSafe();
+		$intersect = new self( SecurityCheckPlugin::NO_TAINT );
 		// If the sink has non-zero flags, intersect it with the whole other side. This particularly preserves
 		// the shape of $sink, discarding anything from $value if the sink has a NO_TAINT in that position.
 		if ( $sink->flags ) {
@@ -551,14 +551,14 @@ class Taintedness {
 			return $this->asValueFirstLevel();
 		}
 		if ( isset( $this->dimTaint[$offset] ) ) {
-			$add = $this->unknownDimsTaint ?? self::newSafe();
-			$add->add( $this->flags );
-			return $this->dimTaint[$offset]->asMergedWith( $add );
+			if ( $this->unknownDimsTaint ) {
+				$add = $this->unknownDimsTaint->with( $this->flags );
+				return $this->dimTaint[$offset]->asMergedWith( $add );
+			}
+			return $this->dimTaint[$offset]->asMergedWith( new self( $this->flags ) );
 		}
 
-		$ret = $this->unknownDimsTaint ? clone $this->unknownDimsTaint : self::newSafe();
-		$ret->add( $this->flags );
-		return $ret;
+		return $this->unknownDimsTaint ? $this->unknownDimsTaint->with( $this->flags ) : new self( $this->flags );
 	}
 
 	/**
@@ -642,6 +642,14 @@ class Taintedness {
 	}
 
 	/**
+	 * Combination of isExecTaint and isAllTaint
+	 * @return bool
+	 */
+	public function isExecOrAllTaint() : bool {
+		return $this->has( SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT );
+	}
+
+	/**
 	 * Check whether this object has no taintedness.
 	 *
 	 * @return bool
@@ -684,6 +692,44 @@ class Taintedness {
 			$ret->dimTaint[$k] = $val->asExecToYesTaint();
 		}
 		return $ret;
+	}
+
+	/**
+	 * Similar to asExecToYesTaint, but preserves existing YES flags
+	 *
+	 * @return self
+	 */
+	public function withExecToYesTaint() : self {
+		$flags = ( $this->flags & SecurityCheckPlugin::ALL_TAINT ) |
+			( ( $this->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
+		$ret = new self( $flags );
+		if ( $this->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $this->unknownDimsTaint->withExecToYesTaint();
+		}
+		$ret->keysTaint = ( $this->keysTaint & SecurityCheckPlugin::ALL_TAINT ) |
+			( ( $this->keysTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
+		foreach ( $this->dimTaint as $k => $val ) {
+			$ret->dimTaint[$k] = $val->withExecToYesTaint();
+		}
+		return $ret;
+	}
+
+	/**
+	 * Add SQL_TAINT wherever SQL_NUMKEY_TAINT is set
+	 */
+	public function addSqlToNumkey() : void {
+		if ( $this->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
+			$this->flags |= SecurityCheckPlugin::SQL_TAINT;
+		}
+		if ( $this->keysTaint & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
+			$this->keysTaint |= SecurityCheckPlugin::SQL_TAINT;
+		}
+		if ( $this->unknownDimsTaint ) {
+			$this->unknownDimsTaint->addSqlToNumkey();
+		}
+		foreach ( $this->dimTaint as $val ) {
+			$val->addSqlToNumkey();
+		}
 	}
 
 	/**

@@ -99,8 +99,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			// whether the argument is passed through, at least in simple cases.
 			$startTaint = new Taintedness( SecurityCheckPlugin::PRESERVE_TAINT );
 			// No point in adding a caused-by line here.
-			$errTaint = Taintedness::newSafe();
-			$this->setTaintednessOld( $varObj, $startTaint, true, false, $errTaint );
+			self::setTaintednessRaw( $varObj, $startTaint );
 
 			if ( !$varObj instanceof PassByReferenceVariable && !$paramTypeTaint->isSafe() ) {
 				// If the param is not an integer or something, link it to the func
