@@ -744,7 +744,7 @@ trait TaintednessBaseVisitor {
 						break;
 					}
 					$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
-					$taint->addObj( $this->handleMethodCall( $toString, $toStringFQSEN, [] )->getTaintedness() );
+					$taint->mergeWith( $this->handleMethodCall( $toString, $toStringFQSEN, [] )->getTaintedness() );
 			}
 		}
 		return $taint;
@@ -1739,7 +1739,7 @@ trait TaintednessBaseVisitor {
 			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) &&
 			$lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT )
 		) {
-			$combinedTaint = $rhsTaint->withOnlyObj( $lhsTaint->asExecToYesTaint() );
+			$combinedTaint = $rhsTaint->withOnly( Taintedness::flagsAsExecToYesTaint( $lhsTaint->get() ) );
 			$combinedTaintInt = $combinedTaint->get();
 		} else {
 			$combinedTaint = Taintedness::intersectForSink( $lhsTaint, $rhsTaint->asYesToExecTaint() );

@@ -671,7 +671,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// HACK: This means that a node can be array, so assume array plus
 			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
 		} else {
-			$combinedTaint = $leftTaint->withObj( $rightTaint )->asCollapsed()->withOnly( $mask );
+			$combinedTaint = $leftTaint->asMergedWith( $rightTaint )->asCollapsed()->withOnly( $mask );
 		}
 		return $combinedTaint;
 	}
@@ -1303,7 +1303,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$trueTaint = $this->getTaintedness( $node->children['true'] );
 		}
 		$falseTaint = $this->getTaintedness( $node->children['false'] );
-		$this->curTaint = clone $trueTaint->getTaintedness()->withObj( $falseTaint->getTaintedness() );
+		$this->curTaint = $trueTaint->getTaintedness()->asMergedWith( $falseTaint->getTaintedness() );
 		$this->curError = $trueTaint->getError()->asMergedWith( $falseTaint->getError() );
 		$this->curLinks = $trueTaint->getMethodLinks()->asMergedWith( $falseTaint->getMethodLinks() );
 		$this->setCachedData( $node );
@@ -1424,7 +1424,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$links = MethodLinks::newEmpty();
 		foreach ( $node->children as $child ) {
 			$childTaint = $this->getTaintedness( $child );
-			$taint->addObj( $childTaint->getTaintedness() );
+			$taint->mergeWith( $childTaint->getTaintedness() );
 			$error->mergeWith( $childTaint->getError() );
 			$links->mergeWith( $childTaint->getMethodLinks() );
 		}

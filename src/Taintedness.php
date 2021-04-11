@@ -86,8 +86,7 @@ class Taintedness {
 	 */
 	public function get(): int {
 		$ret = $this->flags | $this->getAllKeysTaint() | $this->keysTaint;
-		$ret = $this->unknownDimsTaint ? ( $ret | $this->unknownDimsTaint->get() ) : $ret;
-		return $ret;
+		return $this->unknownDimsTaint ? ( $ret | $this->unknownDimsTaint->get() ) : $ret;
 	}
 
 	/**
@@ -143,13 +142,6 @@ class Taintedness {
 	}
 
 	/**
-	 * @param Taintedness $other
-	 */
-	public function addObj( self $other ): void {
-		$this->add( $other->get() );
-	}
-
-	/**
 	 * Returns a copy of this object, with the bits in $other added to flags.
 	 * @see Taintedness::add() for the in-place version
 	 * @see Taintedness::asMergedWith() if you want to preserve the whole shape
@@ -161,14 +153,6 @@ class Taintedness {
 		$ret = clone $this;
 		$ret->add( $other );
 		return $ret;
-	}
-
-	/**
-	 * @param Taintedness $other
-	 * @return $this
-	 */
-	public function withObj( self $other ): self {
-		return $this->with( $other->get() );
 	}
 
 	/**
@@ -248,14 +232,6 @@ class Taintedness {
 		$ret = clone $this;
 		$ret->keepOnly( $other );
 		return $ret;
-	}
-
-	/**
-	 * @param Taintedness $other
-	 * @return $this
-	 */
-	public function withOnlyObj( self $other ): self {
-		return $this->withOnly( $other->get() );
 	}
 
 	/**
@@ -697,6 +673,17 @@ class Taintedness {
 	 */
 	public static function flagsAsExecToYesTaint( int $flags ): int {
 		return ( $flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
+	}
+
+	/**
+	 * Utility method to convert some flags from YES to EXEC. Note that this is not used internally
+	 * to avoid the unnecessary overhead of a function call in hot code.
+	 *
+	 * @param int $flags
+	 * @return int
+	 */
+	public static function flagsAsYesToExecTaint( int $flags ): int {
+		return ( $flags & SecurityCheckPlugin::ALL_TAINT ) << 1;
 	}
 
 	/**

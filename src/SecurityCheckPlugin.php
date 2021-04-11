@@ -641,7 +641,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					$overallTaint->add( $taintAsInt );
 					break;
 				case 'exec':
-					$overallTaint->addObj( ( new Taintedness( $taintAsInt ) )->asYesToExecTaint() );
+					$overallTaint->add( Taintedness::flagsAsYesToExecTaint( $taintAsInt ) );
 					break;
 				case 'escapes':
 				case 'onlysafefor':
