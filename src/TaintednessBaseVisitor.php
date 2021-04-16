@@ -1289,48 +1289,26 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Given a node, return the Phan variable objects that
-	 * correspond to that node. Note, this will ignore
-	 * things like method calls (for now at least).
+	 * correspond to that node to which we can backpropagate a NUMKEY taintedness.
 	 *
-	 * TODO: Maybe this should be a visitor class instead(?)
-	 *
-	 * This method is a little confused, because sometimes we only
-	 * want the objects that materially contribute to taint, and
-	 * other times we want all the objects.
-	 * e.g. Should foo( $bar ) return the $bar variable object?
-	 *  What about the foo function object?
+	 * @todo This should be handled together with the non-numkey case
 	 *
 	 * @param Node $node AST node in question
-	 * @param string[] $options Change type of objects returned
-	 *    * 'all' -> Given a method call, include the method and its args
-	 *    * 'return' -> Given a method call, include *non-local* objects in its return (e.g. include props but not vars)
-	 *    * 'numkey' -> Given an array, only include values whose key can potentially be int
 	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
-	protected function getPhanObjsForNode( Node $node, $options = [] ) : array {
+	protected function getObjsForNodeForNumkeyBackprop( Node $node ) : array {
 		$cn = $this->getCtxN( $node );
 
-		/**
-		 * @phan-return array{0?:TypedElementInterface}
-		 */
-		$maybeKeepIfNumkey = function ( TypedElementInterface $el ) use ( $options ) : array {
-			// TODO For now we only backprop in the simple case, to avoid tons of false positives, unless
-			// the env flag is set (chiefly for tests)
-			$definitely = !getenv( 'SECCHECK_NUMKEY_SPERIMENTAL' );
-			if (
-				!in_array( 'numkey', $options, true ) ||
-				$this->elementCanBeNumkey( $el, $definitely )
-			) {
-				return [ $el ];
-			}
-			return [];
-		};
+		// TODO For now we only backprop in the simple case, to avoid tons of false positives, unless
+		// the env flag is set (chiefly for tests)
+		$definitelyNumkey = !getenv( 'SECCHECK_NUMKEY_SPERIMENTAL' );
+
 		switch ( $node->kind ) {
 			case \ast\AST_PROP:
 			case \ast\AST_NULLSAFE_PROP:
 			case \ast\AST_STATIC_PROP:
 				$prop = $this->getPropFromNode( $node );
-				return $prop ? $maybeKeepIfNumkey( $prop ) : [];
+				return $prop && $this->elementCanBeNumkey( $prop, $definitelyNumkey ) ? [ $prop ] : [];
 			case \ast\AST_VAR:
 			case \ast\AST_CLOSURE_VAR:
 				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
@@ -1338,7 +1316,7 @@ trait TaintednessBaseVisitor {
 				} else {
 					try {
 						$var = $cn->getVariable();
-						return $maybeKeepIfNumkey( $var );
+						return $this->elementCanBeNumkey( $var, $definitelyNumkey ) ? [ $var ] : [];
 					} catch ( NodeException | IssueException $e ) {
 						$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
 						return [];
@@ -1348,32 +1326,31 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_ENCAPS_LIST:
 			case \ast\AST_ARRAY:
 				$results = [];
-				$skipIfNumkey = $node->kind === \ast\AST_ARRAY && in_array( 'numkey', $options, true );
 				foreach ( $node->children as $child ) {
 					if ( !is_object( $child ) ) {
 						continue;
 					}
 
 					if (
-						$skipIfNumkey &&
+						$node->kind === \ast\AST_ARRAY &&
 						$child->children['key'] !== null && !$this->nodeCanBeInt( $child->children['key'] )
 					) {
 						continue;
 					}
-					$results = array_merge( $this->getPhanObjsForNode( $child, $options ), $results );
+					$results = array_merge( $this->getObjsForNodeForNumkeyBackprop( $child ), $results );
 				}
 				return $results;
 			case \ast\AST_ARRAY_ELEM:
 				$results = [];
 				if ( is_object( $node->children['key'] ) ) {
 					$results = array_merge(
-						$this->getPhanObjsForNode( $node->children['key'], $options ),
+						$this->getObjsForNodeForNumkeyBackprop( $node->children['key'] ),
 						$results
 					);
 				}
 				if ( is_object( $node->children['value'] ) ) {
 					$results = array_merge(
-						$this->getPhanObjsForNode( $node->children['value'], $options ),
+						$this->getObjsForNodeForNumkeyBackprop( $node->children['value'] ),
 						$results
 					);
 				}
@@ -1383,30 +1360,30 @@ trait TaintednessBaseVisitor {
 				// such things should be safe. Unclear if that makes
 				// sense in all circumstances.
 				if ( $node->children['expr'] instanceof Node ) {
-					return $this->getPhanObjsForNode( $node->children['expr'], $options );
+					return $this->getObjsForNodeForNumkeyBackprop( $node->children['expr'] );
 				}
 				return [];
 			case \ast\AST_DIM:
 				if ( $node->children['expr'] instanceof Node ) {
 					// For now just consider the outermost array.
 					// FIXME. doesn't handle tainted array keys!
-					return $this->getPhanObjsForNode( $node->children['expr'], $options );
+					return $this->getObjsForNodeForNumkeyBackprop( $node->children['expr'] );
 				}
 				return [];
 			case \ast\AST_UNARY_OP:
 				$var = $node->children['expr'];
-				return $var instanceof Node ? $this->getPhanObjsForNode( $var, $options ) : [];
+				return $var instanceof Node ? $this->getObjsForNodeForNumkeyBackprop( $var ) : [];
 			case \ast\AST_BINARY_OP:
 				$left = $node->children['left'];
 				$right = $node->children['right'];
-				$leftObj = $left instanceof Node ? $this->getPhanObjsForNode( $left, $options ) : [];
-				$rightObj = $right instanceof Node ? $this->getPhanObjsForNode( $right, $options ) : [];
+				$leftObj = $left instanceof Node ? $this->getObjsForNodeForNumkeyBackprop( $left ) : [];
+				$rightObj = $right instanceof Node ? $this->getObjsForNodeForNumkeyBackprop( $right ) : [];
 				return array_merge( $leftObj, $rightObj );
 			case \ast\AST_CONDITIONAL:
 				$t = $node->children['true'];
 				$f = $node->children['false'];
-				$tObj = $t instanceof Node ? $this->getPhanObjsForNode( $t, $options ) : [];
-				$fObj = $f instanceof Node ? $this->getPhanObjsForNode( $f, $options ) : [];
+				$tObj = $t instanceof Node ? $this->getObjsForNodeForNumkeyBackprop( $t ) : [];
+				$fObj = $f instanceof Node ? $this->getObjsForNodeForNumkeyBackprop( $f ) : [];
 				return array_merge( $tObj, $fObj );
 			case \ast\AST_CONST:
 			case \ast\AST_CLASS_CONST:
@@ -1422,10 +1399,6 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_STATIC_CALL:
 			case \ast\AST_METHOD_CALL:
 			case \ast\AST_NULLSAFE_METHOD_CALL:
-				if ( !array_intersect( $options, [ 'all', 'return' ] ) ) {
-					return [];
-				}
-
 				$ctxNode = $this->getCtxN( $node );
 				// @todo Future todo might be to still return arguments when catching an exception.
 				if ( $node->kind === \ast\AST_CALL ) {
@@ -1448,36 +1421,22 @@ trait TaintednessBaseVisitor {
 						return [];
 					}
 				}
-				if ( in_array( 'return', $options, true ) ) {
-					// intentionally resetting options to []
-					// here to ensure we don't recurse beyond
-					// a depth of 1.
-					try {
-						return $this->getReturnObjsOfFunc( $func );
-					} catch ( Exception $e ) {
-						$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
-						return [];
-					}
+				// intentionally resetting options to []
+				// here to ensure we don't recurse beyond
+				// a depth of 1.
+				try {
+					return $this->getReturnObjsOfFunc( $func );
+				} catch ( Exception $e ) {
+					$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
+					return [];
 				}
-				$args = $node->children['args']->children;
-				$pObjs = [ $func ];
-				foreach ( $args as $arg ) {
-					if ( !( $arg instanceof Node ) ) {
-						continue;
-					}
-					$pObjs = array_merge(
-						$pObjs,
-						$this->getPhanObjsForNode( $arg, $options )
-					);
-				}
-				return $pObjs;
 			case \ast\AST_PRE_INC:
 			case \ast\AST_PRE_DEC:
 			case \ast\AST_POST_INC:
 			case \ast\AST_POST_DEC:
 				$children = $node->children;
 				assert( count( $children ) === 1 );
-				return $this->getPhanObjsForNode( reset( $children ) );
+				return $this->getObjsForNodeForNumkeyBackprop( reset( $children ) );
 			default:
 				// TODO Should probably handle AST_MATCH & friends
 				// Debug::printNode( $node );
@@ -1787,7 +1746,7 @@ trait TaintednessBaseVisitor {
 			$backpropVisitor( $node );
 			return;
 		}
-		$phanObjs = $this->getPhanObjsForNode( $node, [ 'numkey', 'return' ] );
+		$phanObjs = $this->getObjsForNodeForNumkeyBackprop( $node );
 		foreach ( array_unique( $phanObjs ) as $phanObj ) {
 			$this->markAllDependentMethodsExec( $phanObj, $taint, $triggeringElm );
 		}
@@ -2660,34 +2619,67 @@ trait TaintednessBaseVisitor {
 			$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
 			return;
 		}
-		$argObjs = $this->getPhanObjsForNode( $argument );
-		if ( count( $argObjs ) !== 1 ) {
-			$this->debug( __METHOD__, "Expected only one $param" );
+		$argObj = $this->getPassByRefObjFromNode( $argument );
+		if ( !$argObj ) {
+			return;
 		}
-		foreach ( $argObjs as $argObj ) {
-			$overrideTaint = true;
-			if ( $argObj instanceof PassByReferenceVariable ) {
-				// Watch out for nested references, and do not reset taint in that case, yet
-				$overrideTaint = false;
-			}
-			// Move the ref taintedness to the "actual" taintedness of the object
-			// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
-			// we never override arg taint for reference params in this case.
-			$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
-			$refTaint = self::getTaintednessRef( $argObj ) ?? Taintedness::newSafe();
-			// The call itself is only responsible if it adds some taintedness
-			$errTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT );
-			if ( $refTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
-				// TODO: Is it OK to keep UNKNOWN from $argObj here? Uninitialized vars passed by ref are common,
-				// but this is only relevant if the by-ref method also doesn't use the arg. See test passbyrefimplicit
-				$refTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT )
-					->asMergedWith( $this->getTaintednessPhanObj( $argObj ) );
-			}
 
-			$this->setTaintednessOld( $argObj, $refTaint, $overrideTaint, false, $errTaint );
-			if ( $overrideTaint ) {
-				self::clearTaintednessRef( $argObj );
-			}
+		$overrideTaint = true;
+		if ( $argObj instanceof PassByReferenceVariable ) {
+			// Watch out for nested references, and do not reset taint in that case, yet
+			$overrideTaint = false;
+		}
+		// Move the ref taintedness to the "actual" taintedness of the object
+		// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
+		// we never override arg taint for reference params in this case.
+		$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
+		$refTaint = self::getTaintednessRef( $argObj ) ?? Taintedness::newSafe();
+		// The call itself is only responsible if it adds some taintedness
+		$errTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT );
+		if ( $refTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
+			// TODO: Is it OK to keep UNKNOWN from $argObj here? Uninitialized vars passed by ref are common,
+			// but this is only relevant if the by-ref method also doesn't use the arg. See test passbyrefimplicit
+			$refTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT )
+				->asMergedWith( $this->getTaintednessPhanObj( $argObj ) );
+		}
+
+		$this->setTaintednessOld( $argObj, $refTaint, $overrideTaint, false, $errTaint );
+		if ( $overrideTaint ) {
+			self::clearTaintednessRef( $argObj );
+		}
+	}
+
+	/**
+	 * Given the node of an argument that is passed by reference, return a list of phan objects
+	 * corresponding to that node.
+	 *
+	 * @param Node $node
+	 * @return TypedElementInterface|null
+	 */
+	private function getPassByRefObjFromNode( Node $node ) : ?TypedElementInterface {
+		$cn = $this->getCtxN( $node );
+
+		switch ( $node->kind ) {
+			case \ast\AST_PROP:
+			case \ast\AST_STATIC_PROP:
+				return $this->getPropFromNode( $node );
+			case \ast\AST_VAR:
+				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
+					return null;
+				}
+				try {
+					return $cn->getVariable();
+				} catch ( NodeException | IssueException $_ ) {
+					return null;
+				}
+			case \ast\AST_DIM:
+				if ( $node->children['expr'] instanceof Node ) {
+					return $this->getPassByRefObjFromNode( $node->children['expr'] );
+				}
+				return null;
+			default:
+				$this->debug( __METHOD__, 'Unhandled pass-by-ref case: ' . Debug::nodeName( $node ) );
+				return null;
 		}
 	}
 
