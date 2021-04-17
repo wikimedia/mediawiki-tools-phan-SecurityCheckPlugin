@@ -33,6 +33,7 @@ use Phan\Language\Element\Comment\Builder;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Scope;
 use Phan\PluginV3;
 use Phan\PluginV3\AnalyzeLiteralStatementCapability;
@@ -40,6 +41,7 @@ use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
 use Phan\PluginV3\MergeVariableInfoCapability;
 use Phan\PluginV3\PostAnalyzeNodeCapability;
 use Phan\PluginV3\PreAnalyzeNodeCapability;
+use Throwable;
 
 /**
  * Base class used by the Generic and MediaWiki flavours of the plugin.
@@ -279,6 +281,31 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					$found = true;
 				}
 			}
+		} elseif ( strpos( $statement, '@taint-check-debug-method-first-arg' ) !== false ) {
+			// FIXME This is a hack. The annotation is INTERNAL, for use only in the backpropoffsets-blowup
+			// test. We should either find a better way to test that, or maybe add a public annotation
+			// for debugging taintedness of a method (probably unreadable on a single line).
+			$funcName = preg_replace( '/@taint-check-debug-method-first-arg ([a-z:]+)\b.*/i', '$1', $statement );
+			try {
+				$fqsen = FullyQualifiedMethodName::fromStringInContext( $funcName, $context );
+				$method = $codeBase->getMethodByFQSEN( $fqsen );
+			} catch ( Throwable $_ ) {
+				return false;
+			}
+			/** @var FunctionTaintedness|null $fTaint */
+			// @phan-suppress-next-line PhanUndeclaredProperty
+			$fTaint = $method->funcTaint ?? null;
+			if ( !$fTaint ) {
+				return false;
+			}
+			self::emitIssue(
+				$codeBase,
+				$context,
+				'SecurityCheckDebugTaintedness',
+				"Method {CODE} has first param with taintedness: {DETAILS}",
+				[ $funcName, $fTaint->getParamTaint( 0 )->toShortString() ]
+			);
+			return true;
 		}
 		return $found;
 	}

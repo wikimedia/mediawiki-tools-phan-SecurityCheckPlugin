@@ -2,11 +2,15 @@
 
 namespace SecurityCheckPlugin;
 
+use ast\Node;
+
 /**
  * Links for a single method
  */
 class SingleMethodLinks {
-	/** @var bool[] */
+	/**
+	 * @var ParamLinksOffsets[]
+	 */
 	private $params = [];
 
 	/**
@@ -23,7 +27,7 @@ class SingleMethodLinks {
 	 * @param int $i
 	 */
 	public function addParam( int $i ) : void {
-		$this->params[$i] = true;
+		$this->params[$i] = new ParamLinksOffsets();
 	}
 
 	/**
@@ -31,21 +35,52 @@ class SingleMethodLinks {
 	 */
 	public function mergeWith( self $other ) : void {
 		foreach ( $other->params as $i => $_ ) {
-			$this->params[$i] = true;
+			if ( isset( $this->params[$i] ) ) {
+				$this->params[$i]->mergeWith( $other->params[$i] );
+			} else {
+				$this->params[$i] = $other->params[$i];
+			}
 		}
 	}
 
 	/**
-	 * @return int[]
+	 * @param Node|string|int|null $offset
+	 */
+	public function pushOffsetToAll( $offset ) : void {
+		foreach ( $this->params as $i => $_ ) {
+			$this->params[$i]->pushOffset( $offset );
+		}
+	}
+
+	/**
+	 * @todo Try to avoid this method
+	 * @return ParamLinksOffsets[]
 	 */
 	public function getParams() : array {
-		return array_keys( $this->params );
+		return $this->params;
+	}
+
+	/**
+	 * @param int[] $params
+	 */
+	public function keepOnlyParams( array $params ) : void {
+		$this->params = array_diff_key( $this->params, array_fill_keys( $params, 1 ) );
+	}
+
+	public function __clone() {
+		foreach ( $this->params as $k => $val ) {
+			$this->params[$k] = clone $val;
+		}
 	}
 
 	/**
 	 * @return string
 	 */
 	public function __toString() : string {
-		return '[' . implode( ', ', array_keys( $this->params ) ) . ']';
+		$paramBits = [];
+		foreach ( $this->params as $k => $paramOffsets ) {
+			$paramBits[] = "$k: { " . $paramOffsets->__toString() . ' }';
+		}
+		return '[ ' . implode( ', ', $paramBits ) . ' ]';
 	}
 }

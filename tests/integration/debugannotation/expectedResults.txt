@@ -1,12 +1,12 @@
 integration/debugannotation/test.php:3 SecurityCheckDebugTaintedness Variable $doesnExist doesn't exist in scope
-integration/debugannotation/test.php:6 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Keys: NONE}
-integration/debugannotation/test.php:8 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: YES; Keys: NONE}
-integration/debugannotation/test.php:10 SecurityCheckDebugTaintedness Variable $var1 has taintedness: {Own: ~SHELL; Keys: NONE}
-integration/debugannotation/test.php:12 SecurityCheckDebugTaintedness Variable $var2 has taintedness: {Own: HTML, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC; Keys: NONE}
-integration/debugannotation/test.php:14 SecurityCheckDebugTaintedness Variable $var3 has taintedness: {Own: ESCAPED, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC; Keys: NONE}
-integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var1 has taintedness: {Own: ~SHELL; Keys: NONE}
-integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var2 has taintedness: {Own: HTML, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC; Keys: NONE}
-integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var3 has taintedness: {Own: ESCAPED, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC; Keys: NONE}
-integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var4 has taintedness: {Own: NONE; Keys: NONE}
-integration/debugannotation/test.php:22 SecurityCheckDebugTaintedness Variable $arr1 has taintedness: {Own: NONE; Keys: NONE; Elements: {safe => {Own: NONE; Keys: NONE}; unsafe => {Own: NONE; Keys: NONE; Elements: {safe => {Own: NONE; Keys: NONE}; unsafe => {Own: NONE; Keys: NONE; Elements: {safe => {Own: NONE; Keys: NONE}; unsafe => {Own: YES; Keys: NONE}}}}}}}
-integration/debugannotation/test.php:33 SecurityCheckDebugTaintedness Variable $arr2 has taintedness: {Own: SQL_NUMKEY; Keys: YES; Elements: {new => {Own: YES; Keys: NONE}; UNKNOWN => {Own: NONE; Keys: NONE; Elements: {safe => {Own: NONE; Keys: NONE}; unsafe => {Own: NONE; Keys: NONE; Elements: {safe => {Own: NONE; Keys: NONE}; unsafe => {Own: NONE; Keys: NONE; Elements: {safe => {Own: NONE; Keys: NONE}; unsafe => {Own: YES; Keys: NONE}}}}}}}}}
+integration/debugannotation/test.php:6 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE}
+integration/debugannotation/test.php:8 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: YES}
+integration/debugannotation/test.php:10 SecurityCheckDebugTaintedness Variable $var1 has taintedness: {Own: ~SHELL}
+integration/debugannotation/test.php:12 SecurityCheckDebugTaintedness Variable $var2 has taintedness: {Own: HTML, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC}
+integration/debugannotation/test.php:14 SecurityCheckDebugTaintedness Variable $var3 has taintedness: {Own: ESCAPED, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC}
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var1 has taintedness: {Own: ~SHELL}
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var2 has taintedness: {Own: HTML, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC}
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var3 has taintedness: {Own: ESCAPED, SERIALIZE, CUSTOM1, CUSTOM2, CODE, PATH, REGEX, MISC}
+integration/debugannotation/test.php:17 SecurityCheckDebugTaintedness Variable $var4 has taintedness: {Own: NONE}
+integration/debugannotation/test.php:22 SecurityCheckDebugTaintedness Variable $arr1 has taintedness: {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}}}}}}}
+integration/debugannotation/test.php:33 SecurityCheckDebugTaintedness Variable $arr2 has taintedness: {Own: SQL_NUMKEY; Keys: YES; Elements: {new => {Own: YES}; UNKNOWN => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}}}}}}}}}

@@ -684,6 +684,32 @@ class Taintedness {
 	}
 
 	/**
+	 * @param ParamLinksOffsets $offsets
+	 * @return self
+	 */
+	public function asMovedAtRelevantOffsets( ParamLinksOffsets $offsets ) : self {
+		$ret = $offsets->getOwn() ? clone $this : self::newSafe();
+		foreach ( $offsets->getDims() as $k => $val ) {
+			$newVal = $this->asMovedAtRelevantOffsets( $val );
+			if ( isset( $ret->dimTaint[$k] ) ) {
+				$ret->dimTaint[$k]->mergeWith( $newVal );
+			} else {
+				$ret->dimTaint[$k] = $newVal;
+			}
+		}
+		$unknownOffs = $offsets->getUnknown();
+		if ( $unknownOffs ) {
+			$newVal = $this->asMovedAtRelevantOffsets( $unknownOffs );
+			if ( $ret->unknownDimsTaint ) {
+				$ret->unknownDimsTaint->mergeWith( $newVal );
+			} else {
+				$ret->unknownDimsTaint = $newVal;
+			}
+		}
+		return $ret;
+	}
+
+	/**
 	 * Get a stringified representation of this taintedness, useful for debugging etc.
 	 *
 	 * @param string $indent
@@ -722,8 +748,10 @@ EOT;
 	 */
 	public function toShortString() : string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
-		$keys = SecurityCheckPlugin::taintToString( $this->keysTaint );
-		$ret = "{Own: $flags; Keys: $keys";
+		$ret = "{Own: $flags";
+		if ( $this->keysTaint ) {
+			$ret .= '; Keys: ' . SecurityCheckPlugin::taintToString( $this->keysTaint );
+		}
 		$keyParts = [];
 		if ( $this->dimTaint ) {
 			foreach ( $this->dimTaint as $key => $taint ) {

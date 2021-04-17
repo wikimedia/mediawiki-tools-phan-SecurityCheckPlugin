@@ -35,4 +35,10 @@ class LinksSet extends Set {
 		}
 		return '[' . implode( ',', $children ) . ']';
 	}
+
+	public function __clone() {
+		foreach ( $this as $func ) {
+			$this[$func] = clone $this[$func];
+		}
+	}
 }
