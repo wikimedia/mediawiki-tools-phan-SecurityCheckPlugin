@@ -141,6 +141,10 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	public const VARIADIC_PARAM = 1 << 31;
 
+	// *All* function flags
+	//TODO Add a structure test for this
+	public const FUNCTION_FLAGS = self::NO_OVERRIDE;
+
 	// Combination flags.
 
 	// YES_TAINT denotes all taint a user controlled variable would have
@@ -164,7 +168,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	// As the name would suggest, this must include *ALL* possible taint flags.
 	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::ARRAY_OK | self::RAW_PARAM |
-		self::NO_OVERRIDE | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT |
+		self::FUNCTION_FLAGS | self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT |
 		self::VARIADIC_PARAM;
 
 	/**
@@ -386,9 +390,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		}
 		$taintTypes = implode( ', ', $types );
 		$flags = [];
-		if ( ( $taint & self::NO_OVERRIDE ) === self::NO_OVERRIDE ) {
-			$flags[] = 'no override';
-		}
 		if ( ( $taint & self::RAW_PARAM ) === self::RAW_PARAM ) {
 			$flags[] = 'raw param';
 		}
@@ -424,17 +425,17 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		if ( isset( $funcTaints[$name] ) ) {
 			$intTaint = $funcTaints[$name];
 			self::assertFunctionTaintArrayWellFormed( $intTaint );
-			foreach ( $intTaint as $i => $_ ) {
-				// For backcompat, make self::NO_OVERRIDE always be set.
-				$intTaint[$i] |= self::NO_OVERRIDE;
-			}
+			// Note: for backcompat, we set NO_OVERRIDE everywhere.
 			$res = new FunctionTaintedness( new Taintedness( $intTaint['overall'] ) );
+			$res->addOverallFlags( self::NO_OVERRIDE );
 			unset( $intTaint['overall'] );
 			foreach ( $intTaint as $i => $val ) {
 				if ( $val & self::VARIADIC_PARAM ) {
 					$res->setVariadicParamTaint( $i, new Taintedness( $val & ~self::VARIADIC_PARAM ) );
+					$res->addVariadicParamFlags( self::NO_OVERRIDE );
 				} else {
 					$res->setParamTaint( $i, new Taintedness( $val ) );
+					$res->addParamFlags( $i, self::NO_OVERRIDE );
 				}
 			}
 			self::$builtinFuncTaintCache[$name] = $res;
@@ -549,9 +550,10 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *   future versions (Maybe all types should set exec_escaped. Maybe it
 	 *   should be explicit)
 	 * @param string $line A line from the docblock
-	 * @return Taintedness|null null on no info
+	 * @return array|null Array of [taintedness, flags], or null on no info
+	 * @phan-return array{0:Taintedness,1:int}|null
 	 */
-	public static function parseTaintLine( string $line ) : ?Taintedness {
+	public static function parseTaintLine( string $line ) : ?array {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|code|path|regex|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
@@ -561,7 +563,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$taints = explode( ',', strtolower( $filteredLine ) );
 		$taints = array_map( 'trim', $taints );
 
-		$overallTaint = new Taintedness( self::NO_OVERRIDE );
+		$overallTaint = new Taintedness( self::NO_TAINT );
+		$overallFlags = self::NO_OVERRIDE;
 		$numberOfTaintsProcessed = 0;
 		foreach ( $taints as $taint ) {
 			$taintParts = [];
@@ -574,7 +577,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				continue;
 			}
 			if ( $taintParts['taint'] === 'allow_override' ) {
-				$overallTaint->remove( self::NO_OVERRIDE );
+				$overallFlags &= ~self::NO_OVERRIDE;
 				continue;
 			}
 			if ( $taintParts['taint'] === 'raw_param' ) {
@@ -605,7 +608,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		if ( $numberOfTaintsProcessed === 0 ) {
 			return null;
 		}
-		return $overallTaint;
+		return [ $overallTaint, $overallFlags ];
 	}
 
 	/**
