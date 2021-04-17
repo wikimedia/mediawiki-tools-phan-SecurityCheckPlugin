@@ -121,3 +121,11 @@ function getMaybeUnknown( $arg ) {
 	return $x;
 }
 echo getMaybeUnknown( [ 'unsafe' => $_GET['a'], 'safe' => 'safe' ] );//Unsafe
+
+
+function echoArgArray( $arg ) {
+	echo [ 'x' => $arg, 'y' => 'safe' ];
+}
+echoArgArray( $_GET['a'] ); // Unsafe
+echoArgArray( [ 'x' => $_GET['a'], 'y' => 'safe' ] ); // Unsafe
+echoArgArray( [ 'y' => $_GET['a'], 'x' => 'safe' ] ); // Unsafe

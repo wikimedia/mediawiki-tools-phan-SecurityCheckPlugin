@@ -34,14 +34,8 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 	/** @var Taintedness */
 	private $retTaintedness;
 
-	/** @var Taintedness Any taint that we couldn't attribute */
-	private $taintRemaining;
-
 	/** @var FunctionTaintedness The final object with taintedness attributed to each param */
 	private $paramTaint;
-
-	/** @var Taintedness Contributed by other things */
-	private $otherTaint;
 
 	/**
 	 * Offsets accumulated so far.
@@ -77,19 +71,13 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 			return new FunctionTaintedness( $this->retTaintedness );
 		}
 
-		$origFlags = $this->retTaintedness->get();
-		// Try to match up the taintedness of the return expression
-		// to which parameter caused the taint. This will only work
-		// in relatively simple cases.
-		$this->taintRemaining = clone $this->retTaintedness;
 		$this->paramTaint = new FunctionTaintedness( Taintedness::newUnknown() );
-		$this->otherTaint = Taintedness::newSafe();
 		$this->currentOffsets = [];
 
 		$this( $retExpr );
 
 		$this->paramTaint->setOverall(
-			$this->otherTaint->asMergedWith( $this->taintRemaining )->withOnly( $origFlags )
+			$this->retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT )
 		);
 		return $this->paramTaint;
 	}
@@ -288,7 +276,8 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 		if ( !$element ) {
 			return;
 		}
-		$pobjTaintContribution = $this->getTaintednessPhanObj( $element );
+		$pobjTaintContribution = $this->getTaintednessPhanObj( $element )
+			->withOnly( SecurityCheckPlugin::PRESERVE_TAINT );
 		// $this->debug( __METHOD__, "taint for $pobj is $pobjTaintContribution" );
 		$links = self::getMethodLinks( $element );
 		if ( !$links ) {
@@ -298,8 +287,6 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 			if ( $element instanceof Property && !$element->isPrivate() ) {
 				$this->debug( __METHOD__, "FIXME should check parent class of $element" );
 			}
-			$this->otherTaint->addObj( $pobjTaintContribution );
-			$this->taintRemaining->removeObj( $pobjTaintContribution );
 			return;
 		}
 		// Note that we're reversing the array, see doc of the class prop.
@@ -323,11 +310,7 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 					} else {
 						$this->paramTaint->setParamTaint( $i, $pTaint );
 					}
-					$this->taintRemaining->removeObj( $pTaint );
 				}
-			} else {
-				$this->taintRemaining->removeObj( $pobjTaintContribution );
-				$this->otherTaint->addObj( $pobjTaintContribution );
 			}
 		}
 	}

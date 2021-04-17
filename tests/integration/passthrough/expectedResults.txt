@@ -1,6 +1,6 @@
 integration/passthrough/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passthrough/test.php +4)
 integration/passthrough/test.php:17 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1. (Caused by: integration/passthrough/test.php +14)
 integration/passthrough/test.php:24 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passthrough/test.php +21; integration/passthrough/test.php +22)
-integration/passthrough/test.php:31 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passthrough/test.php +29)
 integration/passthrough/test.php:36 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passthrough/test.php +34)
 integration/passthrough/test.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passthrough/test.php +34)
+integration/passthrough/test.php:48 SecurityCheck-ShellInjection Calling method \shell_exec() in [no method] that outputs using tainted argument #1 (`$x`). (Caused by: integration/passthrough/test.php +46)

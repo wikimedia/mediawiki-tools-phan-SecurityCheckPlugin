@@ -177,19 +177,17 @@ trait TaintednessBaseVisitor {
 		$baseOverall = $taint->getOverall();
 		$curOverall = $curTaint->getOverall();
 		if ( !$override ) {
-			$newTaint->setOverall( $getTaintToAdd( $curTaint->getOverallFlags(), $curOverall, $baseOverall ) );
+			$overallTaint = $getTaintToAdd( $curTaint->getOverallFlags(), $curOverall, $baseOverall );
+			// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
+			// the PHPDoc type, as it may be wrong.
+			$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
+			if ( $mask !== null ) {
+				$overallTaint->keepOnly( $mask->get() );
+			}
+			$newTaint->setOverall( $overallTaint );
 			$newTaint->addOverallFlags( $taint->getOverallFlags() | $curTaint->getOverallFlags() );
 		}
 		$maybeAddTaintError( $baseOverall, $curOverall, 'overall', $newTaint->getOverallFlags() );
-
-		// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
-		// the PHPDoc type, as it may be wrong.
-		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
-		if ( $mask !== null ) {
-			$newTaint->map( static function ( Taintedness $taint ) use ( $mask ) : void {
-				$taint->keepOnly( $mask->get() );
-			} );
-		}
 
 		self::doSetFuncTaint( $func, $newTaint );
 	}

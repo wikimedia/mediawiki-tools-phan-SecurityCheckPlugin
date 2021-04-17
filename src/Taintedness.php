@@ -204,13 +204,6 @@ class Taintedness {
 	}
 
 	/**
-	 * @param Taintedness $other
-	 */
-	public function removeObj( self $other ) : void {
-		$this->remove( $other->get() );
-	}
-
-	/**
 	 * Returns a copy of this object, with the bits in $other removed recursively.
 	 * @see Taintedness::remove() for the in-place version
 	 *

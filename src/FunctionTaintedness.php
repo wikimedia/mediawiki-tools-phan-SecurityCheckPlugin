@@ -2,7 +2,6 @@
 
 namespace SecurityCheckPlugin;
 
-use Closure;
 use LogicException;
 
 /**
@@ -200,21 +199,6 @@ class FunctionTaintedness {
 			return true;
 		}
 		return false;
-	}
-
-	/**
-	 * Apply a callback to all taint values (in-place)
-	 * @param Closure $fn
-	 * @phan-param Closure( Taintedness ):void $fn
-	 */
-	public function map( Closure $fn ) : void {
-		foreach ( $this->paramTaints as $taint ) {
-			$fn( $taint );
-		}
-		$fn( $this->overall );
-		if ( $this->variadicParamTaint ) {
-			$fn( $this->variadicParamTaint );
-		}
 	}
 
 	/**

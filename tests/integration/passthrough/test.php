@@ -24,11 +24,11 @@ function indirectPassthrough( string $x ) : string {
 echo indirectPassthrough( $_GET['a'] ); // Unsafe
 
 function preservePassthrough( array $x ) : string {
-	$y = array_merge( $x, [ 'foo', 'bar' ] ); // TODO Should be in caused-by
-	$z = implode( '; ', $y ); // TODO Should be in caused-by
+	$y = array_merge( $x, [ 'foo', 'bar' ] ); // Should be in caused-by
+	$z = implode( '; ', $y ); // Should be in caused-by
 	return substr( $z, 2, 15 );
 }
-echo preservePassthrough( $_GET['a'] ); // Unsafe
+echo preservePassthrough( $_GET['a'] ); // TODO Unsafe
 
 function taintAndPassthrough( string $x ) : string {
 	return $x . $_GET['a'];
@@ -42,3 +42,7 @@ class Html {
 	}
 }
 echo Html::element( 'foo', $_GET['A'] ); // Safe
+
+$x = htmlspecialchars( $_GET['a'] );
+echo $x; // Safe
+shell_exec( $x ); // Unsafe
