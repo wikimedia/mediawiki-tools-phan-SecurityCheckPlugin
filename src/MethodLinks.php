@@ -12,6 +12,12 @@ class MethodLinks {
 	/** @var LinksSet */
 	private $links;
 
+	/** @var self[] */
+	private $dimLinks = [];
+
+	/** @var self|null */
+	private $unknownDimLinks;
+
 	/**
 	 * @param LinksSet $links
 	 */
@@ -27,12 +33,90 @@ class MethodLinks {
 	}
 
 	/**
+	 * @param mixed $dim
+	 * @return self
+	 */
+	public function getForDim( $dim ) : self {
+		if ( !is_scalar( $dim ) ) {
+			return $this->asValueFirstLevel();
+		}
+		if ( isset( $this->dimLinks[$dim] ) ) {
+			$ret = clone $this->dimLinks[$dim];
+			$ret->mergeWith( $this->unknownDimLinks ?? self::newEmpty() );
+			$ret->links = self::mergeSets( $ret->links, $this->links );
+			return $ret;
+		}
+		$ret = $this->unknownDimLinks ? clone $this->unknownDimLinks : self::newEmpty();
+		$ret->links = self::mergeSets( $ret->links, $this->links );
+		return $ret;
+	}
+
+	/**
+	 * @return self
+	 */
+	public function asValueFirstLevel() : self {
+		$ret = new self( $this->links );
+		$ret->mergeWith( $this->unknownDimLinks ?? self::newEmpty() );
+		foreach ( $this->dimLinks as $links ) {
+			$ret->mergeWith( $links );
+		}
+		return $ret;
+	}
+
+	/**
+	 * @param mixed $dim
+	 * @param MethodLinks $links
+	 */
+	public function setAtDim( $dim, self $links ) : void {
+		if ( is_scalar( $dim ) ) {
+			$this->dimLinks[$dim] = $links;
+		} else {
+			$this->unknownDimLinks = $this->unknownDimLinks ?? self::newEmpty();
+			$this->unknownDimLinks->mergeWith( $links );
+		}
+	}
+
+	/**
+	 * Temporary method, should only be used in getRelevantLinksForTaintedness
+	 * @return bool
+	 */
+	public function hasSomethingOutOfKnownDims() : bool {
+		return count( $this->links ) > 0 || ( $this->unknownDimLinks && !$this->unknownDimLinks->isEmpty() );
+	}
+
+	/**
+	 * @return self
+	 */
+	public function asCollapsed() : self {
+		$ret = new self( $this->links );
+		foreach ( $this->dimLinks as $links ) {
+			$ret->mergeWith( $links->asCollapsed() );
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret->mergeWith( $this->unknownDimLinks->asCollapsed() );
+		}
+		return $ret;
+	}
+
+	/**
 	 * Merge this object with $other, recursively and without creating a copy.
 	 *
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ) : void {
 		$this->links = self::mergeSets( $this->links, $other->links );
+		foreach ( $other->dimLinks as $key => $links ) {
+			if ( isset( $this->dimLinks[$key] ) ) {
+				$this->dimLinks[$key]->mergeWith( $links );
+			} else {
+				$this->dimLinks[$key] = $links;
+			}
+		}
+		if ( $other->unknownDimLinks && !$this->unknownDimLinks ) {
+			$this->unknownDimLinks = $other->unknownDimLinks;
+		} elseif ( $other->unknownDimLinks ) {
+			$this->unknownDimLinks->mergeWith( $other->unknownDimLinks );
+		}
 	}
 
 	/**
@@ -54,6 +138,12 @@ class MethodLinks {
 		foreach ( $this->links as $method ) {
 			$this->links[$method] = clone $this->links[$method];
 		}
+		foreach ( $this->dimLinks as $k => $links ) {
+			$this->dimLinks[$k] = clone $links;
+		}
+		if ( $this->unknownDimLinks ) {
+			$this->unknownDimLinks = clone $this->unknownDimLinks;
+		}
 	}
 
 	/**
@@ -62,14 +152,32 @@ class MethodLinks {
 	 * @return LinksSet
 	 */
 	public function getLinks() : LinksSet {
-		return $this->links;
+		$ret = $this->links;
+		foreach ( $this->dimLinks as $link ) {
+			$ret = self::mergeSets( $ret, $link->getLinks() );
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret = self::mergeSets( $ret, $this->unknownDimLinks->getLinks() );
+		}
+		return $ret;
 	}
 
 	/**
 	 * @return bool
 	 */
 	public function isEmpty() : bool {
-		return count( $this->links ) === 0;
+		if ( count( $this->links ) ) {
+			return false;
+		}
+		foreach ( $this->dimLinks as $links ) {
+			if ( !$links->isEmpty() ) {
+				return false;
+			}
+		}
+		if ( $this->unknownDimLinks && !$this->unknownDimLinks->isEmpty() ) {
+			return false;
+		}
+		return true;
 	}
 
 	/**
@@ -102,5 +210,29 @@ class MethodLinks {
 		return $ret->unionWith( $remainingL2 );
 	}
 
-	// TODO __toString
+	/**
+	 * @return string
+	 */
+	public function __toString() : string {
+		$ret = 'OWN: ' . $this->links->__toString() . ';';
+		if ( !$this->dimLinks ) {
+			return $ret;
+		}
+		$ret .= ' CHILDREN: ';
+		foreach ( $this->dimLinks as $key => $links ) {
+			$ret .= "\n\t$key: " . $links->__toString();
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret .= "\n\t(UNKNOWN): " . $this->unknownDimLinks->__toString();
+		}
+		return $ret;
+	}
+
+	/**
+	 * @suppress PhanUnreferencedPublicMethod
+	 * @return string
+	 */
+	public function toString() : string {
+		return $this->__toString();
+	}
 }

@@ -100,6 +100,23 @@ class Taintedness {
 	}
 
 	/**
+	 * Temporary method, should only be used in getRelevantLinksForTaintedness
+	 * @return bool
+	 */
+	public function hasSomethingOutOfKnownDims() : bool {
+		return $this->flags > 0 || $this->keysTaint > 0
+			|| ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isSafe() );
+	}
+
+	/**
+	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
+	 * @return self[]
+	 */
+	public function getDimTaint() : array {
+		return $this->dimTaint;
+	}
+
+	/**
 	 * Recursively extract the taintedness from each key.
 	 *
 	 * @return int
