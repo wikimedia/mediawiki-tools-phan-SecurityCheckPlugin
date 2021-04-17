@@ -33,7 +33,7 @@ function echoSafe( $param ) {
 	$x['foo'] = $param;
 	echo $x['bar'];
 }
-echoSafe( $_GET['a'] ); // TODO Safe
+echoSafe( $_GET['a'] ); // Safe
 
 function echoSafeIndirect( $param ) {
 	$x = [];
@@ -62,7 +62,7 @@ function echoSafe2( $param ) {
 	$x['bar'] = 'safe';
 	echo $x['bar'];
 }
-echoSafe2( $_GET['a'] ); // TODO Safe
+echoSafe2( $_GET['a'] ); // Safe
 
 function echoSafeIndirect2( $param ) {
 	$x = [];

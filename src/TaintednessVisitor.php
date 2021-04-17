@@ -663,7 +663,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$lhsOffsets,
 				$allowClearLHSData
 			);
-			$this->setTaintDependenciesInAssignment( $rhsTaintedness, $variableObj );
+			$this->setTaintDependenciesInAssignment( $rhsTaintedness, $variableObj, $lhsOffsets );
 		}
 	}
 
@@ -740,7 +740,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$offset = $this->resolveOffset( $node->children['dim'] );
 		$this->curTaint = clone $nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset );
 		$this->curError = $nodeTaint->getError();
-		$this->curLinks = $nodeTaint->getMethodLinks();
+		$this->curLinks = $nodeTaint->getMethodLinks()->getForDim( $offset );
 		$this->setCachedData( $node );
 	}
 

@@ -2,6 +2,7 @@
 
 namespace SecurityCheckPlugin;
 
+use ast\Node;
 use Phan\Language\Element\FunctionInterface;
 
 /**
@@ -129,6 +130,62 @@ class MethodLinks {
 		$ret = clone $this;
 		$ret->mergeWith( $other );
 		return $ret;
+	}
+
+	/**
+	 * @param array $offsets
+	 * @phan-param array<Node|mixed> $offsets
+	 * @param MethodLinks $links
+	 */
+	public function setLinksAtOffsetList( array $offsets, self $links ) : void {
+		assert( count( $offsets ) >= 1 );
+		$base = $this;
+		// Just in case keys are not consecutive
+		$offsets = array_values( $offsets );
+		$lastIdx = count( $offsets ) - 1;
+		foreach ( $offsets as $i => $offset ) {
+			$isLast = $i === $lastIdx;
+			if ( !is_scalar( $offset ) ) {
+				if ( !$base->unknownDimLinks ) {
+					$base->unknownDimLinks = self::newEmpty();
+				}
+				if ( $isLast ) {
+					$base->unknownDimLinks = $this->getSetLinksAtOffsetInternal( $base, $offset, $links );
+					return;
+				}
+				$base = $base->unknownDimLinks;
+				continue;
+			}
+
+			if ( $isLast ) {
+				// Mission accomplished!
+				$base->dimLinks[$offset] = $this->getSetLinksAtOffsetInternal( $base, $offset, $links );
+				break;
+			}
+
+			if ( !array_key_exists( $offset, $base->dimLinks ) ) {
+				// Create the element as safe and move on
+				$base->dimLinks[$offset] = self::newEmpty();
+			}
+			$base = $base->dimLinks[$offset];
+		}
+	}
+
+	/**
+	 * @param self $base
+	 * @param Node|mixed $lastOffset
+	 * @param self $links
+	 * @return self
+	 */
+	private function getSetLinksAtOffsetInternal( self $base, $lastOffset, self $links ) : self {
+		if ( !is_scalar( $lastOffset ) ) {
+			return $base->unknownDimLinks
+				? $base->unknownDimLinks->asMergedWith( $links )
+				: $links;
+		}
+		return isset( $base->dimLinks[$lastOffset] )
+			? $base->dimLinks[$lastOffset]->asMergedWith( $links )
+			: $links;
 	}
 
 	/**

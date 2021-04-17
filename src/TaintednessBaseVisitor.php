@@ -1174,16 +1174,19 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param TaintednessWithError $rhsTaintedness
 	 * @param TypedElementInterface $variableObj
+	 * @param array $lhsOffsets
+	 * @phan-param array<Node|mixed> $lhsOffsets
 	 */
 	private function setTaintDependenciesInAssignment(
 		TaintednessWithError $rhsTaintedness,
-		TypedElementInterface $variableObj
+		TypedElementInterface $variableObj,
+		array $lhsOffsets = []
 	) : void {
 		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
-		$this->mergeTaintDependencies( $variableObj, $rhsTaintedness->getMethodLinks() );
+		$this->mergeTaintDependencies( $variableObj, $rhsTaintedness->getMethodLinks(), $lhsOffsets );
 		if ( $globalVarObj ) {
 			// Merge dependencies on the global copy as well
-			$this->mergeTaintDependencies( $globalVarObj, $rhsTaintedness->getMethodLinks() );
+			$this->mergeTaintDependencies( $globalVarObj, $rhsTaintedness->getMethodLinks(), $lhsOffsets );
 		}
 
 		$lines = $rhsTaintedness->getError();
@@ -1623,8 +1626,14 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $lhs Source of method list
 	 * @param MethodLinks $rhsLinks New links
+	 * @param array $lhsOffsets
+	 * @phan-param array<Node|mixed> $lhsOffsets
 	 */
-	protected function mergeTaintDependencies( TypedElementInterface $lhs, MethodLinks $rhsLinks ) : void {
+	protected function mergeTaintDependencies(
+		TypedElementInterface $lhs,
+		MethodLinks $rhsLinks,
+		array $lhsOffsets = []
+	) : void {
 		if ( $rhsLinks->isEmpty() ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
@@ -1646,7 +1655,14 @@ trait TaintednessBaseVisitor {
 				$varLinks->attach( $lhs );
 			}
 		}
-		self::setMethodLinks( $lhs, $lhsLinks->asMergedWith( $rhsLinks ) );
+
+		$newLinks = clone $lhsLinks;
+		if ( $lhsOffsets ) {
+			$newLinks->setLinksAtOffsetList( $lhsOffsets, $rhsLinks );
+		} else {
+			$newLinks->mergeWith( $rhsLinks );
+		}
+		self::setMethodLinks( $lhs, $newLinks );
 	}
 
 	/**

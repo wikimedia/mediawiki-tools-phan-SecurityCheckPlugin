@@ -479,7 +479,7 @@ class Taintedness {
 			}
 			return ( !isset( $base->dimTaint[$lastOffset] ) || $override )
 				? $val
-				: $base->dimTaint[$lastOffset]->withObj( $val );
+				: $base->dimTaint[$lastOffset]->asMergedWith( $val );
 		};
 		$this->applyClosureAtOffsetList( $offsets, $offsetsTaint, $setCb );
 	}
