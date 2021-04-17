@@ -5,7 +5,6 @@ namespace SecurityCheckPlugin;
 use ast\Node;
 use Phan\Language\Element\Parameter;
 use Phan\Language\Element\PassByReferenceVariable;
-use Phan\Library\Set;
 use Phan\PluginV3\PluginAwarePreAnalysisVisitor;
 
 /**
@@ -116,7 +115,11 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 					false
 				);
 				$this->setTaintDependenciesInAssignment(
-					new TaintednessWithError( $startTaint, [], self::getMethodLinks( $varObj ) ?: new Set ),
+					new TaintednessWithError(
+						$startTaint,
+						[],
+						self::getMethodLinks( $varObj ) ?: MethodLinks::newEmpty()
+					),
 					$promotedProps[$i]
 				);
 			}

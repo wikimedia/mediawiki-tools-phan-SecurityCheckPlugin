@@ -34,7 +34,6 @@ use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\Scope;
-use Phan\Library\Set;
 use Phan\PluginV3;
 use Phan\PluginV3\AnalyzeLiteralStatementCapability;
 use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
@@ -221,7 +220,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ) {
 			$varName = $variable->getName();
 
-			$methodLinks = new Set();
+			$methodLinks = MethodLinks::newEmpty();
 			$error = [];
 			$taintedness = Taintedness::newSafe();
 
@@ -236,8 +235,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					$taintedness->mergeWith( $taintOrNull );
 				}
 
-				$variableObjLinks = self::getMethodLinks( $localVar ) ?? new Set;
-				$methodLinks = TaintednessVisitor::mergeTaintLinks( $methodLinks, $variableObjLinks );
+				$variableObjLinks = self::getMethodLinks( $localVar ) ?? MethodLinks::newEmpty();
+				$methodLinks->mergeWith( $variableObjLinks );
 
 				$varError = self::getCausedByRaw( $localVar ) ?? [];
 				$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varError );

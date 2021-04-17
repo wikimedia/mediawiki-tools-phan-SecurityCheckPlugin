@@ -1025,7 +1025,7 @@ trait TaintednessBaseVisitor {
 		case "double":
 		case "NULL":
 			// simple literal
-			return new TaintednessWithError( Taintedness::newSafe(), [], new Set );
+			return new TaintednessWithError( Taintedness::newSafe(), [], MethodLinks::newEmpty() );
 		case "object":
 			if ( $expr instanceof Node ) {
 				return $this->getTaintednessNode( $expr );
@@ -1600,41 +1600,18 @@ trait TaintednessBaseVisitor {
 			$funcArgLinks = new Set;
 			self::setVarLinks( $func, $i, $funcArgLinks );
 		}
-		$paramLinks = self::getMethodLinks( $param ) ?? new Set;
+		$paramLinks = self::getMethodLinks( $param ) ?? MethodLinks::newEmpty();
+		$actualLinks = $paramLinks->getLinks();
 
 		$funcArgLinks->attach( $param );
-		if ( $paramLinks->contains( $func ) ) {
-			$data = $paramLinks[$func];
+		if ( $actualLinks->contains( $func ) ) {
+			$data = $actualLinks[$func];
 			$data[$i] = true;
-			$paramLinks[$func] = $data;
+			$actualLinks[$func] = $data;
 		} else {
-			$paramLinks[$func] = [ $i => true ];
+			$actualLinks[$func] = [ $i => true ];
 		}
 		self::setMethodLinks( $param, $paramLinks );
-	}
-
-	/**
-	 * Merge two sources of method links, without overriding anything.
-	 * @param Set $l1
-	 * @param Set $l2
-	 * @return Set
-	 */
-	public static function mergeTaintLinks( Set $l1, Set $l2 ) : Set {
-		$ret = $l1;
-		$remainingL2 = new Set;
-		foreach ( $l2 as $method ) {
-			if ( $ret->contains( $method ) ) {
-				$leftLinks = $ret[$method];
-				$rightLinks = $l2[$method];
-				foreach ( $rightLinks as $k => $val ) {
-					$leftLinks[$k] = ( $leftLinks[$k] ?? false ) || $val;
-				}
-				$ret[$method] = $leftLinks;
-			} else {
-				$remainingL2->attach( $method, $l2[$method] );
-			}
-		}
-		return $ret->union( $remainingL2 );
 	}
 
 	/**
@@ -1652,15 +1629,17 @@ trait TaintednessBaseVisitor {
 	 * This also merges the information on what line caused the taint.
 	 *
 	 * @param TypedElementInterface $lhs Source of method list
-	 * @param Set $rhsLinks New links
+	 * @param MethodLinks $rhsLinks New links
 	 */
-	protected function mergeTaintDependencies( TypedElementInterface $lhs, Set $rhsLinks ) : void {
-		if ( count( $rhsLinks ) === 0 ) {
+	protected function mergeTaintDependencies( TypedElementInterface $lhs, MethodLinks $rhsLinks ) : void {
+		if ( $rhsLinks->isEmpty() ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
 		}
 
-		$lhsLinks = self::getMethodLinks( $lhs ) ?? new Set;
+		$rhsLinks = $rhsLinks->getLinks();
+		$lhsLinks = self::getMethodLinks( $lhs ) ?? MethodLinks::newEmpty();
+		$actualLhsLinks = $lhsLinks->getLinks();
 
 		// So if we have $a = $b;
 		// First we find out all the methods that can set $b
@@ -1674,10 +1653,10 @@ trait TaintednessBaseVisitor {
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$varLinks->attach( $lhs );
 			}
-			if ( isset( $lhsLinks[$method] ) ) {
-				$lhsLinks[$method] += $paramInfo;
+			if ( isset( $actualLhsLinks[$method] ) ) {
+				$actualLhsLinks[$method] += $paramInfo;
 			} else {
-				$lhsLinks[ $method ] = $paramInfo;
+				$actualLhsLinks[ $method ] = $paramInfo;
 			}
 		}
 		self::setMethodLinks( $lhs, $lhsLinks );
@@ -1713,9 +1692,10 @@ trait TaintednessBaseVisitor {
 		}
 
 		$varLinks = self::getMethodLinks( $var );
-		if ( $varLinks === null || !count( $varLinks ) ) {
+		if ( $varLinks === null || $varLinks->isEmpty() ) {
 			return;
 		}
+		$varLinks = $varLinks->getLinks();
 
 		$this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
@@ -2098,6 +2078,7 @@ trait TaintednessBaseVisitor {
 				$taintRemaining->removeObj( $pobjTaintContribution );
 				continue;
 			}
+			$links = $links->getLinks();
 
 			foreach ( $links as $func ) {
 				/** @var $paramInfo array Array of int -> true */
@@ -2564,7 +2545,7 @@ trait TaintednessBaseVisitor {
 		$callTaintedness = $taint->getOverall()->without( $preserveOrExec )
 			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 		$argErrors = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
-		return new TaintednessWithError( $callTaintedness, $argErrors, new Set );
+		return new TaintednessWithError( $callTaintedness, $argErrors, MethodLinks::newEmpty() );
 	}
 
 	/**

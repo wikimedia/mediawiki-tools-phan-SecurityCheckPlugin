@@ -2,8 +2,6 @@
 
 namespace SecurityCheckPlugin;
 
-use Phan\Library\Set;
-
 /**
  * Object that encapsulates a Taintedness and a list of lines that caused it
  */
@@ -16,16 +14,16 @@ class TaintednessWithError {
 	 */
 	private $error;
 
-	/** @var Set */
+	/** @var MethodLinks */
 	private $methodLinks;
 
 	/**
 	 * @param Taintedness $taintedness
 	 * @param array $error
-	 * @param Set $methodLinks
+	 * @param MethodLinks $methodLinks
 	 * @phan-param list<array{0:Taintedness,1:string}> $error
 	 */
-	public function __construct( Taintedness $taintedness, array $error, Set $methodLinks ) {
+	public function __construct( Taintedness $taintedness, array $error, MethodLinks $methodLinks ) {
 		$this->taintedness = $taintedness;
 		$this->error = $error;
 		$this->methodLinks = $methodLinks;
@@ -47,9 +45,9 @@ class TaintednessWithError {
 	}
 
 	/**
-	 * @return Set
+	 * @return MethodLinks
 	 */
-	public function getMethodLinks() : Set {
-		return $this->methodLinks;
+	public function getMethodLinks() : MethodLinks {
+		return clone $this->methodLinks;
 	}
 }

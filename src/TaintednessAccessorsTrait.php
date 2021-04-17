@@ -107,18 +107,18 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param TypedElementInterface $element
-	 * @return Set|null
+	 * @return MethodLinks|null
 	 */
-	protected static function getMethodLinks( TypedElementInterface $element ) : ?Set {
+	protected static function getMethodLinks( TypedElementInterface $element ) : ?MethodLinks {
 		// Performance: use isset(), not property_exists()
 		return isset( $element->taintedMethodLinks ) ? clone $element->taintedMethodLinks : null;
 	}
 
 	/**
 	 * @param TypedElementInterface $element
-	 * @param Set $links
+	 * @param MethodLinks $links
 	 */
-	protected static function setMethodLinks( TypedElementInterface $element, Set $links ) : void {
+	protected static function setMethodLinks( TypedElementInterface $element, MethodLinks $links ) : void {
 		$element->taintedMethodLinks = $links;
 	}
 
