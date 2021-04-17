@@ -21,8 +21,6 @@ use Phan\PluginV3\PluginAwareBaseAnalysisVisitor;
  * @note Callers should use $this->getNewFuncTaint() as the only entry point after __construct. Some class members
  * are set there, and asserting that they're non-null everywhere would be very expensive.
  *
- * @todo Do a better job in preserving offset taint
- *
  * @todo Perhaps this visitor is unnecessary. We might use whatever taintedness the returned expr has as a whole.
  * Especially if we stop setting the taintedness of each object in the FunctionTaintedness, see todo in
  * handleReturnedElement.
@@ -44,6 +42,14 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 
 	/** @var Taintedness Contributed by other things */
 	private $otherTaint;
+
+	/**
+	 * Offsets accumulated so far.
+	 * @warning These are from right to left, i.e. for $x['a']['b'] it's [ 'b', 'a' ], which is the opposite
+	 * of what we need to add.
+	 * @var array<Node|int|string|null>
+	 */
+	private $currentOffsets = [];
 
 	/**
 	 * @inheritDoc
@@ -78,6 +84,7 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->taintRemaining = clone $this->retTaintedness;
 		$this->paramTaint = new FunctionTaintedness( Taintedness::newUnknown() );
 		$this->otherTaint = Taintedness::newSafe();
+		$this->currentOffsets = [];
 
 		$this( $retExpr );
 
@@ -193,7 +200,9 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 		if ( $node->children['expr'] instanceof Node ) {
 			// For now just consider the outermost array.
 			// FIXME. doesn't handle tainted array keys!
-			$this->recurse( $node->children['expr'] );
+			$offs = $node->children['dim'];
+			$realOffs = $offs !== null ? $this->resolveOffset( $offs ) : null;
+			$this->recurse( $node->children['expr'], [ $realOffs ] );
 		}
 	}
 
@@ -268,12 +277,23 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 	}
 
 	/**
-	 * Wrapper for __invoke. Will allow changing class members before recursing, and restoring later.
+	 * Wrapper for __invoke. Allows changing the current offsets, and restoring later.
 	 *
 	 * @param Node $node
+	 * @param array<Node|int|string|null> $addedOffsets
 	 */
-	private function recurse( Node $node ) : void {
-		$this( $node );
+	private function recurse( Node $node, array $addedOffsets = [] ) : void {
+		if ( !$addedOffsets ) {
+			$this( $node );
+			return;
+		}
+		$oldOffs = $this->currentOffsets;
+		$this->currentOffsets = array_merge( $this->currentOffsets, $addedOffsets );
+		try {
+			$this( $node );
+		} finally {
+			$this->currentOffsets = $oldOffs;
+		}
 	}
 
 	/**
@@ -297,15 +317,18 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->taintRemaining->removeObj( $pobjTaintContribution );
 			return;
 		}
+		// Note that we're reversing the array, see doc of the class prop.
+		for ( $i = count( $this->currentOffsets ) - 1; $i >= 0; $i-- ) {
+			$links = $links->getForDim( $this->currentOffsets[$i] );
+		}
 		$links = $links->getLinks();
 
 		foreach ( $links as $func ) {
-			$paramInfo = $links[$func];
 			if ( $func->getFQSEN() === $this->curFuncFQSEN ) {
+				$paramInfo = $links[$func];
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $func->getParameterList();
 				foreach ( $paramInfo->getParams() as $i => $offsets ) {
-					// TODO: This still doesn't work very well
 					$pTaint = $pobjTaintContribution->asMovedAtRelevantOffsets( $offsets );
 					// TODO: Is there any point in setting $pTaint here? Should we just set PRESERVE instead?
 					// But then, can we track what taint is being removed before the argument is returned?

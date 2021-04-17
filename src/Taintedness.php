@@ -117,6 +117,28 @@ class Taintedness {
 	}
 
 	/**
+	 * Replaces any occurrence of PRESERVE with $taint.
+	 * @param int $taint
+	 * @return self
+	 */
+	public function asPreserveReplacedWith( int $taint ) : self {
+		$ret = clone $this;
+		if ( $this->flags & SecurityCheckPlugin::PRESERVE_TAINT ) {
+			$ret->flags = ( $this->flags & ~SecurityCheckPlugin::PRESERVE_TAINT ) | $taint;
+		}
+		if ( $this->keysTaint & SecurityCheckPlugin::PRESERVE_TAINT ) {
+			$ret->keysTaint = ( $this->keysTaint & ~SecurityCheckPlugin::PRESERVE_TAINT ) | $taint;
+		}
+		if ( $this->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $this->unknownDimsTaint->asPreserveReplacedWith( $taint );
+		}
+		foreach ( $ret->dimTaint as $i => $dimTaint ) {
+			$ret->dimTaint[$i] = $dimTaint->asPreserveReplacedWith( $taint );
+		}
+		return $ret;
+	}
+
+	/**
 	 * Recursively extract the taintedness from each key.
 	 *
 	 * @return int
@@ -308,7 +330,9 @@ class Taintedness {
 
 	/**
 	 * Intersect the taintedness of a value against that of a sink, to later determine whether the
-	 * expression is safe.
+	 * expression is safe. In case of function calls, $sink is the param taint and $value is the arg taint.
+	 *
+	 * @note The order of the arguments is important! This method preserves the shape of $sink, not $value.
 	 *
 	 * @note The order of the arguments is important! This method preserves the shape of $sink, not $value.
 	 *
