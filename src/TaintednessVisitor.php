@@ -84,7 +84,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		parent::__construct( $code_base, $context );
 		$this->curTaint =& $taint;
 		$this->curError =& $taintError;
-		$methodLinks = $methodLinks ?? MethodLinks::newEmpty();
+		$methodLinks = $methodLinks ?? new MethodLinks;
 		$this->curLinks =& $methodLinks;
 	}
 
@@ -466,7 +466,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$val = $this->getTaintedness( $node->children['expr'] );
 		$this->curTaint = clone $val->getTaintedness();
 		$this->curError = $val->getError();
-		$this->curLinks = $val->getMethodLinks();
+		$this->curLinks = clone $val->getMethodLinks();
 		$this->setCachedData( $node );
 	}
 
@@ -1030,7 +1030,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
 		$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
 		$this->curError = self::getCausedByRaw( $variableObj ) ?? [];
-		$this->curLinks = self::getMethodLinks( $variableObj ) ?? MethodLinks::newEmpty();
+		$this->curLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
 		$this->setCachedData( $node );
 	}
 
@@ -1099,7 +1099,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$actualGlobal = $gvar->getElement();
 		self::setTaintednessRaw( $gvar, self::getTaintednessRawClone( $actualGlobal ) ?: Taintedness::newSafe() );
 		self::setCausedByRaw( $gvar, self::getCausedByRaw( $actualGlobal ) ?: [] );
-		self::setMethodLinks( $gvar, self::getMethodLinks( $actualGlobal ) ?: MethodLinks::newEmpty() );
+		self::setMethodLinks( $gvar, self::getMethodLinksCloneOrEmpty( $actualGlobal ) );
 	}
 
 	/**
@@ -1246,7 +1246,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
 		$this->curError = self::getCausedByRaw( $prop ) ?? [];
-		$this->curLinks = self::getMethodLinks( $prop ) ?? MethodLinks::newEmpty();
+		$this->curLinks = self::getMethodLinksCloneOrEmpty( $prop );
 		$this->setCachedData( $node );
 	}
 
@@ -1316,7 +1316,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
 		$this->curError = self::getCausedByRaw( $prop ) ?? [];
-		$this->curLinks = self::getMethodLinks( $prop ) ?? MethodLinks::newEmpty();
+		$this->curLinks = self::getMethodLinksCloneOrEmpty( $prop );
 		$this->setCachedData( $node );
 	}
 
@@ -1381,7 +1381,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$exprTaint = $this->getTaintedness( $node->children['expr'] );
 			$this->curTaint = clone $exprTaint->getTaintedness();
 			$this->curError = $exprTaint->getError();
-			$this->curLinks = $exprTaint->getMethodLinks();
+			$this->curLinks = clone $exprTaint->getMethodLinks();
 		} else {
 			$this->curTaint = Taintedness::newSafe();
 		}
@@ -1426,7 +1426,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$varTaint = $this->getTaintedness( $node->children['var'] );
 		$this->curTaint = clone $varTaint->getTaintedness();
 		$this->curError = $varTaint->getError();
-		$this->curLinks = $varTaint->getMethodLinks();
+		$this->curLinks = clone $varTaint->getMethodLinks();
 		$this->setCachedData( $node );
 	}
 
@@ -1449,7 +1449,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$exprTaint = $this->getTaintedness( $node->children['expr'] );
 			$this->curTaint = clone $exprTaint->getTaintedness();
 			$this->curError = $exprTaint->getError();
-			$this->curLinks = $exprTaint->getMethodLinks();
+			$this->curLinks = clone $exprTaint->getMethodLinks();
 		}
 		$this->setCachedData( $node );
 	}

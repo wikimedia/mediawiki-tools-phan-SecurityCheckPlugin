@@ -119,21 +119,6 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @inheritDoc
 	 */
 	public function visitVar( Node $node ) : void {
-		$this->handleVarNode( $node );
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function visitClosureVar( Node $node ) : void {
-		// FIXME Is this needed?
-		$this->handleVarNode( $node );
-	}
-
-	/**
-	 * @param Node $node
-	 */
-	private function handleVarNode( Node $node ) : void {
 		$cn = $this->getCtxN( $node );
 		if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 			return;

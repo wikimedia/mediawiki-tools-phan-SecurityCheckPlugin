@@ -48,6 +48,6 @@ class TaintednessWithError {
 	 * @return MethodLinks
 	 */
 	public function getMethodLinks() : MethodLinks {
-		return clone $this->methodLinks;
+		return $this->methodLinks;
 	}
 }

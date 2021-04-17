@@ -3,7 +3,6 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Closure;
 
 /**
  * Value object used to store taintedness. This should always be used to manipulate taintedness values,
@@ -281,16 +280,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Check whether this object has only the given flag, recursively.
-	 *
-	 * @param int $taint
-	 * @return bool
-	 */
-	public function hasOnly( int $taint ) : bool {
-		return ( $this->get() & $taint ) === $taint;
-	}
-
-	/**
 	 * Keep only the taint in $taint, recursively, preserving the shape and without creating a copy.
 	 * @see Taintedness::withOnly if you need a clone
 	 *
@@ -378,7 +367,7 @@ class Taintedness {
 		}
 		$this->keysTaint |= $other->keysTaint;
 		foreach ( $other->dimTaint as $key => $val ) {
-			if ( !array_key_exists( $key, $this->dimTaint ) ) {
+			if ( !isset( $this->dimTaint[$key] ) ) {
 				$this->dimTaint[$key] = clone $val;
 			} else {
 				$this->dimTaint[$key]->mergeWith( $val );
@@ -425,58 +414,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Apply the given closure to the final element at the offset list given by $offset. If the
-	 * element cannot be found because $offsets contain an unknown index, the taint of $rhs is
-	 * applied to the closest index.
-	 *
-	 * @param array $offsets
-	 * @phan-param array<int,Node|mixed> $offsets
-	 * @param Taintedness[] $offsetsTaint Taintedness for each offset in $offsets
-	 * @param Closure $cb First parameter is the base element for the last key, and second parameter
-	 * is the last key. The closure should return the new value.
-	 * @phan-param Closure(self,mixed):self $cb
-	 */
-	private function applyClosureAtOffsetList( array $offsets, array $offsetsTaint, Closure $cb ) : void {
-		assert( count( $offsets ) >= 1 );
-		$base = $this;
-		// Just in case keys are not consecutive
-		$offsets = array_values( $offsets );
-		$lastIdx = count( $offsets ) - 1;
-		foreach ( $offsets as $i => $offset ) {
-			$isLast = $i === $lastIdx;
-			if ( !is_scalar( $offset ) ) {
-				// Note, if the offset is scalar its taint is NO_TAINT
-				$base->keysTaint |= $offsetsTaint[$i]->get();
-
-				// NOTE: This is intendedly done for Nodes AND null. We assume that null here means
-				// "implicit" dim (`$a[] = 'b'`), aka unknown dim.
-				if ( !$base->unknownDimsTaint ) {
-					$base->unknownDimsTaint = self::newSafe();
-				}
-				if ( $isLast ) {
-					$base->unknownDimsTaint = $cb( $base, $offset );
-					return;
-				}
-
-				$base = $base->unknownDimsTaint;
-				continue;
-			}
-
-			if ( $isLast ) {
-				// Mission accomplished!
-				$base->dimTaint[$offset] = $cb( $base, $offset );
-				return;
-			}
-
-			if ( !array_key_exists( $offset, $base->dimTaint ) ) {
-				// Create the element as safe and move on
-				$base->dimTaint[$offset] = self::newSafe();
-			}
-			$base = $base->dimTaint[$offset];
-		}
-	}
-
-	/**
 	 * Set the taintedness of $val after the list of offsets given by $offsets, with or without override.
 	 *
 	 * @param array $offsets This is an integer-keyed, ordered list of offsets. E.g. the list
@@ -492,20 +429,52 @@ class Taintedness {
 		self $val,
 		bool $override
 	) : void {
-		/**
-		 * @param mixed $lastOffset
-		 */
-		$setCb = static function ( self $base, $lastOffset ) use ( $val, $override ) : self {
-			if ( !is_scalar( $lastOffset ) ) {
-				return ( !$base->unknownDimsTaint || $override )
-					? $val
-					: $base->unknownDimsTaint->asMergedWith( $val );
+		assert( (bool)$offsets, 'Should not be empty' );
+		$base = $this;
+		// Just in case keys are not consecutive
+		$offsets = array_values( $offsets );
+		$lastIdx = count( $offsets ) - 1;
+		foreach ( $offsets as $i => $offset ) {
+			$isLast = $i === $lastIdx;
+			if ( !is_scalar( $offset ) ) {
+				// Note, if the offset is scalar its taint is NO_TAINT
+				$base->keysTaint |= $offsetsTaint[$i]->get();
+
+				// NOTE: This is intendedly done for Nodes AND null. We assume that null here means
+				// "implicit" dim (`$a[] = 'b'`), aka unknown dim.
+
+				if ( $isLast ) {
+					if ( !$base->unknownDimsTaint || $override ) {
+						$base->unknownDimsTaint = $val;
+					} else {
+						$base->unknownDimsTaint->mergeWith( $val );
+					}
+					return;
+				}
+
+				if ( !$base->unknownDimsTaint ) {
+					$base->unknownDimsTaint = self::newSafe();
+				}
+				$base = $base->unknownDimsTaint;
+				continue;
 			}
-			return ( !isset( $base->dimTaint[$lastOffset] ) || $override )
-				? $val
-				: $base->dimTaint[$lastOffset]->asMergedWith( $val );
-		};
-		$this->applyClosureAtOffsetList( $offsets, $offsetsTaint, $setCb );
+
+			if ( $isLast ) {
+				// Mission accomplished!
+				if ( !isset( $base->dimTaint[$offset] ) || $override ) {
+					$base->dimTaint[$offset] = $val;
+				} else {
+					$base->dimTaint[$offset]->mergeWith( $val );
+				}
+				return;
+			}
+
+			if ( !isset( $base->dimTaint[$offset] ) ) {
+				// Create the element as safe and move on
+				$base->dimTaint[$offset] = self::newSafe();
+			}
+			$base = $base->dimTaint[$offset];
+		}
 	}
 
 	/**

@@ -19,7 +19,6 @@ use Phan\Exception\NodeException;
 use Phan\Exception\UnanalyzableException;
 use Phan\Issue;
 use Phan\Language\Context;
-use Phan\Language\Element\ClassElement;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\GlobalVariable;
 use Phan\Language\Element\Method;
@@ -412,30 +411,33 @@ trait TaintednessBaseVisitor {
 			self::ensureCausedByArgRawExists( $elem, $arg );
 		}
 		if ( !is_string( $reason ) ) {
-			$newErrors = [ trim( $this->dbgInfo( $reason ?? $this->context ) ) ];
+			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
 		} else {
-			$newErrors = [ trim( $reason ) ];
+			$newErrors = [ $reason ];
 		}
 		if ( $this->overrideContext && !( $this->isHook ?? false ) ) {
 			// @phan-suppress-previous-line PhanUndeclaredProperty
-			$newErrors[] = trim( $this->dbgInfo( $this->overrideContext ) );
+			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
-		foreach ( $newErrors as $newError ) {
-			if ( $arg === -1 ) {
+
+		if ( $arg === -1 ) {
+			$elemError = $newErr = self::getCausedByRaw( $elem );
+			assert( is_array( $elemError ) );
+			foreach ( $newErrors as $newError ) {
 				$newElement = [ clone $taintedness, $newError ];
-				$elemError = self::getCausedByRaw( $elem );
-				assert( is_array( $elemError ) );
-				$newErr = self::addCausedByLine( $elemError, $newElement );
-				if ( $newErr !== $elemError ) {
-					self::setCausedByRaw( $elem, $newErr );
-				}
-			} else {
+				$newErr = self::addCausedByLine( $newErr, $newElement );
+			}
+			if ( $newErr !== $elemError ) {
+				self::setCausedByRaw( $elem, $newErr );
+			}
+		} else {
+			$argErr = $newErr = self::getCausedByArgRaw( $elem, $arg );
+			foreach ( $newErrors as $newError ) {
 				$newElement = [ $taintedness->asExecToYesTaint(), $newError ];
-				$argErr = self::getCausedByArgRaw( $elem, $arg );
-				$newErr = self::addCausedByLine( $argErr, $newElement );
-				if ( $newErr !== $argErr ) {
-					self::setCausedByArgRaw( $elem, $arg, $newErr );
-				}
+				$newErr = self::addCausedByLine( $newErr, $newElement );
+			}
+			if ( $newErr !== $argErr ) {
+				self::setCausedByArgRaw( $elem, $arg, $newErr );
 			}
 		}
 	}
@@ -837,6 +839,7 @@ trait TaintednessBaseVisitor {
 				}
 				$taintData = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
 				if ( $taintData !== null ) {
+					/** @var Taintedness $taint */
 					[ $taint, $flags ] = $taintData;
 					if ( $isVariadic ) {
 						$funcTaint->setVariadicParamTaint( $paramNumber, $taint );
@@ -846,7 +849,7 @@ trait TaintednessBaseVisitor {
 						$funcTaint->addParamFlags( $paramNumber, $flags );
 					}
 					$validTaintEncountered = true;
-					if ( $taint->hasOnly( SecurityCheckPlugin::ESCAPES_HTML ) ) {
+					if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
 						// Special case to auto-set anything that escapes html to detect double escaping.
 						$funcTaint->setOverall( $funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT ) );
 					}
@@ -1118,7 +1121,7 @@ trait TaintednessBaseVisitor {
 				$node
 			);
 
-			$node->taint = new TaintednessWithError( clone $taint, $lines, $links );
+			$node->taint = new TaintednessWithError( clone $taint, $lines, clone $links );
 			return $node->taint;
 		} finally {
 			$this->context->setLineNumberStart( $oldLine );
@@ -1606,7 +1609,7 @@ trait TaintednessBaseVisitor {
 		$ctx = $context ?: $this->context;
 		// Using a + instead of : so that I can just copy and paste
 		// into a vim command line.
-		return ' ' . $ctx->getFile() . ' +' . $ctx->getLineNumberStart();
+		return $ctx->getFile() . ' +' . $ctx->getLineNumberStart();
 	}
 
 	/**
@@ -1647,7 +1650,7 @@ trait TaintednessBaseVisitor {
 		$funcArgLinks = self::getVarLinks( $func, $i );
 		$funcArgLinks->attach( $param );
 
-		$paramLinks = self::getMethodLinks( $param ) ?? MethodLinks::newEmpty();
+		$paramLinks = self::getMethodLinksCloneOrEmpty( $param );
 		$paramLinks->initializeParamForFunc( $func, $i );
 		self::setMethodLinks( $param, $paramLinks );
 	}
@@ -1681,8 +1684,6 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		$lhsLinks = self::getMethodLinks( $lhs ) ?? MethodLinks::newEmpty();
-
 		// So if we have $a = $b;
 		// First we find out all the methods that can set $b
 		// Then we add $a to the list of variables that those methods can set.
@@ -1698,7 +1699,7 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		$newLinks = clone $lhsLinks;
+		$newLinks = self::getMethodLinksCloneOrEmpty( $lhs );
 		if ( $lhsOffsets ) {
 			$newLinks->setLinksAtOffsetList( $lhsOffsets, $rhsLinks );
 		} else {
@@ -1747,8 +1748,9 @@ trait TaintednessBaseVisitor {
 		foreach ( self::getRelevantLinksForTaintedness( $varLinks, $taint ) as [ $curLinks, $curTaint ] ) {
 			/** @var MethodLinks $curLinks */
 			/** @var Taintedness $curTaint */
-			foreach ( $curLinks->getLinks() as $method ) {
-				$paramInfo = $curLinks->getLinks()[$method];
+			$curLinksAll = $curLinks->getLinks();
+			foreach ( $curLinksAll as $method ) {
+				$paramInfo = $curLinksAll[$method];
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
 				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
@@ -1888,8 +1890,8 @@ trait TaintednessBaseVisitor {
 			$this->setTaintednessOld( $var, $newTaint );
 			$this->mergeTaintError( $var, $error );
 			if (
-				$taintAdjusted->withoutObj( $curVarTaint )->isAllTaint() &&
-				$var instanceof ClassElement
+				$var instanceof Property &&
+				!$taintAdjusted->withoutObj( $curVarTaint )->isSafe()
 			) {
 				// TODO: This is subpar -
 				// * Its inefficient, reanalyzing much more than needed.
@@ -1999,11 +2001,11 @@ trait TaintednessBaseVisitor {
 			return array_column( $allLines, 1 );
 		}
 
-		$taintedness = $this->normalizeTaintForCausedBy( $taintedness );
+		$taintedness = $this->normalizeTaintForCausedBy( $taintedness )->get();
 		$ret = [];
 		foreach ( $allLines as [ $lineTaint, $lineText ] ) {
 			// Don't check for equality, as that would fail with MultiTaint
-			if ( $taintedness->has( $lineTaint->get() ) ) {
+			if ( $lineTaint->has( $taintedness ) ) {
 				$ret[] = $lineText;
 			}
 		}
@@ -2106,7 +2108,7 @@ trait TaintednessBaseVisitor {
 				$this->debugOutput = false;
 			}
 		}
-		$line = $method . "\33[1m" . $this->dbgInfo() . " \33[0m" . $msg . "\n";
+		$line = $method . "\33[1m " . $this->dbgInfo() . " \33[0m" . $msg . "\n";
 		if ( $this->debugOutput && $this->debugOutput !== '-' ) {
 			fwrite(
 				$this->debugOutput,
