@@ -145,7 +145,9 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 		if ( $node->children['expr'] instanceof Node ) {
 			// For now just consider the outermost array.
 			// FIXME. doesn't handle tainted array keys!
-			$this->recurse( $node->children['expr'] );
+			$offs = $node->children['dim'];
+			$realOffs = $offs !== null ? $this->resolveOffset( $offs ) : null;
+			$this->recurse( $node->children['expr'], $this->taintedness->asMaybeMovedAtOffset( $realOffs ) );
 		}
 	}
 
@@ -286,11 +288,23 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	}
 
 	/**
-	 * Wrapper for __invoke. Will allow changing the taintedness before recursing, and restoring later.
+	 * Wrapper for __invoke. Allows changing the taintedness before recursing, and restoring later.
+	 *
 	 * @param Node $node
+	 * @param Taintedness|null $taint
 	 */
-	private function recurse( Node $node ) : void {
-		$this( $node );
+	private function recurse( Node $node, Taintedness $taint = null ) : void {
+		if ( !$taint ) {
+			$this( $node );
+			return;
+		}
+		$oldTaint = $this->taintedness;
+		$this->taintedness = $taint;
+		try {
+			$this( $node );
+		} finally {
+			$this->taintedness = $oldTaint;
+		}
 	}
 
 	/**

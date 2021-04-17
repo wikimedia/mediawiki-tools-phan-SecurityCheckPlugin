@@ -38,11 +38,11 @@ function doEvilStuff() {
 	new TestWholeKeys( $_GET['x'] ); // Unsafe
 	new TestSafeWhole( $_GET['x'] ); // Unsafe
 	new TestSafeSafe( $_GET['x'] ); // Unsafe
-	new TestSafeUnsafe( $_GET['x'] ); // Unsafe
+	new TestSafeUnsafe( $_GET['x'] ); // Safe (although echoing the props is unsafe)
 	new TestSafeUnknown( $_GET['x'] ); // Unsafe
 	new TestSafeKeys( $_GET['x'] ); // TODO Safe
 	new TestUnsafeWhole( $_GET['x'] ); // Unsafe
-	new TestUnsafeSafe( $_GET['x'] ); // TODO Safe
+	new TestUnsafeSafe( $_GET['x'] ); // Safe
 	new TestUnsafeUnsafe( $_GET['x'] ); // Unsafe
 	new TestUnsafeUnknown( $_GET['x'] ); // Unsafe
 	new TestUnsafeKeys( $_GET['x'] ); // TODO Safe
@@ -134,7 +134,7 @@ class TestSafeUnsafe {
 	public $propSafeUnsafe;
 
 	public function testUnsafe() {
-		echoUnsafe( $this->propSafeUnsafe ); // TODO Safe
+		echoUnsafe( $this->propSafeUnsafe ); // Unsafe
 	}
 	public function __construct( $arg ) {
 		$this->propSafeUnsafe = [ 'safe' => $arg, 'unsafe' => $_GET['a'] ];

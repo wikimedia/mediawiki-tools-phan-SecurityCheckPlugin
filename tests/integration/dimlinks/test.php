@@ -47,7 +47,7 @@ function echoSafeLiteral( $param ) {
 	$x = [ 'foo' => $param ];
 	echo $x['bar'];
 }
-echoSafeLiteral( $_GET['a'] ); // TODO Safe
+echoSafeLiteral( $_GET['a'] ); // Safe
 
 function echoSafeLiteralIndirect( $param ) {
 	$x = [ 'foo' => $param ];
@@ -77,7 +77,7 @@ function echoSafeLiteral2( $param ) {
 	$x = [ 'foo' => $param, 'bar' => 'safe' ];
 	echo $x['bar'];
 }
-echoSafeLiteral2( $_GET['a'] ); // TODO Safe
+echoSafeLiteral2( $_GET['a'] ); // Safe
 
 function echoSafeLiteralIndirect2( $param ) {
 	$x = [ 'foo' => $param, 'bar' => 'safe' ];
