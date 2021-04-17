@@ -1127,11 +1127,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$retTaintednessWithError = $this->getTaintedness( $node->children['expr'] );
 		$taintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
 
-		$funcTaint = $this->matchTaintToParam(
-			$node->children['expr'],
-			$taintedness,
-			$curFunc
+		$matchRetVisitor = new MatchReturnToParamVisitor(
+			$this->code_base,
+			$this->context,
+			$curFunc,
+			$taintedness
 		);
+		$funcTaint = $matchRetVisitor->getNewFuncTaint( $node );
 
 		$this->setFuncTaint( $curFunc, $funcTaint );
 
