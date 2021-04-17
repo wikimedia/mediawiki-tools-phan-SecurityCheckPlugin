@@ -1600,17 +1600,10 @@ trait TaintednessBaseVisitor {
 			$funcArgLinks = new Set;
 			self::setVarLinks( $func, $i, $funcArgLinks );
 		}
-		$paramLinks = self::getMethodLinks( $param ) ?? MethodLinks::newEmpty();
-		$actualLinks = $paramLinks->getLinks();
-
 		$funcArgLinks->attach( $param );
-		if ( $actualLinks->contains( $func ) ) {
-			$data = $actualLinks[$func];
-			$data[$i] = true;
-			$actualLinks[$func] = $data;
-		} else {
-			$actualLinks[$func] = [ $i => true ];
-		}
+
+		$paramLinks = self::getMethodLinks( $param ) ?? MethodLinks::newEmpty();
+		$paramLinks->initializeParamForFunc( $func, $i );
 		self::setMethodLinks( $param, $paramLinks );
 	}
 
@@ -1647,17 +1640,14 @@ trait TaintednessBaseVisitor {
 		// Last we add these methods to $a's list of all methods that can set it.
 		foreach ( $rhsLinks as $method ) {
 			$paramInfo = $rhsLinks[$method];
-			foreach ( $paramInfo as $index => $_ ) {
+			foreach ( $paramInfo->getParams() as $index ) {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$varLinks->attach( $lhs );
 			}
-			if ( isset( $actualLhsLinks[$method] ) ) {
-				$actualLhsLinks[$method] += $paramInfo;
-			} else {
-				$actualLhsLinks[ $method ] = $paramInfo;
-			}
+			$actualLhsLinks[$method] = $actualLhsLinks[$method] ?? new SingleMethodLinks();
+			$actualLhsLinks[$method]->mergeWith( $paramInfo );
 		}
 		self::setMethodLinks( $lhs, $lhsLinks );
 	}
@@ -1700,13 +1690,12 @@ trait TaintednessBaseVisitor {
 		$this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
 
-		/** @var FunctionInterface $method */
 		foreach ( $varLinks as $method ) {
 			$paramInfo = $varLinks[$method];
 			// Note, not forCaller, as that doesn't see variadic parameters
 			$calleeParamList = $method->getParameterList();
 			$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
-			foreach ( $paramInfo as $i => $_ ) {
+			foreach ( $paramInfo->getParams() as $i ) {
 				$curTaint = clone $taint;
 				if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 					$paramTaint->setVariadicParamTaint( $i, $curTaint );
@@ -2081,12 +2070,11 @@ trait TaintednessBaseVisitor {
 			$links = $links->getLinks();
 
 			foreach ( $links as $func ) {
-				/** @var $paramInfo array Array of int -> true */
 				$paramInfo = $links[$func];
 				if ( (string)( $func->getFQSEN() ) === (string)( $curFunc->getFQSEN() ) ) {
 					// Note, not forCaller, as that doesn't see variadic parameters
 					$calleeParamList = $func->getParameterList();
-					foreach ( $paramInfo as $i => $_ ) {
+					foreach ( $paramInfo->getParams() as $i ) {
 						if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 							$paramTaint->setVariadicParamTaint( $i, $pobjTaintContribution );
 						} else {

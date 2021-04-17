@@ -2,20 +2,20 @@
 
 namespace SecurityCheckPlugin;
 
-use Phan\Library\Set;
+use Phan\Language\Element\FunctionInterface;
 
 /**
  * Value object that represents method links.
  * @todo We might store links inside Taintedness, but the memory usage might skyrocket
  */
 class MethodLinks {
-	/** @var Set */
+	/** @var LinksSet */
 	private $links;
 
 	/**
-	 * @param Set $links
+	 * @param LinksSet $links
 	 */
-	public function __construct( Set $links ) {
+	private function __construct( LinksSet $links ) {
 		$this->links = $links;
 	}
 
@@ -23,7 +23,7 @@ class MethodLinks {
 	 * @return self
 	 */
 	public static function newEmpty() : self {
-		return new self( new Set );
+		return new self( new LinksSet );
 	}
 
 	/**
@@ -51,15 +51,17 @@ class MethodLinks {
 	 * Make sure to clone member variables, too.
 	 */
 	public function __clone() {
-		$this->links = clone $this->links;
+		foreach ( $this->links as $method ) {
+			$this->links[$method] = clone $this->links[$method];
+		}
 	}
 
 	/**
 	 * Temporary method until proper handlers are created.
 	 *
-	 * @return Set
+	 * @return LinksSet
 	 */
-	public function getLinks() : Set {
+	public function getLinks() : LinksSet {
 		return $this->links;
 	}
 
@@ -71,26 +73,33 @@ class MethodLinks {
 	}
 
 	/**
-	 * @param Set $l1
-	 * @param Set $l2
-	 * @return Set
+	 * @param FunctionInterface $func
+	 * @param int $i
 	 */
-	private static function mergeSets( Set $l1, Set $l2 ) : Set {
+	public function initializeParamForFunc( FunctionInterface $func, int $i ) : void {
+		if ( $this->links->contains( $func ) ) {
+			$this->links[$func]->addParam( $i );
+		} else {
+			$this->links[$func] = SingleMethodLinks::newWithParam( $i );
+		}
+	}
+
+	/**
+	 * @param LinksSet $l1
+	 * @param LinksSet $l2
+	 * @return LinksSet
+	 */
+	private static function mergeSets( LinksSet $l1, LinksSet $l2 ) : LinksSet {
 		$ret = $l1;
-		$remainingL2 = new Set;
+		$remainingL2 = new LinksSet;
 		foreach ( $l2 as $method ) {
 			if ( $ret->contains( $method ) ) {
-				$leftLinks = $ret[$method];
-				$rightLinks = $l2[$method];
-				foreach ( $rightLinks as $k => $val ) {
-					$leftLinks[$k] = ( $leftLinks[$k] ?? false ) || $val;
-				}
-				$ret[$method] = $leftLinks;
+				$ret[$method]->mergeWith( $l2[$method] );
 			} else {
 				$remainingL2->attach( $method, $l2[$method] );
 			}
 		}
-		return $ret->union( $remainingL2 );
+		return $ret->unionWith( $remainingL2 );
 	}
 
 	// TODO __toString
