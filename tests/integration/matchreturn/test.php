@@ -197,22 +197,22 @@ function preserveMovedAtOffset( $par ) {
 }
 echo preserveMovedAtOffset( $_GET['a'] ); // Unsafe
 echo preserveMovedAtOffset( $_GET['a'] )['x']; // Unsafe
-echo preserveMovedAtOffset( $_GET['a'] )['z']; // TODO Safe
+echo preserveMovedAtOffset( $_GET['a'] )['z']; // Safe
 echo preserveMovedAtOffset( [ 'x' => 'safe', 'z' => $_GET['a'] ] ); // Unsafe
 echo preserveMovedAtOffset( [ 'x' => 'safe', 'z' => $_GET['a'] ] )['x']; // Unsafe
-echo preserveMovedAtOffset( [ 'x' => 'safe', 'z' => $_GET['a'] ] )['z']; // TODO Safe
+echo preserveMovedAtOffset( [ 'x' => 'safe', 'z' => $_GET['a'] ] )['z']; // Safe
 
 function preservePartialMovedAtOffset( $par ) {
 	return [ 'x' => $par['y'], 'z' => 'safe' ];
 }
 echo preservePartialMovedAtOffset( $_GET['a'] ); // Unsafe
-echo preservePartialMovedAtOffset( $_GET['a'] )['x']; // TODO Unsafe
+echo preservePartialMovedAtOffset( $_GET['a'] )['x']; // Unsafe
 echo preservePartialMovedAtOffset( $_GET['a'] )['z']; // Safe
 echo preservePartialMovedAtOffset( [ 'y' => 'safe', 'z' => $_GET['a'] ] ); // Safe
 echo preservePartialMovedAtOffset( [ 'y' => 'safe', 'z' => $_GET['a'] ] )['x']; // Safe
 echo preservePartialMovedAtOffset( [ 'y' => 'safe', 'z' => $_GET['a'] ] )['z']; // Safe
 echo preservePartialMovedAtOffset( [ 'z' => 'safe', 'y' => $_GET['a'] ] ); // Unsafe
-echo preservePartialMovedAtOffset( [ 'z' => 'safe', 'y' => $_GET['a'] ] )['x']; // TODO Unsafe
+echo preservePartialMovedAtOffset( [ 'z' => 'safe', 'y' => $_GET['a'] ] )['x']; // Unsafe
 echo preservePartialMovedAtOffset( [ 'z' => 'safe', 'y' => $_GET['a'] ] )['z']; // Safe
 
 function preservePartial( $x ) {
@@ -225,6 +225,20 @@ echo preservePartial( [ 'y' => getHTML(), 'z' => 'safe' ] ); // Unsafe
 echo preservePartial( [ 'z' => getHTML(), 'y' => 'safe' ] ); // Safe
 echo preservePartial( [ 'y' => getShell(), 'z' => 'safe' ] ); // Safe
 echo preservePartial( [ 'y' => [ 'y' => getHTML(), 'x' => 'safe' ], 'z' => 'safe' ] )['y']; // Unsafe
-echo preservePartial( [ 'y' => [ 'y' => 'safe', 'x' => getHTML() ], 'z' => 'safe' ] )['y']; // TODO Safe
+echo preservePartial( [ 'y' => [ 'y' => 'safe', 'x' => getHTML() ], 'z' => 'safe' ] )['y']; // Safe
 echo preservePartial( [ 'y' => [ 'y' => getHTML(), 'x' => 'safe' ], 'z' => 'safe' ] )['x']; // Safe
-echo preservePartial( [ 'y' => [ 'y' => 'safe', 'x' => getHTML() ], 'z' => 'safe' ] )['x']; // TODO Unsafe
+echo preservePartial( [ 'y' => [ 'y' => 'safe', 'x' => getHTML() ], 'z' => 'safe' ] )['x']; // Unsafe
+
+function removeBitsFromDifferentOffsets( $par ) {
+	return htmlspecialchars( $par['x'] ) . escapeshellcmd( $par['y'] );
+}
+echo removeBitsFromDifferentOffsets( [ 'x' => $_GET['t'], 'y' => $_GET['t'] ] ); // TODO Unsafe
+echo removeBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getHTML() ] ); // TODO Unsafe
+echo removeBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getShell() ] ); // Safe
+echo removeBitsFromDifferentOffsets( [ 'x' => getShell(), 'y' => getHTML() ] ); // TODO Unsafe
+echo removeBitsFromDifferentOffsets( [ 'x' => getShell(), 'y' => getShell() ] ); // Safe
+shell_exec( removeBitsFromDifferentOffsets( [ 'x' => $_GET['t'], 'y' => $_GET['t'] ] ) ); // TODO Unsafe
+shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getHTML() ] ) ); // Safe
+shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getShell() ] ) ); // Safe
+shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getShell(), 'y' => getHTML() ] ) ); // TODO Unsafe
+shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getShell(), 'y' => getShell() ] ) ); // TODO Unsafe

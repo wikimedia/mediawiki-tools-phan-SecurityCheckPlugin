@@ -2513,15 +2513,8 @@ trait TaintednessBaseVisitor {
 		FunctionInterface $func
 	) : array {
 		if ( $funcTaint->hasParamPreserve( $i ) ) {
-			$parTaint = $funcTaint->getParamPreservedTaint( $i )->asTaintedness();
-
-			if ( $parTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
-				$parTaint = $parTaint->asPreserveReplacedWith( SecurityCheckPlugin::YES_TAINT );
-			}
-			$effectiveArgTaintedness = Taintedness::intersectForSink(
-				$parTaint->withExecToYesTaint(),
-				$curArgTaintedness
-			);
+			$parTaint = $funcTaint->getParamPreservedTaint( $i );
+			$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness via arg $i $funcName" );
 		} elseif (
 			$funcTaint->getOverall()->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )

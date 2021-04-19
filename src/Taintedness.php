@@ -116,28 +116,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Replaces any occurrence of PRESERVE with $taint.
-	 * @param int $taint
-	 * @return self
-	 */
-	public function asPreserveReplacedWith( int $taint ) : self {
-		$ret = clone $this;
-		if ( $this->flags & SecurityCheckPlugin::PRESERVE_TAINT ) {
-			$ret->flags = ( $this->flags & ~SecurityCheckPlugin::PRESERVE_TAINT ) | $taint;
-		}
-		if ( $this->keysTaint & SecurityCheckPlugin::PRESERVE_TAINT ) {
-			$ret->keysTaint = ( $this->keysTaint & ~SecurityCheckPlugin::PRESERVE_TAINT ) | $taint;
-		}
-		if ( $this->unknownDimsTaint ) {
-			$ret->unknownDimsTaint = $this->unknownDimsTaint->asPreserveReplacedWith( $taint );
-		}
-		foreach ( $ret->dimTaint as $i => $dimTaint ) {
-			$ret->dimTaint[$i] = $dimTaint->asPreserveReplacedWith( $taint );
-		}
-		return $ret;
-	}
-
-	/**
 	 * Recursively extract the taintedness from each key.
 	 *
 	 * @return int
@@ -484,11 +462,11 @@ class Taintedness {
 	 * it will return a new Taintedness object without the original shape, and with taint from
 	 * unknown keys added.
 	 *
-	 * @param Node|string|int|bool|float $offset
+	 * @param Node|string|int|bool|float|null $offset
 	 * @return self Always a copy
 	 */
 	public function getTaintednessForOffsetOrWhole( $offset ) : self {
-		if ( $offset instanceof Node ) {
+		if ( !is_scalar( $offset ) ) {
 			return $this->asValueFirstLevel();
 		}
 		if ( isset( $this->dimTaint[$offset] ) ) {

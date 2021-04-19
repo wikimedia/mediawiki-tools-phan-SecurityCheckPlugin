@@ -1074,22 +1074,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$curFunc = $this->context->getFunctionLikeInScope( $this->code_base );
-		// The EXEC taint flags have different meaning for variables and
-		// functions. We don't want to transmit exec flags here.
-		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
-		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
-		$retTaintednessWithError = $this->getTaintedness( $node->children['expr'] );
-		$taintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
 
-		$matchRetVisitor = new MatchReturnToParamVisitor(
-			$this->code_base,
-			$this->context,
-			$curFunc,
-			$taintedness
-		);
-		$funcTaint = $matchRetVisitor->getNewFuncTaint( $node );
-
-		$this->setFuncTaint( $curFunc, $funcTaint );
+		$this->setFuncTaint( $curFunc, $this->getFuncTaintFromReturn( $node, $curFunc ) );
 
 		if ( $node->children['expr'] instanceof Node ) {
 			$collector = new ReturnObjectsCollectVisitor( $this->code_base, $this->context );
@@ -1102,6 +1088,43 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$this->setCurTaintInapplicable();
 		$this->setCachedData( $node );
+	}
+
+	/**
+	 * @param Node $node
+	 * @param FunctionInterface $func
+	 * @return FunctionTaintedness
+	 */
+	private function getFuncTaintFromReturn( Node $node, FunctionInterface $func ) : FunctionTaintedness {
+		assert( $node->kind === \ast\AST_RETURN );
+		$retExpr = $node->children['expr'];
+		$retTaintednessWithError = $this->getTaintedness( $retExpr );
+		// The EXEC taint flags have different meaning for variables and
+		// functions. We don't want to transmit exec flags here.
+		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
+		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
+		$retTaintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
+		if ( !$retExpr instanceof Node ) {
+			assert( $retTaintedness->isSafe() );
+			return new FunctionTaintedness( $retTaintedness );
+		}
+
+		$paramTaint = new FunctionTaintedness( Taintedness::newUnknown() );
+
+		$links = $retTaintednessWithError->getMethodLinks();
+		// Note, not forCaller, as that doesn't see variadic parameters
+		$calleeParamList = $func->getParameterList();
+		foreach ( $calleeParamList as $i => $param ) {
+			$presTaint = $links->asPreservedTaintednessForFuncParam( $func, $i );
+			if ( $param->isVariadic() ) {
+				$paramTaint->setVariadicParamPreservedTaint( $i, $presTaint );
+			} else {
+				$paramTaint->setParamPreservedTaint( $i, $presTaint );
+			}
+		}
+
+		$paramTaint->setOverall( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
+		return $paramTaint;
 	}
 
 	/**

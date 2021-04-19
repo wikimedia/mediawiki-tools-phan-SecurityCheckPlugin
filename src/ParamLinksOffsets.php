@@ -91,6 +91,23 @@ class ParamLinksOffsets {
 	}
 
 	/**
+	 * @param Taintedness $taintedness
+	 * @return Taintedness
+	 */
+	public function appliedToTaintedness( Taintedness $taintedness ) : Taintedness {
+		$ret = $this->own ? clone $taintedness : new Taintedness( SecurityCheckPlugin::NO_TAINT );
+		foreach ( $this->dims as $k => $val ) {
+			$ret->mergeWith( $val->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( $k ) ) );
+		}
+		if ( $this->unknown ) {
+			$ret->mergeWith(
+				$this->unknown->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( null ) )
+			);
+		}
+		return $ret;
+	}
+
+	/**
 	 * @return string
 	 */
 	public function __toString() : string {

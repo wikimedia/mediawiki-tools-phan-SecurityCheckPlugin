@@ -10,7 +10,7 @@
 * Added support for the following PHP 7.4 and PHP 8 features: arrow functions, `match`, named arguments, nullsafe method calls and property access, typed properties, constructor property promotion
 * Infer array shape mutations for several array-related builtin functions
 * Improved taint data for $_FILES
-* Infer when a parameter is passed through by a function (even partially or conditionally), at least in non-complicated cases
+* The plugin now properly infers when a parameter is passed through by a function (even partially or conditionally), and can determine the resulting taintedness of a function call much more accurately
 * Improved caused-by lines for setters and some functions that pass their parameters through
 * It is now possible to put comments after `@param-taint` and `@return-taint` annotations
 * Added taintedness data for PDO functions

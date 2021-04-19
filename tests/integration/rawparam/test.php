@@ -8,7 +8,7 @@ class Message {
 	public function escaped() {
 		return 'placeholder';
 	}
-	public function rawParams( $params ) {
+	public function rawParams( ...$params ) {
 
 		return $this;
 	}

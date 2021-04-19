@@ -61,6 +61,23 @@ class SingleMethodLinks {
 	}
 
 	/**
+	 * @param int $x
+	 * @return bool
+	 */
+	public function hasParam( int $x ) : bool {
+		return isset( $this->params[$x] );
+	}
+
+	/**
+	 * @note This will fail hard if unset.
+	 * @param int $x
+	 * @return ParamLinksOffsets
+	 */
+	public function getParamOffsets( int $x ) : ParamLinksOffsets {
+		return $this->params[$x];
+	}
+
+	/**
 	 * @param int[] $params
 	 */
 	public function keepOnlyParams( array $params ) : void {

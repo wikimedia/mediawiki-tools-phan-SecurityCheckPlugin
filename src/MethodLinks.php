@@ -319,6 +319,38 @@ class MethodLinks {
 	}
 
 	/**
+	 * @todo Store it here?
+	 * @param FunctionInterface $func
+	 * @param int $param
+	 * @return PreservedTaintedness
+	 */
+	public function asPreservedTaintednessForFuncParam( FunctionInterface $func, int $param ) : PreservedTaintedness {
+		$ret = null;
+		if ( $this->links->contains( $func ) ) {
+			$ownInfo = $this->links[$func];
+			if ( $ownInfo->hasParam( $param ) ) {
+				$ret = new PreservedTaintedness(
+					SecurityCheckPlugin::PRESERVE_TAINT,
+					$ownInfo->getParamOffsets( $param )
+				);
+			}
+		}
+		if ( !$ret ) {
+			$ret = new PreservedTaintedness( SecurityCheckPlugin::NO_TAINT );
+		}
+		foreach ( $this->dimLinks as $dim => $dimLinks ) {
+			$ret->setOffsetTaintedness( $dim, $dimLinks->asPreservedTaintednessForFuncParam( $func, $param ) );
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret->setOffsetTaintedness(
+				null,
+				$this->unknownDimLinks->asPreservedTaintednessForFuncParam( $func, $param )
+			);
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param string $indent
 	 * @return string
 	 */
