@@ -8,7 +8,7 @@ class Foo {
 	private $somePrivVar;
 
 	public function bar( $val ) {
-		$this->somePrivVar = $val;
+		$this->somePrivVar = $val;// TODO Ideally this should be in the caused-by lines
 	}
 
 	public function output() {

@@ -113,21 +113,27 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		foreach ( $taint->getParamKeysNoVariadic() as $key ) {
+		foreach ( $taint->getSinkParamKeysNoVariadic() as $key ) {
 			$this->addTaintError(
-				$taint->getParamTaint( $key ), $func, $key, $newTaint->getParamFlags( $key ), $reason
+				$taint->getParamSinkTaint( $key ), $func, $key, $newTaint->getParamFlags( $key ), $reason
+			);
+		}
+		foreach ( $taint->getPreserveParamKeysNoVariadic() as $key ) {
+			$this->addTaintError(
+				$taint->getParamPreservedTaint( $key ), $func, $key, $newTaint->getParamFlags( $key ), $reason
 			);
 		}
 		$variadicIndex = $taint->getVariadicParamIndex();
 		if ( $variadicIndex !== null ) {
-			$this->addTaintError(
-				// @phan-suppress-next-line PhanTypeMismatchArgumentNullable
-				$taint->getVariadicParamTaint(),
-				$func,
-				$variadicIndex,
-				$newTaint->getVariadicParamFlags(),
-				$reason
-			);
+			$variadicFlags = $newTaint->getVariadicParamFlags();
+			$sinkVariadic = $taint->getVariadicParamSinkTaint();
+			if ( $sinkVariadic ) {
+				$this->addTaintError( $sinkVariadic, $func, $variadicIndex, $variadicFlags, $reason );
+			}
+			$preserveVariadic = $taint->getVariadicParamPreservedTaint();
+			if ( $preserveVariadic ) {
+				$this->addTaintError( $preserveVariadic, $func, $variadicIndex, $variadicFlags, $reason );
+			}
 		}
 		$this->addTaintError( $taint->getOverall(), $func, -1, $newTaint->getOverallFlags(), $reason );
 
@@ -783,11 +789,15 @@ trait TaintednessBaseVisitor {
 				if ( $taintData !== null ) {
 					/** @var Taintedness $taint */
 					[ $taint, $flags ] = $taintData;
+					$sinkTaint = $taint->withOnly( SecurityCheckPlugin::ALL_EXEC_TAINT );
+					$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT );
 					if ( $isVariadic ) {
-						$funcTaint->setVariadicParamTaint( $paramNumber, $taint );
+						$funcTaint->setVariadicParamSinkTaint( $paramNumber, $sinkTaint );
+						$funcTaint->setVariadicParamPreservedTaint( $paramNumber, $preserveTaint );
 						$funcTaint->addVariadicParamFlags( $flags );
 					} else {
-						$funcTaint->setParamTaint( $paramNumber, $taint );
+						$funcTaint->setParamSinkTaint( $paramNumber, $sinkTaint );
+						$funcTaint->setParamPreservedTaint( $paramNumber, $preserveTaint );
 						$funcTaint->addParamFlags( $paramNumber, $flags );
 					}
 					$validTaintEncountered = true;
@@ -1633,9 +1643,9 @@ trait TaintednessBaseVisitor {
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsets( $paramOffsets );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-						$paramTaint->setVariadicParamTaint( $i, $curParTaint );
+						$paramTaint->setVariadicParamSinkTaint( $i, $curParTaint );
 					} else {
-						$paramTaint->setParamTaint( $i, $curParTaint );
+						$paramTaint->setParamSinkTaint( $i, $curParTaint );
 					}
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
@@ -1961,8 +1971,8 @@ trait TaintednessBaseVisitor {
 			return [];
 		}
 		$variadicIdx = $funcTaint->getVariadicParamIndex();
-		if ( $variadicIdx !== null ) {
-			return $arg >= $variadicIdx ? self::getCausedByArgRaw( $element, $variadicIdx ) : [];
+		if ( $variadicIdx !== null && $arg >= $variadicIdx ) {
+			return self::getCausedByArgRaw( $element, $variadicIdx ) ?: [];
 		}
 		return [];
 	}
@@ -2304,9 +2314,22 @@ trait TaintednessBaseVisitor {
 				$argName = '#' . ( $i + 1 );
 			}
 
+			$argTaintWithError = $this->getTaintednessNode( $argument );
+			$curArgTaintedness = $argTaintWithError->getTaintedness();
+			$baseArgError = $argTaintWithError->getError();
+			if (
+				( $taint->getParamSinkTaint( $i )->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )
+				&& ( $curArgTaintedness->has( SecurityCheckPlugin::SQL_TAINT ) )
+				&& $this->nodeIsString( $argument )
+			) {
+				// Special case to make NUMKEY work right for non-array
+				// values. Should consider if this is really best
+				// approach.
+				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			}
 			/** @var Taintedness $effectiveArgTaintedness */
-			[ $curArgTaintedness, $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
-				$taint, $argument, $i, $func
+			[ $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
+				$taint, $argument, $curArgTaintedness, $baseArgError, $i, $func
 			);
 			$isRawParam = ( $taint->getParamFlags( $i ) & SecurityCheckPlugin::RAW_PARAM ) !== 0;
 
@@ -2350,9 +2373,9 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg );
 			// where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
-			if ( !$isRawParam && $taint->hasParam( $i ) ) {
-				$parTaint = $taint->getParamTaint( $i );
-				if ( $parTaint->isExecTaint() ) {
+			if ( !$isRawParam && $taint->hasParamSink( $i ) ) {
+				$parTaint = $taint->getParamSinkTaint( $i );
+				if ( !$parTaint->isSafe() ) {
 					// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
 					$this->backpropagateArgTaint( $argument, $parTaint, $func );
 				}
@@ -2369,19 +2392,19 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "Checking safe assign $funcName" .
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
-			$thisTaint = $taint->hasParam( $i ) ? $taint->getParamTaint( $i ) : Taintedness::newSafe();
+			$thisTaint = $taint->getParamSinkTaint( $i );
 			// TODO PHP 7.4 arrow functions would be very much useful here.
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
 			$msgArgsGetter = function () use (
 				$funcName, $containingMethod, $taintedArg, $func, $thisTaint, $i,
-				$curArgError, $effectiveArgTaintedness, $isRawParam
+				$isRawParam, $baseArgError
 			) : array {
 				return [
 					$funcName,
 					$containingMethod,
 					$taintedArg,
 					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
-					$this->getStringTaintLine( $curArgError, $effectiveArgTaintedness ),
+					$this->getStringTaintLine( $baseArgError, $thisTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
 			};
@@ -2484,14 +2507,19 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionTaintedness $funcTaint
 	 * @param Node $argument
+	 * @param Taintedness &$curArgTaintedness
+	 * @param array $baseArgError
+	 * @phan-param list<array{0:Taintedness,1:string}> $baseArgError
 	 * @param int $i Position of the param
 	 * @param FunctionInterface $func
-	 * @return array [ cur taintedness, effective taintedness, error ]
-	 * @phan-return array{0:Taintedness,1:Taintedness,2:list<array{0:Taintedness,1:string}>}
+	 * @return array [ effective taintedness, error ]
+	 * @phan-return array{0:Taintedness,1:list<array{0:Taintedness,1:string}>}
 	 */
 	private function getArgTaint(
 		FunctionTaintedness $funcTaint,
 		Node $argument,
+		Taintedness &$curArgTaintedness,
+		array $baseArgError,
 		int $i,
 		FunctionInterface $func
 	) : array {
@@ -2501,23 +2529,12 @@ trait TaintednessBaseVisitor {
 		) {
 			// This function specifies that arrays are always ok
 			// So treat as if untainted.
-			return [ Taintedness::newSafe(), Taintedness::newSafe(), [] ];
+			$curArgTaintedness = Taintedness::newSafe();
+			return [ Taintedness::newSafe(), [] ];
 		}
 
-		$argTaintednessWithError = $this->getTaintednessNode( $argument );
-		$curArgTaintedness = $argTaintednessWithError->getTaintedness();
-		if ( $funcTaint->hasParam( $i ) ) {
-			$parTaint = $funcTaint->getParamTaint( $i );
-			if (
-				( $parTaint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )
-				&& ( $curArgTaintedness->has( SecurityCheckPlugin::SQL_TAINT ) )
-				&& $this->nodeIsString( $argument )
-			) {
-				// Special case to make NUMKEY work right for non-array
-				// values. Should consider if this is really best
-				// approach.
-				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			}
+		if ( $funcTaint->hasParamPreserve( $i ) ) {
+			$parTaint = $funcTaint->getParamPreservedTaint( $i );
 
 			if ( $parTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
 				$parTaint = $parTaint->asPreserveReplacedWith( SecurityCheckPlugin::YES_TAINT );
@@ -2547,11 +2564,11 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 			// . " via no taint info $funcName" );
 		}
-		$baseArgError = $argTaintednessWithError->getError();
+
 		$argError = $effectiveArgTaintedness->isSafe()
 			? $baseArgError
 			: $this->intersectCausedByTaintedness( $baseArgError, $effectiveArgTaintedness );
-		return [ $curArgTaintedness, $effectiveArgTaintedness, $argError ];
+		return [ $effectiveArgTaintedness, $argError ];
 	}
 
 	/**

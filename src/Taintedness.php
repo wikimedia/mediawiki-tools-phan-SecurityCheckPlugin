@@ -565,15 +565,6 @@ class Taintedness {
 	// Conversion/checks shortcuts
 
 	/**
-	 * Does the taint have one of EXEC flags set
-	 *
-	 * @return bool If the variable has any exec taint
-	 */
-	public function isExecTaint() : bool {
-		return $this->has( SecurityCheckPlugin::ALL_EXEC_TAINT );
-	}
-
-	/**
 	 * Are any of the positive (i.e HTML_TAINT) taint flags set
 	 *
 	 * @return bool If the variable has known (non-execute taint)

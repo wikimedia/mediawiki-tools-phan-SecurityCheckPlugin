@@ -4,7 +4,7 @@ use Wikimedia\Rdbms\MysqlDatabase;
 
 $db = new MysqlDatabase;
 
-$rows = [
+$rows = [// TODO Ideally this shouldn't be in caused-by, but normalizeTaintednessForCausedBy adds SQL for completeness
 	'first' => 1,
 	'second' => 2,
 	'fifth' => $_GET['fifth']

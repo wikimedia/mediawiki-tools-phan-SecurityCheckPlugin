@@ -8,28 +8,30 @@ use LogicException;
  * Value object used to store taintedness of functions.
  * The $overall prop specifies what taint the function returns
  *   irrespective of its arguments.
- * The numeric keys in $paramTaints are how each individual argument affects taint.
  *
  *   For 'overall': the EXEC flags mean a call does evil regardless of args
  *                  the TAINT flags are what taint the output has
- *   For numeric keys: EXEC flags for what taints are unsafe here
+ *   For param keys: EXEC flags for what taints are unsafe here
  *                     TAINT flags for what taint gets passed through func.
  * As a special case, if the overall key has self::PRESERVE_TAINT
  * then any unspecified keys behave like they are self::YES_TAINT
  *
- * If func has an arg that is missing from $paramTaints, then it should be
- * treated as NO_TAINT if its a number or bool, and YES_TAINT otherwise.
+ * If func has no info for a parameter, the UnionType will be used to determine its taintedness.
  * The $overall taintedness must always be set.
  */
 class FunctionTaintedness {
 	/** @var Taintedness Overall taintedness of the func */
 	private $overall;
-	/** @var Taintedness[] Taintedness for each param */
-	public $paramTaints = [];
+	/** @var Taintedness[] EXEC taintedness for each param */
+	private $paramSinkTaints = [];
+	/** @var Taintedness[] Preserved taintedness for each param */
+	private $paramPreserveTaints = [];
 	/** @var int|null Index of a variadic parameter, if any */
 	private $variadicParamIndex;
-	/** @var Taintedness|null Taintedness for a variadic parameter, if any */
-	private $variadicParamTaint;
+	/** @var Taintedness|null EXEC taintedness for a variadic parameter, if any */
+	private $variadicParamSinkTaint;
+	/** @var Taintedness|null Preserved taintedness for a variadic parameter, if any */
+	private $variadicParamPreserveTaint;
 	/** @var int Special overall flags */
 	private $overallFlags = 0;
 	/** @var int[] Special flags for parameters */
@@ -78,13 +80,25 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Set the taint for a given param
+	 * Set the sink taint for a given param
 	 *
 	 * @param int $param
 	 * @param Taintedness $taint
 	 */
-	public function setParamTaint( int $param, Taintedness $taint ) : void {
-		$this->paramTaints[$param] = $taint;
+	public function setParamSinkTaint( int $param, Taintedness $taint ) : void {
+		assert( $param !== $this->variadicParamIndex );
+		$this->paramSinkTaints[$param] = $taint;
+	}
+
+	/**
+	 * Set the preserved taint for a given param
+	 *
+	 * @param int $param
+	 * @param Taintedness $taint
+	 */
+	public function setParamPreservedTaint( int $param, Taintedness $taint ) : void {
+		assert( $param !== $this->variadicParamIndex );
+		$this->paramPreserveTaints[$param] = $taint;
 	}
 
 	/**
@@ -99,9 +113,20 @@ class FunctionTaintedness {
 	 * @param int $index
 	 * @param Taintedness $taint
 	 */
-	public function setVariadicParamTaint( int $index, Taintedness $taint ) : void {
+	public function setVariadicParamSinkTaint( int $index, Taintedness $taint ) : void {
+		assert( !isset( $this->paramPreserveTaints[$index] ) && !isset( $this->paramSinkTaints[$index] ) );
 		$this->variadicParamIndex = $index;
-		$this->variadicParamTaint = $taint;
+		$this->variadicParamSinkTaint = $taint;
+	}
+
+	/**
+	 * @param int $index
+	 * @param Taintedness $taint
+	 */
+	public function setVariadicParamPreservedTaint( int $index, Taintedness $taint ) : void {
+		assert( !isset( $this->paramPreserveTaints[$index] ) && !isset( $this->paramSinkTaints[$index] ) );
+		$this->variadicParamIndex = $index;
+		$this->variadicParamPreserveTaint = $taint;
 	}
 
 	/**
@@ -112,17 +137,39 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Get the taintedness of the given param (NOT a clone), and NO_TAINT if not set.
+	 * Get the sink taintedness of the given param (NOT a clone), and NO_TAINT if not set.
 	 *
 	 * @param int $param
 	 * @return Taintedness
 	 */
-	public function getParamTaint( int $param ) : Taintedness {
-		if ( isset( $this->paramTaints[$param] ) ) {
-			return $this->paramTaints[$param];
+	public function getParamSinkTaint( int $param ) : Taintedness {
+		if ( isset( $this->paramSinkTaints[$param] ) ) {
+			return $this->paramSinkTaints[$param];
 		}
-		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
-			return $this->variadicParamTaint;
+		if (
+			$this->variadicParamIndex !== null && $param >= $this->variadicParamIndex &&
+			$this->variadicParamSinkTaint
+		) {
+			return $this->variadicParamSinkTaint;
+		}
+		return Taintedness::newSafe();
+	}
+
+	/**
+	 * Get the preserved taintedness of the given param (NOT a clone), and NO_TAINT if not set.
+	 *
+	 * @param int $param
+	 * @return Taintedness
+	 */
+	public function getParamPreservedTaint( int $param ) : Taintedness {
+		if ( isset( $this->paramPreserveTaints[$param] ) ) {
+			return $this->paramPreserveTaints[$param];
+		}
+		if (
+			$this->variadicParamIndex !== null && $param >= $this->variadicParamIndex &&
+			$this->variadicParamPreserveTaint
+		) {
+			return $this->variadicParamPreserveTaint;
 		}
 		return Taintedness::newSafe();
 	}
@@ -144,8 +191,15 @@ class FunctionTaintedness {
 	/**
 	 * @return Taintedness|null
 	 */
-	public function getVariadicParamTaint() : ?Taintedness {
-		return $this->variadicParamTaint;
+	public function getVariadicParamSinkTaint() : ?Taintedness {
+		return $this->variadicParamSinkTaint;
+	}
+
+	/**
+	 * @return Taintedness|null
+	 */
+	public function getVariadicParamPreservedTaint() : ?Taintedness {
+		return $this->variadicParamPreserveTaint;
 	}
 
 	/**
@@ -163,26 +217,51 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Get the *keys* of the params for which we have data, excluding variadic parameters
+	 * Get the *keys* of the params for which we have sink data, excluding variadic parameters
 	 *
 	 * @return int[]
 	 */
-	public function getParamKeysNoVariadic() : array {
-		return array_keys( $this->paramTaints );
+	public function getSinkParamKeysNoVariadic() : array {
+		return array_keys( $this->paramSinkTaints );
 	}
 
 	/**
-	 * Check whether we have taint data for the given param
+	 * Get the *keys* of the params for which we have preserve data, excluding variadic parameters
+	 *
+	 * @return int[]
+	 */
+	public function getPreserveParamKeysNoVariadic() : array {
+		return array_keys( $this->paramPreserveTaints );
+	}
+
+	/**
+	 * Check whether we have sink taint data for the given param
 	 *
 	 * @param int $param
 	 * @return bool
 	 */
-	public function hasParam( int $param ) : bool {
-		if ( isset( $this->paramTaints[$param] ) ) {
+	public function hasParamSink( int $param ) : bool {
+		if ( isset( $this->paramSinkTaints[$param] ) ) {
 			return true;
 		}
 		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
+			return (bool)$this->variadicParamSinkTaint;
+		}
+		return false;
+	}
+
+	/**
+	 * Check whether we have preserve taint data for the given param
+	 *
+	 * @param int $param
+	 * @return bool
+	 */
+	public function hasParamPreserve( int $param ) : bool {
+		if ( isset( $this->paramPreserveTaints[$param] ) ) {
 			return true;
+		}
+		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
+			return (bool)$this->variadicParamPreserveTaint;
 		}
 		return false;
 	}
@@ -195,23 +274,39 @@ class FunctionTaintedness {
 	public function mergeWith( self $other ) : void {
 		$unk = SecurityCheckPlugin::UNKNOWN_TAINT;
 
-		foreach ( $other->paramTaints as $index => $baseT ) {
+		foreach ( $other->paramSinkTaints as $index => $baseT ) {
 			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-				$this->paramTaints[$index] = isset( $this->paramTaints[$index] )
-					? $this->paramTaints[$index]->without( $unk )->asMergedWith( $baseT )
+				$this->paramSinkTaints[$index] = isset( $this->paramSinkTaints[$index] )
+					? $this->paramSinkTaints[$index]->without( $unk )->asMergedWith( $baseT )
+					: $baseT;
+				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
+			}
+		}
+		foreach ( $other->paramPreserveTaints as $index => $baseT ) {
+			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+				$this->paramPreserveTaints[$index] = isset( $this->paramPreserveTaints[$index] )
+					? $this->paramPreserveTaints[$index]->without( $unk )->asMergedWith( $baseT )
 					: $baseT;
 				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
 			}
 		}
 
 		if ( ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-			$variadicIndex = $other->getVariadicParamIndex();
+			$variadicIndex = $other->variadicParamIndex;
 			if ( $variadicIndex !== null ) {
-				$this->variadicParamIndex = $other->variadicParamIndex;
-				$taintVariadic = $other->variadicParamTaint;
-				$this->variadicParamTaint = $this->variadicParamTaint
-					? $this->variadicParamTaint->without( $unk )->asMergedWith( $taintVariadic )
-					: $taintVariadic;
+				$this->variadicParamIndex = $variadicIndex;
+				$sinkVariadic = $other->variadicParamSinkTaint;
+				if ( $sinkVariadic ) {
+					$this->variadicParamSinkTaint = $this->variadicParamSinkTaint
+						? $this->variadicParamSinkTaint->without( $unk )->asMergedWith( $sinkVariadic )
+						: $sinkVariadic;
+				}
+				$presVariadic = $other->variadicParamPreserveTaint;
+				if ( $presVariadic ) {
+					$this->variadicParamPreserveTaint = $this->variadicParamPreserveTaint
+						? $this->variadicParamPreserveTaint->without( $unk )->asMergedWith( $presVariadic )
+						: $presVariadic;
+				}
 				$this->variadicParamFlags |= $other->variadicParamFlags;
 			}
 		}
@@ -237,11 +332,17 @@ class FunctionTaintedness {
 	 */
 	public function __clone() {
 		$this->overall = clone $this->overall;
-		foreach ( $this->paramTaints as $k => $e ) {
-			$this->paramTaints[$k] = clone $e;
+		foreach ( $this->paramSinkTaints as $k => $e ) {
+			$this->paramSinkTaints[$k] = clone $e;
 		}
-		if ( $this->variadicParamTaint ) {
-			$this->variadicParamTaint = clone $this->variadicParamTaint;
+		foreach ( $this->paramPreserveTaints as $k => $t ) {
+			$this->paramPreserveTaints[$k] = clone $t;
+		}
+		if ( $this->variadicParamSinkTaint ) {
+			$this->variadicParamSinkTaint = clone $this->variadicParamSinkTaint;
+		}
+		if ( $this->variadicParamPreserveTaint ) {
+			$this->variadicParamPreserveTaint = clone $this->variadicParamPreserveTaint;
 		}
 	}
 
@@ -251,12 +352,26 @@ class FunctionTaintedness {
 	public function toString() : string {
 		$str = "[\n\toverall: " . $this->overall->toShortString() .
 			self::flagsToString( $this->overallFlags ) . ",\n";
-		foreach ( $this->paramTaints as $par => $taint ) {
-			$str .= "\t$par: " . $taint->toShortString() . self::flagsToString( $this->paramFlags[$par] ?? 0 ) . ",\n";
+		$parKeys = array_keys( array_merge( $this->paramSinkTaints, $this->paramPreserveTaints ) );
+		foreach ( $parKeys as $par ) {
+			$str .= "\t$par: {";
+			if ( isset( $this->paramSinkTaints[$par] ) ) {
+				$str .= "Sink: " . $this->paramSinkTaints[$par]->toShortString() . ', ';
+			}
+			if ( isset( $this->paramPreserveTaints[$par] ) ) {
+				$str .= "Preserve: " . $this->paramPreserveTaints[$par]->toShortString();
+			}
+			$str .= '} ' . self::flagsToString( $this->paramFlags[$par] ?? 0 ) . ",\n";
 		}
-		if ( $this->variadicParamTaint ) {
-			$str .= "\t...{$this->variadicParamIndex}: " . $this->variadicParamTaint->toShortString() .
-				self::flagsToString( $this->variadicParamFlags ) . ",\n";
+		if ( $this->variadicParamIndex !== null ) {
+			$str .= "\t...{$this->variadicParamIndex}: {";
+			if ( $this->variadicParamSinkTaint ) {
+				 $str .= "Sink: " . $this->variadicParamSinkTaint->toShortString() . ', ';
+			}
+			if ( $this->variadicParamPreserveTaint ) {
+				$str .= "Preserve: " . $this->variadicParamPreserveTaint->toShortString();
+			}
+			$str .= '} ' . self::flagsToString( $this->variadicParamFlags ) . "\n";
 		}
 		return "$str]";
 	}
@@ -272,6 +387,9 @@ class FunctionTaintedness {
 		}
 		if ( $flags & SecurityCheckPlugin::RAW_PARAM ) {
 			$bits[] = 'raw param';
+		}
+		if ( $flags & SecurityCheckPlugin::ARRAY_OK ) {
+			$bits[] = 'array ok';
 		}
 		return $bits ? ' (' . implode( ', ', $bits ) . ')' : '';
 	}
