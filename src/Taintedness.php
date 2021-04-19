@@ -729,6 +729,21 @@ class Taintedness {
 	}
 
 	/**
+	 * @todo This method shouldn't be necessary (ideally)
+	 * @return PreservedTaintedness
+	 */
+	public function asPreservedTaintedness() : PreservedTaintedness {
+		$ret = new PreservedTaintedness( $this->flags );
+		foreach ( $this->dimTaint as $k => $val ) {
+			$ret->setOffsetTaintedness( $k, $val->asPreservedTaintedness() );
+		}
+		if ( $this->unknownDimsTaint ) {
+			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asPreservedTaintedness() );
+		}
+		return $ret;
+	}
+
+	/**
 	 * Get a stringified representation of this taintedness, useful for debugging etc.
 	 *
 	 * @param string $indent

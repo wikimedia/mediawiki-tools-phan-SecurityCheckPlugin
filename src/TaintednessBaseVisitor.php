@@ -123,7 +123,11 @@ trait TaintednessBaseVisitor {
 		}
 		foreach ( $taint->getPreserveParamKeysNoVariadic() as $key ) {
 			$this->addTaintError(
-				$taint->getParamPreservedTaint( $key ), $func, $key, $newTaint->getParamFlags( $key ), $reason
+				$taint->getParamPreservedTaint( $key )->asTaintedness(),
+				$func,
+				$key,
+				$newTaint->getParamFlags( $key ),
+				$reason
 			);
 		}
 		$variadicIndex = $taint->getVariadicParamIndex();
@@ -135,7 +139,9 @@ trait TaintednessBaseVisitor {
 			}
 			$preserveVariadic = $taint->getVariadicParamPreservedTaint();
 			if ( $preserveVariadic ) {
-				$this->addTaintError( $preserveVariadic, $func, $variadicIndex, $variadicFlags, $reason );
+				$this->addTaintError(
+					$preserveVariadic->asTaintedness(), $func, $variadicIndex, $variadicFlags, $reason
+				);
 			}
 		}
 		$this->addTaintError( $taint->getOverall(), $func, -1, $newTaint->getOverallFlags(), $reason );
@@ -794,7 +800,7 @@ trait TaintednessBaseVisitor {
 					/** @var Taintedness $taint */
 					[ $taint, $flags ] = $taintData;
 					$sinkTaint = $taint->withOnly( SecurityCheckPlugin::ALL_EXEC_TAINT );
-					$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT );
+					$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT )->asPreservedTaintedness();
 					if ( $isVariadic ) {
 						$funcTaint->setVariadicParamSinkTaint( $paramNumber, $sinkTaint );
 						$funcTaint->setVariadicParamPreservedTaint( $paramNumber, $preserveTaint );
@@ -2507,7 +2513,7 @@ trait TaintednessBaseVisitor {
 		FunctionInterface $func
 	) : array {
 		if ( $funcTaint->hasParamPreserve( $i ) ) {
-			$parTaint = $funcTaint->getParamPreservedTaint( $i );
+			$parTaint = $funcTaint->getParamPreservedTaint( $i )->asTaintedness();
 
 			if ( $parTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
 				$parTaint = $parTaint->asPreserveReplacedWith( SecurityCheckPlugin::YES_TAINT );

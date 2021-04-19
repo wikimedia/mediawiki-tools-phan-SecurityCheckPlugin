@@ -301,7 +301,7 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $func->getParameterList();
 				foreach ( $paramInfo->getParams() as $i => $offsets ) {
-					$pTaint = $pobjTaintContribution->asMovedAtRelevantOffsets( $offsets );
+					$pTaint = $pobjTaintContribution->asMovedAtRelevantOffsets( $offsets )->asPreservedTaintedness();
 					// TODO: Is there any point in setting $pTaint here? Should we just set PRESERVE instead?
 					// But then, can we track what taint is being removed before the argument is returned?
 					// And can we track caused-by lines for that?

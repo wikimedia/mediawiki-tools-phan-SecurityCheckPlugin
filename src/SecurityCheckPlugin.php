@@ -449,17 +449,24 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			$res->addOverallFlags( $overallFlags );
 			unset( $intTaint['overall'] );
 			foreach ( $intTaint as $i => $val ) {
+				assert( ( $val & self::UNKNOWN_TAINT ) === 0, 'Cannot set UNKNOWN' );
 				$paramFlags = ( $val & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
 				// TODO Split sink and preserve in the hardcoded arrays
 				if ( $val & self::VARIADIC_PARAM ) {
 					$pTaint = new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) );
 					$res->setVariadicParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
-					$res->setVariadicParamPreservedTaint( $i, $pTaint->without( self::ALL_EXEC_TAINT ) );
+					$res->setVariadicParamPreservedTaint(
+						$i,
+						$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
+					);
 					$res->addVariadicParamFlags( $paramFlags );
 				} else {
 					$pTaint = new Taintedness( $val & ~$paramFlags );
 					$res->setParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
-					$res->setParamPreservedTaint( $i, $pTaint->without( self::ALL_EXEC_TAINT ) );
+					$res->setParamPreservedTaint(
+						$i,
+						$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
+					);
 					$res->addParamFlags( $i, $paramFlags );
 				}
 			}
@@ -565,11 +572,12 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *  * array_ok - sets self::ARRAY_OK
 	 *  * allow_override - Allow autodetected taints to override annotation
 	 *
-	 * @todo Should UNKNOWN_TAINT be in here? What about ~ operator?
+	 * @todo What about ~ operator?
 	 * @note The special casing to have escapes_html always add exec_escaped
 	 *   (and having htmlnoent exist) is "experimental" and may change in
 	 *   future versions (Maybe all types should set exec_escaped. Maybe it
 	 *   should be explicit)
+	 * @note Excluding UNKNOWN here on purpose, as if we're setting it, it's not unknown
 	 * @param string $line A line from the docblock
 	 * @return array|null Array of [taintedness, flags], or null on no info
 	 * @phan-return array{0:Taintedness,1:int}|null
