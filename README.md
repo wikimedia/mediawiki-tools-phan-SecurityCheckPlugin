@@ -185,7 +185,7 @@ The value for `$TYPE` can be one of `htmlnoent`, `html`, `sql`, `shell`, `serial
 * `tainted` - Means all taint categories except special categories (equivalent to `SecurityCheckPlugin::YES_TAINT`)
 * `escaped` - Is used to mean the value is already escaped (To track double escaping)
 * `sql_numkey` - Is fairly special purpose for MediaWiki. It ignores taint in arrays if they are for associative keys.
-* `raw_param` - To be used in conjunction with other taint types. Means that the parameter's value is considered raw, hence all escaping should have already taken place, because it's not meant to happen afterwards. It behaves as if the taint of the parameter would immediately be EXEC'ed
+* `raw_param` - To be used in conjunction with exec taint types. Means that the parameter's value is considered raw, hence all escaping should have already taken place, because it's not meant to happen afterwards. It behaves the same as normal exec, but it isn't backpropagated.
 
 The default value for `@param-taint` is `tainted` if it's a string (or other dangerous type), and `none` if it's something like an integer. The default value for `@return-taint` is `allow_override` (Which is equivalent to `none` unless something better can be autodetected).
 

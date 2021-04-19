@@ -37,12 +37,12 @@ echo htmlspecialchars( $h );
 
 class Foo {
 	/**
-	 * @param-taint $string raw_param,tainted
+	 * @param-taint $string raw_param,exec_tainted
 	 */
 	public static function allTaint( $string ) {
 	}
 	/**
-	 * @param-taint $string raw_param,html
+	 * @param-taint $string raw_param,exec_html
 	 */
 	public static function htmlTaint( $string ) {
 	}

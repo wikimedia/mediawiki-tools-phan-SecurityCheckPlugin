@@ -136,8 +136,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public const NO_OVERRIDE = 1 << 29;
 
 	// Represents a parameter expecting a raw value, for which escaping should have already
-	// taken place. E.g. in MW this happens for Message::rawParams. In practice, this turns
-	// the func taint into EXEC, but without propagation.
+	// taken place. E.g. in MW this happens for Message::rawParams. In practice, this avoids
+	// backpropagation of EXEC flags.
+	// TODO Do we still need this?
 	public const RAW_PARAM = 1 << 30;
 
 	public const VARIADIC_PARAM = 1 << 31;

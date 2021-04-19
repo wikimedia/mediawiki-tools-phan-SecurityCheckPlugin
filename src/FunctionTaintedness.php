@@ -128,20 +128,6 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Similar to getParamTaint, but normalizes the taintedness for a function call
-	 *
-	 * @param int $param
-	 * @return Taintedness
-	 */
-	public function getParamTaintForFunctionCall( int $param ) : Taintedness {
-		$ret = $this->getParamTaint( $param );
-		if ( $this->getParamFlags( $param ) & SecurityCheckPlugin::RAW_PARAM ) {
-			return $ret->asYesToExecTaint();
-		}
-		return $ret;
-	}
-
-	/**
 	 * @param int $param
 	 * @return int
 	 */

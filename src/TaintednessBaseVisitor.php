@@ -122,9 +122,6 @@ trait TaintednessBaseVisitor {
 		) use ( $func, $reason ) : void {
 			// Only copy error lines if we add some taint not previously present.
 			if ( $curT->has( SecurityCheckPlugin::PRESERVE_TAINT ) || !$baseT->withoutShaped( $curT )->isSafe() ) {
-				if ( $flags & SecurityCheckPlugin::RAW_PARAM ) {
-					$baseT = $baseT->asYesToExecTaint();
-				}
 				$arg = $index === 'overall' ? -1 : $index;
 				$this->addTaintError( $baseT, $func, $arg, $flags, $reason );
 			}
@@ -2357,6 +2354,7 @@ trait TaintednessBaseVisitor {
 			[ $curArgTaintedness, $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
 				$taint, $argument, $i, $func
 			);
+			$isRawParam = ( $taint->getParamFlags( $i ) & SecurityCheckPlugin::RAW_PARAM ) !== 0;
 
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
 			// the Message class doesn't have double escape taint if method takes Message|string.
@@ -2398,7 +2396,7 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg );
 			// where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
-			if ( $taint->hasParam( $i ) ) {
+			if ( !$isRawParam && $taint->hasParam( $i ) ) {
 				$parTaint = $taint->getParamTaint( $i );
 				if ( $parTaint->isExecTaint() ) {
 					// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
@@ -2417,8 +2415,7 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "Checking safe assign $funcName" .
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
-			$thisTaint = $taint->hasParam( $i ) ? $taint->getParamTaintForFunctionCall( $i ) : Taintedness::newSafe();
-			$isRaw = ( $taint->getParamFlags( $i ) & SecurityCheckPlugin::RAW_PARAM ) !== 0;
+			$thisTaint = $taint->hasParam( $i ) ? $taint->getParamTaint( $i ) : Taintedness::newSafe();
 			$this->maybeEmitIssue(
 				$thisTaint,
 				$curArgTaintedness,
@@ -2430,7 +2427,7 @@ trait TaintednessBaseVisitor {
 					$taintedArg,
 					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
 					$this->getStringTaintLine( $curArgError, $effectiveArgTaintedness ),
-					$isRaw ? ' (Param is raw)' : ''
+					$isRawParam ? ' (Param is raw)' : ''
 				]
 			);
 
