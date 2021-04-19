@@ -188,6 +188,51 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * Merge this object with another. This respects NO_OVERRIDE, since it doesn't touch any element
+	 * where it's set. Any UNKNOWN taintedness is also cleared if we're setting it now.
+	 * @param self $other
+	 */
+	public function mergeWith( self $other ) : void {
+		$unk = SecurityCheckPlugin::UNKNOWN_TAINT;
+
+		foreach ( $other->paramTaints as $index => $baseT ) {
+			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+				$this->paramTaints[$index] = isset( $this->paramTaints[$index] )
+					? $this->paramTaints[$index]->without( $unk )->asMergedWith( $baseT )
+					: $baseT;
+				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
+			}
+		}
+
+		if ( ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+			$variadicIndex = $other->getVariadicParamIndex();
+			if ( $variadicIndex !== null ) {
+				$this->variadicParamIndex = $other->variadicParamIndex;
+				$taintVariadic = $other->variadicParamTaint;
+				$this->variadicParamTaint = $this->variadicParamTaint
+					? $this->variadicParamTaint->without( $unk )->asMergedWith( $taintVariadic )
+					: $taintVariadic;
+				$this->variadicParamFlags |= $other->variadicParamFlags;
+			}
+		}
+
+		if ( ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+			$this->overall = $this->overall->without( $unk )->asMergedWith( $other->overall );
+			$this->overallFlags |= $other->overallFlags;
+		}
+	}
+
+	/**
+	 * @param self $other
+	 * @return self
+	 */
+	public function asMergedWith( self $other ) : self {
+		$ret = clone $this;
+		$ret->mergeWith( $other );
+		return $ret;
+	}
+
+	/**
 	 * Make sure to clone properties when cloning the instance
 	 */
 	public function __clone() {
@@ -204,13 +249,13 @@ class FunctionTaintedness {
 	 * @return string
 	 */
 	public function toString() : string {
-		$str = "[\n\toverall: " . $this->overall->toString( '    ' ) .
+		$str = "[\n\toverall: " . $this->overall->toShortString() .
 			self::flagsToString( $this->overallFlags ) . ",\n";
 		foreach ( $this->paramTaints as $par => $taint ) {
-			$str .= "\t$par: " . $taint->toString() . self::flagsToString( $this->paramFlags[$par] ?? 0 ) . ",\n";
+			$str .= "\t$par: " . $taint->toShortString() . self::flagsToString( $this->paramFlags[$par] ?? 0 ) . ",\n";
 		}
 		if ( $this->variadicParamTaint ) {
-			$str .= "\t...{$this->variadicParamIndex}: " . $this->variadicParamTaint->toString() .
+			$str .= "\t...{$this->variadicParamIndex}: " . $this->variadicParamTaint->toShortString() .
 				self::flagsToString( $this->variadicParamFlags ) . ",\n";
 		}
 		return "$str]";

@@ -217,33 +217,12 @@ class Taintedness {
 	}
 
 	/**
-	 * @todo This should probably do what withoutShaped does.
+	 * @todo Should this act on the shape?
 	 * @param Taintedness $other
 	 * @return $this
 	 */
 	public function withoutObj( self $other ) : self {
 		return $this->without( $other->get() );
-	}
-
-	/**
-	 * Similar to self::without, but acts on the shape
-	 * @see Taintedness::remove() for the in-place version
-	 *
-	 * @param self $other
-	 * @return $this
-	 */
-	public function withoutShaped( self $other ) : self {
-		$ret = clone $this;
-		$ret->flags &= ~$other->flags;
-		$ret->keysTaint &= ~$other->keysTaint;
-		// Don't change unknown keys.
-		foreach ( $ret->dimTaint as $k => &$child ) {
-			if ( isset( $other->dimTaint[$k] ) ) {
-				$child = $child->withoutShaped( $other->dimTaint[$k] );
-			}
-		}
-		unset( $child );
-		return $ret;
 	}
 
 	/**

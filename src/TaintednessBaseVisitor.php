@@ -99,92 +99,37 @@ trait TaintednessBaseVisitor {
 			// As it stands, this case probably can't be reached.
 		}
 
-		$funcTaint = self::getFuncTaint( $func );
-		if ( $funcTaint !== null ) {
-			$curTaint = clone $funcTaint;
-		} elseif ( !$override ) {
-			// If we are not overriding, and we don't know
-			// current taint, figure it out.
-			$curTaint = clone $this->getTaintOfFunction( $func );
+		if ( $override ) {
+			$newTaint = clone $taint;
 		} else {
-			$curTaint = new FunctionTaintedness( Taintedness::newUnknown() );
-		}
-		$newTaint = $override ? clone $taint : new FunctionTaintedness( Taintedness::newUnknown() );
-
-		/**
-		 * @param int|string $index
-		 */
-		$maybeAddTaintError = function (
-			Taintedness $baseT,
-			Taintedness $curT,
-			$index,
-			int $flags
-		) use ( $func, $reason ) : void {
-			// Only copy error lines if we add some taint not previously present.
-			if ( $curT->has( SecurityCheckPlugin::PRESERVE_TAINT ) || !$baseT->withoutShaped( $curT )->isSafe() ) {
-				$arg = $index === 'overall' ? -1 : $index;
-				$this->addTaintError( $baseT, $func, $arg, $flags, $reason );
-			}
-		};
-		// TODO Perhaps this should happen inside FunctionTaintedness
-		$getTaintToAdd = static function ( int $flags, Taintedness $curT, Taintedness $baseT ) : Taintedness {
-			if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
-				// We have some hard coded taint (e.g. from
-				// docblock) and do not want to override it
-				// from stuff deduced from src code.
-				return $curT;
-			} else {
-				// We also clear the UNKNOWN flag here, as
-				// if we are explicitly setting it, it is no
-				// longer unknown.
-				$curTNoUnk = $curT->without( SecurityCheckPlugin::UNKNOWN_TAINT );
-				return $curTNoUnk->asMergedWith( $baseT );
-			}
-		};
-
-		$allParams = array_merge( $taint->getParamKeysNoVariadic(), $curTaint->getParamKeysNoVariadic() );
-		foreach ( $allParams as $index ) {
-			$baseT = $taint->getParamTaint( $index );
-			$curT = $curTaint->getParamTaint( $index );
-			if ( !$override ) {
-				$newTaint->setParamTaint( $index, $getTaintToAdd( $curTaint->getParamFlags( $index ), $curT, $baseT ) );
-				$newTaint->addParamFlags(
-					$index,
-					$taint->getParamFlags( $index ) | $curTaint->getParamFlags( $index )
-				);
-			}
-			$maybeAddTaintError( $baseT, $curT, $index, $newTaint->getParamFlags( $index ) );
-		}
-		$variadicIndex = $taint->getVariadicParamIndex() ?? $curTaint->getVariadicParamIndex();
-		if ( $variadicIndex !== null ) {
-			$taintVariadic = $taint->getVariadicParamTaint() ?? Taintedness::newSafe();
-			$curVariadic = $curTaint->getVariadicParamTaint() ?? Taintedness::newSafe();
-			if ( !$override ) {
-				$newTaint->setVariadicParamTaint(
-					$variadicIndex,
-					$getTaintToAdd( $curTaint->getVariadicParamFlags(), $curVariadic, $taintVariadic )
-				);
-				$newTaint->addVariadicParamFlags(
-					$taint->getVariadicParamFlags() | $curTaint->getVariadicParamFlags()
-				);
-			}
-			$maybeAddTaintError( $taintVariadic, $curVariadic, $variadicIndex, $newTaint->getOverallFlags() );
-		}
-
-		$baseOverall = $taint->getOverall();
-		$curOverall = $curTaint->getOverall();
-		if ( !$override ) {
-			$overallTaint = $getTaintToAdd( $curTaint->getOverallFlags(), $curOverall, $baseOverall );
+			$curTaint = clone $this->getTaintOfFunction( $func );
+			$newTaint = $curTaint->asMergedWith( $taint );
 			// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
 			// the PHPDoc type, as it may be wrong.
+			// TODO Is this the right place?
 			$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
 			if ( $mask !== null ) {
-				$overallTaint->keepOnly( $mask->get() );
+				$newTaint->setOverall( $newTaint->getOverall()->withOnly( $mask->get() ) );
 			}
-			$newTaint->setOverall( $overallTaint );
-			$newTaint->addOverallFlags( $taint->getOverallFlags() | $curTaint->getOverallFlags() );
 		}
-		$maybeAddTaintError( $baseOverall, $curOverall, 'overall', $newTaint->getOverallFlags() );
+
+		foreach ( $taint->getParamKeysNoVariadic() as $key ) {
+			$this->addTaintError(
+				$taint->getParamTaint( $key ), $func, $key, $newTaint->getParamFlags( $key ), $reason
+			);
+		}
+		$variadicIndex = $taint->getVariadicParamIndex();
+		if ( $variadicIndex !== null ) {
+			$this->addTaintError(
+				// @phan-suppress-next-line PhanTypeMismatchArgumentNullable
+				$taint->getVariadicParamTaint(),
+				$func,
+				$variadicIndex,
+				$newTaint->getVariadicParamFlags(),
+				$reason
+			);
+		}
+		$this->addTaintError( $taint->getOverall(), $func, -1, $newTaint->getOverallFlags(), $reason );
 
 		self::doSetFuncTaint( $func, $newTaint );
 	}
