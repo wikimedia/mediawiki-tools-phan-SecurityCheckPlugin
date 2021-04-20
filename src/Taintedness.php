@@ -711,7 +711,7 @@ class Taintedness {
 	 * @return PreservedTaintedness
 	 */
 	public function asPreservedTaintedness() : PreservedTaintedness {
-		$ret = new PreservedTaintedness( $this->flags );
+		$ret = new PreservedTaintedness( new ParamLinksOffsets( true, $this->flags ) );
 		foreach ( $this->dimTaint as $k => $val ) {
 			$ret->setOffsetTaintedness( $k, $val->asPreservedTaintedness() );
 		}

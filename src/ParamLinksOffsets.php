@@ -9,7 +9,9 @@ use ast\Node;
  */
 class ParamLinksOffsets {
 	/** @var bool */
-	private $own = true;
+	private $own;
+	/** @var int What taint flags are preserved for this offset */
+	private $ownFlags;
 
 	/** @var self[] */
 	private $dims = [];
@@ -18,10 +20,37 @@ class ParamLinksOffsets {
 	private $unknown;
 
 	/**
+	 * @param bool $own
+	 * @param int $flags
+	 */
+	public function __construct( bool $own = true, int $flags = SecurityCheckPlugin::PRESERVE_TAINT ) {
+		$this->own = $own;
+		$this->ownFlags = $flags;
+	}
+
+	/**
+	 * @return self
+	 */
+	public static function newEmpty() : self {
+		return new self( false, SecurityCheckPlugin::NO_TAINT );
+	}
+
+	/**
+	 * @note This method should be avoided where possible
+	 * @return int
+	 */
+	public function getFlags() : int {
+		return $this->ownFlags;
+	}
+
+	/**
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ) : void {
 		$this->own = $this->own || $other->own;
+		if ( $other->own ) {
+			$this->ownFlags |= $other->ownFlags;
+		}
 		if ( $other->unknown && !$this->unknown ) {
 			$this->unknown = $other->unknown;
 		} elseif ( $other->unknown ) {
@@ -50,9 +79,9 @@ class ParamLinksOffsets {
 		if ( $this->own ) {
 			$this->own = false;
 			if ( is_scalar( $offset ) && !isset( $this->dims[$offset] ) ) {
-				$this->dims[$offset] = new self;
+				$this->dims[$offset] = new self( true, $this->ownFlags );
 			} elseif ( !is_scalar( $offset ) && !$this->unknown ) {
-				$this->unknown = new self;
+				$this->unknown = new self( true, $this->ownFlags );
 			}
 		}
 	}
@@ -95,7 +124,13 @@ class ParamLinksOffsets {
 	 * @return Taintedness
 	 */
 	public function appliedToTaintedness( Taintedness $taintedness ) : Taintedness {
-		$ret = $this->own ? clone $taintedness : new Taintedness( SecurityCheckPlugin::NO_TAINT );
+		if ( $this->own ) {
+			$ret = $this->ownFlags === SecurityCheckPlugin::PRESERVE_TAINT
+				? clone $taintedness
+				: $taintedness->withOnly( $this->ownFlags );
+		} else {
+			$ret = new Taintedness( SecurityCheckPlugin::NO_TAINT );
+		}
 		foreach ( $this->dims as $k => $val ) {
 			$ret->mergeWith( $val->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( $k ) ) );
 		}
@@ -111,7 +146,12 @@ class ParamLinksOffsets {
 	 * @return string
 	 */
 	public function __toString() : string {
-		$ret = '(own): ' . ( $this->own ? 'Y' : 'N' );
+		if ( $this->own ) {
+			$ret = '(own): Y: ' . SecurityCheckPlugin::taintToString( $this->ownFlags ) . ', ';
+		} else {
+			$ret = '(own): N';
+		}
+
 		if ( $this->dims || $this->unknown ) {
 			$ret .= ', dims: [';
 			$dimBits = [];

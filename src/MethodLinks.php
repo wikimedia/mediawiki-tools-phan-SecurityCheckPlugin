@@ -329,14 +329,11 @@ class MethodLinks {
 		if ( $this->links->contains( $func ) ) {
 			$ownInfo = $this->links[$func];
 			if ( $ownInfo->hasParam( $param ) ) {
-				$ret = new PreservedTaintedness(
-					SecurityCheckPlugin::PRESERVE_TAINT,
-					$ownInfo->getParamOffsets( $param )
-				);
+				$ret = new PreservedTaintedness( $ownInfo->getParamOffsets( $param ) );
 			}
 		}
 		if ( !$ret ) {
-			$ret = new PreservedTaintedness( SecurityCheckPlugin::NO_TAINT );
+			$ret = new PreservedTaintedness( ParamLinksOffsets::newEmpty() );
 		}
 		foreach ( $this->dimLinks as $dim => $dimLinks ) {
 			$ret->setOffsetTaintedness( $dim, $dimLinks->asPreservedTaintednessForFuncParam( $func, $param ) );

@@ -8,9 +8,6 @@ use ast\Node;
  * This class represents what taintedness is passed through (=preserved) by a function parameter
  */
 class PreservedTaintedness {
-	/** @var int Combination of the class constants */
-	private $flags;
-
 	/** @var ParamLinksOffsets */
 	private $ownOffsets;
 
@@ -26,26 +23,24 @@ class PreservedTaintedness {
 	private $unknownDimsTaint;
 
 	/**
-	 * @param int $flags
-	 * @param ParamLinksOffsets|null $offsets
+	 * @param ParamLinksOffsets $offsets
 	 */
-	public function __construct( int $flags, ParamLinksOffsets $offsets = null ) {
-		$this->flags = $flags;
-		$this->ownOffsets = $offsets ?? new ParamLinksOffsets();
+	public function __construct( ParamLinksOffsets $offsets ) {
+		$this->ownOffsets = $offsets;
 	}
 
 	/**
 	 * @return self
 	 */
 	public static function newEmpty() : self {
-		return new self( SecurityCheckPlugin::NO_TAINT );
+		return new self( ParamLinksOffsets::newEmpty() );
 	}
 
 	/**
 	 * @return Taintedness
 	 */
 	public function asTaintedness() : Taintedness {
-		$ret = new Taintedness( $this->flags );
+		$ret = new Taintedness( $this->ownOffsets->getFlags() );
 		foreach ( $this->dimTaint as $k => $val ) {
 			$ret->setOffsetTaintedness( $k, $val->asTaintedness() );
 		}
@@ -74,7 +69,6 @@ class PreservedTaintedness {
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ) : void {
-		$this->flags |= $other->flags;
 		$this->ownOffsets->mergeWith( $other->ownOffsets );
 		$this->keysTaint |= $other->keysTaint;
 		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
@@ -106,13 +100,7 @@ class PreservedTaintedness {
 	 * @return Taintedness
 	 */
 	public function asTaintednessForArgument( Taintedness $argTaint ) : Taintedness {
-		if ( $this->flags & SecurityCheckPlugin::PRESERVE_TAINT ) {
-			$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
-		} elseif ( $this->flags ) {
-			$ret = $argTaint->withOnly( $this->flags );
-		} else {
-			$ret = new Taintedness( SecurityCheckPlugin::NO_TAINT );
-		}
+		$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
 
 		foreach ( $this->dimTaint as $k => $val ) {
 			$ret->setOffsetTaintedness( $k, $val->asTaintednessForArgument( $argTaint ) );
@@ -134,8 +122,7 @@ class PreservedTaintedness {
 	 * @return string
 	 */
 	public function toShortString() : string {
-		$flags = SecurityCheckPlugin::taintToString( $this->flags );
-		$ret = "{Own: $flags, Offsets: " . $this->ownOffsets->__toString();
+		$ret = "{Own: " . $this->ownOffsets->__toString();
 		if ( $this->keysTaint ) {
 			$ret .= '; Keys: ' . SecurityCheckPlugin::taintToString( $this->keysTaint );
 		}
