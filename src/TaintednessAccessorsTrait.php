@@ -120,12 +120,22 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
+	 * @note This doesn't return a clone
+	 *
 	 * @param TypedElementInterface $element
 	 * @return MethodLinks|null
 	 */
 	protected static function getMethodLinks( TypedElementInterface $element ) : ?MethodLinks {
+		return $element->taintedMethodLinks ?? null;
+	}
+
+	/**
+	 * @param TypedElementInterface $element
+	 * @return MethodLinks
+	 */
+	protected static function getMethodLinksCloneOrEmpty( TypedElementInterface $element ) : MethodLinks {
 		// Performance: use isset(), not property_exists()
-		return isset( $element->taintedMethodLinks ) ? clone $element->taintedMethodLinks : null;
+		return isset( $element->taintedMethodLinks ) ? clone $element->taintedMethodLinks : new MethodLinks();
 	}
 
 	/**

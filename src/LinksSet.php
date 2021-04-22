@@ -16,18 +16,6 @@ use Phan\Library\Set;
  * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class LinksSet extends Set {
-	/**
-	 * Reimplementation of parent::union, which doesn't use `static`
-	 * @param self $other
-	 * @return self
-	 */
-	public function unionWith( self $other ) : self {
-		$set = new self();
-		$set->addAll( $this );
-		$set->addAll( $other );
-		return $set;
-	}
-
 	public function __toString() : string {
 		$children = [];
 		foreach ( $this as $func ) {

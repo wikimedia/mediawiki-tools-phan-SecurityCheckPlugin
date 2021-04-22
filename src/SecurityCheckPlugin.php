@@ -219,17 +219,23 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		/**
 		 * For branches that are not guaranteed to be executed, merge taint info for any involved
 		 * variable across all branches.
+		 *
+		 * @note This method is HOT, so keep it optimized
+		 *
 		 * @param Variable $variable
 		 * @param Scope[] $scopeList
 		 * @param bool $varExistsInAllScopes @phan-unused-param
-		 * @suppress PhanUnreferencedClosure
+		 * @suppress PhanUnreferencedClosure, PhanUndeclaredProperty
 		 */
 		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ) {
 			$varName = $variable->getName();
 
-			$methodLinks = MethodLinks::newEmpty();
+			$methodLinks = new MethodLinks();
+			$prevLinks = null;
 			$error = [];
-			$taintedness = Taintedness::newSafe();
+			$prevErr = null;
+			$taintedness = new Taintedness( self::NO_TAINT );
+			$prevTaint = null;
 
 			foreach ( $scopeList as $scope ) {
 				$localVar = $scope->getVariableByNameOrNull( $varName );
@@ -237,20 +243,31 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					continue;
 				}
 
-				$taintOrNull = self::getTaintednessRaw( $localVar );
-				if ( $taintOrNull !== null ) {
+				// Below we only merge data if it's non-null in the current scope and different from the previous
+				// branch. Using arrays to save all previous values and then in_array seems useless on MW core,
+				// since >99% cases of duplication are already covered by these simple checks.
+
+				$taintOrNull = $localVar->taintedness ?? null;
+				if ( $taintOrNull && $taintOrNull !== $prevTaint ) {
+					$prevTaint = $taintOrNull;
 					$taintedness->mergeWith( $taintOrNull );
 				}
 
-				$variableObjLinks = self::getMethodLinks( $localVar ) ?? MethodLinks::newEmpty();
-				$methodLinks->mergeWith( $variableObjLinks );
+				$variableObjLinksOrNull = $localVar->taintedMethodLinks ?? null;
+				if ( $variableObjLinksOrNull && $variableObjLinksOrNull !== $prevLinks ) {
+					$prevLinks = $variableObjLinksOrNull;
+					$methodLinks->mergeWith( $variableObjLinksOrNull );
+				}
 
-				$varError = self::getCausedByRaw( $localVar ) ?? [];
-				$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varError );
+				$varErrorOrNull = $localVar->taintedOriginalError ?? null;
+				if ( $varErrorOrNull && $varErrorOrNull !== $prevErr ) {
+					$prevErr = $varErrorOrNull;
+					$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varErrorOrNull );
+				}
 			}
 
 			self::setTaintednessRaw( $variable, $taintedness );
-			self::setMethodLinks( $variable, $methodLinks );
+			$variable->taintedMethodLinks = $methodLinks;
 			self::setCausedByRaw( $variable, $error );
 		};
 	}

@@ -20,10 +20,10 @@ class MethodLinks {
 	private $unknownDimLinks;
 
 	/**
-	 * @param LinksSet $links
+	 * @param LinksSet|null $links
 	 */
-	private function __construct( LinksSet $links ) {
-		$this->links = $links;
+	public function __construct( LinksSet $links = null ) {
+		$this->links = $links ?? new LinksSet();
 	}
 
 	/**
@@ -34,6 +34,7 @@ class MethodLinks {
 	}
 
 	/**
+	 * @note This returns a clone
 	 * @param mixed $dim
 	 * @return self
 	 */
@@ -150,7 +151,7 @@ class MethodLinks {
 	 * @param MethodLinks $links
 	 */
 	public function setLinksAtOffsetList( array $offsets, self $links ) : void {
-		assert( count( $offsets ) >= 1 );
+		assert( (bool)$offsets, 'Should not be empty' );
 		$base = $this;
 		// Just in case keys are not consecutive
 		$offsets = array_values( $offsets );
@@ -158,12 +159,16 @@ class MethodLinks {
 		foreach ( $offsets as $i => $offset ) {
 			$isLast = $i === $lastIdx;
 			if ( !is_scalar( $offset ) ) {
-				if ( !$base->unknownDimLinks ) {
-					$base->unknownDimLinks = self::newEmpty();
-				}
 				if ( $isLast ) {
-					$base->unknownDimLinks = $this->getSetLinksAtOffsetInternal( $base, $offset, $links );
-					return;
+					if ( $base->unknownDimLinks ) {
+						$base->unknownDimLinks->mergeWith( $links );
+					} else {
+						$base->unknownDimLinks = $links;
+					}
+					break;
+				}
+				if ( !$base->unknownDimLinks ) {
+					$base->unknownDimLinks = new self;
 				}
 				$base = $base->unknownDimLinks;
 				continue;
@@ -171,13 +176,17 @@ class MethodLinks {
 
 			if ( $isLast ) {
 				// Mission accomplished!
-				$base->dimLinks[$offset] = $this->getSetLinksAtOffsetInternal( $base, $offset, $links );
+				if ( isset( $base->dimLinks[$offset] ) ) {
+					$base->dimLinks[$offset]->mergeWith( $links );
+				} else {
+					$base->dimLinks[$offset] = $links;
+				}
 				break;
 			}
 
-			if ( !array_key_exists( $offset, $base->dimLinks ) ) {
+			if ( !isset( $base->dimLinks[$offset] ) ) {
 				// Create the element as safe and move on
-				$base->dimLinks[$offset] = self::newEmpty();
+				$base->dimLinks[$offset] = new self;
 			}
 			$base = $base->dimLinks[$offset];
 		}
@@ -232,23 +241,6 @@ class MethodLinks {
 	}
 
 	/**
-	 * @param self $base
-	 * @param Node|mixed $lastOffset
-	 * @param self $links
-	 * @return self
-	 */
-	private function getSetLinksAtOffsetInternal( self $base, $lastOffset, self $links ) : self {
-		if ( !is_scalar( $lastOffset ) ) {
-			return $base->unknownDimLinks
-				? $base->unknownDimLinks->asMergedWith( $links )
-				: $links;
-		}
-		return isset( $base->dimLinks[$lastOffset] )
-			? $base->dimLinks[$lastOffset]->asMergedWith( $links )
-			: $links;
-	}
-
-	/**
 	 * Make sure to clone member variables, too.
 	 */
 	public function __clone() {
@@ -263,11 +255,12 @@ class MethodLinks {
 
 	/**
 	 * Temporary method until proper handlers are created.
+	 * @note This doesn't return a clone
 	 *
 	 * @return LinksSet
 	 */
 	public function getLinks() : LinksSet {
-		$ret = clone $this->links;
+		$ret = $this->links;
 		foreach ( $this->dimLinks as $link ) {
 			$ret = self::mergeSets( $ret, $link->getLinks() );
 		}
@@ -313,16 +306,16 @@ class MethodLinks {
 	 * @return LinksSet
 	 */
 	private static function mergeSets( LinksSet $l1, LinksSet $l2 ) : LinksSet {
-		$ret = $l1;
-		$remainingL2 = new LinksSet;
+		$ret = new LinksSet();
+		$ret->addAll( $l1 );
 		foreach ( $l2 as $method ) {
 			if ( $ret->contains( $method ) ) {
 				$ret[$method]->mergeWith( $l2[$method] );
 			} else {
-				$remainingL2->attach( $method, $l2[$method] );
+				$ret->attach( $method, $l2[$method] );
 			}
 		}
-		return $ret->unionWith( $remainingL2 );
+		return $ret;
 	}
 
 	/**
