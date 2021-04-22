@@ -941,7 +941,22 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::NO_TAINT,
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
-			]
+			],
+			// We assume that hashing functions are safe, see T272492
+			'\md5' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\sha1' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\crc32' => [
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
 		];
 	}
 

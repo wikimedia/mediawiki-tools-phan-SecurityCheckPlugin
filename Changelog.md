@@ -14,6 +14,7 @@
 * (MW) Added partial support for HookHandlers in extension.json
 * Improved handling of pass-by-reference parameters when the parameter is essentially left unchanged
 * The plugin can now track array shapes when backpropagating EXEC taintedness. This brings increased accuracy when analyzing method calls.
+* The following hashing functions were annotated as removing taintedness from their arguments: `md5`, `sha1` and `crc32`
 
 ### Bug fixes
 * Improved merging caused-by lines to avoid duplicates
