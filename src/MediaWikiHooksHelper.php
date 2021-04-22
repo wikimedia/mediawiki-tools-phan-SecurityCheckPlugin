@@ -72,7 +72,7 @@ class MediaWikiHooksHelper {
 			$this->hookSubscribers[$hookName] = [];
 		}
 		foreach ( $this->hookSubscribers[$hookName] as $subscribe ) {
-			if ( (string)$subscribe === (string)$fqsen ) {
+			if ( $subscribe === $fqsen ) {
 				// dupe
 				return true;
 			}
@@ -91,7 +91,6 @@ class MediaWikiHooksHelper {
 		if ( $this->extensionJsonLoaded ) {
 			return;
 		}
-		$this->extensionJsonLoaded = true;
 		foreach ( [ 'extension.json', 'skin.json' ] as $filename ) {
 			$envPath = getenv( 'SECURITY_CHECK_EXT_PATH' );
 			if ( $envPath ) {
@@ -103,6 +102,7 @@ class MediaWikiHooksHelper {
 				$this->readJsonFile( $jsonPath );
 			}
 		}
+		$this->extensionJsonLoaded = true;
 	}
 
 	/**
@@ -176,7 +176,7 @@ class MediaWikiHooksHelper {
 				continue;
 			}
 			foreach ( $this->hookSubscribers[$hook] as $implFQSEN ) {
-				if ( (string)$implFQSEN === (string)$fqsen ) {
+				if ( $implFQSEN === $fqsen ) {
 					return $hook;
 				}
 			}

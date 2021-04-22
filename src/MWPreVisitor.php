@@ -3,7 +3,6 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Phan\Language\Element\FunctionInterface;
 use Phan\Language\UnionType;
 
 /**
@@ -35,8 +34,8 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	public function visitMethod( Node $node ) : void {
 		parent::visitMethod( $node );
 
-		$method = $this->context->getFunctionLikeInScope( $this->code_base );
-		$hookType = MediaWikiHooksHelper::getInstance()->isSpecialHookSubscriber( $method->getFQSEN() );
+		$fqsen = $this->context->getFunctionLikeFQSEN();
+		$hookType = MediaWikiHooksHelper::getInstance()->isSpecialHookSubscriber( $fqsen );
 		if ( !$hookType ) {
 			return;
 		}
@@ -44,10 +43,10 @@ class MWPreVisitor extends PreTaintednessVisitor {
 
 		switch ( $hookType ) {
 		case '!ParserFunctionHook':
-			$this->setFuncHookParamTaint( $params, $method );
+			$this->setFuncHookParamTaint( $params );
 			break;
 		case '!ParserHook':
-			$this->setTagHookParamTaint( $params, $method );
+			$this->setTagHookParamTaint( $params );
 			break;
 		}
 	}
@@ -63,9 +62,8 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 *
 	 * @param array $params formal parameters of tag hook
 	 * @phan-param array<Node|int|string|bool|null|float> $params
-	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
-	private function setTagHookParamTaint( array $params, FunctionInterface $method ) : void {
+	private function setTagHookParamTaint( array $params ) : void {
 		// Only care about first 2 parameters.
 		$scope = $this->context->getScope();
 		for ( $i = 0; $i < 2 && $i < count( $params ); $i++ ) {
@@ -115,9 +113,8 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 *
 	 * @todo This is handling SFH_OBJECT type func hooks incorrectly.
 	 * @param Node[] $params Children of the AST_PARAM_LIST
-	 * @param FunctionInterface $method @phan-unused-param (only used for debugging)
 	 */
-	private function setFuncHookParamTaint( array $params, FunctionInterface $method ) : void {
+	private function setFuncHookParamTaint( array $params ) : void {
 		// First make sure the first arg is set to be a Parser
 		$scope = $this->context->getScope();
 		if ( isset( $params[0] ) ) {

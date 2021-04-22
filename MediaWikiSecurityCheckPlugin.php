@@ -492,15 +492,17 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 * Mark XSS's that happen in a Maintenance subclass as false a positive
 	 *
 	 * @inheritDoc
+	 * @suppress PhanUnusedPublicMethodParameter
 	 */
 	public function isFalsePositive(
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
+		Taintedness $combinedTaint,
 		string &$msg,
 		Context $context,
 		CodeBase $code_base
 	) : bool {
-		if ( $lhsTaint->withOnlyObj( $rhsTaint )->hasOnly( self::HTML_TAINT ) ) {
+		if ( $combinedTaint->hasOnly( self::HTML_TAINT ) ) {
 			$path = str_replace( '\\', '/', $context->getFile() );
 			if (
 				strpos( $path, 'maintenance/' ) === 0 ||

@@ -207,7 +207,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private function analyzeFunctionLike( FunctionInterface $func ) : Taintedness {
 		if (
 			self::getFuncTaint( $func ) === null &&
-			$this->getBuiltinFuncTaint( $func->getFQSEN() ) === null &&
+			!SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) &&
 			$this->getDocBlockTaintOfFunc( $func ) === null &&
 			!$func->hasYield() &&
 			!$func->hasReturn()
@@ -848,7 +848,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
 			} catch ( CodeBaseException $_ ) {
 				// There is no __toString(), then presumably the object can't be outputted, so should be safe.
-				$this->debug( __METHOD__, "no __toString() in $clazz" );
+				// $this->debug( __METHOD__, "no __toString() in $clazz" );
 				$this->curTaint = Taintedness::newSafe();
 				$this->setCachedData( $node );
 				return;
@@ -879,7 +879,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitMethodCall( Node $node ) : void {
-		$funcs = $this->getFuncsFromNode( $node );
+		$funcs = $this->getFuncsFromNode( $node, __METHOD__ );
 		if ( !$funcs ) {
 			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
@@ -908,10 +908,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param Node $node
+	 * @param string $caller
 	 * @return iterable<mixed,FunctionInterface>
 	 */
-	private function getFuncsFromNode( Node $node ) : iterable {
-		$caller = debug_backtrace()[1]['function'] ?? 'unknown';
+	private function getFuncsFromNode( Node $node, $caller = __METHOD__ ) : iterable {
 		$logError = function ( Exception $e ) use ( $caller ) : void {
 			$this->debug(
 				$caller,

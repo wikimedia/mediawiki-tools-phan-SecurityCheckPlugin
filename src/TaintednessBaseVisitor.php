@@ -32,7 +32,6 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
-use Phan\Language\Type;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
@@ -72,6 +71,11 @@ trait TaintednessBaseVisitor {
 	protected $overrideContext;
 
 	/**
+	 * @var bool[] FQSENs of classes without __toString, map of [ (string)FQSEN => true ]
+	 */
+	protected static $fqsensWithoutToStringCache = [];
+
+	/**
 	 * Change taintedness of a function/method
 	 *
 	 * @param FunctionInterface $func
@@ -87,7 +91,7 @@ trait TaintednessBaseVisitor {
 	) : void {
 		if (
 			$func instanceof Method &&
-			(string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN()
+			$func->getDefiningFQSEN() !== $func->getFQSEN()
 		) {
 			$this->debug( __METHOD__, "Setting taint on function " . $func->getFQSEN() . " other than"
 				. " its implementation " . $func->getDefiningFQSEN()
@@ -102,7 +106,7 @@ trait TaintednessBaseVisitor {
 		} elseif ( !$override ) {
 			// If we are not overriding, and we don't know
 			// current taint, figure it out.
-			$curTaint = $this->getTaintOfFunction( $func );
+			$curTaint = clone $this->getTaintOfFunction( $func );
 		} else {
 			$curTaint = new FunctionTaintedness( Taintedness::newUnknown() );
 		}
@@ -122,15 +126,12 @@ trait TaintednessBaseVisitor {
 				if ( $flags & SecurityCheckPlugin::RAW_PARAM ) {
 					$baseT = $baseT->asYesToExecTaint();
 				}
-				if ( $index === 'overall' ) {
-					$this->addTaintError( $baseT, $func, -1, $reason );
-				} else {
-					$this->addTaintError( $baseT, $func, $index, $reason );
-				}
+				$arg = $index === 'overall' ? -1 : $index;
+				$this->addTaintError( $baseT, $func, $arg, $flags, $reason );
 			}
 		};
 		// TODO Perhaps this should happen inside FunctionTaintedness
-		$getTaintToAdd = function ( int $flags, Taintedness $curT, Taintedness $baseT ) : Taintedness {
+		$getTaintToAdd = static function ( int $flags, Taintedness $curT, Taintedness $baseT ) : Taintedness {
 			if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
 				// We have some hard coded taint (e.g. from
 				// docblock) and do not want to override it
@@ -200,9 +201,9 @@ trait TaintednessBaseVisitor {
 	 * times, this will just find the first one.
 	 *
 	 * @param array[] $haystack
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $haystack
+	 * @phan-param list<array{0:Taintedness,1:string}> $haystack
 	 * @param array[] $needle
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $needle
+	 * @phan-param list<array{0:Taintedness,1:string}> $needle
 	 * @return false|int False if not a subset, the starting index if it is.
 	 * @note Use strict comparisons with the return value!
 	 */
@@ -212,13 +213,12 @@ trait TaintednessBaseVisitor {
 			return false;
 		}
 
-		$curIdx = 0;
-		$haystack = array_values( $haystack );
-		$needle = array_values( $needle );
-		// TODO: array_key_last + 1 once we're PHP 7.3+
 		$needleLength = count( $needle );
-		// TODO: With array_key_last we can optimize straight away (in O(1)) when $haystack is shorter than needle;
-		// This only happens 10% of the times when running tests, so probably not an important optimization.
+		$haystackLength = count( $haystack );
+		if ( $haystackLength < $needleLength ) {
+			return false;
+		}
+		$curIdx = 0;
 		foreach ( $haystack as $i => $el ) {
 			if ( $el === $needle[ $curIdx ] ) {
 				$curIdx++;
@@ -244,6 +244,8 @@ trait TaintednessBaseVisitor {
 	 *
 	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
 	 * even a single taintedness value in $base changes.
+	 *
+	 * @warning This modifies Taintedness values in $base!
 	 *
 	 * @param array[] $base
 	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
@@ -300,6 +302,34 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Same as mergeTaintError, but for a single new line
+	 *
+	 * @param array[] $base
+	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
+	 * @param array $new
+	 * @phan-param array{0:Taintedness,1:string} $new
+	 * @return array[]
+	 * @phan-return array<int,array{0:Taintedness,1:string}>
+	 */
+	private static function addCausedByLine( array $base, array $new ) : array {
+		if ( !$base ) {
+			return [ $new ];
+		}
+		if ( count( $base ) >= 25 ) {
+			// HACK: Enforce a hard limit
+			return $base;
+		}
+
+		$idx = array_search( $new[1], array_column( $base, 1 ), true );
+		if ( $idx !== false ) {
+			$base[ $idx ][0] = $base[ $idx ][0]->withObj( $new[0] );
+		} else {
+			$base[] = $new;
+		}
+		return $base;
+	}
+
+	/**
 	 * Merge the info on original cause of taint to left variable
 	 *
 	 * If you have something like $left = $right, merge any information
@@ -315,17 +345,11 @@ trait TaintednessBaseVisitor {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
 
 		if ( $arg === -1 ) {
+			self::ensureCausedByRawExists( $left );
 			$newLeftError = self::getCausedByRaw( $left );
-			if ( $newLeftError === null ) {
-				$newLeftError = [];
-				self::setCausedByRaw( $left, $newLeftError );
-			}
 		} else {
+			self::ensureCausedByArgRawExists( $left, $arg );
 			$newLeftError = self::getCausedByArgRaw( $left, $arg );
-			if ( $newLeftError === null ) {
-				self::initCausedByArgRaw( $left );
-				$newLeftError = [];
-			}
 		}
 
 		if ( $rightError instanceof TypedElementInterface ) {
@@ -353,12 +377,14 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $taintedness
 	 * @param TypedElementInterface $elem Where to put it
 	 * @param int $arg [Optional] For functions, which argument
+	 * @param int $argFlags If $arg is set, its flags
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		Taintedness $taintedness,
 		TypedElementInterface $elem,
 		int $arg = -1,
+		int $argFlags = 0,
 		$reason = null
 	) : void {
 		// NOTE: Parameters here are excluded just to keep caused-by lines shorter, although it wouldn't
@@ -367,17 +393,13 @@ trait TaintednessBaseVisitor {
 			// PRESERVE means all EXECs for a func, and all taints otherwise.
 			if ( !$elem instanceof FunctionInterface ) {
 				$taintedness = Taintedness::newTainted();
-			} else {
-				$funcTaint = $this->getTaintOfFunction( $elem );
-				if ( !$funcTaint->hasNoOverride() ) {
-					// Don't do anything if the function has a NO_OVERRIDE somewhere (i.e. it's probably annotated,
-					// or the taintedness is hardcoded in the plugin)
-					$taintedness = Taintedness::newTainted()->asYesToExecTaint()
-						->with( SecurityCheckPlugin::YES_TAINT );
-				}
+			} elseif ( ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+				// Don't do anything if the param is NO_OVERRIDE (i.e. it's probably annotated,
+				// or the taintedness is hardcoded in the plugin)
+				$taintedness = Taintedness::newTainted()->asYesToExecTaint()->with( SecurityCheckPlugin::YES_TAINT );
 			}
 		}
-		if ( !$taintedness->isExecTaint() && !$taintedness->isAllTaint() ) {
+		if ( !$taintedness->isExecOrAllTaint() ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
 		}
@@ -385,12 +407,9 @@ trait TaintednessBaseVisitor {
 		assert( $arg === -1 || $elem instanceof FunctionInterface );
 
 		if ( $arg === -1 ) {
-			self::setCausedByRaw( $elem, self::getCausedByRaw( $elem ) ?? [] );
+			self::ensureCausedByRawExists( $elem );
 		} else {
-			if ( !self::getAllCausedByArgRaw( $elem ) ) {
-				self::initCausedByArgRaw( $elem );
-			}
-			self::setCausedByArgRaw( $elem, $arg, self::getCausedByArgRaw( $elem, $arg ) ?? [] );
+			self::ensureCausedByArgRawExists( $elem, $arg );
 		}
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ trim( $this->dbgInfo( $reason ?? $this->context ) ) ];
@@ -406,17 +425,16 @@ trait TaintednessBaseVisitor {
 				$newElement = [ clone $taintedness, $newError ];
 				$elemError = self::getCausedByRaw( $elem );
 				assert( is_array( $elemError ) );
-				if ( self::getArraySubsetIdx( $elemError, [ $newElement ] ) === false ) {
-					self::setCausedByRaw(
-						$elem,
-						self::mergeCausedByLines( $elemError, [ $newElement ] )
-					);
+				$newErr = self::addCausedByLine( $elemError, $newElement );
+				if ( $newErr !== $elemError ) {
+					self::setCausedByRaw( $elem, $newErr );
 				}
 			} else {
 				$newElement = [ $taintedness->asExecToYesTaint(), $newError ];
 				$argErr = self::getCausedByArgRaw( $elem, $arg );
-				if ( self::getArraySubsetIdx( $argErr, [ $newElement ] ) === false ) {
-					self::setCausedByArgRaw( $elem, $arg, self::mergeCausedByLines( $argErr, [ $newElement ] ) );
+				$newErr = self::addCausedByLine( $argErr, $newElement );
+				if ( $newErr !== $argErr ) {
+					self::setCausedByArgRaw( $elem, $arg, $newErr );
 				}
 			}
 		}
@@ -517,11 +535,12 @@ trait TaintednessBaseVisitor {
 	) : void {
 		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 		// objects of which $variableObj is a clone!
-		$curTaint = self::getTaintednessRawClone( $variableObj ) ?? Taintedness::newSafe();
+		$curTaint = self::getTaintednessRaw( $variableObj ) ?? Taintedness::newSafe();
 
 		if ( $resolvedOffsetsLhs ) {
 			$offsetOverride = $override && $this->wereAllKeysResolved( $resolvedOffsetsLhs );
 			$keysTaint = $this->getKeysTaintednessList( $resolvedOffsetsLhs );
+			$curTaint = clone $curTaint;
 			$curTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $taintedness, $offsetOverride );
 			foreach ( $keysTaint as $keyTaint ) {
 				$errorTaint->addKeysTaintedness( $keyTaint->get() );
@@ -581,7 +600,7 @@ trait TaintednessBaseVisitor {
 	private function getTaintOfFunctionPHP( FunctionInterface $func ) : FunctionTaintedness {
 		$taint = $this->getBuiltinFuncTaint( $func->getFQSEN() );
 		if ( $taint !== null ) {
-			return $taint;
+			return clone $taint;
 		}
 
 		// Assume that anything really dangerous we've already
@@ -602,7 +621,7 @@ trait TaintednessBaseVisitor {
 	private function getDefiningFunc( FunctionInterface $func ) : ?FunctionInterface {
 		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
 			// Our function has a parent, and potentially interface and traits.
-			if ( (string)$func->getDefiningFQSEN() !== (string)$func->getFQSEN() ) {
+			if ( $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
 				return $this->code_base->getMethodByFQSEN(
 					$func->getDefiningFQSEN()
 				);
@@ -616,23 +635,23 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @todo How to handle multiple function definitions (phan "alternates")
 	 * @param FunctionInterface $func
-	 * @return FunctionInterface[]
+	 * @return Generator<FunctionInterface>
 	 */
-	private function getPossibleFuncDefinitions( FunctionInterface $func ) : array {
-		$funcsToTry = [ $func ];
+	private function getPossibleFuncDefinitions( FunctionInterface $func ) : Generator {
+		yield $func;
 
 		// If we don't have a defining func, stay with the same func.
 		// definingFunc is used later on during fallback processing.
 		$definingFunc = $this->getDefiningFunc( $func );
 		if ( $definingFunc ) {
-			$funcsToTry[] = $definingFunc;
+			yield $definingFunc;
 		}
 		if ( $func instanceof Method ) {
 			try {
 				$class = $func->getClass( $this->code_base );
 			} catch ( CodeBaseException $e ) {
 				$this->debug( __METHOD__, "Class not found for func $func: " . $this->getDebugInfo( $e ) );
-				return $funcsToTry;
+				return;
 			}
 			$nonParents = $class->getNonParentAncestorFQSENList();
 
@@ -642,16 +661,16 @@ trait TaintednessBaseVisitor {
 					// TODO Assuming this isn't a direct invocation, but does it always make sense?
 					$directInvocation = false;
 					if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName(), $directInvocation ) ) {
-						$funcsToTry[] = $nonParent->getMethodByName( $this->code_base, $func->getName() );
+						yield $nonParent->getMethodByName( $this->code_base, $func->getName() );
 					}
 				}
 			}
 		}
-		return $funcsToTry;
 	}
 
 	/**
 	 * This is also for methods and other function like things
+	 * @note This is not guaranteed to return a clone
 	 *
 	 * @param FunctionInterface $func What function/method to look up
 	 * @return FunctionTaintedness Always a clone
@@ -660,12 +679,12 @@ trait TaintednessBaseVisitor {
 		// Fast case, either a builtin to php function or we already
 		// know taint:
 		if ( $func->isPHPInternal() ) {
-			return clone $this->getTaintOfFunctionPHP( $func );
+			return $this->getTaintOfFunctionPHP( $func );
 		}
 
 		$funcTaint = self::getFuncTaint( $func );
 		if ( $funcTaint !== null ) {
-			return clone $funcTaint;
+			return $funcTaint;
 		}
 
 		// Gather up
@@ -677,12 +696,13 @@ trait TaintednessBaseVisitor {
 			if ( $taint !== null ) {
 				$this->setFuncTaint( $func, $taint, true, $trialFunc->getContext() );
 
-				return clone $taint;
+				return $taint;
 			}
 			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
 			if ( $taint !== null ) {
+				$taint = clone $taint;
 				$this->setFuncTaint( $func, $taint, true, "Builtin-$trialFuncName" );
-				return clone $taint;
+				return $taint;
 			}
 		}
 
@@ -693,7 +713,7 @@ trait TaintednessBaseVisitor {
 			( !$this->context->isInFunctionLikeScope() ||
 			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
 		) {
-			$this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
+			// $this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
 			if ( self::getFuncTaint( $definingFunc ) === null ) {
 				// Optim: don't reanalyze if we already have taint data. This might rarely hide
 				// some issues, see T203651#6046483.
@@ -702,13 +722,13 @@ trait TaintednessBaseVisitor {
 				} catch ( Exception $e ) {
 					$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
 				}
-				$this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
+				// $this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
 			}
 
 			$definingFuncTaint = self::getFuncTaint( $definingFunc );
 			// var_dump( $definingFuncTaint ?? "NO INFO" );
 			if ( $definingFuncTaint !== null ) {
-				return clone $definingFuncTaint;
+				return $definingFuncTaint;
 			}
 		}
 		// TODO: Maybe look at __toString() if we are at __construct().
@@ -719,7 +739,7 @@ trait TaintednessBaseVisitor {
 		// its probably safe.
 		$taint = new FunctionTaintedness( $this->getTaintByType( $func->getUnionType() ) );
 		$this->setFuncTaint( $func, $taint, true );
-		return clone $taint;
+		return $taint;
 	}
 
 	/**
@@ -789,18 +809,22 @@ trait TaintednessBaseVisitor {
 			// No docblock available
 			return null;
 		}
+
+		$docBlock = $func->getDocComment();
+		if ( $docBlock === null ) {
+			return null;
+		}
+		if ( strpos( $docBlock, '-taint' ) === false ) {
+			// Lightweight check for methods that certainly aren't annotated
+			return null;
+		}
+		$lines = explode( "\n", $docBlock );
+		$validTaintEncountered = false;
 		// Assume that if some of the taint is specified, then
 		// the person would specify all the dangerous taints, so
 		// don't set the unknown flag if not taint annotation on
 		// @return.
 		$funcTaint = new FunctionTaintedness( Taintedness::newSafe() );
-		$docBlock = $func->getDocComment();
-		if ( $docBlock === null ) {
-			return null;
-		}
-		$lines = explode( "\n", $docBlock );
-		$validTaintEncountered = false;
-
 		foreach ( $lines as $line ) {
 			$m = [];
 			if ( preg_match( SecurityCheckPlugin::PARAM_ANNOTATION_REGEX, $line, $m ) ) {
@@ -880,7 +904,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getTaintByType( UnionType $types ) : Taintedness {
 		$typelist = $types->getTypeSet();
-		if ( count( $typelist ) === 0 ) {
+		if ( !$typelist ) {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
 			return Taintedness::newUnknown();
 		}
@@ -904,7 +928,6 @@ trait TaintednessBaseVisitor {
 			case 'callable-string':
 			case 'callable-object':
 			case 'callable-array':
-				$taint->add( SecurityCheckPlugin::NO_TAINT );
 				break;
 			case 'string':
 			case 'non-empty-string':
@@ -920,7 +943,6 @@ trait TaintednessBaseVisitor {
 				$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 				break;
 			default:
-				assert( $type instanceof Type );
 				if ( $type->hasTemplateTypeRecursive() ) {
 					// TODO Can we do better for template types?
 					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
@@ -934,15 +956,22 @@ trait TaintednessBaseVisitor {
 					break;
 				}
 
+				$fqsenStr = $type->asFQSEN()->__toString();
+				if ( isset( self::$fqsensWithoutToStringCache[$fqsenStr] ) ) {
+					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+					break;
+				}
+
 				// This means specific class, so look up __toString()
 				$toStringFQSEN = FullyQualifiedMethodName::fromStringInContext(
-					$type->asFQSEN() . '::__toString',
+					$fqsenStr . '::__toString',
 					$this->context
 				);
 				if ( !$this->code_base->hasMethodWithFQSEN( $toStringFQSEN ) ) {
 					// This is common in a void context.
 					// e.g. code like $this->foo() will reach this
 					// check.
+					self::$fqsensWithoutToStringCache[$fqsenStr] = true;
 					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 					break;
 				}
@@ -1003,7 +1032,7 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get the built in taint of a function/method
+	 * Get the built in taint of a function/method (doesn't create a clone)
 	 *
 	 * This is used for when people special case if a function is tainted.
 	 *
@@ -1035,6 +1064,10 @@ trait TaintednessBaseVisitor {
 	 * @return TaintednessWithError
 	 */
 	protected function getTaintedness( $expr ) : TaintednessWithError {
+		if ( $expr instanceof Node ) {
+			return $this->getTaintednessNode( $expr );
+		}
+
 		$type = gettype( $expr );
 		switch ( $type ) {
 		case "string":
@@ -1045,10 +1078,6 @@ trait TaintednessBaseVisitor {
 			// simple literal
 			return new TaintednessWithError( Taintedness::newSafe(), [], MethodLinks::newEmpty() );
 		case "object":
-			if ( $expr instanceof Node ) {
-				return $this->getTaintednessNode( $expr );
-			}
-			// fallthrough
 		case "resource":
 		case "unknown type":
 		case "array":
@@ -1065,12 +1094,14 @@ trait TaintednessBaseVisitor {
 	 * @suppress PhanUndeclaredProperty
 	 */
 	protected function getTaintednessNode( Node $node ) : TaintednessWithError {
-		if ( property_exists( $node, 'taint' ) ) {
+		// Performance: use isset(), not property_exists()
+		if ( isset( $node->taint ) ) {
 			// Return cached result. Cache hit ratio should ideally be 100%, because we should never have to retrieve
 			// the taintedness of a node without having analyzed it first. For now the ratio is lower because
 			// we don't cache the result of cheap nodes.
 			return $node->taint;
 		}
+		// TODO This might just a return a default if no cached data.
 
 		// Debug::printNode( $node );
 		// Make sure to update the line number, or the same issue may be reported
@@ -1105,10 +1136,10 @@ trait TaintednessBaseVisitor {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new AssertionError( "This method cannot be used with methods" );
 		}
-		$taintOrNull = self::getTaintednessRawClone( $variableObj );
+		$taintOrNull = self::getTaintednessRaw( $variableObj );
 		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
-			$taintedness = $mask !== null ? $taintOrNull->withOnly( $mask->get() ) : $taintOrNull;
+			$taintedness = $mask !== null ? $taintOrNull->withOnly( $mask->get() ) : clone $taintOrNull;
 			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
 			$type = $variableObj->getUnionType();
@@ -1525,7 +1556,7 @@ trait TaintednessBaseVisitor {
 		// TODO We might also want to check this parameter-wise, looking at $func's taintedness
 		// and whether the Taintdness for the i-th param has NO_OVERRIDE. However, that would require
 		// knowing the func taint, which might trigger an analysis of the function, which we can't do now.
-		return $this->getBuiltinFuncTaint( $func->getFQSEN() ) === null;
+		return !SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() );
 	}
 
 	/**
@@ -1546,15 +1577,8 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		$funcLinks = self::getAllVarLinks( $func );
-		if ( $funcLinks === null ) {
-			self::initVarLinks( $func );
-		}
+		self::ensureVarLinksForArgExist( $func, $i );
 		$funcArgLinks = self::getVarLinks( $func, $i );
-		if ( $funcArgLinks === null ) {
-			$funcArgLinks = new Set;
-			self::setVarLinks( $func, $i, $funcArgLinks );
-		}
 		$funcArgLinks->attach( $param );
 
 		$paramLinks = self::getMethodLinks( $param ) ?? MethodLinks::newEmpty();
@@ -1811,7 +1835,7 @@ trait TaintednessBaseVisitor {
 		}
 		foreach ( $classesNeedRefresh as $class ) {
 			foreach ( $class->getMethodMap( $this->code_base ) as $classMethod ) {
-				$this->debug( __METHOD__, "reanalyze $classMethod" );
+				// $this->debug( __METHOD__, "reanalyze $classMethod" );
 				$this->analyzeFunc( $classMethod );
 			}
 		}
@@ -1892,15 +1916,9 @@ trait TaintednessBaseVisitor {
 	 * @return Taintedness
 	 */
 	private function normalizeTaintForCausedBy( Taintedness $taintedness ) : Taintedness {
-		// Convert EXEC to YES, but keep existing YES in place.
-		$normTaints = $taintedness->withOnly( SecurityCheckPlugin::ALL_TAINT );
-		$taintedness = $taintedness->asExecToYesTaint()->withObj( $normTaints );
-
-		if ( $taintedness->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
-			// Special case: we assume the bad case, preferring false positives over false negatives
-			$taintedness->add( SecurityCheckPlugin::SQL_TAINT );
-		}
-
+		$taintedness = $taintedness->withExecToYesTaint();
+		// Special case: we assume the bad case, preferring false positives over false negatives
+		$taintedness->addSqlToNumkey();
 		return $taintedness;
 	}
 
@@ -2212,11 +2230,11 @@ trait TaintednessBaseVisitor {
 		$adjustLHS = $lhsTaint->asExecToYesTaint();
 		$combinedTaint = $rhsTaint->withOnlyObj( $adjustLHS );
 		if (
-			( $combinedTaint->isSafe() &&
-			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) ||
+			( $combinedTaint->isSafe() && $rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) ||
 			SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 				$adjustLHS,
 				$rhsTaint,
+				$combinedTaint,
 				$msg,
 				// FIXME should this be $this->overrideContext ?
 				$this->context,
@@ -2279,6 +2297,7 @@ trait TaintednessBaseVisitor {
 		return SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 			$adjustLHS,
 			$adjustLHS,
+			$adjustLHS,
 			$msg,
 			// not using $this->overrideContext to be consistent with maybeEmitIssue()
 			$this->context,
@@ -2310,7 +2329,8 @@ trait TaintednessBaseVisitor {
 		$isHookHandler = false
 	) : TaintednessWithError {
 		$oldMem = memory_get_peak_usage();
-		$taint = $this->getTaintOfFunction( $func );
+		$taint = clone $this->getTaintOfFunction( $func );
+		$containingMethod = $this->getCurrentMethod();
 
 		// We need to look at the taintedness of the arguments
 		// we are passing to the method.
@@ -2335,7 +2355,7 @@ trait TaintednessBaseVisitor {
 
 			/** @var Taintedness $effectiveArgTaintedness */
 			[ $curArgTaintedness, $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
-				$taint, $argument, $i, $func, $funcName
+				$taint, $argument, $i, $func
 			);
 
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
@@ -2378,9 +2398,12 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg );
 			// where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
-			if ( $taint->hasParam( $i ) && $taint->getParamTaint( $i )->isExecTaint() ) {
-				// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
-				$this->backpropagateArgTaint( $argument, $taint->getParamTaint( $i ), $func );
+			if ( $taint->hasParam( $i ) ) {
+				$parTaint = $taint->getParamTaint( $i );
+				if ( $parTaint->isExecTaint() ) {
+					// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
+					$this->backpropagateArgTaint( $argument, $parTaint, $func );
+				}
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
@@ -2394,7 +2417,6 @@ trait TaintednessBaseVisitor {
 			// $this->debug( __METHOD__, "Checking safe assign $funcName" .
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
-			$containingMethod = $this->getCurrentMethod();
 			$thisTaint = $taint->hasParam( $i ) ? $taint->getParamTaintForFunctionCall( $i ) : Taintedness::newSafe();
 			$isRaw = ( $taint->getParamFlags( $i ) & SecurityCheckPlugin::RAW_PARAM ) !== 0;
 			$this->maybeEmitIssue(
@@ -2416,7 +2438,6 @@ trait TaintednessBaseVisitor {
 			$argErrors = self::mergeCausedByLines( $argErrors, $curArgError );
 		}
 
-		$containingMethod = $this->getCurrentMethod();
 		$overallTaint = $taint->getOverall();
 		$this->maybeEmitIssue(
 			$overallTaint,
@@ -2439,10 +2460,9 @@ trait TaintednessBaseVisitor {
 		// of the method not counting the preserve flag plus any of the
 		// taint from arguments of the right type.
 		// With all the exec bits removed from args.
-		$preserveOrExec = SecurityCheckPlugin::PRESERVE_TAINT |
-			SecurityCheckPlugin::ALL_EXEC_TAINT;
-		$callTaintedness = $taint->getOverall()->without( $preserveOrExec )
-			->asMergedWith( $overallArgTaint->without( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
+		$overallTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT );
+		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
+		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
 		$argErrors = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
 		return new TaintednessWithError( $callTaintedness, $argErrors, MethodLinks::newEmpty() );
 	}
@@ -2509,7 +2529,6 @@ trait TaintednessBaseVisitor {
 	 * @param Node $argument
 	 * @param int $i Position of the param
 	 * @param FunctionInterface $func
-	 * @param FullyQualifiedFunctionLikeName $funcName
 	 * @return array [ cur taintedness, effective taintedness, error ]
 	 * @phan-return array{0:Taintedness,1:Taintedness,2:list<array{0:Taintedness,1:string}>}
 	 */
@@ -2517,8 +2536,7 @@ trait TaintednessBaseVisitor {
 		FunctionTaintedness $funcTaint,
 		Node $argument,
 		int $i,
-		FunctionInterface $func,
-		FullyQualifiedFunctionLikeName $funcName
+		FunctionInterface $func
 	) : array {
 		if (
 			( $funcTaint->getParamFlags( $i ) & SecurityCheckPlugin::ARRAY_OK )
@@ -2532,8 +2550,9 @@ trait TaintednessBaseVisitor {
 		$argTaintednessWithError = $this->getTaintednessNode( $argument );
 		$curArgTaintedness = $argTaintednessWithError->getTaintedness();
 		if ( $funcTaint->hasParam( $i ) ) {
+			$parTaint = $funcTaint->getParamTaint( $i );
 			if (
-				( $funcTaint->getParamTaint( $i )->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )
+				( $parTaint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )
 				&& ( $curArgTaintedness->has( SecurityCheckPlugin::SQL_TAINT ) )
 				&& $this->nodeIsString( $argument )
 			) {
@@ -2543,16 +2562,14 @@ trait TaintednessBaseVisitor {
 				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 
-			$parTaint = $funcTaint->getParamTaint( $i );
 			if ( $parTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
 				$parTaint = $parTaint->asPreserveReplacedWith( SecurityCheckPlugin::YES_TAINT );
 			}
 			$effectiveArgTaintedness = Taintedness::intersectForSink(
-				$parTaint->withObj( $parTaint->asExecToYesTaint() ),
+				$parTaint->withExecToYesTaint(),
 				$curArgTaintedness
 			);
-			$this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-				. " via arg $i $funcName" );
+			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness via arg $i $funcName" );
 		} elseif (
 			$funcTaint->getOverall()->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
 		) {

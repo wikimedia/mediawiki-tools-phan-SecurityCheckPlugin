@@ -393,6 +393,14 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	}
 
 	/**
+	 * @param FullyQualifiedFunctionLikeName $fqsen
+	 * @return bool
+	 */
+	public function builtinFuncHasTaint( FullyQualifiedFunctionLikeName $fqsen ) : bool {
+		return $this->getBuiltinFuncTaint( $fqsen ) !== null;
+	}
+
+	/**
 	 * Get the taintedness of a function
 	 *
 	 * This allows overriding the default taint of a function
@@ -407,7 +415,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$name = (string)$fqsen;
 
 		if ( isset( self::$builtinFuncTaintCache[$name] ) ) {
-			return clone self::$builtinFuncTaintCache[$name];
+			return self::$builtinFuncTaintCache[$name];
 		}
 
 		static $funcTaints = null;
@@ -437,7 +445,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				}
 			}
 			self::$builtinFuncTaintCache[$name] = $res;
-			return clone self::$builtinFuncTaintCache[$name];
+			return self::$builtinFuncTaintCache[$name];
 		}
 		return null;
 	}
@@ -496,6 +504,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *   NOT the *_EXEC_TAINT constants.
 	 * @param Taintedness $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
 	 * @param Taintedness $rhsTaint The taint of the expression
+	 * @param Taintedness $combinedTaint Combined and adjusted taint of LHS+RHS
 	 * @param string &$msg Issue description (so plugin can modify to state why false)
 	 * @param Context $context
 	 * @param CodeBase $code_base
@@ -505,6 +514,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public function isFalsePositive(
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
+		Taintedness $combinedTaint,
 		string &$msg,
 		Context $context,
 		CodeBase $code_base

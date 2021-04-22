@@ -218,26 +218,6 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Check whether NO_OVERRIDE is set anywhere in this object.
-	 *
-	 * @return bool
-	 */
-	public function hasNoOverride() : bool {
-		if ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) {
-			return true;
-		}
-		foreach ( $this->paramFlags as $f ) {
-			if ( $f & SecurityCheckPlugin::NO_OVERRIDE ) {
-				return true;
-			}
-		}
-		if ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
 	 * Make sure to clone properties when cloning the instance
 	 */
 	public function __clone() {

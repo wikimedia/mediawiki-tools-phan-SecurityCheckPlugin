@@ -127,16 +127,8 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Method $method
 	 */
 	private function doSelectWrapperSpecialHandling( Node $node, Method $method ) : void {
-		$idbFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( '\\Wikimedia\\Rdbms\\IDatabase' );
-		if ( !self::isSubclassOf( $method->getClassFQSEN(), $idbFQSEN, $this->code_base ) ) {
-			return;
-		}
-
-		if ( $method->getName() === 'makeList' ) {
-			$this->checkMakeList( $node );
-		}
-
 		$relevantMethods = [
+			'makeList',
 			'select',
 			'selectField',
 			'selectFieldValues',
@@ -146,6 +138,16 @@ class MWVisitor extends TaintednessVisitor {
 		];
 
 		if ( !in_array( $method->getName(), $relevantMethods, true ) ) {
+			return;
+		}
+
+		$idbFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( '\\Wikimedia\\Rdbms\\IDatabase' );
+		if ( !self::isSubclassOf( $method->getClassFQSEN(), $idbFQSEN, $this->code_base ) ) {
+			return;
+		}
+
+		if ( $method->getName() === 'makeList' ) {
+			$this->checkMakeList( $node );
 			return;
 		}
 
@@ -466,7 +468,7 @@ class MWVisitor extends TaintednessVisitor {
 		// Since this returns an array, it will probably
 		// result in false positive, so prevent that.
 		$func = $this->context->getFunctionLikeInScope( $this->code_base );
-		$taint = $this->getTaintOfFunction( $func );
+		$taint = clone $this->getTaintOfFunction( $func );
 		$mask = ~( SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 		$taint->setOverall( $taint->getOverall()->withOnly( $mask ) );
 		$taint->addOverallFlags( SecurityCheckPlugin::NO_OVERRIDE );
@@ -923,6 +925,21 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node
 	 */
 	private function detectHTMLForm( Node $node ) : void {
+		// Try to immediately filter out things that certainly aren't HTMLForms
+		$maybeHTMLForm = false;
+		foreach ( $node->children as $child ) {
+			if ( $child instanceof Node && $child->kind === \ast\AST_ARRAY_ELEM ) {
+				$key = $child->children['key'];
+				if ( $key instanceof Node || $key === 'class' || $key === 'type' ) {
+					$maybeHTMLForm = true;
+					break;
+				}
+			}
+		}
+		if ( !$maybeHTMLForm ) {
+			return;
+		}
+
 		$authReqFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
 			'MediaWiki\Auth\AuthenticationRequest'
 		);
