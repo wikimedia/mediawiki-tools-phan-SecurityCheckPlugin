@@ -36,7 +36,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		'Phan\Language\UnionType' => [
 			'empty_instance',
 		],
-		'SecurityCheckPlugin' => [
+		'SecurityCheckPlugin\SecurityCheckPlugin' => [
 			'pluginInstance'
 		]
 	];
