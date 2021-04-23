@@ -27,6 +27,7 @@ do
 	totalTests=$((totalTests+1))
 	php ../vendor/phan/phan/phan \
         	--project-root-directory "." \
+            --allow-polyfill-parser \
         	--config-file "integration-test-config.php" \
         	--no-progress-bar \
         	--output "php://stdout" \

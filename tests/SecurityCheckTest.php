@@ -66,6 +66,9 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @return string|null
 	 */
 	private function runPhan( string $folderName, string $cfgFile, bool $usePolyfill = false ) : ?string {
+		if ( $usePolyfill && !extension_loaded( 'ast' ) ) {
+			$this->markTestSkipped( 'This test requires PHP extension \'ast\' loaded' );
+		}
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
 		// Useful when debugging weird test failures
 		// putenv( 'SECCHECK_DEBUG=-' );
@@ -77,6 +80,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$cliBuilder->setOption( 'no-progress-bar', true );
 		if ( $usePolyfill ) {
 			$cliBuilder->setOption( 'force-polyfill-parser', true );
+		} else {
+			$cliBuilder->setOption( 'allow-polyfill-parser', true );
 		}
 		$cli = $cliBuilder->build();
 
