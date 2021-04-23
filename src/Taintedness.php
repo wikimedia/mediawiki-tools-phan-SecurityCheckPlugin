@@ -493,13 +493,17 @@ class Taintedness {
 		}
 		if ( isset( $this->dimTaint[$offset] ) ) {
 			if ( $this->unknownDimsTaint ) {
-				$add = $this->unknownDimsTaint->with( $this->flags );
-				return $this->dimTaint[$offset]->asMergedWith( $add );
+				$ret = $this->dimTaint[$offset]->asMergedWith( $this->unknownDimsTaint );
+			} else {
+				$ret = $this->dimTaint[$offset];
 			}
-			return $this->dimTaint[$offset]->asMergedWith( new self( $this->flags ) );
+		} elseif ( $this->unknownDimsTaint ) {
+			$ret = $this->unknownDimsTaint;
+		} else {
+			return new self( $this->flags );
 		}
-
-		return $this->unknownDimsTaint ? $this->unknownDimsTaint->with( $this->flags ) : new self( $this->flags );
+		$ret->flags |= $this->flags;
+		return $ret;
 	}
 
 	/**
@@ -528,7 +532,9 @@ class Taintedness {
 	 */
 	public function asValueFirstLevel() : self {
 		$ret = new self( $this->flags );
-		$ret->mergeWith( $this->unknownDimsTaint ?? self::newSafe() );
+		if ( $this->unknownDimsTaint ) {
+			$ret->mergeWith( $this->unknownDimsTaint );
+		}
 		foreach ( $this->dimTaint as $val ) {
 			$ret->mergeWith( $val );
 		}
@@ -709,6 +715,17 @@ class Taintedness {
 			}
 		}
 		return $ret;
+	}
+
+	/**
+	 * Utility method to convert some flags from EXEC to YES. Note that this is not used internally
+	 * to avoid the unnecessary overhead of a function call in hot code.
+	 *
+	 * @param int $flags
+	 * @return int
+	 */
+	public static function flagsAsExecToYesTaint( int $flags ) : int {
+		return ( $flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
 	}
 
 	/**

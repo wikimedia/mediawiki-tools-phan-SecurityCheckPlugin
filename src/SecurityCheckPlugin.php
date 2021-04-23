@@ -154,7 +154,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		self::PATH_TAINT | self::CODE_TAINT | self::REGEX_TAINT | self::CUSTOM1_TAINT | self::CUSTOM2_TAINT |
 		self::MISC_TAINT;
 	public const EXEC_TAINT = self::YES_TAINT << 1;
-	// @phan-suppress-next-line PhanUnreferencedPublicClassConstant
 	public const YES_EXEC_TAINT = self::YES_TAINT | self::EXEC_TAINT;
 
 	// ALL taint is YES + special purpose taints, but not including special flags.
@@ -520,10 +519,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * For example, a specific application might be able to recognize
 	 * that we are in a CLI context, and thus the XSS is really a false positive.
 	 *
-	 * @note The $lhsTaint parameter uses the self::*_TAINT constants,
-	 *   NOT the *_EXEC_TAINT constants.
-	 * @param Taintedness $lhsTaint The dangerous taints to be output (e.g. LHS of assignment)
-	 * @param Taintedness $rhsTaint The taint of the expression
 	 * @param int $combinedTaint Combined and adjusted taint of LHS+RHS
 	 * @param string &$msg Issue description (so plugin can modify to state why false)
 	 * @param Context $context
@@ -532,8 +527,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @suppress PhanUnusedPublicMethodParameter No param is used
 	 */
 	public function isFalsePositive(
-		Taintedness $lhsTaint,
-		Taintedness $rhsTaint,
 		int $combinedTaint,
 		string &$msg,
 		Context $context,

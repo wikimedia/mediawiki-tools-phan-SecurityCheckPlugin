@@ -713,9 +713,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitShellExec( Node $node ) : void {
-		$this->visitSinkAndPropagate(
+		$this->visitSimpleSinkAndPropagate(
 			$node,
-			new Taintedness( SecurityCheckPlugin::SHELL_EXEC_TAINT ),
+			SecurityCheckPlugin::SHELL_EXEC_TAINT,
 			'Backtick shell execution operator contains user controlled arg'
 		);
 		// Its unclear if we should consider this tainted or not
@@ -734,7 +734,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$taintValue = SecurityCheckPlugin::PATH_EXEC_TAINT;
 			$msg = 'The included path is user controlled';
 		}
-		$this->visitSinkAndPropagate( $node, new Taintedness( $taintValue ), $msg );
+		$this->visitSimpleSinkAndPropagate( $node, $taintValue, $msg );
 		// Strictly speaking we have no idea if the result
 		// of an eval() or require() is safe. But given that we
 		// don't know, and at least in the require() case its
@@ -752,9 +752,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitEcho( Node $node ) : void {
-		$this->visitSinkAndPropagate(
+		$this->visitSimpleSinkAndPropagate(
 			$node,
-			new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+			SecurityCheckPlugin::HTML_EXEC_TAINT,
 			'Echoing expression that was not html escaped'
 		);
 		$this->curTaint = Taintedness::newSafe();
@@ -763,19 +763,21 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * @param Node $node
-	 * @param Taintedness $sinkTaint
+	 * @param int $sinkTaintInt
 	 * @param string $issueMsg
 	 */
-	private function visitSinkAndPropagate( Node $node, Taintedness $sinkTaint, string $issueMsg ) : void {
+	private function visitSimpleSinkAndPropagate( Node $node, int $sinkTaintInt, string $issueMsg ) : void {
 		if ( !isset( $node->children['expr'] ) ) {
 			return;
 		}
 		$expr = $node->children['expr'];
 		$exprTaint = $this->getTaintedness( $expr );
 
+		$sinkTaint = new Taintedness( $sinkTaintInt );
+		$rhsTaint = $exprTaint->getTaintedness();
 		$this->maybeEmitIssue(
 			$sinkTaint,
-			$exprTaint->getTaintedness(),
+			$rhsTaint,
 			"$issueMsg{DETAILS}",
 			/** @phan-return array{0:string} */
 			function () use ( $exprTaint, $sinkTaint ) : array {
@@ -783,7 +785,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 		);
 
-		if ( $expr instanceof Node && $this->isSafeAssignment( $sinkTaint, $exprTaint->getTaintedness() ) ) {
+		if ( $expr instanceof Node && !$rhsTaint->has( Taintedness::flagsAsExecToYesTaint( $sinkTaintInt ) ) ) {
 			$this->backpropagateArgTaint( $expr, $sinkTaint );
 		}
 	}

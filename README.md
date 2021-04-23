@@ -202,7 +202,7 @@ Basically for each argument, the plugin takes the taint of the argument,
 bitwise AND's it to its entry in the array, and then bitwise OR's the overall
 key. If any of the keys in the array have an EXEC flags, then an issue is
 immediately raised if the corresponding taint is fed the function (For
-example, an output function).
+example, an output function). The EXEC flags don't work in the 'overall' key.
 
 For example, [htmlspecialchars] which removes html taint, escapes its argument and returns the
 escaped value would look like:

@@ -2,15 +2,12 @@
 
 namespace SecurityCheckPlugin;
 
-use LogicException;
-
 /**
  * Value object used to store taintedness of functions.
  * The $overall prop specifies what taint the function returns
  *   irrespective of its arguments.
  *
- *   For 'overall': the EXEC flags mean a call does evil regardless of args
- *                  the TAINT flags are what taint the output has
+ *   For 'overall': only TAINT flags, what taint the output has
  *   For param keys: EXEC flags for what taints are unsafe here
  *                     TAINT flags for what taint gets passed through func.
  * As a special case, if the overall key has self::PRESERVE_TAINT
@@ -66,9 +63,6 @@ class FunctionTaintedness {
 	 * @return Taintedness
 	 */
 	public function getOverall() : Taintedness {
-		if ( $this->overall === null ) {
-			throw new LogicException( 'Found null overall' );
-		}
 		return $this->overall;
 	}
 

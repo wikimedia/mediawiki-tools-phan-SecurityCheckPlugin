@@ -341,7 +341,7 @@ trait TaintednessBaseVisitor {
 			} elseif ( ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
 				// Don't do anything if the param is NO_OVERRIDE (i.e. it's probably annotated,
 				// or the taintedness is hardcoded in the plugin)
-				$taintedness = Taintedness::newTainted()->asYesToExecTaint()->with( SecurityCheckPlugin::YES_TAINT );
+				$taintedness = new Taintedness( SecurityCheckPlugin::YES_EXEC_TAINT );
 			}
 		}
 		if ( !$taintedness->isExecOrAllTaint() ) {
@@ -469,7 +469,7 @@ trait TaintednessBaseVisitor {
 	 * @see self::setTaintedness for param docs
 	 *
 	 * @param TypedElementInterface $variableObj
-	 * @param (Node|mixed)[] $resolvedOffsetsLhs
+	 * @param list<Node|mixed> $resolvedOffsetsLhs
 	 * @param Taintedness $taintedness
 	 * @param bool $override
 	 * @param Taintedness $errorTaint
@@ -664,7 +664,8 @@ trait TaintednessBaseVisitor {
 			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
 		) {
 			// $this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
-			if ( self::getFuncTaint( $definingFunc ) === null ) {
+			$definingFuncTaint = self::getFuncTaint( $definingFunc );
+			if ( $definingFuncTaint === null ) {
 				// Optim: don't reanalyze if we already have taint data. This might rarely hide
 				// some issues, see T203651#6046483.
 				try {
@@ -673,9 +674,9 @@ trait TaintednessBaseVisitor {
 					$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
 				}
 				// $this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
+				$definingFuncTaint = self::getFuncTaint( $definingFunc );
 			}
 
-			$definingFuncTaint = self::getFuncTaint( $definingFunc );
 			// var_dump( $definingFuncTaint ?? "NO INFO" );
 			if ( $definingFuncTaint !== null ) {
 				return $definingFuncTaint;
@@ -1779,14 +1780,15 @@ trait TaintednessBaseVisitor {
 				$var instanceof Property &&
 				!$taintAdjusted->withoutObj( $curVarTaint )->isSafe()
 			) {
-				// TODO: This is subpar -
-				// * Its inefficient, reanalyzing much more than needed.
+				// FIXME: This is subpar -
+				// * It's VERY inefficient, reanalyzing much more than needed.
 				// * It doesn't handle parent classes properly
 				// * For public class members, it wouldn't catch uses
 				// outside of the member's own class.
 				$classesNeedRefresh->attach( $var->getClass( $this->code_base ) );
 			}
 		}
+		/** @var \Phan\Language\Element\Clazz $class */
 		foreach ( $classesNeedRefresh as $class ) {
 			foreach ( $class->getMethodMap( $this->code_base ) as $classMethod ) {
 				// $this->debug( __METHOD__, "reanalyze $classMethod" );
@@ -1799,21 +1801,6 @@ trait TaintednessBaseVisitor {
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for method {$method->getName()}" );
 		}
-	}
-
-	/**
-	 * Whether merging the rhs to lhs is an safe operation
-	 *
-	 * @param Taintedness $lhs Taint of left hand side
-	 * @param Taintedness $rhs Taint of right hand side
-	 * @return bool Is it safe
-	 */
-	protected function isSafeAssignment( Taintedness $lhs, Taintedness $rhs ) : bool {
-		if ( $rhs->has( SecurityCheckPlugin::UNKNOWN_TAINT ) && $lhs->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
-			return false;
-		}
-		$rhs = $rhs->asYesToExecTaint();
-		return Taintedness::intersectForSink( $lhs, $rhs )->isSafe();
 	}
 
 	/**
@@ -1907,8 +1894,9 @@ trait TaintednessBaseVisitor {
 	 */
 	private function intersectCausedByTaintedness( array $lines, Taintedness $taintedness ) : array {
 		$ret = [];
+		$curTaint = $taintedness->get();
 		foreach ( $lines as [ $eTaint, $eLine ] ) {
-			$ret[] = [ $eTaint->withOnlyObj( $taintedness ), $eLine ];
+			$ret[] = [ $eTaint->withOnly( $curTaint ), $eLine ];
 		}
 		return $ret;
 	}
@@ -2181,20 +2169,25 @@ trait TaintednessBaseVisitor {
 		string $msg,
 		Closure $msgArgsGetter
 	) : void {
-		if ( $this->isSafeAssignment( $lhsTaint, $rhsTaint ) ) {
-			return;
+		if (
+			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) &&
+			$lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT )
+		) {
+			$combinedTaintInt = $rhsTaint->withOnlyObj( $lhsTaint->asExecToYesTaint() )->get();
+		} else {
+			$combinedTaint = Taintedness::intersectForSink( $lhsTaint, $rhsTaint->asYesToExecTaint() );
+			if ( $combinedTaint->isSafe() ) {
+				return;
+			}
+			$combinedTaintInt = Taintedness::flagsAsExecToYesTaint( $combinedTaint->get() );
 		}
 
-		$adjustLHS = $lhsTaint->asExecToYesTaint();
-		$combinedTaintInt = $rhsTaint->withOnlyObj( $adjustLHS )->get();
 		if (
 			(
 				$combinedTaintInt === SecurityCheckPlugin::NO_TAINT &&
 				$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT )
 			) ||
 			SecurityCheckPlugin::$pluginInstance->isFalsePositive(
-				$adjustLHS,
-				$rhsTaint,
 				$combinedTaintInt,
 				$msg,
 				// FIXME should this be $this->overrideContext ?
@@ -2247,8 +2240,7 @@ trait TaintednessBaseVisitor {
 	public function isIssueSuppressedOrFalsePositive( Taintedness $lhsTaint ) : bool {
 		assert( $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 		$context = $this->overrideContext ?: $this->context;
-		$adjustLHS = $lhsTaint->asExecToYesTaint();
-		$combinedTaint = $adjustLHS->get();
+		$combinedTaint = Taintedness::flagsAsExecToYesTaint( $lhsTaint->get() );
 		$issueType = $this->taintToIssueAndSeverity( $combinedTaint )[0];
 
 		if ( $context->hasSuppressIssue( $this->code_base, $issueType ) ) {
@@ -2257,8 +2249,6 @@ trait TaintednessBaseVisitor {
 
 		$msg = "[dummy msg for false positive check]";
 		return SecurityCheckPlugin::$pluginInstance->isFalsePositive(
-			$adjustLHS,
-			$adjustLHS,
 			$combinedTaint,
 			$msg,
 			// not using $this->overrideContext to be consistent with maybeEmitIssue()
@@ -2415,28 +2405,13 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		$overallTaint = $taint->getOverall();
-		$this->maybeEmitIssue(
-			$overallTaint,
-			$overallTaint->asExecToYesTaint(),
-			"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE} that "
-			. "is always unsafe.{DETAILS}",
-			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			function () use ( $func, $funcName, $containingMethod, $overallTaint ) : array {
-				return [
-					$funcName,
-					$containingMethod,
-					$this->getOriginalTaintLine( $func, $overallTaint )
-				];
-			}
-		);
-
 		if ( !$computePreserve ) {
 			return null;
 		}
 		'@phan-var Taintedness $overallArgTaint';
 		'@phan-var list<array{0:Taintedness,1:string}> $argErrors';
 
+		$overallTaint = $taint->getOverall();
 		$overallTaint = $overallTaint->without(
 			SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT
 		);
