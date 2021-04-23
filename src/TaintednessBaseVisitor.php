@@ -4,6 +4,7 @@ namespace SecurityCheckPlugin;
 
 use AssertionError;
 use ast\Node;
+use Closure;
 use Exception;
 use Generator;
 use Phan\AST\ASTReverter;
@@ -78,7 +79,7 @@ trait TaintednessBaseVisitor {
 	 * Change taintedness of a function/method
 	 *
 	 * @param FunctionInterface $func
-	 * @param FunctionTaintedness $taint
+	 * @param FunctionTaintedness $taint NOTE: This is not cloned if $override is true
 	 * @param bool $override Whether to merge taint or override
 	 * @param string|Context|null $reason Either a reason or a context representing the line number
 	 */
@@ -100,10 +101,9 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( $override ) {
-			$newTaint = clone $taint;
+			$newTaint = $taint;
 		} else {
-			$curTaint = clone $this->getTaintOfFunction( $func );
-			$newTaint = $curTaint->asMergedWith( $taint );
+			$newTaint = $this->getTaintOfFunction( $func )->asMergedWith( $taint );
 			// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
 			// the PHPDoc type, as it may be wrong.
 			// TODO Is this the right place?
@@ -477,26 +477,28 @@ trait TaintednessBaseVisitor {
 	) : void {
 		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 		// objects of which $variableObj is a clone!
-		$curTaint = self::getTaintednessRaw( $variableObj ) ?? Taintedness::newSafe();
+		$curTaint = self::getTaintednessRaw( $variableObj );
 
 		if ( $resolvedOffsetsLhs ) {
 			$offsetOverride = $override && $this->wereAllKeysResolved( $resolvedOffsetsLhs );
 			$keysTaint = $this->getKeysTaintednessList( $resolvedOffsetsLhs );
-			$curTaint = clone $curTaint;
-			$curTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $taintedness, $offsetOverride );
+			$newTaint = $curTaint ? clone $curTaint : Taintedness::newSafe();
+			$newTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $taintedness, $offsetOverride );
 			foreach ( $keysTaint as $keyTaint ) {
 				$errorTaint->addKeysTaintedness( $keyTaint->get() );
 			}
+		} elseif ( $override || !$curTaint ) {
+			$newTaint = $taintedness;
 		} else {
-			$curTaint = $override ? $taintedness : $curTaint->asMergedWith( $taintedness );
+			$newTaint = $curTaint->asMergedWith( $taintedness );
 		}
 		if ( $variableObj instanceof Property || $variableObj instanceof GlobalVariable ) {
 			// See test "preservebug". Don't let PRESERVE exit from the current function.
 			// Not removing it from error taint because it might be useful sometimes.
 			// TODO Improve this
-			$curTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
+			$newTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
 		}
-		self::setTaintednessRaw( $variableObj, $curTaint );
+		self::setTaintednessRaw( $variableObj, $newTaint );
 		$this->addTaintError( $errorTaint, $variableObj );
 	}
 
@@ -2053,15 +2055,15 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the issue name and severity given a taint
 	 *
-	 * @param Taintedness $combinedTaint The taint to warn for. I.e. The exec flags
+	 * @param int $combinedTaint The taint to warn for. I.e. The exec flags
 	 *   from LHS shifted to non-exec bitwise AND'd with the rhs taint.
 	 * @return array Issue type and severity
 	 * @phan-return array{0:string,1:int}
 	 */
-	public function taintToIssueAndSeverity( Taintedness $combinedTaint ) : array {
+	public function taintToIssueAndSeverity( int $combinedTaint ) : array {
 		$severity = Issue::SEVERITY_NORMAL;
 
-		switch ( $combinedTaint->get() ) {
+		switch ( $combinedTaint ) {
 			case SecurityCheckPlugin::HTML_TAINT:
 				$issueType = 'SecurityCheck-XSS';
 				break;
@@ -2104,7 +2106,7 @@ trait TaintednessBaseVisitor {
 				break;
 			default:
 				$issueType = 'SecurityCheckMulti';
-				if ( $combinedTaint->has( SecurityCheckPlugin::SHELL_TAINT | SecurityCheckPlugin::SQL_TAINT ) ) {
+				if ( $combinedTaint & ( SecurityCheckPlugin::SHELL_TAINT | SecurityCheckPlugin::SQL_TAINT ) ) {
 					$severity = Issue::SEVERITY_CRITICAL;
 				}
 		}
@@ -2141,7 +2143,10 @@ trait TaintednessBaseVisitor {
 			$lhsTaint,
 			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
-			array_merge( $params, [ $this->getStringTaintLine( $rhsTaint->getError(), $lhsTaint ) ] )
+			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
+			function () use ( $params, $rhsTaint, $lhsTaint ) : array {
+				return array_merge( $params, [ $this->getStringTaintLine( $rhsTaint->getError(), $lhsTaint ) ] );
+			}
 		);
 	}
 
@@ -2156,27 +2161,31 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $lhsTaint Taint of left hand side (or equivalent)
 	 * @param Taintedness $rhsTaint Taint of right hand side (or equivalent)
 	 * @param string $msg Issue description
-	 * @param array $msgArgs Message arguments passed to emitIssue
-	 * @phan-param list<string|FullyQualifiedFunctionLikeName> $msgArgs
+	 * @param Closure $msgArgsGetter Closure that returns arguments passed to emitIssue. Uses a closure
+	 * for lazy-loading, especially for caused-by lines.
+	 * @phan-param Closure():list $msgArgsGetter
 	 */
 	public function maybeEmitIssue(
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
 		string $msg,
-		array $msgArgs
+		Closure $msgArgsGetter
 	) : void {
 		if ( $this->isSafeAssignment( $lhsTaint, $rhsTaint ) ) {
 			return;
 		}
 
 		$adjustLHS = $lhsTaint->asExecToYesTaint();
-		$combinedTaint = $rhsTaint->withOnlyObj( $adjustLHS );
+		$combinedTaintInt = $rhsTaint->withOnlyObj( $adjustLHS )->get();
 		if (
-			( $combinedTaint->isSafe() && $rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) ||
+			(
+				$combinedTaintInt === SecurityCheckPlugin::NO_TAINT &&
+				$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT )
+			) ||
 			SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 				$adjustLHS,
 				$rhsTaint,
-				$combinedTaint,
+				$combinedTaintInt,
 				$msg,
 				// FIXME should this be $this->overrideContext ?
 				$this->context,
@@ -2187,7 +2196,7 @@ trait TaintednessBaseVisitor {
 			$severity = Issue::SEVERITY_LOW;
 		} else {
 			list( $issueType, $severity ) = $this->taintToIssueAndSeverity(
-				$combinedTaint
+				$combinedTaintInt
 			);
 		}
 
@@ -2210,7 +2219,7 @@ trait TaintednessBaseVisitor {
 			$context,
 			$issueType,
 			$msg,
-			$msgArgs,
+			$msgArgsGetter(),
 			$severity
 		);
 	}
@@ -2229,7 +2238,8 @@ trait TaintednessBaseVisitor {
 		assert( $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 		$context = $this->overrideContext ?: $this->context;
 		$adjustLHS = $lhsTaint->asExecToYesTaint();
-		list( $issueType ) = $this->taintToIssueAndSeverity( $adjustLHS );
+		$combinedTaint = $adjustLHS->get();
+		$issueType = $this->taintToIssueAndSeverity( $combinedTaint )[0];
 
 		if ( $context->hasSuppressIssue( $this->code_base, $issueType ) ) {
 			return true;
@@ -2239,7 +2249,7 @@ trait TaintednessBaseVisitor {
 		return SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 			$adjustLHS,
 			$adjustLHS,
-			$adjustLHS,
+			$combinedTaint,
 			$msg,
 			// not using $this->overrideContext to be consistent with maybeEmitIssue()
 			$this->context,
@@ -2270,8 +2280,7 @@ trait TaintednessBaseVisitor {
 		array $args,
 		$isHookHandler = false
 	) : TaintednessWithError {
-		$oldMem = memory_get_peak_usage();
-		$taint = clone $this->getTaintOfFunction( $func );
+		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
 
 		// We need to look at the taintedness of the arguments
@@ -2361,43 +2370,49 @@ trait TaintednessBaseVisitor {
 				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
 				// " vs argTaint= $curArgTaintedness" );
 			$thisTaint = $taint->hasParam( $i ) ? $taint->getParamTaint( $i ) : Taintedness::newSafe();
-			$this->maybeEmitIssue(
-				$thisTaint,
-				$curArgTaintedness,
-				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
-				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}{DETAILS}",
-				[
+			// TODO PHP 7.4 arrow functions would be very much useful here.
+			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
+			$msgArgsGetter = function () use (
+				$funcName, $containingMethod, $taintedArg, $func, $thisTaint, $i,
+				$curArgError, $effectiveArgTaintedness, $isRawParam
+			) : array {
+				return [
 					$funcName,
 					$containingMethod,
 					$taintedArg,
 					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
 					$this->getStringTaintLine( $curArgError, $effectiveArgTaintedness ),
 					$isRawParam ? ' (Param is raw)' : ''
-				]
+				];
+			};
+			$this->maybeEmitIssue(
+				$thisTaint,
+				$curArgTaintedness,
+				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
+				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}{DETAILS}",
+				$msgArgsGetter
 			);
 
 			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
 			$argErrors = self::mergeCausedByLines( $argErrors, $curArgError );
 		}
 
-		$overallTaint = $taint->getOverall();
+		$overallTaint = clone $taint->getOverall();
 		$this->maybeEmitIssue(
 			$overallTaint,
 			$overallTaint->asExecToYesTaint(),
 			"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE} that "
 			. "is always unsafe.{DETAILS}",
-			[
-				$funcName,
-				$containingMethod,
-				$this->getOriginalTaintLine( $func, $overallTaint )
-			]
+			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
+			function () use ( $func, $funcName, $containingMethod, $overallTaint ) : array {
+				return [
+					$funcName,
+					$containingMethod,
+					$this->getOriginalTaintLine( $func, $overallTaint )
+				];
+			}
 		);
 
-		$newMem = memory_get_peak_usage();
-		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
-		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem $funcName" );
-		}
 		// The taint of the method call expression is the overall taint
 		// of the method not counting the preserve flag plus any of the
 		// taint from arguments of the right type.

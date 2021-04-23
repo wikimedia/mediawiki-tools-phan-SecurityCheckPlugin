@@ -598,7 +598,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$lhsTaintedness,
 			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it{DETAILS}",
-			[ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ]
+			/** @phan-return array{0:string} */
+			function () use ( $lhsTaintednessWithError ) : array {
+				return [ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ];
+			}
 		);
 
 		$vis = new TaintednessAssignVisitor(
@@ -774,7 +777,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$sinkTaint,
 			$exprTaint->getTaintedness(),
 			"$issueMsg{DETAILS}",
-			[ $this->getStringTaintLine( $exprTaint->getError(), $sinkTaint ) ]
+			/** @phan-return array{0:string} */
+			function () use ( $exprTaint, $sinkTaint ) : array {
+				return [ $this->getStringTaintLine( $exprTaint->getError(), $sinkTaint ) ];
+			}
 		);
 
 		if ( $expr instanceof Node && $this->isSafeAssignment( $sinkTaint, $exprTaint->getTaintedness() ) ) {
