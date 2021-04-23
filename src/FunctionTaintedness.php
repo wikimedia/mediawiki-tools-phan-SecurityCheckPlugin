@@ -235,22 +235,6 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Check whether we have sink taint data for the given param
-	 *
-	 * @param int $param
-	 * @return bool
-	 */
-	public function hasParamSink( int $param ) : bool {
-		if ( isset( $this->paramSinkTaints[$param] ) ) {
-			return true;
-		}
-		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
-			return (bool)$this->variadicParamSinkTaint;
-		}
-		return false;
-	}
-
-	/**
 	 * Check whether we have preserve taint data for the given param
 	 *
 	 * @param int $param
