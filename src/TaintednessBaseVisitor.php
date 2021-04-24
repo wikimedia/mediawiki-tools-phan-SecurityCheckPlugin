@@ -75,6 +75,9 @@ trait TaintednessBaseVisitor {
 	 */
 	protected static $fqsensWithoutToStringCache = [];
 
+	/** @var bool[] Classes already reanalyzed in markAllDependentVarsYes, map of [ (string)FQSEN => true ] */
+	protected static $reanalyzedClasses = [];
+
 	/**
 	 * Change taintedness of a function/method
 	 *
@@ -1785,7 +1788,15 @@ trait TaintednessBaseVisitor {
 				// * It doesn't handle parent classes properly
 				// * For public class members, it wouldn't catch uses
 				// outside of the member's own class.
-				$classesNeedRefresh->attach( $var->getClass( $this->code_base ) );
+				// TODO This would be unnecessary when using --analyze-twice. Perhaps we can recommend running
+				// taint-check with that option? (T269816)
+				$curClass = $var->getClass( $this->code_base );
+				// We allow at most 1 analysis per class, to avoid massive increases in run time or memory usage.
+				$checkKey = $curClass->getFQSEN()->__toString();
+				if ( !isset( self::$reanalyzedClasses[$checkKey] ) ) {
+					$classesNeedRefresh->attach( $curClass );
+					self::$reanalyzedClasses[$checkKey] = true;
+				}
 			}
 		}
 		/** @var \Phan\Language\Element\Clazz $class */

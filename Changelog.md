@@ -4,6 +4,7 @@
 ### Breaking changes
 * Removed support for standalone install on MediaWiki repos. Generic standalone is still supported, but the script is now called `seccheck`, not `seccheck-generic`.
 * `raw_param` is now a modifier for EXEC taintedness, so it must be specified together with EXEC bits, not normal bits.
+* The plugin now limits reanalysis of classes to 1 per class when the taintedness of a property is changed. This might hide some issues, but is much faster. Running phan with `--analyze-twice` will help; this might become officially suggested in the future.
 
 ### New features
 * Added support for the following PHP 7.4 and PHP 8 features: arrow functions, `match`, named arguments, nullsafe method calls and property access, typed properties, constructor property promotion
