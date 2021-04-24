@@ -66,7 +66,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @return string|null
 	 */
 	private function runPhan( string $folderName, string $cfgFile, bool $usePolyfill = false ) : ?string {
-		if ( $usePolyfill && !extension_loaded( 'ast' ) ) {
+		if ( !$usePolyfill && !extension_loaded( 'ast' ) ) {
 			$this->markTestSkipped( 'This test requires PHP extension \'ast\' loaded' );
 		}
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
@@ -80,8 +80,6 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$cliBuilder->setOption( 'no-progress-bar', true );
 		if ( $usePolyfill ) {
 			$cliBuilder->setOption( 'force-polyfill-parser', true );
-		} else {
-			$cliBuilder->setOption( 'allow-polyfill-parser', true );
 		}
 		$cli = $cliBuilder->build();
 
@@ -171,6 +169,18 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	public function testNumkey( $name, $expected ) {
 		putenv( 'SECCHECK_NUMKEY_SPERIMENTAL=1' );
 		$res = $this->runPhan( "numkey/$name", 'integration-test-config.php' );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
+	 * @todo Temporary method until numkey propagation is fixed
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider provideNumkeyTests
+	 */
+	public function testNumkey_Polyfill( $name, $expected ) {
+		putenv( 'SECCHECK_NUMKEY_SPERIMENTAL=1' );
+		$res = $this->runPhan( "numkey/$name", 'integration-test-config.php', true );
 		$this->assertEquals( $expected, $res );
 	}
 
