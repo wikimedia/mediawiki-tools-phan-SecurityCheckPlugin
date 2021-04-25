@@ -5,7 +5,6 @@ namespace SecurityCheckPlugin;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\TypedElementInterface;
-use Phan\Library\Set;
 
 /**
  * Accessors to read and write taintedness props stored inside phan objects. This trait exists to avoid duplicating
@@ -131,9 +130,9 @@ trait TaintednessAccessorsTrait {
 	/**
 	 * @param FunctionInterface $func
 	 * @param int $index
-	 * @return Set|null
+	 * @return VarLinksSet|null
 	 */
-	protected static function getVarLinks( FunctionInterface $func, int $index ): ?Set {
+	protected static function getVarLinks( FunctionInterface $func, int $index ): ?VarLinksSet {
 		return $func->taintedVarLinks[$index] ?? null;
 	}
 
@@ -143,7 +142,7 @@ trait TaintednessAccessorsTrait {
 	 */
 	protected static function ensureVarLinksForArgExist( TypedElementInterface $element, int $arg ): void {
 		$element->taintedVarLinks = $element->taintedVarLinks ?? [];
-		$element->taintedVarLinks[$arg] = $element->taintedVarLinks[$arg] ?? new Set;
+		$element->taintedVarLinks[$arg] = $element->taintedVarLinks[$arg] ?? new VarLinksSet;
 	}
 
 	/**
