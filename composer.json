@@ -62,10 +62,6 @@
 	},
 	"minimum-stability": "stable",
 	"bin": [
-		"scripts/seccheck-mwext",
-		"scripts/seccheck-slow-mwext",
-		"scripts/seccheck-fast-mwext",
-		"scripts/seccheck-mw",
-		"scripts/seccheck-generic"
+		"scripts/seccheck"
 	]
 }

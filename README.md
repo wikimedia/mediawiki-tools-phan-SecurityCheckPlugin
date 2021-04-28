@@ -21,7 +21,9 @@ Usage
 ### Usage
 The plugin can be used in both "manual" and "standalone" mode. The former is the best
 choice if your project is already running phan, and almost no configuration is needed.
-The latter should be used if you don't want to add phan to your project.
+The latter should only be used if you don't want to add phan to your project, and is not
+supported for MediaWiki-related code. For more information about Wikimedia's use of this
+plugin see https://www.mediawiki.org/wiki/Phan-taint-check-plugin.
 
 #### Manual
 You simply have to add taint-check to the `plugins` section of your phan config. Assuming
@@ -30,7 +32,7 @@ that taint-check is in the standard vendor location, e.g.
 `"$seccheckPath/GenericSecurityCheckPlugin.php"` for a generic project, and
 `"$seccheckPath/MediaWikiSecurityCheckPlugin.php"` for a MediaWiki project.
 
-Also, make sure that you have the following setting, or the plugin won't work:
+Also, make sure that quick mode is disabled, or the plugin won't work:
 ```php
    'quick_mode' => false
 ```
@@ -44,52 +46,20 @@ Then run phan as you normally would:
     $ vendor/bin/phan -d . --long-progress-bar
 
 #### Standalone
-* For MediaWiki core, add the following to composer.json:
+You can run taint-check via:
+
+    $ ./vendor/bin/seccheck
+
+You might want to add a composer script alias for that:
 
 ```json
   "scripts": {
-     "seccheck": "seccheck-mw"
+     "seccheck": "seccheck"
   }
 ```
-
-* For a MediaWiki extension/skin, add the following to composer.json:
-
-```json
-  "scripts": {
-     "seccheck": "seccheck-mwext",
-     "seccheck-fast": "seccheck-fast-mwext"
-  }
-```
-
-* For a generic php project, add the following to composer.json:
-
-```json
-  "scripts": {
-     "seccheck": "seccheck-generic"
-  }
-```
-
-You can then run:
-
-    $ composer seccheck
-
-to run the security check.
 
 Note that false positives are disabled by default.
 
-For MediaWiki extensions/skins, this assumes the extension/skin is installed in the
-normal `extensions` or `skins` directory, and thus MediaWiki is in `../../`. If this is not
-the case, then you need to specify the `MW_INSTALL_PATH` environment variable.
-
-This plugin also provides variants `seccheck-fast-mwext` (doesn't analyze
-MediaWiki core. May miss some stuff related to hooks) and `seccheck-slow-mwext`
-(also analyzes vendor). `seccheck-mwext` is several times slower than `seccheck-fast-mwext`.
-
-
-**Note**: Taint-check is bundled in https://github.com/wikimedia/mediawiki-tools-phan
-version 0.10.2 and above, so you don't have to add it manually if you're already using
-`mediawiki-tools-phan`. For more information about Wikimedia's use of this plugin see
-https://www.mediawiki.org/wiki/Phan-taint-check-plugin
 
 Plugin output
 -------------
@@ -152,7 +122,7 @@ When debugging security issues, you can use:
 ```
 '@phan-debug-var-taintedness $varname';
 ```
-this will emit a SecurityCheckDebugTaintedness issue containing the taintedness of `$varname`
+this will emit a `SecurityCheckDebugTaintedness` issue containing the taintedness of `$varname`
 at the line where the annotation is found. Note that you have to insert the annotation in a string
 literal; comments will not work. See also phan's `@phan-debug-var` annotation.
 
@@ -210,14 +180,14 @@ The type of directives include:
 * `allow_override` - Special purpose flag to specify that that taint annotation should be overridden by phan-taint-check if it can detect a specific taint.
 
 The value for `$TYPE` can be one of `htmlnoent`, `html`, `sql`, `shell`, `serialize`, `custom1`, `custom2`, `code`, `path`, `regex`, `misc`, `sql_numkey`, `escaped`, `none`, `tainted`, `raw_param`. Most of these are taint categories, except:
-* `htmlnoent` - like `html` but disable double escaping detection that gets used with `html`. When `escapes_html` is specified, escaped automatically gets added to `@return`, and `exec_escaped` is added to `@param`. Similarly `onlysafefor_html` is equivalent to `onlysafefor_htmlnoent`, escaped.
+* `htmlnoent` - like `html` but disable double escaping detection that gets used with `html`. When `escapes_html` is specified, escaped automatically gets added to `@return`, and `exec_escaped` is added to `@param`. Similarly `onlysafefor_html` is equivalent to `onlysafefor_htmlnoent,escaped`.
 * `none` - Means no taint
 * `tainted` - Means all taint categories except special categories (equivalent to `SecurityCheckPlugin::YES_TAINT`)
 * `escaped` - Is used to mean the value is already escaped (To track double escaping)
 * `sql_numkey` - Is fairly special purpose for MediaWiki. It ignores taint in arrays if they are for associative keys.
 * `raw_param` - To be used in conjunction with other taint types. Means that the parameter's value is considered raw, hence all escaping should have already taken place, because it's not meant to happen afterwards. It behaves as if the taint of the parameter would immediately be EXEC'ed
 
-The default value for `@param-taint` is `tainted` if it's a string (or other dangerous type), and `none` if it's something like an integer. The default value for `@return-taint` is `allow_override` (Which is equivalent to none unless something better can be autodetected).
+The default value for `@param-taint` is `tainted` if it's a string (or other dangerous type), and `none` if it's something like an integer. The default value for `@return-taint` is `allow_override` (Which is equivalent to `none` unless something better can be autodetected).
 
 Instead of annotating methods in your codebase, you can also customize
 phan-taint-check to have builtin knowledge of method taints. In addition
