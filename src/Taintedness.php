@@ -195,15 +195,6 @@ class Taintedness {
 	}
 
 	/**
-	 * @todo Should this act on the shape?
-	 * @param Taintedness $other
-	 * @return $this
-	 */
-	public function withoutObj( self $other ): self {
-		return $this->without( $other->get() );
-	}
-
-	/**
 	 * Check whether this object has the given flag, recursively.
 	 * @note If $taint has more than one flag, this will check for at least one, not all.
 	 *

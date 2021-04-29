@@ -45,6 +45,10 @@ Then run phan as you normally would:
 
     $ vendor/bin/phan -d . --long-progress-bar
 
+Running phan with `--analyze-twice` will catch additional security issues that
+might go unnoticed in the normal analysis phase. A known limitation of this is that
+the same issue might be reported more than once with different caused-by lines.
+
 #### Standalone
 You can run taint-check via:
 

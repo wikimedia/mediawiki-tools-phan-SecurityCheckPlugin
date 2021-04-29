@@ -171,6 +171,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
 		// Note: If there is a local variable that is a reference to another non-local variable, this will not
 		// affect the non-local one (Pass by reference arguments are handled separately and work as expected).
+		// TODO Should we also check for normal Variables in the global scope? See test setafterexec
 		$override = !( $variableObj instanceof Property ) && !$globalVarObj;
 
 		$offsetsTaint = $this->getKeysTaintednessList( $lhsOffsets );
