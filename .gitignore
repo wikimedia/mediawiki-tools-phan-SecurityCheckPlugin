@@ -3,3 +3,4 @@ composer.lock
 .*\.swp
 .idea/
 .phpunit.result.cache
+build/
