@@ -3,6 +3,11 @@
 # Run phan's own test suite, removing tests we don't care about and injecting taint-check with horrible hacks
 set -euxo pipefail
 
+# Skip test when php ast extension is not loaded
+if ! php -m | grep -q "^ast$"; then
+    exit 0
+fi
+
 if [[ ! -d vendor/phan/phan/tests ]]; then
     rm -rf vendor/phan
     composer update --prefer-source --quiet #Suppress composer output, rely on the exit below
