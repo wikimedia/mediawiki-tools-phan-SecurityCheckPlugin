@@ -186,7 +186,7 @@ trait TaintednessBaseVisitor {
 		// the PHPDoc type, as it may be wrong.
 		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
 		if ( $mask !== null ) {
-			$newTaint->map( function ( Taintedness $taint ) use ( $mask ) : void {
+			$newTaint->map( static function ( Taintedness $taint ) use ( $mask ) : void {
 				$taint->keepOnly( $mask->get() );
 			} );
 		}
@@ -2749,7 +2749,7 @@ trait TaintednessBaseVisitor {
 			// TODO Handling these ones should be easywith diff() and intersect() methods in Taintedness.
 			case 'array_diff':
 			case 'array_diff_assoc':
-			case' array_intersect':
+			case 'array_intersect':
 			case 'array_intersect_assoc':
 			case 'array_intersect_key':
 			// TODO Last parameter of these is a callback, so probably hard to handle. They're also variadic,

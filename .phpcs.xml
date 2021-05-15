@@ -1,12 +1,9 @@
 <?xml version="1.0"?>
 <ruleset>
 	<rule ref="./vendor/mediawiki/mediawiki-codesniffer/MediaWiki">
-		<exclude name="MediaWiki.NamingConventions.PrefixedGlobalFunctions.wfPrefix" />
-		<exclude name="MediaWiki.NamingConventions.ValidGlobalName.allowedPrefix" />
 		<exclude name="MediaWiki.WhiteSpace.SpaceBeforeSingleLineComment.NewLineComment" />
-		<exclude name="Squiz.PHP.NonExecutableCode.Unreachable" />
+		<exclude name="PSR2.ControlStructures.SwitchDeclaration.TerminatingComment" />
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.assert" />
-		<exclude name="MediaWiki.Usage.ForbiddenFunctions.escapeshellarg" />
 	</rule>
 	<file>.</file>
 	<arg name="extensions" value="php"/>

@@ -88,7 +88,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$printer->configureOutput( $stream );
 		Phan::setPrinter( $printer );
 
-		Phan::analyzeFileList( $codeBase, function () use ( $cli ) {
+		Phan::analyzeFileList( $codeBase, static function () use ( $cli ) {
 			return $cli->getFileList();
 		} );
 

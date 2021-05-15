@@ -59,7 +59,7 @@ sed -r -i 's/(src\/\S+:(30|37)) PhanPartialTypeMismatchReturn.+/&\n\1 PhanTypeIn
 
 
 # Phan uses autoload-dev for test classes
-sed -r -i "s/\"psr-4\": \{ \"SecurityCheckPlugin\\\\\\\\\": \"src\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\"/" composer.json
+sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\"/" composer.json
 composer dump-autoload
 
 SECCHECK_ISSUES="'SecurityCheck-DoubleEscaped', 'SecurityCheck-OTHER', 'SecurityCheck-SQLInjection', 'SecurityCheck-XSS', "

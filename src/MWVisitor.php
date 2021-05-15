@@ -534,7 +534,7 @@ class MWVisitor extends TaintednessVisitor {
 					. "LIST_SET must sql escape string key names and values of numeric keys"
 				);
 				break;
-			case 'LIST_NAMES' :
+			case 'LIST_NAMES':
 				// Like comma but with no escaping.
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_EXEC_TAINT ),
