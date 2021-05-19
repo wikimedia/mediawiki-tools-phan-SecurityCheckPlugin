@@ -1,6 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
 ## UNRELEASED
+### Breaking changes
+* Removed support for standalone install on MediaWiki repos. Generic standalone is still supported, but the script is now called `seccheck`, not `seccheck-generic`.
+
 ### New features
 * Added support for the following PHP 7.4 and PHP 8 features: arrow functions, `match`, named arguments, nullsafe method calls and property access, typed properties, constructor property promotion
 * Infer array shape mutations for several array-related builtin functions
