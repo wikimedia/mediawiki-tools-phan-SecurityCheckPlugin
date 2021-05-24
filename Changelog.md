@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v3.3.0
 ### Breaking changes
 * Removed support for standalone install on MediaWiki repos. Generic standalone is still supported, but the script is now called `seccheck`, not `seccheck-generic`.
 * `raw_param` is now a modifier for EXEC taintedness, so it must be specified together with EXEC bits, not normal bits.
