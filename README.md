@@ -37,7 +37,7 @@ Also, make sure that quick mode is disabled, or the plugin won't work:
    'quick_mode' => false
 ```
 
-You may also want to add `SecurityCheck-LikelyFalsePositive` and
+You should also add `SecurityCheck-LikelyFalsePositive` and
 `SecurityCheck-PHPSerializeInjection` to `suppress_issue_types` (the latter
 has a high rate of false positives).
 
