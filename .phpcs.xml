@@ -9,9 +9,6 @@
 	<arg name="extensions" value="php"/>
 	<arg name="encoding" value="UTF-8"/>
 
-	<exclude-pattern>./vendor</exclude-pattern>
 	<!-- No point in linting tests -->
-	<exclude-pattern>./tests/integration</exclude-pattern>
-	<exclude-pattern>./tests/numkey</exclude-pattern>
-	<exclude-pattern>./tests/phan-interaction</exclude-pattern>
+	<exclude-pattern type="relative">^tests/(integration|numkey|phan-interaction)/*</exclude-pattern>
 </ruleset>
