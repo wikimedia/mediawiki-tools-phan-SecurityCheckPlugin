@@ -497,12 +497,12 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	public function isFalsePositive(
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
-		Taintedness $combinedTaint,
+		int $combinedTaint,
 		string &$msg,
 		Context $context,
 		CodeBase $code_base
 	) : bool {
-		if ( $combinedTaint->get() === self::HTML_TAINT ) {
+		if ( $combinedTaint === self::HTML_TAINT ) {
 			$path = str_replace( '\\', '/', $context->getFile() );
 			if (
 				strpos( $path, 'maintenance/' ) === 0 ||

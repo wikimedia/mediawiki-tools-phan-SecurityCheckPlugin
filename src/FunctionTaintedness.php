@@ -59,7 +59,7 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Get a copy of the overall taint
+	 * Get the overall taint (NOT a clone)
 	 *
 	 * @return Taintedness
 	 */
@@ -67,7 +67,7 @@ class FunctionTaintedness {
 		if ( $this->overall === null ) {
 			throw new LogicException( 'Found null overall' );
 		}
-		return clone $this->overall;
+		return $this->overall;
 	}
 
 	/**
@@ -112,17 +112,17 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Get a clone of the taintedness of the given param, and NO_TAINT if not set.
+	 * Get the taintedness of the given param (NOT a clone), and NO_TAINT if not set.
 	 *
 	 * @param int $param
 	 * @return Taintedness
 	 */
 	public function getParamTaint( int $param ) : Taintedness {
 		if ( isset( $this->paramTaints[$param] ) ) {
-			return clone $this->paramTaints[$param];
+			return $this->paramTaints[$param];
 		}
 		if ( $this->variadicParamIndex !== null && $param >= $this->variadicParamIndex ) {
-			return clone $this->variadicParamTaint;
+			return $this->variadicParamTaint;
 		}
 		return Taintedness::newSafe();
 	}
