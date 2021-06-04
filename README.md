@@ -231,7 +231,7 @@ License
 
 [GNU General Public License, version 2 or later]
 
-[web demo]: https://taintcheck.toolforge.org/
+[web demo]: https://doc.wikimedia.org/mediawiki-tools-phan-SecurityCheckPlugin/master/demos/
 [Phan]: https://github.com/phan/phan
 [XSS]: https://en.wikipedia.org/wiki/Cross-site_scripting
 [SecurityCheckPlugin]: src/SecurityCheckPlugin.php
