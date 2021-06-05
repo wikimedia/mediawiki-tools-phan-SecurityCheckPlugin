@@ -306,9 +306,9 @@ class MatchReturnToParamVisitor extends PluginAwareBaseAnalysisVisitor {
 					// But then, can we track what taint is being removed before the argument is returned?
 					// And can we track caused-by lines for that?
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-						$this->paramTaint->setVariadicParamTaint( $i, $pTaint );
+						$this->paramTaint->setVariadicParamPreservedTaint( $i, $pTaint );
 					} else {
-						$this->paramTaint->setParamTaint( $i, $pTaint );
+						$this->paramTaint->setParamPreservedTaint( $i, $pTaint );
 					}
 				}
 			}

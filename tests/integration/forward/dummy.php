@@ -31,4 +31,5 @@ class StaticDummy {
 }
 
 echo StaticDummy::someFunc( "foo" );
-echo StaticDummy::someFunc( $_GET['evil'] );
+echo StaticDummy::someFunc( $_GET['evil'] ); // TODO The echo (not just the call) is unsafe, but we don't handle nested PRESERVE yet.
+echo StaticDummy::bar( $_GET['evil'] ); // Unsafe

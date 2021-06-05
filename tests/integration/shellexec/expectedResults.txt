@@ -2,6 +2,6 @@ integration/shellexec/test.php:3 SecurityCheck-ShellInjection Calling method \sh
 integration/shellexec/test.php:8 SecurityCheck-ShellInjection Calling method \doExec() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/shellexec/test.php +6)
 integration/shellexec/test.php:13 SecurityCheck-ShellInjection Calling method \pass() in [no method] that outputs using tainted argument #1 (`$_GET['unsafe']`). (Caused by: integration/shellexec/test.php +11)
 integration/shellexec/test.php:20 SecurityCheck-ShellInjection Calling method \exec() in [no method] that outputs using tainted argument #1 (`getUnsafe()`). (Caused by: integration/shellexec/test.php +16)
-integration/shellexec/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/shellexec/test.php +20)
+integration/shellexec/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/shellexec/test.php +20; integration/shellexec/test.php +16)
 integration/shellexec/test.php:25 SecurityCheck-ShellInjection Calling method \system() in [no method] that outputs using tainted argument #1 (`getUnsafe()`). (Caused by: integration/shellexec/test.php +16)
-integration/shellexec/test.php:25 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/shellexec/test.php:25 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/shellexec/test.php +16)

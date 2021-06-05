@@ -326,7 +326,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$context,
 				'SecurityCheckDebugTaintedness',
 				"Method {CODE} has first param with taintedness: {DETAILS}",
-				[ $funcName, $fTaint->getParamTaint( 0 )->toShortString() ]
+				[ $funcName, $fTaint->getParamSinkTaint( 0 )->toShortString() ]
 			);
 			return true;
 		}
@@ -451,14 +451,16 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			unset( $intTaint['overall'] );
 			foreach ( $intTaint as $i => $val ) {
 				$paramFlags = ( $val & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
+				// TODO Split sink and preserve in the hardcoded arrays
 				if ( $val & self::VARIADIC_PARAM ) {
-					$res->setVariadicParamTaint(
-						$i,
-						new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) )
-					);
+					$pTaint = new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) );
+					$res->setVariadicParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
+					$res->setVariadicParamPreservedTaint( $i, $pTaint->without( self::ALL_EXEC_TAINT ) );
 					$res->addVariadicParamFlags( $paramFlags );
 				} else {
-					$res->setParamTaint( $i, new Taintedness( $val & ~$paramFlags ) );
+					$pTaint = new Taintedness( $val & ~$paramFlags );
+					$res->setParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
+					$res->setParamPreservedTaint( $i, $pTaint->without( self::ALL_EXEC_TAINT ) );
 					$res->addParamFlags( $i, $paramFlags );
 				}
 			}
