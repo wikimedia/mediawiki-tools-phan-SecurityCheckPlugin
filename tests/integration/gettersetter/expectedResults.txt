@@ -1,0 +1,1 @@
+integration/gettersetter/test.php:18 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/gettersetter/test.php +7; integration/gettersetter/test.php +11; integration/gettersetter/test.php +7; integration/gettersetter/test.php +17; integration/gettersetter/test.php +16)

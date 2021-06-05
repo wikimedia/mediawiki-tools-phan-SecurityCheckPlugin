@@ -2280,26 +2280,35 @@ trait TaintednessBaseVisitor {
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 * @param array $args Arguments to function/method
 	 * @phan-param array<Node|mixed> $args
+	 * @param bool $computePreserve Whether the caller wants to know which taintedness is preserved by this call
 	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
 	 *   FIXME This is MW-specific
-	 * @return TaintednessWithError Taint The resulting taint of the expression
+	 * @return TaintednessWithError|null Taint The resulting taint of the expression, or null if
+	 *   $computePreserve is false
 	 */
 	public function handleMethodCall(
 		FunctionInterface $func,
 		FullyQualifiedFunctionLikeName $funcName,
 		array $args,
+		bool $computePreserve = true,
 		$isHookHandler = false
-	) : TaintednessWithError {
+	) : ?TaintednessWithError {
 		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
 
-		// We need to look at the taintedness of the arguments
-		// we are passing to the method.
-		$overallArgTaint = Taintedness::newSafe();
-		$argErrors = [];
+		if ( $computePreserve ) {
+			$overallArgTaint = Taintedness::newSafe();
+			$argErrors = [];
+		}
+
 		foreach ( $args as $i => $argument ) {
 			if ( !( $argument instanceof Node ) ) {
 				// Literal value
+				continue;
+			}
+			$curParFlags = $taint->getParamFlags( $i );
+			if ( ( $curParFlags & SecurityCheckPlugin::ARRAY_OK ) && $this->nodeIsArray( $argument ) ) {
+				// This function specifies that arrays are always ok, so skip.
 				continue;
 			}
 
@@ -2314,24 +2323,22 @@ trait TaintednessBaseVisitor {
 				$argName = '#' . ( $i + 1 );
 			}
 
+			$paramSinkTaint = $taint->getParamSinkTaint( $i );
+
 			$argTaintWithError = $this->getTaintednessNode( $argument );
 			$curArgTaintedness = $argTaintWithError->getTaintedness();
 			$baseArgError = $argTaintWithError->getError();
 			if (
-				( $taint->getParamSinkTaint( $i )->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) )
-				&& ( $curArgTaintedness->has( SecurityCheckPlugin::SQL_TAINT ) )
+				$paramSinkTaint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
+				&& $curArgTaintedness->has( SecurityCheckPlugin::SQL_TAINT )
 				&& $this->nodeIsString( $argument )
 			) {
-				// Special case to make NUMKEY work right for non-array
-				// values. Should consider if this is really best
-				// approach.
+				// Special case to make NUMKEY work right for non-array values.
+				// TODO Should consider if this is really best approach.
 				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
-			/** @var Taintedness $effectiveArgTaintedness */
-			[ $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
-				$taint, $argument, $curArgTaintedness, $baseArgError, $i, $func
-			);
-			$isRawParam = ( $taint->getParamFlags( $i ) & SecurityCheckPlugin::RAW_PARAM ) !== 0;
+
+			$isRawParam = ( $curParFlags & SecurityCheckPlugin::RAW_PARAM ) !== 0;
 
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
 			// the Message class doesn't have double escape taint if method takes Message|string.
@@ -2346,39 +2353,23 @@ trait TaintednessBaseVisitor {
 				$this->code_base
 			);
 
-			// If this is a call by reference parameter,
-			// link the taintedness variables.
 			$param = $func->getParameterForCaller( $i );
-			// @todo Internal funcs that pass by reference. Should we
-			// assume that their variables are tainted? Most common
-			// example is probably preg_match, which may very well be
-			// tainted much of the time.
+			// @todo Internal funcs that pass by reference. Should we assume that their variables are tainted? Most
+			// common example is probably preg_match, which may very well be tainted much of the time.
 			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
 				$this->handlePassByRef( $func, $param, $argument, $i, $isHookHandler );
 			}
 
-			// We are doing something like someFunc( $evilArg );
-			// Propagate that any vars set by someFunc should now be
-			// marked tainted.
-			// FIXME: We also need to handle the case where
-			// someFunc( $execArg ) for pass by reference where
+			// TODO: We also need to handle the case where someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
 			if ( $curArgTaintedness->isAllTaint() ) {
-				// $this->debug( __METHOD__, "cur arg $i is YES taint " .
-				// "($curArgTaintedness). Marking dependent $funcName" );
-				// Mark all dependent vars as tainted.
-				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness, $curArgError );
+				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness, $baseArgError );
 			}
 
-			// We are doing something like evilMethod( $arg );
-			// where $arg is a parameter to the current function.
+			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
-			if ( !$isRawParam && $taint->hasParamSink( $i ) ) {
-				$parTaint = $taint->getParamSinkTaint( $i );
-				if ( !$parTaint->isSafe() ) {
-					// $this->debug( __METHOD__, "cur param is EXEC. $funcName" );
-					$this->backpropagateArgTaint( $argument, $parTaint, $func );
-				}
+			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
+				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $func );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
@@ -2387,40 +2378,44 @@ trait TaintednessBaseVisitor {
 				// If we have a short representation of the arg, include it as well.
 				$taintedArg .= " (`$argStr`)";
 			}
-			// We use curArgTaintedness here, as we aren't checking what taint
-			// gets passed to return value, but which taint is EXECed.
-			// $this->debug( __METHOD__, "Checking safe assign $funcName" .
-				// " arg=$i paramTaint= " . ( $taint[$i] ?? "MISSING" ) .
-				// " vs argTaint= $curArgTaintedness" );
-			$thisTaint = $taint->getParamSinkTaint( $i );
+
 			// TODO PHP 7.4 arrow functions would be very much useful here.
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
 			$msgArgsGetter = function () use (
-				$funcName, $containingMethod, $taintedArg, $func, $thisTaint, $i,
+				$funcName, $containingMethod, $taintedArg, $func, $paramSinkTaint, $i,
 				$isRawParam, $baseArgError
 			) : array {
 				return [
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$this->getOriginalTaintLine( $func, $thisTaint, $i ),
-					$this->getStringTaintLine( $baseArgError, $thisTaint ),
+					$this->getOriginalTaintLine( $func, $paramSinkTaint, $i ),
+					$this->getStringTaintLine( $baseArgError, $paramSinkTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
 			};
 			$this->maybeEmitIssue(
-				$thisTaint,
+				$paramSinkTaint,
 				$curArgTaintedness,
 				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
 				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}{DETAILS}",
 				$msgArgsGetter
 			);
 
-			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-			$argErrors = self::mergeCausedByLines( $argErrors, $curArgError );
+			if ( $computePreserve ) {
+				/** @var Taintedness $effectiveArgTaintedness */
+				[ $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
+					$taint, $curArgTaintedness, $baseArgError, $i, $func
+				);
+
+				// @phan-suppress-next-line PhanPossiblyUndeclaredVariable
+				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
+				// @phan-suppress-next-line PhanPossiblyUndeclaredVariable
+				$argErrors = self::mergeCausedByLines( $argErrors, $curArgError );
+			}
 		}
 
-		$overallTaint = clone $taint->getOverall();
+		$overallTaint = $taint->getOverall();
 		$this->maybeEmitIssue(
 			$overallTaint,
 			$overallTaint->asExecToYesTaint(),
@@ -2436,11 +2431,15 @@ trait TaintednessBaseVisitor {
 			}
 		);
 
-		// The taint of the method call expression is the overall taint
-		// of the method not counting the preserve flag plus any of the
-		// taint from arguments of the right type.
-		// With all the exec bits removed from args.
-		$overallTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT );
+		if ( !$computePreserve ) {
+			return null;
+		}
+		'@phan-var Taintedness $overallArgTaint';
+		'@phan-var list<array{0:Taintedness,1:string}> $argErrors';
+
+		$overallTaint = $overallTaint->without(
+			SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT
+		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
 		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
 		$argErrors = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
@@ -2506,8 +2505,7 @@ trait TaintednessBaseVisitor {
 	 * Get current and effective taint of an argument when examining a func call
 	 *
 	 * @param FunctionTaintedness $funcTaint
-	 * @param Node $argument
-	 * @param Taintedness &$curArgTaintedness
+	 * @param Taintedness $curArgTaintedness
 	 * @param array $baseArgError
 	 * @phan-param list<array{0:Taintedness,1:string}> $baseArgError
 	 * @param int $i Position of the param
@@ -2517,22 +2515,11 @@ trait TaintednessBaseVisitor {
 	 */
 	private function getArgTaint(
 		FunctionTaintedness $funcTaint,
-		Node $argument,
-		Taintedness &$curArgTaintedness,
+		Taintedness $curArgTaintedness,
 		array $baseArgError,
 		int $i,
 		FunctionInterface $func
 	) : array {
-		if (
-			( $funcTaint->getParamFlags( $i ) & SecurityCheckPlugin::ARRAY_OK )
-			&& $this->nodeIsArray( $argument )
-		) {
-			// This function specifies that arrays are always ok
-			// So treat as if untainted.
-			$curArgTaintedness = Taintedness::newSafe();
-			return [ Taintedness::newSafe(), [] ];
-		}
-
 		if ( $funcTaint->hasParamPreserve( $i ) ) {
 			$parTaint = $funcTaint->getParamPreservedTaint( $i );
 

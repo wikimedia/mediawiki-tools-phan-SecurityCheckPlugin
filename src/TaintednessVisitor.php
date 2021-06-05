@@ -820,7 +820,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$this->handleMethodCall(
 					$constructor,
 					$constructor->getFQSEN(),
-					$node->children['args']->children
+					$node->children['args']->children,
+					false
 				);
 			} catch ( NodeException | CodeBaseException | IssueException $e ) {
 				$this->debug( __METHOD__, 'constructor doesn\'t exist: ' . $this->getDebugInfo( $e ) );
