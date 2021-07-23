@@ -50,7 +50,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * Also handles static calls
 	 * @param Node $node
 	 */
-	public function visitMethodCall( Node $node ) : void {
+	public function visitMethodCall( Node $node ): void {
 		parent::visitMethodCall( $node );
 		try {
 			$ctx = $this->getCtxN( $node );
@@ -101,7 +101,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node
 	 */
-	private function checkExternalLink( Node $node ) : void {
+	private function checkExternalLink( Node $node ): void {
 		$escapeArg = $node->children['args']->children[2] ?? true;
 		if ( is_object( $escapeArg ) && $escapeArg->kind === \ast\AST_CONST ) {
 			$escapeArg = $escapeArg->children['name']->children['name'] !== 'false';
@@ -126,7 +126,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node Either an AST_METHOD_CALL or AST_STATIC_CALL
 	 * @param Method $method
 	 */
-	private function doSelectWrapperSpecialHandling( Node $node, Method $method ) : void {
+	private function doSelectWrapperSpecialHandling( Node $node, Method $method ): void {
 		$relevantMethods = [
 			'makeList',
 			'select',
@@ -165,7 +165,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The Hooks::run AST_STATIC_CALL
 	 */
-	private function triggerHook( Node $node ) : void {
+	private function triggerHook( Node $node ): void {
 		$argList = $node->children['args']->children;
 		if ( count( $argList ) === 0 ) {
 			$this->debug( __METHOD__, "Too few args to Hooks::run" );
@@ -252,7 +252,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $argArrayNode
 	 * @return bool
 	 */
-	private static function hookArgsContainReference( Node $argArrayNode ) : bool {
+	private static function hookArgsContainReference( Node $argArrayNode ): bool {
 		foreach ( $argArrayNode->children as $child ) {
 			if ( $child instanceof Node && ( $child->flags & \ast\flags\ARRAY_ELEM_REF ) ) {
 				return true;
@@ -269,7 +269,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $argArrayNode
 	 * @return Node[]
 	 */
-	private function extractHookArgs( Node $argArrayNode ) : array {
+	private function extractHookArgs( Node $argArrayNode ): array {
 		assert( $argArrayNode->kind === \ast\AST_ARRAY );
 		$arguments = [];
 		foreach ( $argArrayNode->children as $child ) {
@@ -285,7 +285,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $method The method name of the registration function
 	 * @return string|null The name of the hook that gets registered
 	 */
-	private function getHookTypeForRegistrationMethod( string $method ) : ?string {
+	private function getHookTypeForRegistrationMethod( string $method ): ?string {
 		switch ( $method ) {
 		case '\Parser::setFunctionHook':
 			return '!ParserFunctionHook';
@@ -303,7 +303,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The node representing the AST_STATIC_CALL
 	 */
-	private function handleNormalHookRegistration( Node $node ) : void {
+	private function handleNormalHookRegistration( Node $node ): void {
 		assert( $node->kind === \ast\AST_STATIC_CALL );
 		$params = $node->children['args']->children;
 		if ( count( $params ) < 2 ) {
@@ -330,7 +330,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node The AST_METHOD_CALL node
 	 * @param string $hookType The name of the hook
 	 */
-	private function handleParserHookRegistration( Node $node, string $hookType ) : void {
+	private function handleParserHookRegistration( Node $node, string $hookType ): void {
 		$args = $node->children['args']->children;
 		if ( count( $args ) < 2 ) {
 			return;
@@ -345,7 +345,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $hookType
 	 * @param FunctionInterface $callback
 	 */
-	private function registerHook( string $hookType, FunctionInterface $callback ) : void {
+	private function registerHook( string $hookType, FunctionInterface $callback ): void {
 		$fqsen = $callback->getFQSEN();
 		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $fqsen );
 		if ( !$alreadyRegistered ) {
@@ -377,7 +377,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * e.g. A tag hook's return value is output as html.
 	 * @param Node $node
 	 */
-	public function visitReturn( Node $node ) : void {
+	public function visitReturn( Node $node ): void {
 		parent::visitReturn( $node );
 		if (
 			!$this->context->isInFunctionLikeScope()
@@ -416,7 +416,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *  statement is an array literal.
 	 * @param Node|mixed $node Node from ast tree
 	 */
-	private function handleGetQueryInfoReturn( $node ) : void {
+	private function handleGetQueryInfoReturn( $node ): void {
 		if (
 			!( $node instanceof Node ) ||
 			$node->kind !== \ast\AST_ARRAY
@@ -482,7 +482,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * how this function is interpreted.
 	 * @param Node $node
 	 */
-	private function checkMakeList( Node $node ) : void {
+	private function checkMakeList( Node $node ): void {
 		$args = $node->children['args'];
 		// First determine which IDatabase::LIST_*
 		// 0 = IDatabase::LIST_COMMA is default value.
@@ -556,7 +556,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param int $value
 	 * @return string
 	 */
-	private function literalListConstToName( int $value ) : string {
+	private function literalListConstToName( int $value ): string {
 		switch ( $value ) {
 			case 0:
 				return 'LIST_COMMA';
@@ -591,7 +591,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *  IGNORE INDEX ditto
 	 * @param Node|mixed $node The node from the AST tree
 	 */
-	private function checkSQLOptions( $node ) : void {
+	private function checkSQLOptions( $node ): void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -640,7 +640,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node|mixed $node
 	 */
-	private function checkJoinCond( $node ) : void {
+	private function checkJoinCond( $node ): void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -713,7 +713,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node The expr child of the return. NOT the return itself
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 */
-	private function visitReturnOfFunctionHook( Node $node, FullyQualifiedFunctionLikeName $funcName ) : void {
+	private function visitReturnOfFunctionHook( Node $node, FullyQualifiedFunctionLikeName $funcName ): void {
 		if ( $node->kind !== \ast\AST_ARRAY || count( $node->children ) < 2 ) {
 			return;
 		}
@@ -772,7 +772,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $hookName
 	 * @return FunctionInterface|null
 	 */
-	private function getCallableFromHookRegistration( $node, string $hookName ) : ?FunctionInterface {
+	private function getCallableFromHookRegistration( $node, string $hookName ): ?FunctionInterface {
 		// "wfSomething", "Class::Method", closure
 		if ( !$node instanceof Node || $node->kind === \ast\AST_CLOSURE ) {
 			return $this->getCallableFromNode( $node );
@@ -820,7 +820,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $methodName
 	 * @return FunctionInterface|null
 	 */
-	private function getSingleCallable( Node $node, string $methodName ) : ?FunctionInterface {
+	private function getSingleCallable( Node $node, string $methodName ): ?FunctionInterface {
 		if ( $node->kind === \ast\AST_VAR && is_string( $node->children['name'] ) ) {
 			return $this->getCallbackForVar( $node, $methodName );
 		}
@@ -844,7 +844,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $defaultMethod If the var is an object, what method to use
 	 * @return FunctionInterface|null
 	 */
-	private function getCallbackForVar( Node $node, $defaultMethod = '' ) : ?FunctionInterface {
+	private function getCallbackForVar( Node $node, $defaultMethod = '' ): ?FunctionInterface {
 		assert( $node->kind === \ast\AST_VAR );
 		$cnode = $this->getCtxN( $node );
 		// Try the class case first, because the callable case might emit issues (about missing __invoke) if executed
@@ -877,7 +877,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @note This assumes $wgHooks is always the global
 	 *   even if there is no globals declaration.
 	 */
-	public function visitAssign( Node $node ) : void {
+	public function visitAssign( Node $node ): void {
 		parent::visitAssign( $node );
 
 		$var = $node->children['var'];
@@ -924,7 +924,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node
 	 */
-	private function detectHTMLForm( Node $node ) : void {
+	private function detectHTMLForm( Node $node ): void {
 		// Try to immediately filter out things that certainly aren't HTMLForms
 		$maybeHTMLForm = false;
 		foreach ( $node->children as $child ) {
@@ -1155,7 +1155,7 @@ class MWVisitor extends TaintednessVisitor {
 				$optTaint->getTaintedness()->asKeyForForeach(),
 				'HTMLForm option label needs escaping{DETAILS}',
 				/** @phan-return array{0:string} */
-				function () use ( $optTaint, $htmlExecTaint ) : array {
+				function () use ( $optTaint, $htmlExecTaint ): array {
 					return [ $this->getStringTaintLine( $optTaint->getError(), $htmlExecTaint ) ];
 				}
 			);
@@ -1167,7 +1167,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitArray( Node $node ) : void {
+	public function visitArray( Node $node ): void {
 		parent::visitArray( $node );
 		// Performance: use isset(), not property_exists
 		// @phan-suppress-next-line PhanUndeclaredProperty

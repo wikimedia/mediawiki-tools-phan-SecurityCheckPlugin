@@ -50,7 +50,7 @@ class GenericSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
 	 * @inheritDoc
 	 */
-	protected function getCustomFuncTaints() : array {
+	protected function getCustomFuncTaints(): array {
 		return [];
 	}
 }

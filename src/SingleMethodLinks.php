@@ -17,7 +17,7 @@ class SingleMethodLinks {
 	 * @param int $i
 	 * @return self
 	 */
-	public static function newWithParam( int $i ) : self {
+	public static function newWithParam( int $i ): self {
 		$ret = new self;
 		$ret->addParam( $i );
 		return $ret;
@@ -26,14 +26,14 @@ class SingleMethodLinks {
 	/**
 	 * @param int $i
 	 */
-	public function addParam( int $i ) : void {
+	public function addParam( int $i ): void {
 		$this->params[$i] = new ParamLinksOffsets();
 	}
 
 	/**
 	 * @param self $other
 	 */
-	public function mergeWith( self $other ) : void {
+	public function mergeWith( self $other ): void {
 		foreach ( $other->params as $i => $_ ) {
 			if ( isset( $this->params[$i] ) ) {
 				$this->params[$i]->mergeWith( $other->params[$i] );
@@ -46,7 +46,7 @@ class SingleMethodLinks {
 	/**
 	 * @param Node|string|int|null $offset
 	 */
-	public function pushOffsetToAll( $offset ) : void {
+	public function pushOffsetToAll( $offset ): void {
 		foreach ( $this->params as $i => $_ ) {
 			$this->params[$i]->pushOffset( $offset );
 		}
@@ -56,7 +56,7 @@ class SingleMethodLinks {
 	 * @todo Try to avoid this method
 	 * @return ParamLinksOffsets[]
 	 */
-	public function getParams() : array {
+	public function getParams(): array {
 		return $this->params;
 	}
 
@@ -64,7 +64,7 @@ class SingleMethodLinks {
 	 * @param int $x
 	 * @return bool
 	 */
-	public function hasParam( int $x ) : bool {
+	public function hasParam( int $x ): bool {
 		return isset( $this->params[$x] );
 	}
 
@@ -73,14 +73,14 @@ class SingleMethodLinks {
 	 * @param int $x
 	 * @return ParamLinksOffsets
 	 */
-	public function getParamOffsets( int $x ) : ParamLinksOffsets {
+	public function getParamOffsets( int $x ): ParamLinksOffsets {
 		return $this->params[$x];
 	}
 
 	/**
 	 * @param int[] $params
 	 */
-	public function keepOnlyParams( array $params ) : void {
+	public function keepOnlyParams( array $params ): void {
 		$this->params = array_diff_key( $this->params, array_fill_keys( $params, 1 ) );
 	}
 
@@ -93,7 +93,7 @@ class SingleMethodLinks {
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function __toString(): string {
 		$paramBits = [];
 		foreach ( $this->params as $k => $paramOffsets ) {
 			$paramBits[] = "$k: { " . $paramOffsets->__toString() . ' }';

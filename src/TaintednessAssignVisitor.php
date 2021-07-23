@@ -60,7 +60,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitArray( Node $node ) : void {
+	public function visitArray( Node $node ): void {
 		$numKey = 0;
 		foreach ( $node->children as $child ) {
 			if ( $child === null ) {
@@ -96,7 +96,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitVar( Node $node ) : void {
+	public function visitVar( Node $node ): void {
 		try {
 			$var = $this->getCtxN( $node )->getVariable();
 		} catch ( NodeException | IssueException $_ ) {
@@ -108,7 +108,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitProp( Node $node ) : void {
+	public function visitProp( Node $node ): void {
 		try {
 			$prop = $this->getCtxN( $node )->getProperty( false );
 		} catch ( NodeException | IssueException | UnanalyzableException $_ ) {
@@ -120,7 +120,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitStaticProp( Node $node ) : void {
+	public function visitStaticProp( Node $node ): void {
 		try {
 			$prop = $this->getCtxN( $node )->getProperty( true );
 		} catch ( NodeException | IssueException | UnanalyzableException $_ ) {
@@ -132,7 +132,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitDim( Node $node ) : void {
+	public function visitDim( Node $node ): void {
 		if ( !$node->children['expr'] instanceof Node ) {
 			// Invalid syntax.
 			return;
@@ -150,7 +150,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param TypedElementInterface $obj
 	 */
-	private function handlePhanObject( TypedElementInterface $obj ) : void {
+	private function handlePhanObject( TypedElementInterface $obj ): void {
 		$offsets = array_reverse( $this->resolvedOffsets );
 		$this->doAssignmentSingleElement(
 			$obj,

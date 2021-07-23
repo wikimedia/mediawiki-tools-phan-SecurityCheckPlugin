@@ -16,7 +16,7 @@ use Phan\Library\Set;
  * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class LinksSet extends Set {
-	public function __toString() : string {
+	public function __toString(): string {
 		$children = [];
 		foreach ( $this as $func ) {
 			$children[] = $func->getFQSEN()->__toString() . ': ' . $this[$func]->__toString();

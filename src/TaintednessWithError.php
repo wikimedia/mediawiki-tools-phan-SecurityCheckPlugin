@@ -32,7 +32,7 @@ class TaintednessWithError {
 	/**
 	 * @return Taintedness
 	 */
-	public function getTaintedness() : Taintedness {
+	public function getTaintedness(): Taintedness {
 		return $this->taintedness;
 	}
 
@@ -40,14 +40,14 @@ class TaintednessWithError {
 	 * @return array
 	 * @phan-return list<array{0:Taintedness,1:string}>
 	 */
-	public function getError() : array {
+	public function getError(): array {
 		return $this->error;
 	}
 
 	/**
 	 * @return MethodLinks
 	 */
-	public function getMethodLinks() : MethodLinks {
+	public function getMethodLinks(): MethodLinks {
 		return $this->methodLinks;
 	}
 }

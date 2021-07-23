@@ -32,14 +32,14 @@ class PreservedTaintedness {
 	/**
 	 * @return self
 	 */
-	public static function newEmpty() : self {
+	public static function newEmpty(): self {
 		return new self( ParamLinksOffsets::newEmpty() );
 	}
 
 	/**
 	 * @return Taintedness
 	 */
-	public function asTaintedness() : Taintedness {
+	public function asTaintedness(): Taintedness {
 		$ret = new Taintedness( $this->ownOffsets->getFlags() );
 		foreach ( $this->dimTaint as $k => $val ) {
 			$ret->setOffsetTaintedness( $k, $val->asTaintedness() );
@@ -56,7 +56,7 @@ class PreservedTaintedness {
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param self $value
 	 */
-	public function setOffsetTaintedness( $offset, self $value ) : void {
+	public function setOffsetTaintedness( $offset, self $value ): void {
 		if ( is_scalar( $offset ) ) {
 			$this->dimTaint[$offset] = $value;
 		} else {
@@ -68,7 +68,7 @@ class PreservedTaintedness {
 	/**
 	 * @param self $other
 	 */
-	public function mergeWith( self $other ) : void {
+	public function mergeWith( self $other ): void {
 		$this->ownOffsets->mergeWith( $other->ownOffsets );
 		$this->keysTaint |= $other->keysTaint;
 		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
@@ -89,7 +89,7 @@ class PreservedTaintedness {
 	 * @param self $other
 	 * @return self
 	 */
-	public function asMergedWith( self $other ) : self {
+	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
 		$ret->mergeWith( $other );
 		return $ret;
@@ -99,7 +99,7 @@ class PreservedTaintedness {
 	 * @param Taintedness $argTaint
 	 * @return Taintedness
 	 */
-	public function asTaintednessForArgument( Taintedness $argTaint ) : Taintedness {
+	public function asTaintednessForArgument( Taintedness $argTaint ): Taintedness {
 		$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
 
 		foreach ( $this->dimTaint as $k => $val ) {
@@ -121,7 +121,7 @@ class PreservedTaintedness {
 	 *
 	 * @return string
 	 */
-	public function toShortString() : string {
+	public function toShortString(): string {
 		$ret = "{Own: " . $this->ownOffsets->__toString();
 		if ( $this->keysTaint ) {
 			$ret .= '; Keys: ' . SecurityCheckPlugin::taintToString( $this->keysTaint );
@@ -158,7 +158,7 @@ class PreservedTaintedness {
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function __toString(): string {
 		return $this->toShortString();
 	}
 }

@@ -31,7 +31,7 @@ class ParamLinksOffsets {
 	/**
 	 * @return self
 	 */
-	public static function newEmpty() : self {
+	public static function newEmpty(): self {
 		return new self( false, SecurityCheckPlugin::NO_TAINT );
 	}
 
@@ -39,14 +39,14 @@ class ParamLinksOffsets {
 	 * @note This method should be avoided where possible
 	 * @return int
 	 */
-	public function getFlags() : int {
+	public function getFlags(): int {
 		return $this->ownFlags;
 	}
 
 	/**
 	 * @param self $other
 	 */
-	public function mergeWith( self $other ) : void {
+	public function mergeWith( self $other ): void {
 		$this->own = $this->own || $other->own;
 		if ( $other->own ) {
 			$this->ownFlags |= $other->ownFlags;
@@ -69,7 +69,7 @@ class ParamLinksOffsets {
 	 * Pushes $offsets to all leafs.
 	 * @param Node|string|int|null $offset
 	 */
-	public function pushOffset( $offset ) : void {
+	public function pushOffset( $offset ): void {
 		foreach ( $this->dims as $val ) {
 			$val->pushOffset( $offset );
 		}
@@ -99,7 +99,7 @@ class ParamLinksOffsets {
 	 * Should only be used in Taintedness::asMovedAtRelevantOffsets
 	 * @return bool
 	 */
-	public function getOwn() : bool {
+	public function getOwn(): bool {
 		return $this->own;
 	}
 
@@ -107,7 +107,7 @@ class ParamLinksOffsets {
 	 * Should only be used in Taintedness::asMovedAtRelevantOffsets
 	 * @return ParamLinksOffsets[]
 	 */
-	public function getDims() : array {
+	public function getDims(): array {
 		return $this->dims;
 	}
 
@@ -115,7 +115,7 @@ class ParamLinksOffsets {
 	 * Should only be used in Taintedness::asMovedAtRelevantOffsets
 	 * @return ParamLinksOffsets|null
 	 */
-	public function getUnknown() : ?ParamLinksOffsets {
+	public function getUnknown(): ?ParamLinksOffsets {
 		return $this->unknown;
 	}
 
@@ -123,7 +123,7 @@ class ParamLinksOffsets {
 	 * @param Taintedness $taintedness
 	 * @return Taintedness
 	 */
-	public function appliedToTaintedness( Taintedness $taintedness ) : Taintedness {
+	public function appliedToTaintedness( Taintedness $taintedness ): Taintedness {
 		if ( $this->own ) {
 			$ret = $this->ownFlags === SecurityCheckPlugin::PRESERVE_TAINT
 				? clone $taintedness
@@ -145,7 +145,7 @@ class ParamLinksOffsets {
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function __toString(): string {
 		if ( $this->own ) {
 			$ret = '(own): Y: ' . SecurityCheckPlugin::taintToString( $this->ownFlags ) . ', ';
 		} else {

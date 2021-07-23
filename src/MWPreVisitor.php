@@ -31,7 +31,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * Also handles FuncDecl
 	 * @param Node $node
 	 */
-	public function visitMethod( Node $node ) : void {
+	public function visitMethod( Node $node ): void {
 		parent::visitMethod( $node );
 
 		$fqsen = $this->context->getFunctionLikeFQSEN();
@@ -63,7 +63,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * @param array $params formal parameters of tag hook
 	 * @phan-param array<Node|int|string|bool|null|float> $params
 	 */
-	private function setTagHookParamTaint( array $params ) : void {
+	private function setTagHookParamTaint( array $params ): void {
 		// Only care about first 2 parameters.
 		$scope = $this->context->getScope();
 		for ( $i = 0; $i < 2 && $i < count( $params ); $i++ ) {
@@ -114,7 +114,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * @todo This is handling SFH_OBJECT type func hooks incorrectly.
 	 * @param Node[] $params Children of the AST_PARAM_LIST
 	 */
-	private function setFuncHookParamTaint( array $params ) : void {
+	private function setFuncHookParamTaint( array $params ): void {
 		// First make sure the first arg is set to be a Parser
 		$scope = $this->context->getScope();
 		if ( isset( $params[0] ) ) {
@@ -165,7 +165,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitAssign( Node $node ) : void {
+	public function visitAssign( Node $node ): void {
 		parent::visitAssign( $node );
 
 		$lhs = $node->children['var'];

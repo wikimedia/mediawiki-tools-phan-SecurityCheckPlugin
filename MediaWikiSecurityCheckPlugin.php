@@ -54,7 +54,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
 	 * @inheritDoc
 	 */
-	protected function getCustomFuncTaints() : array {
+	protected function getCustomFuncTaints(): array {
 		$selectWrapper = [
 				self::SQL_EXEC_TAINT,
 				// List of fields. MW does not escape things like COUNT(*)
@@ -498,7 +498,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		string &$msg,
 		Context $context,
 		CodeBase $code_base
-	) : bool {
+	): bool {
 		if ( $combinedTaint === self::HTML_TAINT ) {
 			$path = str_replace( '\\', '/', $context->getFile() );
 			if (
@@ -552,7 +552,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		FunctionTaintedness $funcTaint,
 		Context $context,
 		CodeBase $code_base
-	) : Taintedness {
+	): Taintedness {
 		if ( $curArgTaintedness->has( self::ESCAPED_TAINT ) ) {
 			$argumentIsMaybeAMsg = false;
 			/** @var \Phan\Language\Element\Clazz[] $classes */

@@ -42,28 +42,28 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitProp( Node $node ) : void {
+	public function visitProp( Node $node ): void {
 		$this->doBackpropElements( $this->getPropFromNode( $node ) );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitNullsafeProp( Node $node ) : void {
+	public function visitNullsafeProp( Node $node ): void {
 		$this->doBackpropElements( $this->getPropFromNode( $node ) );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitStaticProp( Node $node ) : void {
+	public function visitStaticProp( Node $node ): void {
 		$this->doBackpropElements( $this->getPropFromNode( $node ) );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitVar( Node $node ) : void {
+	public function visitVar( Node $node ): void {
 		$cn = $this->getCtxN( $node );
 		if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 			return;
@@ -78,7 +78,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitEncapsList( Node $node ) : void {
+	public function visitEncapsList( Node $node ): void {
 		foreach ( $node->children as $child ) {
 			if ( !is_object( $child ) ) {
 				continue;
@@ -90,7 +90,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitArray( Node $node ) : void {
+	public function visitArray( Node $node ): void {
 		foreach ( $node->children as $child ) {
 			if ( !is_object( $child ) ) {
 				continue;
@@ -102,7 +102,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitArrayElem( Node $node ) : void {
+	public function visitArrayElem( Node $node ): void {
 		if ( is_object( $node->children['key'] ) ) {
 			$this->recurse( $node->children['key'] );
 		}
@@ -114,7 +114,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitCast( Node $node ) : void {
+	public function visitCast( Node $node ): void {
 		// Future todo might be to ignore casts to ints, since
 		// such things should be safe. Unclear if that makes
 		// sense in all circumstances.
@@ -126,7 +126,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitDim( Node $node ) : void {
+	public function visitDim( Node $node ): void {
 		if ( $node->children['expr'] instanceof Node ) {
 			// For now just consider the outermost array.
 			// FIXME. doesn't handle tainted array keys!
@@ -139,7 +139,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitUnaryOp( Node $node ) : void {
+	public function visitUnaryOp( Node $node ): void {
 		if ( $node->children['expr'] instanceof Node ) {
 			$this->recurse( $node->children['expr'] );
 		}
@@ -148,7 +148,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitBinaryOp( Node $node ) : void {
+	public function visitBinaryOp( Node $node ): void {
 		if ( $node->children['left'] instanceof Node ) {
 			$this->recurse( $node->children['left'] );
 		}
@@ -160,7 +160,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitConditional( Node $node ) : void {
+	public function visitConditional( Node $node ): void {
 		if ( $node->children['true'] instanceof Node ) {
 			$this->recurse( $node->children['true'] );
 		}
@@ -172,35 +172,35 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitCall( Node $node ) : void {
+	public function visitCall( Node $node ): void {
 		$this->handleCall( $node );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitMethodCall( Node $node ) : void {
+	public function visitMethodCall( Node $node ): void {
 		$this->handleCall( $node );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitStaticCall( Node $node ) : void {
+	public function visitStaticCall( Node $node ): void {
 		$this->handleCall( $node );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitNullsafeMethodCall( Node $node ) : void {
+	public function visitNullsafeMethodCall( Node $node ): void {
 		$this->handleCall( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	private function handleCall( Node $node ) : void {
+	private function handleCall( Node $node ): void {
 		$ctxNode = $this->getCtxN( $node );
 		// @todo Future todo might be to still return arguments when catching an exception.
 		if ( $node->kind === \ast\AST_CALL ) {
@@ -238,35 +238,35 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 */
-	public function visitPreDec( Node $node ) : void {
+	public function visitPreDec( Node $node ): void {
 		$this->handleIncOrDec( $node );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitPreInc( Node $node ) : void {
+	public function visitPreInc( Node $node ): void {
 		$this->handleIncOrDec( $node );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitPostDec( Node $node ) : void {
+	public function visitPostDec( Node $node ): void {
 		$this->handleIncOrDec( $node );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function visitPostInc( Node $node ) : void {
+	public function visitPostInc( Node $node ): void {
 		$this->handleIncOrDec( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	private function handleIncOrDec( Node $node ) : void {
+	private function handleIncOrDec( Node $node ): void {
 		$children = $node->children;
 		assert( count( $children ) === 1 );
 		$this->recurse( reset( $children ) );
@@ -278,7 +278,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @param Node $node
 	 * @param Taintedness|null $taint
 	 */
-	private function recurse( Node $node, Taintedness $taint = null ) : void {
+	private function recurse( Node $node, Taintedness $taint = null ): void {
 		if ( !$taint ) {
 			$this( $node );
 			return;
@@ -295,7 +295,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * @param TypedElementInterface|null ...$elements
 	 */
-	private function doBackpropElements( ?TypedElementInterface ...$elements ) : void {
+	private function doBackpropElements( ?TypedElementInterface ...$elements ): void {
 		foreach ( array_unique( array_filter( $elements ) ) as $el ) {
 			$this->markAllDependentMethodsExec( $el, $this->taintedness, $this->trigger );
 		}

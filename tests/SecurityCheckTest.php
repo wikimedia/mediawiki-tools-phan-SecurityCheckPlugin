@@ -55,7 +55,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	/**
 	 * @inheritDoc
 	 */
-	public function tearDown() : void {
+	public function tearDown(): void {
 		MediaWikiHooksHelper::getInstance()->clearCache();
 	}
 
@@ -65,7 +65,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @param bool $usePolyfill Whether to force the polyfill parser
 	 * @return string|null
 	 */
-	private function runPhan( string $folderName, string $cfgFile, bool $usePolyfill = false ) : ?string {
+	private function runPhan( string $folderName, string $cfgFile, bool $usePolyfill = false ): ?string {
 		if ( !$usePolyfill && !extension_loaded( 'ast' ) ) {
 			$this->markTestSkipped( 'This test requires PHP extension \'ast\' loaded' );
 		}
@@ -142,7 +142,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	/**
 	 * @param string $testName
 	 */
-	private function checkSkipTest( string $testName ) : void {
+	private function checkSkipTest( string $testName ): void {
 		if ( isset( self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName] ) ) {
 			$version = self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName];
 			if ( PHP_VERSION_ID < $version ) {
@@ -184,7 +184,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$this->assertEquals( $expected, $res );
 	}
 
-	public function provideNumkeyTests() : Generator {
+	public function provideNumkeyTests(): Generator {
 		return $this->extractTestCases( 'numkey' );
 	}
 

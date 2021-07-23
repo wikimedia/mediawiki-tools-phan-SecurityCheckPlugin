@@ -46,14 +46,14 @@ class FunctionTaintedness {
 	/**
 	 * @param Taintedness $val
 	 */
-	public function setOverall( Taintedness $val ) : void {
+	public function setOverall( Taintedness $val ): void {
 		$this->overall = $val;
 	}
 
 	/**
 	 * @param int $flags
 	 */
-	public function addOverallFlags( int $flags ) : void {
+	public function addOverallFlags( int $flags ): void {
 		$this->overallFlags |= $flags;
 	}
 
@@ -62,14 +62,14 @@ class FunctionTaintedness {
 	 *
 	 * @return Taintedness
 	 */
-	public function getOverall() : Taintedness {
+	public function getOverall(): Taintedness {
 		return $this->overall;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getOverallFlags() : int {
+	public function getOverallFlags(): int {
 		return $this->overallFlags;
 	}
 
@@ -79,7 +79,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @param Taintedness $taint
 	 */
-	public function setParamSinkTaint( int $param, Taintedness $taint ) : void {
+	public function setParamSinkTaint( int $param, Taintedness $taint ): void {
 		assert( $param !== $this->variadicParamIndex );
 		$this->paramSinkTaints[$param] = $taint;
 	}
@@ -90,7 +90,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @param PreservedTaintedness $taint
 	 */
-	public function setParamPreservedTaint( int $param, PreservedTaintedness $taint ) : void {
+	public function setParamPreservedTaint( int $param, PreservedTaintedness $taint ): void {
 		assert( $param !== $this->variadicParamIndex );
 		$this->paramPreserveTaints[$param] = $taint;
 	}
@@ -99,7 +99,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @param int $flags
 	 */
-	public function addParamFlags( int $param, int $flags ) : void {
+	public function addParamFlags( int $param, int $flags ): void {
 		$this->paramFlags[$param] = ( $this->paramFlags[$param] ?? 0 ) | $flags;
 	}
 
@@ -107,7 +107,7 @@ class FunctionTaintedness {
 	 * @param int $index
 	 * @param Taintedness $taint
 	 */
-	public function setVariadicParamSinkTaint( int $index, Taintedness $taint ) : void {
+	public function setVariadicParamSinkTaint( int $index, Taintedness $taint ): void {
 		assert( !isset( $this->paramPreserveTaints[$index] ) && !isset( $this->paramSinkTaints[$index] ) );
 		$this->variadicParamIndex = $index;
 		$this->variadicParamSinkTaint = $taint;
@@ -117,7 +117,7 @@ class FunctionTaintedness {
 	 * @param int $index
 	 * @param PreservedTaintedness $taint
 	 */
-	public function setVariadicParamPreservedTaint( int $index, PreservedTaintedness $taint ) : void {
+	public function setVariadicParamPreservedTaint( int $index, PreservedTaintedness $taint ): void {
 		assert( !isset( $this->paramPreserveTaints[$index] ) && !isset( $this->paramSinkTaints[$index] ) );
 		$this->variadicParamIndex = $index;
 		$this->variadicParamPreserveTaint = $taint;
@@ -126,7 +126,7 @@ class FunctionTaintedness {
 	/**
 	 * @param int $flags
 	 */
-	public function addVariadicParamFlags( int $flags ) : void {
+	public function addVariadicParamFlags( int $flags ): void {
 		$this->variadicParamFlags |= $flags;
 	}
 
@@ -136,7 +136,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @return Taintedness
 	 */
-	public function getParamSinkTaint( int $param ) : Taintedness {
+	public function getParamSinkTaint( int $param ): Taintedness {
 		if ( isset( $this->paramSinkTaints[$param] ) ) {
 			return $this->paramSinkTaints[$param];
 		}
@@ -155,7 +155,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @return PreservedTaintedness
 	 */
-	public function getParamPreservedTaint( int $param ) : PreservedTaintedness {
+	public function getParamPreservedTaint( int $param ): PreservedTaintedness {
 		if ( isset( $this->paramPreserveTaints[$param] ) ) {
 			return $this->paramPreserveTaints[$param];
 		}
@@ -172,7 +172,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @return int
 	 */
-	public function getParamFlags( int $param ) : int {
+	public function getParamFlags( int $param ): int {
 		if ( isset( $this->paramFlags[$param] ) ) {
 			return $this->paramFlags[$param];
 		}
@@ -185,28 +185,28 @@ class FunctionTaintedness {
 	/**
 	 * @return Taintedness|null
 	 */
-	public function getVariadicParamSinkTaint() : ?Taintedness {
+	public function getVariadicParamSinkTaint(): ?Taintedness {
 		return $this->variadicParamSinkTaint;
 	}
 
 	/**
 	 * @return PreservedTaintedness|null
 	 */
-	public function getVariadicParamPreservedTaint() : ?PreservedTaintedness {
+	public function getVariadicParamPreservedTaint(): ?PreservedTaintedness {
 		return $this->variadicParamPreserveTaint;
 	}
 
 	/**
 	 * @return int|null
 	 */
-	public function getVariadicParamIndex() : ?int {
+	public function getVariadicParamIndex(): ?int {
 		return $this->variadicParamIndex;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getVariadicParamFlags() : int {
+	public function getVariadicParamFlags(): int {
 		return $this->variadicParamFlags;
 	}
 
@@ -215,7 +215,7 @@ class FunctionTaintedness {
 	 *
 	 * @return int[]
 	 */
-	public function getSinkParamKeysNoVariadic() : array {
+	public function getSinkParamKeysNoVariadic(): array {
 		return array_keys( $this->paramSinkTaints );
 	}
 
@@ -224,7 +224,7 @@ class FunctionTaintedness {
 	 *
 	 * @return int[]
 	 */
-	public function getPreserveParamKeysNoVariadic() : array {
+	public function getPreserveParamKeysNoVariadic(): array {
 		return array_keys( $this->paramPreserveTaints );
 	}
 
@@ -234,7 +234,7 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @return bool
 	 */
-	public function hasParamPreserve( int $param ) : bool {
+	public function hasParamPreserve( int $param ): bool {
 		if ( isset( $this->paramPreserveTaints[$param] ) ) {
 			return true;
 		}
@@ -249,7 +249,7 @@ class FunctionTaintedness {
 	 * where it's set. Any UNKNOWN taintedness is also cleared if we're setting it now.
 	 * @param self $other
 	 */
-	public function mergeWith( self $other ) : void {
+	public function mergeWith( self $other ): void {
 		$unk = SecurityCheckPlugin::UNKNOWN_TAINT;
 
 		foreach ( $other->paramSinkTaints as $index => $baseT ) {
@@ -299,7 +299,7 @@ class FunctionTaintedness {
 	 * @param self $other
 	 * @return self
 	 */
-	public function asMergedWith( self $other ) : self {
+	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
 		$ret->mergeWith( $other );
 		return $ret;
@@ -327,7 +327,7 @@ class FunctionTaintedness {
 	/**
 	 * @return string
 	 */
-	public function toString() : string {
+	public function toString(): string {
 		$str = "[\n\toverall: " . $this->overall->toShortString() .
 			self::flagsToString( $this->overallFlags ) . ",\n";
 		$parKeys = array_keys( array_merge( $this->paramSinkTaints, $this->paramPreserveTaints ) );
@@ -358,7 +358,7 @@ class FunctionTaintedness {
 	 * @param int $flags
 	 * @return string
 	 */
-	private static function flagsToString( int $flags ) : string {
+	private static function flagsToString( int $flags ): string {
 		$bits = [];
 		if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
 			$bits[] = 'no override';
@@ -375,7 +375,7 @@ class FunctionTaintedness {
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function __toString(): string {
 		return $this->toString();
 	}
 }

@@ -41,7 +41,7 @@ class MediaWikiHooksHelper {
 	/**
 	 * @return self
 	 */
-	public static function getInstance() : self {
+	public static function getInstance(): self {
 		if ( !self::$instance ) {
 			self::$instance = new self;
 		}
@@ -53,7 +53,7 @@ class MediaWikiHooksHelper {
 	 *
 	 * @suppress PhanUnreferencedPublicMethod
 	 */
-	public function clearCache() : void {
+	public function clearCache(): void {
 		$this->extensionJsonLoaded = false;
 	}
 
@@ -67,7 +67,7 @@ class MediaWikiHooksHelper {
 	 * @param FullyQualifiedFunctionLikeName $fqsen The implementing method
 	 * @return bool true if already registered, false otherwise
 	 */
-	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ) : bool {
+	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ): bool {
 		if ( !isset( $this->hookSubscribers[$hookName] ) ) {
 			$this->hookSubscribers[$hookName] = [];
 		}
@@ -87,7 +87,7 @@ class MediaWikiHooksHelper {
 	 * Assumes extension.json/skin.json is in project root directory
 	 * unless SECURITY_CHECK_EXT_PATH is set
 	 */
-	protected function loadExtensionJson() : void {
+	protected function loadExtensionJson(): void {
 		if ( $this->extensionJsonLoaded ) {
 			return;
 		}
@@ -108,7 +108,7 @@ class MediaWikiHooksHelper {
 	/**
 	 * @param string $jsonPath
 	 */
-	private function readJsonFile( string $jsonPath ) : void {
+	private function readJsonFile( string $jsonPath ): void {
 		$json = json_decode( file_get_contents( $jsonPath ), true );
 		if ( !is_array( $json ) || !isset( $json['Hooks'] ) || !is_array( $json['Hooks'] ) ) {
 			return;
@@ -150,7 +150,7 @@ class MediaWikiHooksHelper {
 	 * @param string $hookName Hook in question. Hooks starting with ! are special.
 	 * @return FullyQualifiedFunctionLikeName[]
 	 */
-	public function getHookSubscribers( string $hookName ) : array {
+	public function getHookSubscribers( string $hookName ): array {
 		$this->loadExtensionJson();
 		return $this->hookSubscribers[$hookName] ?? [];
 	}
@@ -163,7 +163,7 @@ class MediaWikiHooksHelper {
 	 * @param FullyQualifiedFunctionLikeName $fqsen The function to check
 	 * @return string|null The hook it is implementing or null if no hook
 	 */
-	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ) : ?string {
+	public function isSpecialHookSubscriber( FullyQualifiedFunctionLikeName $fqsen ): ?string {
 		$this->loadExtensionJson();
 		$specialHooks = [
 			'!ParserFunctionHook',

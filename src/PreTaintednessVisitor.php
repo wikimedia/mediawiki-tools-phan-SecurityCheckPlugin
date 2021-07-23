@@ -37,7 +37,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * @see visitMethod
 	 * @param Node $node
 	 */
-	public function visitFuncDecl( Node $node ) : void {
+	public function visitFuncDecl( Node $node ): void {
 		$this->visitMethod( $node );
 	}
 
@@ -45,14 +45,14 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * @see visitMethod
 	 * @param Node $node
 	 */
-	public function visitClosure( Node $node ) : void {
+	public function visitClosure( Node $node ): void {
 		$this->visitMethod( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitArrowFunc( Node $node ) : void {
+	public function visitArrowFunc( Node $node ): void {
 		$this->visitMethod( $node );
 	}
 
@@ -69,7 +69,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * Also handles FuncDecl and Closure
 	 * @param Node $node
 	 */
-	public function visitMethod( Node $node ) : void {
+	public function visitMethod( Node $node ): void {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		// Initialize retObjs to avoid recursing on methods that don't return anything.
@@ -133,7 +133,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitAssignOp( Node $node ) : void {
+	public function visitAssignOp( Node $node ): void {
 		$lhs = $node->children['var'];
 		$rhs = $node->children['expr'];
 		// @phan-suppress-next-line PhanUndeclaredProperty
@@ -144,7 +144,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * When a class property is declared
 	 * @param Node $node
 	 */
-	public function visitPropElem( Node $node ) : void {
+	public function visitPropElem( Node $node ): void {
 		$prop = $this->getPropInCurrentScopeByName( $node->children['name'] );
 		$this->setTaintednessOld( $prop, Taintedness::newSafe(), false );
 	}

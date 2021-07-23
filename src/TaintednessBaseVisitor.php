@@ -91,7 +91,7 @@ trait TaintednessBaseVisitor {
 		FunctionTaintedness $taint,
 		bool $override = false,
 		$reason = null
-	) : void {
+	): void {
 		if (
 			$func instanceof Method &&
 			$func->getDefiningFQSEN() !== $func->getFQSEN()
@@ -208,7 +208,7 @@ trait TaintednessBaseVisitor {
 	 * @return array[]
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
-	public static function mergeCausedByLines( array $base, array $new ) : array {
+	public static function mergeCausedByLines( array $base, array $new ): array {
 		if ( !$base ) {
 			return $new;
 		}
@@ -265,7 +265,7 @@ trait TaintednessBaseVisitor {
 	 * @return array[]
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
-	private static function addCausedByLine( array $base, array $new ) : array {
+	private static function addCausedByLine( array $base, array $new ): array {
 		if ( !$base ) {
 			return [ $new ];
 		}
@@ -295,7 +295,7 @@ trait TaintednessBaseVisitor {
 	 * @param array|TypedElementInterface $rightError Error, or a phan object to get error from
 	 * @param int $arg If $left is a Function, which arg
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, $rightError, int $arg = -1 ) : void {
+	protected function mergeTaintError( TypedElementInterface $left, $rightError, int $arg = -1 ): void {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
 
 		if ( $arg === -1 ) {
@@ -340,7 +340,7 @@ trait TaintednessBaseVisitor {
 		int $arg = -1,
 		int $argFlags = 0,
 		$reason = null
-	) : void {
+	): void {
 		// NOTE: Parameters here are excluded just to keep caused-by lines shorter, although it wouldn't
 		// be wrong to include them.
 		if ( !$elem instanceof Parameter && $taintedness->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
@@ -411,7 +411,7 @@ trait TaintednessBaseVisitor {
 		$override = true,
 		bool $allowClearLHSData = false,
 		Taintedness $errorTaint = null
-	) : void {
+	): void {
 		$this->setTaintedness( $variableObj, [], $taintedness, $override, $allowClearLHSData, $errorTaint );
 	}
 
@@ -437,7 +437,7 @@ trait TaintednessBaseVisitor {
 		$override = true,
 		bool $allowClearLHSData = false,
 		Taintedness $errorTaint = null
-	) : void {
+	): void {
 		$errorTaint = $errorTaint ?? $taintedness;
 
 		if ( $variableObj instanceof FunctionInterface ) {
@@ -489,7 +489,7 @@ trait TaintednessBaseVisitor {
 		Taintedness $taintedness,
 		bool $override,
 		Taintedness $errorTaint
-	) : void {
+	): void {
 		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 		// objects of which $variableObj is a clone!
 		$curTaint = self::getTaintednessRaw( $variableObj );
@@ -522,7 +522,7 @@ trait TaintednessBaseVisitor {
 	 * @param (Node|mixed)[] $offsets
 	 * @return Taintedness[]
 	 */
-	protected function getKeysTaintednessList( array $offsets ) : array {
+	protected function getKeysTaintednessList( array $offsets ): array {
 		$ret = [];
 		foreach ( $offsets as $offset ) {
 			$ret[] = $this->getTaintedness( $offset )->getTaintedness();
@@ -537,7 +537,7 @@ trait TaintednessBaseVisitor {
 	 * @phan-param list<Node|mixed> $keys
 	 * @return bool
 	 */
-	private function wereAllKeysResolved( array $keys ) : bool {
+	private function wereAllKeysResolved( array $keys ): bool {
 		foreach ( $keys as $key ) {
 			if ( $key === null || $key instanceof Node ) {
 				// Null is for `$arr[] = 'foo'`. Phan doesn't infer real types here, nor will we.
@@ -556,7 +556,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func A builtin Function/Method
 	 * @return FunctionTaintedness
 	 */
-	private function getTaintOfFunctionPHP( FunctionInterface $func ) : FunctionTaintedness {
+	private function getTaintOfFunctionPHP( FunctionInterface $func ): FunctionTaintedness {
 		$taint = $this->getBuiltinFuncTaint( $func->getFQSEN() );
 		if ( $taint !== null ) {
 			return clone $taint;
@@ -577,7 +577,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 * @return null|FunctionInterface
 	 */
-	private function getDefiningFunc( FunctionInterface $func ) : ?FunctionInterface {
+	private function getDefiningFunc( FunctionInterface $func ): ?FunctionInterface {
 		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
 			// Our function has a parent, and potentially interface and traits.
 			if ( $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
@@ -596,7 +596,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 * @return Generator<FunctionInterface>
 	 */
-	private function getPossibleFuncDefinitions( FunctionInterface $func ) : Generator {
+	private function getPossibleFuncDefinitions( FunctionInterface $func ): Generator {
 		yield $func;
 
 		// If we don't have a defining func, stay with the same func.
@@ -634,7 +634,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func What function/method to look up
 	 * @return FunctionTaintedness Always a clone
 	 */
-	protected function getTaintOfFunction( FunctionInterface $func ) : FunctionTaintedness {
+	protected function getTaintOfFunction( FunctionInterface $func ): FunctionTaintedness {
 		// Fast case, either a builtin to php function or we already
 		// know taint:
 		if ( $func->isPHPInternal() ) {
@@ -713,7 +713,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func
 	 */
-	public function analyzeFunc( FunctionInterface $func ) : void {
+	public function analyzeFunc( FunctionInterface $func ): void {
 		static $depth = 0;
 		$node = $func->getNode();
 		if ( !$node ) {
@@ -757,7 +757,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func The function to check
 	 * @return FunctionTaintedness|null null for no info
 	 */
-	protected function getDocBlockTaintOfFunc( FunctionInterface $func ) : ?FunctionTaintedness {
+	protected function getDocBlockTaintOfFunc( FunctionInterface $func ): ?FunctionTaintedness {
 		// Note that we're not using the hashed docblock for caching, because the same docblock
 		// may have different meanings in different contexts. E.g. @return self
 		$fqsen = (string)$func->getFQSEN();
@@ -846,7 +846,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $name The name of parameter, no $ or & prefixed
 	 * @return null|int null on no such parameter
 	 */
-	private function getParamNumberGivenName( FunctionInterface $func, string $name ) : ?int {
+	private function getParamNumberGivenName( FunctionInterface $func, string $name ): ?int {
 		$parameters = $func->getParameterList();
 		foreach ( $parameters as $i => $param ) {
 			if ( $name === $param->getName() ) {
@@ -867,7 +867,7 @@ trait TaintednessBaseVisitor {
 	 * @param UnionType $types The types
 	 * @return Taintedness
 	 */
-	protected function getTaintByType( UnionType $types ) : Taintedness {
+	protected function getTaintByType( UnionType $types ): Taintedness {
 		$typelist = $types->getTypeSet();
 		if ( !$typelist ) {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
@@ -954,7 +954,7 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $var
 	 * @return Taintedness|null Null means all taints, checking for null is faster than ORing
 	 */
-	protected function getTaintMaskForTypedElement( TypedElementInterface $var ) : ?Taintedness {
+	protected function getTaintMaskForTypedElement( TypedElementInterface $var ): ?Taintedness {
 		if (
 			$var instanceof GlobalVariable ||
 			( $var instanceof Variable && $this->context->isInGlobalScope() )
@@ -975,7 +975,7 @@ trait TaintednessBaseVisitor {
 	 * @param UnionType $type
 	 * @return Taintedness|null Null for all flags
 	 */
-	protected function getTaintMaskForType( UnionType $type ) : ?Taintedness {
+	protected function getTaintMaskForType( UnionType $type ): ?Taintedness {
 		$typeTaint = $this->getTaintByType( $type );
 
 		if ( $typeTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) ) {
@@ -992,7 +992,7 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $el
 	 * @return Taintedness|null Null for all taints
 	 */
-	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ) : ?Taintedness {
+	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ): ?Taintedness {
 		return $this->getTaintMaskForTypedElement( $el );
 	}
 
@@ -1004,7 +1004,7 @@ trait TaintednessBaseVisitor {
 	 * @param FullyQualifiedFunctionLikeName $fqsen Function to check
 	 * @return FunctionTaintedness|null Null if no info
 	 */
-	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?FunctionTaintedness {
+	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ): ?FunctionTaintedness {
 		return SecurityCheckPlugin::$pluginInstance->getBuiltinFuncTaint( $fqsen );
 	}
 
@@ -1013,7 +1013,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @return string Name of method or "[no method]"
 	 */
-	protected function getCurrentMethod() : string {
+	protected function getCurrentMethod(): string {
 		return $this->context->isInFunctionLikeScope() ?
 			(string)$this->context->getFunctionLikeFQSEN() : '[no method]';
 	}
@@ -1028,7 +1028,7 @@ trait TaintednessBaseVisitor {
 	 * @param mixed $expr An expression from the AST tree.
 	 * @return TaintednessWithError
 	 */
-	protected function getTaintedness( $expr ) : TaintednessWithError {
+	protected function getTaintedness( $expr ): TaintednessWithError {
 		if ( $expr instanceof Node ) {
 			return $this->getTaintednessNode( $expr );
 		}
@@ -1058,7 +1058,7 @@ trait TaintednessBaseVisitor {
 	 * @return TaintednessWithError
 	 * @suppress PhanUndeclaredProperty
 	 */
-	protected function getTaintednessNode( Node $node ) : TaintednessWithError {
+	protected function getTaintednessNode( Node $node ): TaintednessWithError {
 		// Performance: use isset(), not property_exists()
 		if ( isset( $node->taint ) ) {
 			// Return cached result. Cache hit ratio should ideally be 100%, because we should never have to retrieve
@@ -1097,7 +1097,7 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $variableObj
 	 * @return Taintedness
 	 */
-	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ) : Taintedness {
+	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ): Taintedness {
 		if ( $variableObj instanceof FunctionInterface ) {
 			throw new AssertionError( "This method cannot be used with methods" );
 		}
@@ -1155,7 +1155,7 @@ trait TaintednessBaseVisitor {
 		Taintedness $rhsTaintedness,
 		array $lhsOffsets,
 		bool $allowClearLHSData
-	) : void {
+	): void {
 		if (
 			$variableObj instanceof Property &&
 			$variableObj->getClass( $this->code_base )->getFQSEN() ===
@@ -1195,7 +1195,7 @@ trait TaintednessBaseVisitor {
 		TaintednessWithError $rhsTaintedness,
 		TypedElementInterface $variableObj,
 		array $lhsOffsets = []
-	) : void {
+	): void {
 		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
 		$this->mergeTaintDependencies( $variableObj, $rhsTaintedness->getMethodLinks(), $lhsOffsets );
 		if ( $globalVarObj ) {
@@ -1226,7 +1226,7 @@ trait TaintednessBaseVisitor {
 		$rhs,
 		Taintedness $rhsTaintedness,
 		Taintedness $allRHSTaint
-	) : void {
+	): void {
 		$dim = $lhs->children['dim'];
 		if ( $allRHSTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
 			// Things like 'foo' => ['taint', 'taint']
@@ -1262,7 +1262,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $propName
 	 * @return Property
 	 */
-	private function getPropInCurrentScopeByName( string $propName ) : Property {
+	private function getPropInCurrentScopeByName( string $propName ): Property {
 		assert( $this->context->isInClassScope() );
 		$clazz = $this->context->getClassInScope( $this->code_base );
 
@@ -1276,7 +1276,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node
 	 * @return ContextNode
 	 */
-	protected function getCtxN( $node ) : ContextNode {
+	protected function getCtxN( $node ): ContextNode {
 		return new ContextNode(
 			$this->code_base,
 			$this->context,
@@ -1293,7 +1293,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $node AST node in question
 	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
-	protected function getObjsForNodeForNumkeyBackprop( Node $node ) : array {
+	protected function getObjsForNodeForNumkeyBackprop( Node $node ): array {
 		$cn = $this->getCtxN( $node );
 
 		// TODO For now we only backprop in the simple case, to avoid tons of false positives, unless
@@ -1450,7 +1450,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return Property|null
 	 */
-	protected function getPropFromNode( Node $node ) : ?Property {
+	protected function getPropFromNode( Node $node ): ?Property {
 		try {
 			return $this->getCtxN( $node )->getProperty( $node->kind === \ast\AST_STATIC_PROP );
 		} catch ( NodeException | IssueException | UnanalyzableException $e ) {
@@ -1478,7 +1478,7 @@ trait TaintednessBaseVisitor {
 	 * @param Exception $e
 	 * @return string
 	 */
-	protected function getDebugInfo( Exception $e ) : string {
+	protected function getDebugInfo( Exception $e ): string {
 		return $e instanceof IssueException
 			? $e->getIssueInstance()->__toString()
 			: ( get_class( $e ) . " {$e->getMessage()}" );
@@ -1490,7 +1490,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $varName
 	 * @return bool
 	 */
-	protected function isSuperGlobal( $varName ) : bool {
+	protected function isSuperGlobal( $varName ): bool {
 		return Variable::isSuperglobalVariableWithName( $varName ) ||
 			$varName === 'argv' || $varName === 'argc';
 	}
@@ -1501,7 +1501,7 @@ trait TaintednessBaseVisitor {
 	 * @param Context|null $context Override the context to make debug info for
 	 * @return string path/to/file +linenumber
 	 */
-	protected function dbgInfo( Context $context = null ) : string {
+	protected function dbgInfo( Context $context = null ): string {
 		$ctx = $context ?: $this->context;
 		// Using a + instead of : so that I can just copy and paste
 		// into a vim command line.
@@ -1517,7 +1517,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 * @return bool
 	 */
-	protected function canLinkParamsToFunc( FunctionInterface $func ) : bool {
+	protected function canLinkParamsToFunc( FunctionInterface $func ): bool {
 		// TODO We might also want to check this parameter-wise, looking at $func's taintedness
 		// and whether the Taintdness for the i-th param has NO_OVERRIDE. However, that would require
 		// knowing the func taint, which might trigger an analysis of the function, which we can't do now.
@@ -1535,7 +1535,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func The function/method in question
 	 * @param int $i Which argument number is $param
 	 */
-	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ) : void {
+	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ): void {
 		// $this->debug( __METHOD__, "Linking '$param' to '$func' arg $i" );
 
 		if ( !$this->canLinkParamsToFunc( $func ) ) {
@@ -1572,7 +1572,7 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $lhs,
 		MethodLinks $rhsLinks,
 		array $lhsOffsets = []
-	) : void {
+	): void {
 		if ( $rhsLinks->isEmpty() ) {
 			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
@@ -1630,7 +1630,7 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $var,
 		Taintedness $taint,
 		TypedElementInterface $triggeringElm = null
-	) : void {
+	): void {
 		$futureTaint = $this->getPossibleFutureTaintOfElement( $var );
 		if ( $futureTaint !== null && !$futureTaint->has( $taint->get() ) ) {
 			return;
@@ -1697,7 +1697,7 @@ trait TaintednessBaseVisitor {
 	 * @return array[]
 	 * @phan-return array<array{0:MethodLinks,1:Taintedness}>
 	 */
-	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ) : array {
+	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ): array {
 		if ( $taintedness->hasSomethingOutOfKnownDims() || $allLinks->hasSomethingOutOfKnownDims() ) {
 			// TODO Improve this case (e.g. unknown offsets).
 			return [ [ $allLinks, $taintedness ] ];
@@ -1732,7 +1732,7 @@ trait TaintednessBaseVisitor {
 		Taintedness $taint,
 		TypedElementInterface $triggeringElm = null,
 		bool $tempNumkey = false
-	) : void {
+	): void {
 		if ( !$tempNumkey ) {
 			$backpropVisitor = new TaintednessBackpropVisitor(
 				$this->code_base,
@@ -1766,7 +1766,7 @@ trait TaintednessBaseVisitor {
 		int $i,
 		Taintedness $taint,
 		array $error
-	) : void {
+	): void {
 		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 		if ( $method->isPHPInternal() ) {
 			return;
@@ -1839,7 +1839,7 @@ trait TaintednessBaseVisitor {
 	 * @param string[] $lines
 	 * @return string
 	 */
-	private function stringifyCausedByLines( array $lines ) : string {
+	private function stringifyCausedByLines( array $lines ): string {
 		$maxLines = 12;
 		if ( count( $lines ) <= $maxLines ) {
 			return implode( '; ', $lines );
@@ -1857,7 +1857,7 @@ trait TaintednessBaseVisitor {
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	protected function getOriginalTaintLine( $element, ?Taintedness $taintedness, $arg = -1 ) : string {
+	protected function getOriginalTaintLine( $element, ?Taintedness $taintedness, $arg = -1 ): string {
 		$lines = $this->getOriginalTaintArray( $element, $arg );
 		return $this->getStringTaintLine( $lines, $taintedness );
 	}
@@ -1868,7 +1868,7 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness|null $taintedness
 	 * @return string
 	 */
-	protected function getStringTaintLine( array $rawLines, ?Taintedness $taintedness ) : string {
+	protected function getStringTaintLine( array $rawLines, ?Taintedness $taintedness ): string {
 		$filteredLines = $this->extractInterestingCausedbyLines( $rawLines, $taintedness );
 		if ( $filteredLines ) {
 			return ' (Caused by: ' . $this->stringifyCausedByLines( $filteredLines ) . ')';
@@ -1882,7 +1882,7 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $taintedness
 	 * @return Taintedness
 	 */
-	private function normalizeTaintForCausedBy( Taintedness $taintedness ) : Taintedness {
+	private function normalizeTaintForCausedBy( Taintedness $taintedness ): Taintedness {
 		$taintedness = $taintedness->withExecToYesTaint();
 		// Special case: we assume the bad case, preferring false positives over false negatives
 		$taintedness->addSqlToNumkey();
@@ -1895,7 +1895,7 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness|null $taintedness
 	 * @return string[]
 	 */
-	private function extractInterestingCausedbyLines( array $allLines, ?Taintedness $taintedness ) : array {
+	private function extractInterestingCausedbyLines( array $allLines, ?Taintedness $taintedness ): array {
 		if ( $taintedness === null ) {
 			return array_column( $allLines, 1 );
 		}
@@ -1918,7 +1918,7 @@ trait TaintednessBaseVisitor {
 	 * @return array
 	 * @phan-return list<array{0:Taintedness,1:string}>
 	 */
-	private function intersectCausedByTaintedness( array $lines, Taintedness $taintedness ) : array {
+	private function intersectCausedByTaintedness( array $lines, Taintedness $taintedness ): array {
 		$ret = [];
 		$curTaint = $taintedness->get();
 		foreach ( $lines as [ $eTaint, $eLine ] ) {
@@ -1935,7 +1935,7 @@ trait TaintednessBaseVisitor {
 	 * @return array[]
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
-	private function getOriginalTaintArray( $element, $arg = -1 ) : array {
+	private function getOriginalTaintArray( $element, $arg = -1 ): array {
 		if ( !$element instanceof TypedElementInterface ) {
 			return [];
 		}
@@ -1974,7 +1974,7 @@ trait TaintednessBaseVisitor {
 	 * @return array
 	 * @phan-return list<array{0:Taintedness,1:string}>
 	 */
-	private function getTaintErrorByArg( FunctionInterface $element, int $arg ) : array {
+	private function getTaintErrorByArg( FunctionInterface $element, int $arg ): array {
 		$errorOrNull = self::getCausedByArgRaw( $element, $arg );
 		if ( $errorOrNull !== null ) {
 			return $errorOrNull;
@@ -1997,7 +1997,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $method __METHOD__ in question
 	 * @param string $msg debug message
 	 */
-	public function debug( $method, $msg ) : void {
+	public function debug( $method, $msg ): void {
 		if ( $this->debugOutput === null ) {
 			$errorOutput = getenv( "SECCHECK_DEBUG" );
 			if ( $errorOutput && $errorOutput !== '-' ) {
@@ -2028,7 +2028,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node The thingy from AST expected to be a Callable
 	 * @return FunctionInterface|null
 	 */
-	protected function getCallableFromNode( $node ) : ?FunctionInterface {
+	protected function getCallableFromNode( $node ): ?FunctionInterface {
 		if ( is_string( $node ) ) {
 			// Easy case, 'Foo::Bar'
 			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
@@ -2084,7 +2084,7 @@ trait TaintednessBaseVisitor {
 	 * @return array Issue type and severity
 	 * @phan-return array{0:string,1:int}
 	 */
-	public function taintToIssueAndSeverity( int $combinedTaint ) : array {
+	public function taintToIssueAndSeverity( int $combinedTaint ): array {
 		$severity = Issue::SEVERITY_NORMAL;
 
 		switch ( $combinedTaint ) {
@@ -2161,14 +2161,14 @@ trait TaintednessBaseVisitor {
 		$rhsElement,
 		string $msg,
 		array $params = []
-	) : void {
+	): void {
 		$rhsTaint = $this->getTaintedness( $rhsElement );
 		$this->maybeEmitIssue(
 			$lhsTaint,
 			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			function () use ( $params, $rhsTaint, $lhsTaint ) : array {
+			function () use ( $params, $rhsTaint, $lhsTaint ): array {
 				return array_merge( $params, [ $this->getStringTaintLine( $rhsTaint->getError(), $lhsTaint ) ] );
 			}
 		);
@@ -2194,7 +2194,7 @@ trait TaintednessBaseVisitor {
 		Taintedness $rhsTaint,
 		string $msg,
 		Closure $msgArgsGetter
-	) : void {
+	): void {
 		if (
 			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) &&
 			$lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT )
@@ -2263,7 +2263,7 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $lhsTaint Must have at least one EXEC flag set
 	 * @return bool
 	 */
-	public function isIssueSuppressedOrFalsePositive( Taintedness $lhsTaint ) : bool {
+	public function isIssueSuppressedOrFalsePositive( Taintedness $lhsTaint ): bool {
 		assert( $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
 		$context = $this->overrideContext ?: $this->context;
 		$combinedTaint = Taintedness::flagsAsExecToYesTaint( $lhsTaint->get() );
@@ -2308,7 +2308,7 @@ trait TaintednessBaseVisitor {
 		array $args,
 		bool $computePreserve = true,
 		$isHookHandler = false
-	) : ?TaintednessWithError {
+	): ?TaintednessWithError {
 		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
 
@@ -2400,7 +2400,7 @@ trait TaintednessBaseVisitor {
 			$msgArgsGetter = function () use (
 				$funcName, $containingMethod, $taintedArg, $func, $paramSinkTaint, $i,
 				$isRawParam, $baseArgError
-			) : array {
+			): array {
 				return [
 					$funcName,
 					$containingMethod,
@@ -2455,7 +2455,7 @@ trait TaintednessBaseVisitor {
 	 * @return array
 	 * @phan-return array{0:int|null,1:Node|mixed,2:?string}
 	 */
-	private function translateNamedArg( Node $argument, FunctionInterface $func ) : array {
+	private function translateNamedArg( Node $argument, FunctionInterface $func ): array {
 		[ 'name' => $argName, 'expr' => $argExpr ] = $argument->children;
 		assert( $argExpr !== null );
 
@@ -2485,7 +2485,7 @@ trait TaintednessBaseVisitor {
 		Node $argument,
 		Taintedness $taint,
 		FunctionInterface $func = null
-	) : void {
+	): void {
 		if ( $taint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) ) {
 			// Special case for numkey, we need to "filter" the argument.
 			// TODO This doesn't return arrays with mixed keys. Currently, doing so would result
@@ -2520,7 +2520,7 @@ trait TaintednessBaseVisitor {
 		array $baseArgError,
 		int $i,
 		FunctionInterface $func
-	) : array {
+	): array {
 		if ( $funcTaint->hasParamPreserve( $i ) ) {
 			$parTaint = $funcTaint->getParamPreservedTaint( $i );
 			$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
@@ -2583,7 +2583,7 @@ trait TaintednessBaseVisitor {
 		Node $argument,
 		int $i,
 		bool $isHookHandler
-	) : void {
+	): void {
 		if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
 			$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
 			return;
@@ -2625,7 +2625,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return TypedElementInterface|null
 	 */
-	private function getPassByRefObjFromNode( Node $node ) : ?TypedElementInterface {
+	private function getPassByRefObjFromNode( Node $node ): ?TypedElementInterface {
 		$cn = $this->getCtxN( $node );
 
 		switch ( $node->kind ) {
@@ -2665,7 +2665,7 @@ trait TaintednessBaseVisitor {
 		FunctionInterface $func,
 		Taintedness $curArgTaint,
 		int $paramIdx
-	) : Taintedness {
+	): Taintedness {
 		if ( !$func->isPHPInternal() ) {
 			return $curArgTaint->asCollapsed();
 		}
@@ -2767,7 +2767,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $rhs Either a Node or a scalar
 	 * @return int
 	 */
-	protected function getBinOpTaintMask( Node $opNode, $lhs, $rhs ) : int {
+	protected function getBinOpTaintMask( Node $opNode, $lhs, $rhs ): int {
 		static $safeBinOps = [
 			\ast\flags\BINARY_BOOL_XOR,
 			\ast\flags\BINARY_DIV,
@@ -2833,7 +2833,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $node
 	 * @return UnionType|null
 	 */
-	protected function getNodeType( Node $node ) : ?UnionType {
+	protected function getNodeType( Node $node ): ?UnionType {
 		// Don't emit issues, as this method might be called e.g. on a LHS (see T249647).
 		// FIXME Improve this. Is it still necessary now that we cache taintedness?
 		$catchIssueException = false;
@@ -2860,7 +2860,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it an array?
 	 */
-	protected function nodeIsArray( $node ) : bool {
+	protected function nodeIsArray( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return false;
@@ -2879,7 +2879,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node
 	 * @return bool
 	 */
-	protected function nodeCanBeArray( $node ) : bool {
+	protected function nodeCanBeArray( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			return is_array( $node );
 		}
@@ -2899,7 +2899,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it a string?
 	 */
-	protected function nodeIsString( $node ) : bool {
+	protected function nodeIsString( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return is_string( $node );
@@ -2917,7 +2917,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it an int?
 	 */
-	protected function nodeIsInt( $node ) : bool {
+	protected function nodeIsInt( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return is_int( $node );
@@ -2931,7 +2931,7 @@ trait TaintednessBaseVisitor {
 	 * @param bool $definitely Whether $el is *definitely* numkey, not just possibly
 	 * @return bool
 	 */
-	protected function elementCanBeNumkey( TypedElementInterface $el, bool $definitely ) : bool {
+	protected function elementCanBeNumkey( TypedElementInterface $el, bool $definitely ): bool {
 		$type = $el->getUnionType()->getRealUnionType();
 		if ( $type->hasMixedType() || $type->isEmpty() ) {
 			return !$definitely;
@@ -2956,7 +2956,7 @@ trait TaintednessBaseVisitor {
 	 * @return bool Is it an int?
 	 * @fixme A lot of duplication with other similar methods...
 	 */
-	protected function nodeCanBeInt( $node ) : bool {
+	protected function nodeCanBeInt( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return is_int( $node );
@@ -2994,7 +2994,7 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func The function/method. Must use Analyzable trait
 	 * @return TypedElementInterface[] An array of phan objects
 	 */
-	public function getReturnObjsOfFunc( FunctionInterface $func ) : array {
+	public function getReturnObjsOfFunc( FunctionInterface $func ): array {
 		$retObjs = self::getRetObjs( $func );
 		if ( $retObjs === null ) {
 			if (
@@ -3020,7 +3020,7 @@ trait TaintednessBaseVisitor {
 		// It would be pointless, though, as returning a partial list is better than returning no list.
 		return array_filter(
 			$retObjs,
-			static function ( TypedElementInterface $el ) : bool {
+			static function ( TypedElementInterface $el ): bool {
 				return !( $el instanceof Variable );
 			}
 		);
@@ -3038,7 +3038,7 @@ trait TaintednessBaseVisitor {
 		FullyQualifiedClassName $child,
 		FullyQualifiedClassName $parent,
 		CodeBase $codeBase
-	) : bool {
+	): bool {
 		$childTypes = $child->asType()->asExpandedTypes( $codeBase )->getTypeSet();
 		$parentType = $parent->asType();
 		return in_array( $parentType, $childTypes, true );

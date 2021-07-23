@@ -93,7 +93,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * calls visit* methods by name, so that doesn't work.
 	 * @param Node $node
 	 */
-	private function setCachedData( Node $node ) : void {
+	private function setCachedData( Node $node ): void {
 		// @phan-suppress-next-line PhanUndeclaredProperty
 		$node->taint = new TaintednessWithError( $this->curTaint, $this->curError, $this->curLinks );
 	}
@@ -103,14 +103,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @note This shouldn't usually be cached, because computing is not expensive (time-wise) but can
 	 * take quite a lot of memory.
 	 */
-	private function setCurTaintInapplicable() : void {
+	private function setCurTaintInapplicable(): void {
 		$this->curTaint = Taintedness::newInapplicable();
 	}
 
 	/**
 	 * Sets $this->curTaint to UNKNOWN. Shorthand to filter the usages of curTaint.
 	 */
-	private function setCurTaintUnknown() : void {
+	private function setCurTaintUnknown(): void {
 		$this->curTaint = Taintedness::newUnknown();
 	}
 
@@ -119,7 +119,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visit( Node $node ) : void {
+	public function visit( Node $node ): void {
 		// This method will be called on all nodes for which
 		// there is no implementation of its kind visitor.
 
@@ -134,7 +134,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitClosure( Node $node ) : void {
+	public function visitClosure( Node $node ): void {
 		// We cannot use getFunctionLikeInScope for closures
 		$closureFQSEN = FullyQualifiedFunctionName::fromClosureInContext( $this->context, $node );
 
@@ -154,7 +154,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitClosureVar( Node $node ) : void {
+	public function visitClosureVar( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
@@ -163,14 +163,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitClosureUses( Node $node ) : void {
+	public function visitClosureUses( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitFuncDecl( Node $node ) : void {
+	public function visitFuncDecl( Node $node ): void {
 		$func = $this->context->getFunctionLikeInScope( $this->code_base );
 		$this->curTaint = $this->analyzeFunctionLike( $func );
 		$this->setCachedData( $node );
@@ -181,7 +181,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitMethod( Node $node ) : void {
+	public function visitMethod( Node $node ): void {
 		$method = $this->context->getFunctionLikeInScope( $this->code_base );
 		$this->curTaint = $this->analyzeFunctionLike( $method );
 		$this->setCachedData( $node );
@@ -190,7 +190,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitArrowFunc( Node $node ) : void {
+	public function visitArrowFunc( Node $node ): void {
 		$this->visitClosure( $node );
 	}
 
@@ -204,7 +204,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *   it from the context.
 	 * @return Taintedness
 	 */
-	private function analyzeFunctionLike( FunctionInterface $func ) : Taintedness {
+	private function analyzeFunctionLike( FunctionInterface $func ): Taintedness {
 		if (
 			self::getFuncTaint( $func ) === null &&
 			!SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) &&
@@ -236,35 +236,35 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitStmtList( Node $node ) : void {
+	public function visitStmtList( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitUseElem( Node $node ) : void {
+	public function visitUseElem( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitType( Node $node ) : void {
+	public function visitType( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitArgList( Node $node ) : void {
+	public function visitArgList( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitParamList( Node $node ) : void {
+	public function visitParamList( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
@@ -272,49 +272,49 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @note Params should be handled in PreTaintednessVisitor
 	 * @param Node $node
 	 */
-	public function visitParam( Node $node ) : void {
+	public function visitParam( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitClass( Node $node ) : void {
+	public function visitClass( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitClassConstDecl( Node $node ) : void {
+	public function visitClassConstDecl( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitConstDecl( Node $node ) : void {
+	public function visitConstDecl( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitIf( Node $node ) : void {
+	public function visitIf( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitIfElem( Node $node ) : void {
+	public function visitIfElem( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitThrow( Node $node ) : void {
+	public function visitThrow( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
@@ -322,105 +322,105 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * Actual property declaration is PropElem
 	 * @param Node $node
 	 */
-	public function visitPropDecl( Node $node ) : void {
+	public function visitPropDecl( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitConstElem( Node $node ) : void {
+	public function visitConstElem( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitUse( Node $node ) : void {
+	public function visitUse( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitUseTrait( Node $node ) : void {
+	public function visitUseTrait( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitBreak( Node $node ) : void {
+	public function visitBreak( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitContinue( Node $node ) : void {
+	public function visitContinue( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitGoto( Node $node ) : void {
+	public function visitGoto( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitCatch( Node $node ) : void {
+	public function visitCatch( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitNamespace( Node $node ) : void {
+	public function visitNamespace( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitSwitch( Node $node ) : void {
+	public function visitSwitch( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitSwitchCase( Node $node ) : void {
+	public function visitSwitchCase( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitWhile( Node $node ) : void {
+	public function visitWhile( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitDoWhile( Node $node ) : void {
+	public function visitDoWhile( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitFor( Node $node ) : void {
+	public function visitFor( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitSwitchList( Node $node ) : void {
+	public function visitSwitchList( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
@@ -429,21 +429,21 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitExprList( Node $node ) : void {
+	public function visitExprList( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitUnset( Node $node ) : void {
+	public function visitUnset( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitTry( Node $node ) : void {
+	public function visitTry( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
@@ -451,7 +451,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * A => B
 	 * @param Node $node
 	 */
-	public function visitArrayElem( Node $node ) : void {
+	public function visitArrayElem( Node $node ): void {
 		// Key and value are handled in visitArray()
 		$this->setCurTaintInapplicable();
 	}
@@ -459,7 +459,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitClone( Node $node ) : void {
+	public function visitClone( Node $node ): void {
 		// @todo This should first check the __clone method, acknowledge its side effects
 		// (probably via handleMethodCall), and *then* return the taintedness of the cloned
 		// item. But finding the __clone definition might be hard...
@@ -474,7 +474,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * Assignment operators are: .=, +=, -=, /=, %=, *=, **=, ??=, |=, &=, ^=, <<=, >>=
 	 * @param Node $node
 	 */
-	public function visitAssignOp( Node $node ) : void {
+	public function visitAssignOp( Node $node ): void {
 		$lhs = $node->children['var'];
 		if ( !$lhs instanceof Node ) {
 			// Syntax error, don't crash
@@ -532,7 +532,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitStatic( Node $node ) : void {
+	public function visitStatic( Node $node ): void {
 		$var = $this->getCtxN( $node->children['var'] )->getVariable();
 		$this->setTaintednessOld( $var, Taintedness::newSafe(), false );
 		$this->curTaint = Taintedness::newInapplicable();
@@ -542,14 +542,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitAssignRef( Node $node ) : void {
+	public function visitAssignRef( Node $node ): void {
 		$this->visitAssign( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitAssign( Node $node ) : void {
+	public function visitAssign( Node $node ): void {
 		$lhs = $node->children['var'];
 		if ( !$lhs instanceof Node ) {
 			// Syntax error, don't crash
@@ -590,7 +590,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		TaintednessWithError $rhsTaintednessWithError,
 		Taintedness $allRHSTaint,
 		bool $allowClearLHSData
-	) : Taintedness {
+	): Taintedness {
 		$rhsTaintedness = $rhsTaintednessWithError->getTaintedness();
 		if ( $lhs->kind === \ast\AST_DIM ) {
 			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $rhsTaintedness, $allRHSTaint );
@@ -613,7 +613,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it{DETAILS}",
 			/** @phan-return array{0:string} */
-			function () use ( $lhsTaintednessWithError ) : array {
+			function () use ( $lhsTaintednessWithError ): array {
 				return [ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ];
 			}
 		);
@@ -632,7 +632,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitBinaryOp( Node $node ) : void {
+	public function visitBinaryOp( Node $node ): void {
 		$lhs = $node->children['left'];
 		$rhs = $node->children['right'];
 		$mask = $this->getBinOpTaintMask( $node, $lhs, $rhs );
@@ -669,7 +669,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		Taintedness $rightTaint,
 		int $op,
 		int $mask
-	) : Taintedness {
+	): Taintedness {
 		if ( $op === \ast\flags\BINARY_ADD && $mask !== SecurityCheckPlugin::NO_TAINT ) {
 			// HACK: This means that a node can be array, so assume array plus
 			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
@@ -682,7 +682,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitDim( Node $node ) : void {
+	public function visitDim( Node $node ): void {
 		$varNode = $node->children['expr'];
 		if ( !$varNode instanceof Node ) {
 			// Accessing offset of a string literal
@@ -709,7 +709,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitPrint( Node $node ) : void {
+	public function visitPrint( Node $node ): void {
 		$this->visitEcho( $node );
 	}
 
@@ -718,7 +718,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * same as print.
 	 * @param Node $node
 	 */
-	public function visitExit( Node $node ) : void {
+	public function visitExit( Node $node ): void {
 		$this->visitEcho( $node );
 	}
 
@@ -726,7 +726,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * Visits the backtick operator. Note that shell_exec() has a simple AST_CALL node.
 	 * @param Node $node
 	 */
-	public function visitShellExec( Node $node ) : void {
+	public function visitShellExec( Node $node ): void {
 		$this->visitSimpleSinkAndPropagate(
 			$node,
 			SecurityCheckPlugin::SHELL_EXEC_TAINT,
@@ -740,7 +740,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitIncludeOrEval( Node $node ) : void {
+	public function visitIncludeOrEval( Node $node ): void {
 		if ( $node->flags === \ast\flags\EXEC_EVAL ) {
 			$taintValue = SecurityCheckPlugin::CODE_EXEC_TAINT;
 			$msg = 'The code supplied to `eval` is user controlled';
@@ -765,7 +765,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitEcho( Node $node ) : void {
+	public function visitEcho( Node $node ): void {
 		$this->visitSimpleSinkAndPropagate(
 			$node,
 			SecurityCheckPlugin::HTML_EXEC_TAINT,
@@ -780,7 +780,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param int $sinkTaintInt
 	 * @param string $issueMsg
 	 */
-	private function visitSimpleSinkAndPropagate( Node $node, int $sinkTaintInt, string $issueMsg ) : void {
+	private function visitSimpleSinkAndPropagate( Node $node, int $sinkTaintInt, string $issueMsg ): void {
 		if ( !isset( $node->children['expr'] ) ) {
 			return;
 		}
@@ -794,7 +794,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsTaint,
 			"$issueMsg{DETAILS}",
 			/** @phan-return array{0:string} */
-			function () use ( $exprTaint, $sinkTaint ) : array {
+			function () use ( $exprTaint, $sinkTaint ): array {
 				return [ $this->getStringTaintLine( $exprTaint->getError(), $sinkTaint ) ];
 			}
 		);
@@ -807,14 +807,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitStaticCall( Node $node ) : void {
+	public function visitStaticCall( Node $node ): void {
 		$this->visitMethodCall( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitNew( Node $node ) : void {
+	public function visitNew( Node $node ): void {
 		$ctxNode = $this->getCtxN( $node );
 		if ( !$node->children['class'] instanceof Node ) {
 			// Syntax error, don't crash
@@ -901,7 +901,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * This also handles (function) call, static call, and new operator
 	 * @param Node $node
 	 */
-	public function visitMethodCall( Node $node ) : void {
+	public function visitMethodCall( Node $node ): void {
 		$funcs = $this->getFuncsFromNode( $node, __METHOD__ );
 		if ( !$funcs ) {
 			$this->setCurTaintUnknown();
@@ -925,7 +925,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitNullsafeMethodCall( Node $node ) : void {
+	public function visitNullsafeMethodCall( Node $node ): void {
 		$this->visitMethodCall( $node );
 	}
 
@@ -934,8 +934,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param string $caller
 	 * @return iterable<mixed,FunctionInterface>
 	 */
-	private function getFuncsFromNode( Node $node, $caller = __METHOD__ ) : iterable {
-		$logError = function ( Exception $e ) use ( $caller ) : void {
+	private function getFuncsFromNode( Node $node, $caller = __METHOD__ ): iterable {
+		$logError = function ( Exception $e ) use ( $caller ): void {
 			$this->debug(
 				$caller,
 				"FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e )
@@ -965,7 +965,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitCall( Node $node ) : void {
+	public function visitCall( Node $node ): void {
 		$this->visitMethodCall( $node );
 	}
 
@@ -976,7 +976,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitVar( Node $node ) : void {
+	public function visitVar( Node $node ): void {
 		$varName = $this->getCtxN( $node )->getVariableName();
 		if ( $varName === '' ) {
 			$this->debug( __METHOD__, "FIXME: Complex variable case not handled." );
@@ -1009,7 +1009,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param string $varName
 	 * @return Taintedness
 	 */
-	private function getTaintednessOfSuperGlobal( string $varName ) : Taintedness {
+	private function getTaintednessOfSuperGlobal( string $varName ): Taintedness {
 		switch ( $varName ) {
 			case '_GET':
 			case '_POST':
@@ -1048,7 +1048,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitGlobal( Node $node ) : void {
+	public function visitGlobal( Node $node ): void {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
 		$this->setCurTaintInapplicable();
 		$this->setCachedData( $node );
@@ -1079,7 +1079,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitReturn( Node $node ) : void {
+	public function visitReturn( Node $node ): void {
 		if ( !$this->context->isInFunctionLikeScope() ) {
 			// E.g. a file that can be included.
 			$this->setCurTaintUnknown();
@@ -1109,7 +1109,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param FunctionInterface $func
 	 * @return FunctionTaintedness
 	 */
-	private function getFuncTaintFromReturn( Node $node, FunctionInterface $func ) : FunctionTaintedness {
+	private function getFuncTaintFromReturn( Node $node, FunctionInterface $func ): FunctionTaintedness {
 		assert( $node->kind === \ast\AST_RETURN );
 		$retExpr = $node->children['expr'];
 		$retTaintednessWithError = $this->getTaintedness( $retExpr );
@@ -1145,7 +1145,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @todo Handle array shape mutations (e.g. unset, array_shift, array_pop, etc.)
 	 * @param Node $node
 	 */
-	public function visitArray( Node $node ) : void {
+	public function visitArray( Node $node ): void {
 		$curTaint = Taintedness::newSafe();
 		$links = MethodLinks::newEmpty();
 		// Current numeric key in the array
@@ -1204,7 +1204,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * transferred in TaintednessLoopVisitor
 	 * @param Node $node
 	 */
-	public function visitForeach( Node $node ) : void {
+	public function visitForeach( Node $node ): void {
 		// This is handled by TaintednessLoopVisitor.
 		$this->curTaint = Taintedness::newSafe();
 	}
@@ -1212,14 +1212,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitClassConst( Node $node ) : void {
+	public function visitClassConst( Node $node ): void {
 		$this->curTaint = Taintedness::newSafe();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitConst( Node $node ) : void {
+	public function visitConst( Node $node ): void {
 		// We are going to assume nobody is doing stupid stuff like
 		// define( "foo", $_GET['bar'] );
 		$this->curTaint = Taintedness::newSafe();
@@ -1229,7 +1229,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * The :: operator (for props)
 	 * @param Node $node
 	 */
-	public function visitStaticProp( Node $node ) : void {
+	public function visitStaticProp( Node $node ): void {
 		$prop = $this->getPropFromNode( $node );
 		if ( !$prop ) {
 			$this->setCurTaintUnknown();
@@ -1245,7 +1245,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * The -> operator (when not a method call)
 	 * @param Node $node
 	 */
-	public function visitProp( Node $node ) : void {
+	public function visitProp( Node $node ): void {
 		$prop = $this->getPropFromNode( $node );
 		if ( !$prop ) {
 			if (
@@ -1314,7 +1314,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitNullsafeProp( Node $node ) : void {
+	public function visitNullsafeProp( Node $node ): void {
 		$this->visitProp( $node );
 	}
 
@@ -1322,7 +1322,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * Ternary operator.
 	 * @param Node $node
 	 */
-	public function visitConditional( Node $node ) : void {
+	public function visitConditional( Node $node ): void {
 		if ( $node->children['true'] === null ) {
 			// $foo ?: $bar;
 			$trueTaint = $this->getTaintedness( $node->children['cond'] );
@@ -1339,7 +1339,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitName( Node $node ) : void {
+	public function visitName( Node $node ): void {
 		// FIXME I'm a little unclear on what a name is in php.
 		// I think this means literal true, false, null
 		// or a class name (The Foo part of Foo::bar())
@@ -1354,14 +1354,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitNameList( Node $node ) : void {
+	public function visitNameList( Node $node ): void {
 		$this->curTaint = Taintedness::newSafe();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitUnaryOp( Node $node ) : void {
+	public function visitUnaryOp( Node $node ): void {
 		// ~ and @ are the only two unary ops
 		// that can preserve taint (others cast bool or int)
 		$unsafe = [
@@ -1382,28 +1382,28 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitPostInc( Node $node ) : void {
+	public function visitPostInc( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitPreInc( Node $node ) : void {
+	public function visitPreInc( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitPostDec( Node $node ) : void {
+	public function visitPostDec( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitPreDec( Node $node ) : void {
+	public function visitPreDec( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
@@ -1413,7 +1413,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	private function analyzeIncOrDec( Node $node ) : void {
+	private function analyzeIncOrDec( Node $node ): void {
 		$varTaint = $this->getTaintedness( $node->children['var'] );
 		$this->curTaint = clone $varTaint->getTaintedness();
 		$this->curError = $varTaint->getError();
@@ -1424,7 +1424,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
-	public function visitCast( Node $node ) : void {
+	public function visitCast( Node $node ): void {
 		// Casting between an array and object maintains
 		// taint. Casting an object to a string calls __toString().
 		// Future TODO: handle the string case properly.
@@ -1450,7 +1450,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitEncapsList( Node $node ) : void {
+	public function visitEncapsList( Node $node ): void {
 		$taint = Taintedness::newSafe();
 		$links = MethodLinks::newEmpty();
 		foreach ( $node->children as $child ) {
@@ -1469,7 +1469,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitIsset( Node $node ) : void {
+	public function visitIsset( Node $node ): void {
 		$this->curTaint = Taintedness::newSafe();
 	}
 
@@ -1478,7 +1478,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitEmpty( Node $node ) : void {
+	public function visitEmpty( Node $node ): void {
 		$this->curTaint = Taintedness::newSafe();
 	}
 
@@ -1487,7 +1487,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitMagicConst( Node $node ) : void {
+	public function visitMagicConst( Node $node ): void {
 		$this->curTaint = Taintedness::newSafe();
 	}
 
@@ -1496,14 +1496,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 */
-	public function visitInstanceOf( Node $node ) : void {
+	public function visitInstanceOf( Node $node ): void {
 		$this->curTaint = Taintedness::newSafe();
 	}
 
 	/**
 	 * @param Node $node
 	 */
-	public function visitMatch( Node $node ) : void {
+	public function visitMatch( Node $node ): void {
 		$taint = Taintedness::newSafe();
 		// Based on UnionTypeVisitor
 		foreach ( $node->children['stmts']->children as $armNode ) {

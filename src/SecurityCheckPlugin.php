@@ -206,7 +206,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	/**
 	 * Ensure that the options we need are enabled.
 	 */
-	private function assertRequiredConfig() : void {
+	private function assertRequiredConfig(): void {
 		if ( Config::get_quick_mode() ) {
 			throw new AssertionError( 'Quick mode must be disabled to run taint-check' );
 		}
@@ -215,7 +215,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	/**
 	 * @inheritDoc
 	 */
-	public function getMergeVariableInfoClosure() : Closure {
+	public function getMergeVariableInfoClosure(): Closure {
 		/**
 		 * For branches that are not guaranteed to be executed, merge taint info for any involved
 		 * variable across all branches.
@@ -341,7 +341,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @param int $taint
 	 * @return string
 	 */
-	public static function taintToString( int $taint ) : string {
+	public static function taintToString( int $taint ): string {
 		if ( $taint === self::NO_TAINT ) {
 			return 'NONE';
 		}
@@ -413,7 +413,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @param FullyQualifiedFunctionLikeName $fqsen
 	 * @return bool
 	 */
-	public function builtinFuncHasTaint( FullyQualifiedFunctionLikeName $fqsen ) : bool {
+	public function builtinFuncHasTaint( FullyQualifiedFunctionLikeName $fqsen ): bool {
 		return $this->getBuiltinFuncTaint( $fqsen ) !== null;
 	}
 
@@ -428,7 +428,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @param FullyQualifiedFunctionLikeName $fqsen The function/method in question
 	 * @return FunctionTaintedness|null Null to autodetect taintedness
 	 */
-	public function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ) : ?FunctionTaintedness {
+	public function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ): ?FunctionTaintedness {
 		$name = (string)$fqsen;
 
 		if ( isset( self::$builtinFuncTaintCache[$name] ) ) {
@@ -481,7 +481,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *
 	 * @param int[] $taint
 	 */
-	private static function assertFunctionTaintArrayWellFormed( array $taint ) : void {
+	private static function assertFunctionTaintArrayWellFormed( array $taint ): void {
 		if ( !isset( $taint['overall'] ) ) {
 			throw new Error( 'Overall taint must be set' );
 		}
@@ -518,7 +518,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @see FunctionTaintedness for more details
 	 * @phan-return array<string,int[]>
 	 */
-	abstract protected function getCustomFuncTaints() : array;
+	abstract protected function getCustomFuncTaints(): array;
 
 	/**
 	 * Can be used to force specific issues to be marked false positives
@@ -538,7 +538,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		string &$msg,
 		Context $context,
 		CodeBase $code_base
-	) : bool {
+	): bool {
 		return false;
 	}
 
@@ -582,7 +582,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @return array|null Array of [taintedness, flags], or null on no info
 	 * @phan-return array{0:Taintedness,1:int}|null
 	 */
-	public static function parseTaintLine( string $line ) : ?array {
+	public static function parseTaintLine( string $line ): ?array {
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|code|path|regex|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
@@ -661,7 +661,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		FunctionTaintedness $funcTaint,
 		Context $context,
 		CodeBase $code_base
-	) : Taintedness {
+	): Taintedness {
 		// no-op
 		return $curArgTaintedness;
 	}
@@ -675,7 +675,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *   escaped, none (= self::NO_TAINT), tainted (= self::YES_TAINT)
 	 * @return int One of the TAINT constants
 	 */
-	public static function convertTaintNameToConstant( string $name ) : int {
+	public static function convertTaintNameToConstant( string $name ): int {
 		switch ( $name ) {
 			case 'html':
 			case 'htmlnoent':
@@ -717,7 +717,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @return int[][] List of func taints (See getBuiltinFuncTaint())
 	 * @phan-return array<string,int[]>
 	 */
-	protected function getPHPFuncTaints() : array {
+	protected function getPHPFuncTaints(): array {
 		$pregMatchTaint = [
 			self::REGEX_EXEC_TAINT,
 			self::YES_TAINT,
@@ -967,7 +967,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	/**
 	 * @inheritDoc
 	 */
-	public static function getBeforeLoopBodyAnalysisVisitorClassName() : string {
+	public static function getBeforeLoopBodyAnalysisVisitorClassName(): string {
 		return TaintednessLoopVisitor::class;
 	}
 }

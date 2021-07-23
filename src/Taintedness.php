@@ -39,28 +39,28 @@ class Taintedness {
 	/**
 	 * @return self
 	 */
-	public static function newSafe() : self {
+	public static function newSafe(): self {
 		return new self( SecurityCheckPlugin::NO_TAINT );
 	}
 
 	/**
 	 * @return self
 	 */
-	public static function newInapplicable() : self {
+	public static function newInapplicable(): self {
 		return new self( SecurityCheckPlugin::INAPPLICABLE_TAINT );
 	}
 
 	/**
 	 * @return self
 	 */
-	public static function newUnknown() : self {
+	public static function newUnknown(): self {
 		return new self( SecurityCheckPlugin::UNKNOWN_TAINT );
 	}
 
 	/**
 	 * @return self
 	 */
-	public static function newTainted() : self {
+	public static function newTainted(): self {
 		return new self( SecurityCheckPlugin::YES_TAINT );
 	}
 
@@ -68,7 +68,7 @@ class Taintedness {
 	 * @param Taintedness[] $values
 	 * @return self
 	 */
-	public static function newFromArray( array $values ) : self {
+	public static function newFromArray( array $values ): self {
 		$ret = self::newSafe();
 		foreach ( $values as $key => $value ) {
 			assert( $value instanceof self );
@@ -84,7 +84,7 @@ class Taintedness {
 	 *
 	 * @return int
 	 */
-	public function get() : int {
+	public function get(): int {
 		$ret = $this->flags | $this->getAllKeysTaint() | $this->keysTaint;
 		$ret = $this->unknownDimsTaint ? ( $ret | $this->unknownDimsTaint->get() ) : $ret;
 		return $ret;
@@ -94,7 +94,7 @@ class Taintedness {
 	 * Get a flattened version of this object, with any taint from keys etc. collapsed into flags
 	 * @return $this
 	 */
-	public function asCollapsed() : self {
+	public function asCollapsed(): self {
 		return new self( $this->get() );
 	}
 
@@ -102,7 +102,7 @@ class Taintedness {
 	 * Temporary method, should only be used in getRelevantLinksForTaintedness
 	 * @return bool
 	 */
-	public function hasSomethingOutOfKnownDims() : bool {
+	public function hasSomethingOutOfKnownDims(): bool {
 		return $this->flags > 0 || $this->keysTaint > 0
 			|| ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isSafe() );
 	}
@@ -111,7 +111,7 @@ class Taintedness {
 	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
 	 * @return self[]
 	 */
-	public function getDimTaint() : array {
+	public function getDimTaint(): array {
 		return $this->dimTaint;
 	}
 
@@ -120,7 +120,7 @@ class Taintedness {
 	 *
 	 * @return int
 	 */
-	private function getAllKeysTaint() : int {
+	private function getAllKeysTaint(): int {
 		$ret = SecurityCheckPlugin::NO_TAINT;
 		foreach ( $this->dimTaint as $val ) {
 			$ret |= $val->get();
@@ -137,7 +137,7 @@ class Taintedness {
 	 *
 	 * @param int $taint
 	 */
-	public function add( int $taint ) : void {
+	public function add( int $taint ): void {
 		// TODO: Should this clear UNKNOWN_TAINT if its present only in one of the args?
 		$this->flags |= $taint;
 	}
@@ -145,7 +145,7 @@ class Taintedness {
 	/**
 	 * @param Taintedness $other
 	 */
-	public function addObj( self $other ) : void {
+	public function addObj( self $other ): void {
 		$this->add( $other->get() );
 	}
 
@@ -157,7 +157,7 @@ class Taintedness {
 	 * @param int $other
 	 * @return $this
 	 */
-	public function with( int $other ) : self {
+	public function with( int $other ): self {
 		$ret = clone $this;
 		$ret->add( $other );
 		return $ret;
@@ -167,7 +167,7 @@ class Taintedness {
 	 * @param Taintedness $other
 	 * @return $this
 	 */
-	public function withObj( self $other ) : self {
+	public function withObj( self $other ): self {
 		return $this->with( $other->get() );
 	}
 
@@ -177,7 +177,7 @@ class Taintedness {
 	 *
 	 * @param int $other
 	 */
-	public function remove( int $other ) : void {
+	public function remove( int $other ): void {
 		$this->keepOnly( ~$other );
 	}
 
@@ -188,7 +188,7 @@ class Taintedness {
 	 * @param int $other
 	 * @return $this
 	 */
-	public function without( int $other ) : self {
+	public function without( int $other ): self {
 		$ret = clone $this;
 		$ret->remove( $other );
 		return $ret;
@@ -199,7 +199,7 @@ class Taintedness {
 	 * @param Taintedness $other
 	 * @return $this
 	 */
-	public function withoutObj( self $other ) : self {
+	public function withoutObj( self $other ): self {
 		return $this->without( $other->get() );
 	}
 
@@ -210,7 +210,7 @@ class Taintedness {
 	 * @param int $taint
 	 * @return bool
 	 */
-	public function has( int $taint ) : bool {
+	public function has( int $taint ): bool {
 		// Avoid using get() for performance
 		if ( ( $this->flags & $taint ) !== SecurityCheckPlugin::NO_TAINT ) {
 			return true;
@@ -235,7 +235,7 @@ class Taintedness {
 	 *
 	 * @param int $taint
 	 */
-	public function keepOnly( int $taint ) : void {
+	public function keepOnly( int $taint ): void {
 		$this->flags &= $taint;
 		if ( $this->unknownDimsTaint ) {
 			$this->unknownDimsTaint->keepOnly( $taint );
@@ -253,7 +253,7 @@ class Taintedness {
 	 * @param int $other
 	 * @return $this
 	 */
-	public function withOnly( int $other ) : self {
+	public function withOnly( int $other ): self {
 		$ret = clone $this;
 		$ret->keepOnly( $other );
 		return $ret;
@@ -263,7 +263,7 @@ class Taintedness {
 	 * @param Taintedness $other
 	 * @return $this
 	 */
-	public function withOnlyObj( self $other ) : self {
+	public function withOnlyObj( self $other ): self {
 		return $this->withOnly( $other->get() );
 	}
 
@@ -279,7 +279,7 @@ class Taintedness {
 	 * @param Taintedness $value
 	 * @return self
 	 */
-	public static function intersectForSink( self $sink, self $value ) : self {
+	public static function intersectForSink( self $sink, self $value ): self {
 		$intersect = new self( SecurityCheckPlugin::NO_TAINT );
 		// If the sink has non-zero flags, intersect it with the whole other side. This particularly preserves
 		// the shape of $sink, discarding anything from $value if the sink has a NO_TAINT in that position.
@@ -308,7 +308,7 @@ class Taintedness {
 	 *
 	 * @param Taintedness $other
 	 */
-	public function mergeWith( self $other ) : void {
+	public function mergeWith( self $other ): void {
 		$this->flags |= $other->flags;
 		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
 			$this->unknownDimsTaint = $other->unknownDimsTaint;
@@ -332,7 +332,7 @@ class Taintedness {
 	 * @param Taintedness $other
 	 * @return $this
 	 */
-	public function asMergedWith( self $other ) : self {
+	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
 		$ret->mergeWith( $other );
 		return $ret;
@@ -346,7 +346,7 @@ class Taintedness {
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param Taintedness $value
 	 */
-	public function setOffsetTaintedness( $offset, self $value ) : void {
+	public function setOffsetTaintedness( $offset, self $value ): void {
 		if ( is_scalar( $offset ) ) {
 			$this->dimTaint[$offset] = $value;
 		} else {
@@ -359,7 +359,7 @@ class Taintedness {
 	 * Adds the bits in $value to the taintedness of the keys
 	 * @param int $value
 	 */
-	public function addKeysTaintedness( int $value ) : void {
+	public function addKeysTaintedness( int $value ): void {
 		$this->keysTaint |= $value;
 	}
 
@@ -378,7 +378,7 @@ class Taintedness {
 		array $offsetsTaint,
 		self $val,
 		bool $override
-	) : void {
+	): void {
 		assert( (bool)$offsets, 'Should not be empty' );
 		$base = $this;
 		// Just in case keys are not consecutive
@@ -432,7 +432,7 @@ class Taintedness {
 	 *
 	 * @param Taintedness $other
 	 */
-	public function arrayPlus( self $other ) : void {
+	public function arrayPlus( self $other ): void {
 		$this->flags |= $other->flags;
 		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
 			$this->unknownDimsTaint = $other->unknownDimsTaint;
@@ -450,7 +450,7 @@ class Taintedness {
 	 * @param Taintedness $other
 	 * @return $this
 	 */
-	public function asArrayPlusWith( self $other ) : self {
+	public function asArrayPlusWith( self $other ): self {
 		$ret = clone $this;
 		$ret->arrayPlus( $other );
 		return $ret;
@@ -465,7 +465,7 @@ class Taintedness {
 	 * @param Node|string|int|bool|float|null $offset
 	 * @return self Always a copy
 	 */
-	public function getTaintednessForOffsetOrWhole( $offset ) : self {
+	public function getTaintednessForOffsetOrWhole( $offset ): self {
 		if ( !is_scalar( $offset ) ) {
 			return $this->asValueFirstLevel();
 		}
@@ -490,7 +490,7 @@ class Taintedness {
 	 * @param Node|string|int|bool|float|null $offset
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset ) : self {
+	public function asMaybeMovedAtOffset( $offset ): self {
 		$ret = self::newSafe();
 		if ( $offset instanceof Node || $offset === null ) {
 			$ret->unknownDimsTaint = clone $this;
@@ -508,7 +508,7 @@ class Taintedness {
 	 *
 	 * @return $this
 	 */
-	public function asValueFirstLevel() : self {
+	public function asValueFirstLevel(): self {
 		$ret = new self( $this->flags );
 		if ( $this->unknownDimsTaint ) {
 			$ret->mergeWith( $this->unknownDimsTaint );
@@ -523,7 +523,7 @@ class Taintedness {
 	 * Creates a copy of this object without known offsets, and without keysTaint
 	 * @return $this
 	 */
-	public function withoutKeys() : self {
+	public function withoutKeys(): self {
 		$ret = clone $this;
 		$ret->keysTaint = SecurityCheckPlugin::NO_TAINT;
 		if ( !$ret->dimTaint ) {
@@ -542,7 +542,7 @@ class Taintedness {
 	 *
 	 * @return $this
 	 */
-	public function asKeyForForeach() : self {
+	public function asKeyForForeach(): self {
 		return new self( $this->keysTaint | $this->flags );
 	}
 
@@ -553,7 +553,7 @@ class Taintedness {
 	 *
 	 * @return bool If the variable has known (non-execute taint)
 	 */
-	public function isAllTaint() : bool {
+	public function isAllTaint(): bool {
 		return $this->has( SecurityCheckPlugin::ALL_TAINT );
 	}
 
@@ -561,7 +561,7 @@ class Taintedness {
 	 * Combination of isExecTaint and isAllTaint
 	 * @return bool
 	 */
-	public function isExecOrAllTaint() : bool {
+	public function isExecOrAllTaint(): bool {
 		return $this->has( SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT );
 	}
 
@@ -570,7 +570,7 @@ class Taintedness {
 	 *
 	 * @return bool
 	 */
-	public function isSafe() : bool {
+	public function isSafe(): bool {
 		// Don't use get() for performance
 		if ( $this->flags !== SecurityCheckPlugin::NO_TAINT ) {
 			return false;
@@ -598,7 +598,7 @@ class Taintedness {
 	 *
 	 * @return self
 	 */
-	public function asExecToYesTaint() : self {
+	public function asExecToYesTaint(): self {
 		$ret = new self( ( $this->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
 		if ( $this->unknownDimsTaint ) {
 			$ret->unknownDimsTaint = $this->unknownDimsTaint->asExecToYesTaint();
@@ -615,7 +615,7 @@ class Taintedness {
 	 *
 	 * @return self
 	 */
-	public function withExecToYesTaint() : self {
+	public function withExecToYesTaint(): self {
 		$flags = ( $this->flags & SecurityCheckPlugin::ALL_TAINT ) |
 			( ( $this->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
 		$ret = new self( $flags );
@@ -633,7 +633,7 @@ class Taintedness {
 	/**
 	 * Add SQL_TAINT wherever SQL_NUMKEY_TAINT is set
 	 */
-	public function addSqlToNumkey() : void {
+	public function addSqlToNumkey(): void {
 		if ( $this->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
 			$this->flags |= SecurityCheckPlugin::SQL_TAINT;
 		}
@@ -657,7 +657,7 @@ class Taintedness {
 	 *
 	 * @return self
 	 */
-	public function asYesToExecTaint() : self {
+	public function asYesToExecTaint(): self {
 		$ret = new self( ( $this->flags & SecurityCheckPlugin::ALL_TAINT ) << 1 );
 		if ( $this->unknownDimsTaint ) {
 			$ret->unknownDimsTaint = $this->unknownDimsTaint->asYesToExecTaint();
@@ -673,7 +673,7 @@ class Taintedness {
 	 * @param ParamLinksOffsets $offsets
 	 * @return self
 	 */
-	public function asMovedAtRelevantOffsets( ParamLinksOffsets $offsets ) : self {
+	public function asMovedAtRelevantOffsets( ParamLinksOffsets $offsets ): self {
 		$ret = $offsets->getOwn() ? clone $this : self::newSafe();
 		foreach ( $offsets->getDims() as $k => $val ) {
 			$newVal = $this->asMovedAtRelevantOffsets( $val );
@@ -702,7 +702,7 @@ class Taintedness {
 	 * @param int $flags
 	 * @return int
 	 */
-	public static function flagsAsExecToYesTaint( int $flags ) : int {
+	public static function flagsAsExecToYesTaint( int $flags ): int {
 		return ( $flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
 	}
 
@@ -710,7 +710,7 @@ class Taintedness {
 	 * @todo This method shouldn't be necessary (ideally)
 	 * @return PreservedTaintedness
 	 */
-	public function asPreservedTaintedness() : PreservedTaintedness {
+	public function asPreservedTaintedness(): PreservedTaintedness {
 		$ret = new PreservedTaintedness( new ParamLinksOffsets( true, $this->flags ) );
 		foreach ( $this->dimTaint as $k => $val ) {
 			$ret->setOffsetTaintedness( $k, $val->asPreservedTaintedness() );
@@ -727,7 +727,7 @@ class Taintedness {
 	 * @param string $indent
 	 * @return string
 	 */
-	public function toString( $indent = '' ) : string {
+	public function toString( $indent = '' ): string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
 		$keys = SecurityCheckPlugin::taintToString( $this->keysTaint );
 		$ret = <<<EOT
@@ -758,7 +758,7 @@ EOT;
 	 *
 	 * @return string
 	 */
-	public function toShortString() : string {
+	public function toShortString(): string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
 		$ret = "{Own: $flags";
 		if ( $this->keysTaint ) {
@@ -795,7 +795,7 @@ EOT;
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function __toString(): string {
 		return $this->toString();
 	}
 }

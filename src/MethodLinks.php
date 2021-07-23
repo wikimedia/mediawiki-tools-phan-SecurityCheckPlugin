@@ -29,7 +29,7 @@ class MethodLinks {
 	/**
 	 * @return self
 	 */
-	public static function newEmpty() : self {
+	public static function newEmpty(): self {
 		return new self( new LinksSet );
 	}
 
@@ -38,7 +38,7 @@ class MethodLinks {
 	 * @param mixed $dim
 	 * @return self
 	 */
-	public function getForDim( $dim ) : self {
+	public function getForDim( $dim ): self {
 		if ( !is_scalar( $dim ) ) {
 			return $this->asValueFirstLevel()->withAddedOffset( $dim );
 		}
@@ -56,7 +56,7 @@ class MethodLinks {
 	/**
 	 * @return self
 	 */
-	public function asValueFirstLevel() : self {
+	public function asValueFirstLevel(): self {
 		$ret = new self( $this->links );
 		$ret->mergeWith( $this->unknownDimLinks ?? self::newEmpty() );
 		foreach ( $this->dimLinks as $links ) {
@@ -69,7 +69,7 @@ class MethodLinks {
 	 * @param mixed $dim
 	 * @param MethodLinks $links
 	 */
-	public function setAtDim( $dim, self $links ) : void {
+	public function setAtDim( $dim, self $links ): void {
 		if ( is_scalar( $dim ) ) {
 			$this->dimLinks[$dim] = $links;
 		} else {
@@ -82,14 +82,14 @@ class MethodLinks {
 	 * Temporary method, should only be used in getRelevantLinksForTaintedness
 	 * @return bool
 	 */
-	public function hasSomethingOutOfKnownDims() : bool {
+	public function hasSomethingOutOfKnownDims(): bool {
 		return count( $this->links ) > 0 || ( $this->unknownDimLinks && !$this->unknownDimLinks->isEmpty() );
 	}
 
 	/**
 	 * @return self
 	 */
-	public function asCollapsed() : self {
+	public function asCollapsed(): self {
 		$ret = new self( $this->links );
 		foreach ( $this->dimLinks as $links ) {
 			$ret->mergeWith( $links->asCollapsed() );
@@ -105,7 +105,7 @@ class MethodLinks {
 	 *
 	 * @param self $other
 	 */
-	public function mergeWith( self $other ) : void {
+	public function mergeWith( self $other ): void {
 		$this->links = self::mergeSets( $this->links, $other->links );
 		foreach ( $other->dimLinks as $key => $links ) {
 			if ( isset( $this->dimLinks[$key] ) ) {
@@ -127,7 +127,7 @@ class MethodLinks {
 	 * @param self $other
 	 * @return self
 	 */
-	public function asMergedWith( self $other ) : self {
+	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
 		$ret->mergeWith( $other );
 		return $ret;
@@ -137,7 +137,7 @@ class MethodLinks {
 	 * @param Node|mixed $offset
 	 * @return self
 	 */
-	public function withAddedOffset( $offset ) : self {
+	public function withAddedOffset( $offset ): self {
 		$ret = clone $this;
 		foreach ( $ret->links as $func ) {
 			$ret->links[$func]->pushOffsetToAll( $offset );
@@ -150,7 +150,7 @@ class MethodLinks {
 	 * @phan-param array<Node|mixed> $offsets
 	 * @param MethodLinks $links
 	 */
-	public function setLinksAtOffsetList( array $offsets, self $links ) : void {
+	public function setLinksAtOffsetList( array $offsets, self $links ): void {
 		assert( (bool)$offsets, 'Should not be empty' );
 		$base = $this;
 		// Just in case keys are not consecutive
@@ -200,7 +200,7 @@ class MethodLinks {
 	 * @todo Improve (e.g. recurse)
 	 * @todo Might happen sometime earlier
 	 */
-	private function normalize() : void {
+	private function normalize(): void {
 		if ( !count( $this->links ) ) {
 			return;
 		}
@@ -259,7 +259,7 @@ class MethodLinks {
 	 *
 	 * @return LinksSet
 	 */
-	public function getLinks() : LinksSet {
+	public function getLinks(): LinksSet {
 		$ret = $this->links;
 		foreach ( $this->dimLinks as $link ) {
 			$ret = self::mergeSets( $ret, $link->getLinks() );
@@ -273,7 +273,7 @@ class MethodLinks {
 	/**
 	 * @return bool
 	 */
-	public function isEmpty() : bool {
+	public function isEmpty(): bool {
 		if ( count( $this->links ) ) {
 			return false;
 		}
@@ -292,7 +292,7 @@ class MethodLinks {
 	 * @param FunctionInterface $func
 	 * @param int $i
 	 */
-	public function initializeParamForFunc( FunctionInterface $func, int $i ) : void {
+	public function initializeParamForFunc( FunctionInterface $func, int $i ): void {
 		if ( $this->links->contains( $func ) ) {
 			$this->links[$func]->addParam( $i );
 		} else {
@@ -305,7 +305,7 @@ class MethodLinks {
 	 * @param LinksSet $l2
 	 * @return LinksSet
 	 */
-	private static function mergeSets( LinksSet $l1, LinksSet $l2 ) : LinksSet {
+	private static function mergeSets( LinksSet $l1, LinksSet $l2 ): LinksSet {
 		$ret = new LinksSet();
 		$ret->addAll( $l1 );
 		foreach ( $l2 as $method ) {
@@ -324,7 +324,7 @@ class MethodLinks {
 	 * @param int $param
 	 * @return PreservedTaintedness
 	 */
-	public function asPreservedTaintednessForFuncParam( FunctionInterface $func, int $param ) : PreservedTaintedness {
+	public function asPreservedTaintednessForFuncParam( FunctionInterface $func, int $param ): PreservedTaintedness {
 		$ret = null;
 		if ( $this->links->contains( $func ) ) {
 			$ownInfo = $this->links[$func];
@@ -351,7 +351,7 @@ class MethodLinks {
 	 * @param string $indent
 	 * @return string
 	 */
-	public function toString( $indent = '' ) : string {
+	public function toString( $indent = '' ): string {
 		$ret = 'OWN: ' . $this->links->__toString() . ';';
 		if ( !$this->dimLinks ) {
 			return $ret;
@@ -370,7 +370,7 @@ class MethodLinks {
 	/**
 	 * @return string
 	 */
-	public function __toString() : string {
+	public function __toString(): string {
 		return $this->toString();
 	}
 }
