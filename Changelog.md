@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### Internal changes
+* Bumped phan/phan to 5.1.0
+
 ## v3.3.0
 ### Breaking changes
 * Removed support for standalone install on MediaWiki repos. Generic standalone is still supported, but the script is now called `seccheck`, not `seccheck-generic`.

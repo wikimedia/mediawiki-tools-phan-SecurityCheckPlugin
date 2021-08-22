@@ -2870,7 +2870,8 @@ trait TaintednessBaseVisitor {
 			return true;
 		}
 		$type = $this->getNodeType( $node );
-		return $type && $type->hasArrayLike() && !$type->hasMixedType() && !$type->hasStringType();
+		return $type && $type->hasArrayLike( $this->code_base ) &&
+			!$type->hasMixedOrNonEmptyMixedType() && !$type->hasStringType();
 	}
 
 	/**
@@ -2888,7 +2889,7 @@ trait TaintednessBaseVisitor {
 			return true;
 		}
 		$type = $type->getRealUnionType();
-		return $type->hasArrayLike() || $type->hasMixedType() || $type->isEmpty();
+		return $type->hasArrayLike( $this->code_base ) || $type->hasMixedOrNonEmptyMixedType() || $type->isEmpty();
 	}
 
 	/**
@@ -2933,7 +2934,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function elementCanBeNumkey( TypedElementInterface $el, bool $definitely ): bool {
 		$type = $el->getUnionType()->getRealUnionType();
-		if ( $type->hasMixedType() || $type->isEmpty() ) {
+		if ( $type->hasMixedOrNonEmptyMixedType() || $type->isEmpty() ) {
 			return !$definitely;
 		}
 		if ( !$type->hasArray() ) {
@@ -2966,7 +2967,7 @@ trait TaintednessBaseVisitor {
 			return true;
 		}
 		$type = $type->getRealUnionType();
-		return $type->hasIntType() || $type->hasMixedType() || $type->isEmpty();
+		return $type->hasIntType() || $type->hasMixedOrNonEmptyMixedType() || $type->isEmpty();
 	}
 
 	/**
@@ -3039,8 +3040,6 @@ trait TaintednessBaseVisitor {
 		FullyQualifiedClassName $parent,
 		CodeBase $codeBase
 	): bool {
-		$childTypes = $child->asType()->asExpandedTypes( $codeBase )->getTypeSet();
-		$parentType = $parent->asType();
-		return in_array( $parentType, $childTypes, true );
+		return $child->asType()->asExpandedTypes( $codeBase )->hasType( $parent->asType() );
 	}
 }

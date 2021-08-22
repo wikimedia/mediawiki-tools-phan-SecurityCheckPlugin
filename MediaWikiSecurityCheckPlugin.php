@@ -34,7 +34,7 @@ use SecurityCheckPlugin\MWPreVisitor;
 use SecurityCheckPlugin\MWVisitor;
 use SecurityCheckPlugin\SecurityCheckPlugin;
 use SecurityCheckPlugin\Taintedness;
-use SecurityCheckPlugin\TaintednessBaseVisitor;
+use SecurityCheckPlugin\TaintednessVisitor;
 
 class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	/**
@@ -519,7 +519,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				return false;
 			}
 			$classFQSEN = $context->getClassFQSEN();
-			$isMaint = TaintednessBaseVisitor::isSubclassOf( $classFQSEN, $maintFQSEN, $code_base );
+			$isMaint = TaintednessVisitor::isSubclassOf( $classFQSEN, $maintFQSEN, $code_base );
 			if ( $isMaint ) {
 				$msg .= ' [Likely false positive because in a subclass of Maintenance, thus probably CLI]';
 				return true;

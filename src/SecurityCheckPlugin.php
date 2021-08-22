@@ -262,7 +262,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$varErrorOrNull = $localVar->taintedOriginalError ?? null;
 				if ( $varErrorOrNull && $varErrorOrNull !== $prevErr ) {
 					$prevErr = $varErrorOrNull;
-					$error = TaintednessBaseVisitor::mergeCausedByLines( $error, $varErrorOrNull );
+					$error = TaintednessVisitor::mergeCausedByLines( $error, $varErrorOrNull );
 				}
 			}
 

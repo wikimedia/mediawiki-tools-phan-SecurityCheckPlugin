@@ -62,7 +62,7 @@ trait TaintednessAccessorsTrait {
 		if ( $element instanceof PassByReferenceVariable ) {
 			self::setCausedByRaw(
 				$element->getElement(),
-				TaintednessBaseVisitor::mergeCausedByLines(
+				TaintednessVisitor::mergeCausedByLines(
 					self::getCausedByRaw( $element->getElement() ) ?? [],
 					$lines
 				)
