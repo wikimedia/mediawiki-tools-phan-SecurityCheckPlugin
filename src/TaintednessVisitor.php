@@ -1089,16 +1089,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$curFunc = $this->context->getFunctionLikeInScope( $this->code_base );
 
-		$this->setFuncTaint( $curFunc, $this->getFuncTaintFromReturn( $node, $curFunc ) );
+		$this->setFuncTaintFromReturn( $node, $curFunc );
 
 		if ( $node->children['expr'] instanceof Node ) {
 			$collector = new ReturnObjectsCollectVisitor( $this->code_base, $this->context );
-			$retObjs = $collector->collectFromNode( $node );
-			self::addRetObjs( $curFunc, $retObjs );
-			foreach ( $retObjs as $pobj ) {
-				// TODO We might merge from $retTaintednessWithError, but it would add redundant lines
-				$this->mergeTaintError( $curFunc, $pobj );
-			}
+			self::addRetObjs( $curFunc, $collector->collectFromNode( $node ) );
 		}
 		$this->setCurTaintInapplicable();
 		$this->setCachedData( $node );
@@ -1107,9 +1102,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 * @param FunctionInterface $func
-	 * @return FunctionTaintedness
 	 */
-	private function getFuncTaintFromReturn( Node $node, FunctionInterface $func ): FunctionTaintedness {
+	private function setFuncTaintFromReturn( Node $node, FunctionInterface $func ): void {
 		assert( $node->kind === \ast\AST_RETURN );
 		$retExpr = $node->children['expr'];
 		$retTaintednessWithError = $this->getTaintedness( $retExpr );
@@ -1120,7 +1114,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$retTaintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
 		if ( !$retExpr instanceof Node ) {
 			assert( $retTaintedness->isSafe() );
-			return new FunctionTaintedness( $retTaintedness );
+			$this->setFuncTaint( $func, new FunctionTaintedness( $retTaintedness ) );
+			return;
 		}
 
 		$paramTaint = new FunctionTaintedness( Taintedness::newUnknown() );
@@ -1138,7 +1133,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$paramTaint->setOverall( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
-		return $paramTaint;
+		$this->setFuncTaint( $func, $paramTaint );
+		$this->mergeTaintError( $func, $retTaintednessWithError->getError() );
 	}
 
 	/**

@@ -116,37 +116,62 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		foreach ( $taint->getSinkParamKeysNoVariadic() as $key ) {
-			$this->addTaintError(
-				$taint->getParamSinkTaint( $key ), $func, $key, $newTaint->getParamFlags( $key ), $reason
-			);
+		$this->maybeAddFuncError( $func, $reason, $taint, $newTaint );
+		self::doSetFuncTaint( $func, $newTaint );
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 * @param Context|string|null $reason
+	 * @param FunctionTaintedness $addedTaint
+	 * @param FunctionTaintedness $allNewTaint
+	 */
+	private function maybeAddFuncError(
+		FunctionInterface $func,
+		$reason,
+		FunctionTaintedness $addedTaint,
+		FunctionTaintedness $allNewTaint
+	): void {
+		if ( !$reason && SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) ) {
+			return;
 		}
-		foreach ( $taint->getPreserveParamKeysNoVariadic() as $key ) {
+		foreach ( $addedTaint->getSinkParamKeysNoVariadic() as $key ) {
 			$this->addTaintError(
-				$taint->getParamPreservedTaint( $key )->asTaintedness(),
+				$addedTaint->getParamSinkTaint( $key ),
 				$func,
 				$key,
-				$newTaint->getParamFlags( $key ),
+				$allNewTaint->getParamFlags( $key ),
 				$reason
 			);
 		}
-		$variadicIndex = $taint->getVariadicParamIndex();
+		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
+			$this->addTaintError(
+				$addedTaint->getParamPreservedTaint( $key )->asTaintedness(),
+				$func,
+				$key,
+				$allNewTaint->getParamFlags( $key ),
+				$reason
+			);
+		}
+		$variadicIndex = $addedTaint->getVariadicParamIndex();
 		if ( $variadicIndex !== null ) {
-			$variadicFlags = $newTaint->getVariadicParamFlags();
-			$sinkVariadic = $taint->getVariadicParamSinkTaint();
+			$variadicFlags = $allNewTaint->getVariadicParamFlags();
+			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
 			if ( $sinkVariadic ) {
 				$this->addTaintError( $sinkVariadic, $func, $variadicIndex, $variadicFlags, $reason );
 			}
-			$preserveVariadic = $taint->getVariadicParamPreservedTaint();
+			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
 			if ( $preserveVariadic ) {
 				$this->addTaintError(
-					$preserveVariadic->asTaintedness(), $func, $variadicIndex, $variadicFlags, $reason
+					$preserveVariadic->asTaintedness(),
+					$func,
+					$variadicIndex,
+					$variadicFlags,
+					$reason
 				);
 			}
 		}
-		$this->addTaintError( $taint->getOverall(), $func, -1, $newTaint->getOverallFlags(), $reason );
-
-		self::doSetFuncTaint( $func, $newTaint );
+		$this->addTaintError( $addedTaint->getOverall(), $func, -1, $allNewTaint->getOverallFlags(), $reason );
 	}
 
 	/**
@@ -297,6 +322,13 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function mergeTaintError( TypedElementInterface $left, $rightError, int $arg = -1 ): void {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
+
+		if (
+			$left instanceof FunctionInterface &&
+			SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $left->getFQSEN() )
+		) {
+			return;
+		}
 
 		if ( $arg === -1 ) {
 			self::ensureCausedByRawExists( $left );
@@ -1851,13 +1883,17 @@ trait TaintednessBaseVisitor {
 	 * Get the line number of the original cause of taint.
 	 * @todo Keep per-offset caused-by lines
 	 *
-	 * @param TypedElementInterface|mixed $element
+	 * @param TypedElementInterface $element
 	 * @param Taintedness|null $taintedness Only consider caused-by lines having (at least) these bits, null
 	 *   to include all lines.
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return string
 	 */
-	protected function getOriginalTaintLine( $element, ?Taintedness $taintedness, $arg = -1 ): string {
+	protected function getOriginalTaintLine(
+		TypedElementInterface $element,
+		?Taintedness $taintedness,
+		int $arg = -1
+	): string {
 		$lines = $this->getOriginalTaintArray( $element, $arg );
 		return $this->getStringTaintLine( $lines, $taintedness );
 	}
@@ -1928,24 +1964,16 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get the line number of the original cause of taint without "Caused by" string.
+	 * Get the original cause of taint for the given phan element.
 	 *
-	 * @param TypedElementInterface|mixed $element
+	 * @param TypedElementInterface $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
 	 * @return array[]
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
-	private function getOriginalTaintArray( $element, $arg = -1 ): array {
-		if ( !$element instanceof TypedElementInterface ) {
-			return [];
-		}
-
-		$lines = [];
+	private function getOriginalTaintArray( TypedElementInterface $element, int $arg = -1 ): array {
 		if ( $arg === -1 ) {
-			$origErrorOrNull = self::getCausedByRaw( $element );
-			if ( $origErrorOrNull !== null ) {
-				$lines = self::mergeCausedByLines( $lines, $origErrorOrNull );
-			}
+			$lines = self::getCausedByRaw( $element ) ?? [];
 			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
 				// FIXME is this right? In the generic
 				// case should we include all arguments as
@@ -1957,11 +1985,11 @@ trait TaintednessBaseVisitor {
 			$argErr = $this->getTaintErrorByArg( $element, $arg );
 			$overallFuncErr = self::getCausedByRaw( $element ) ?? [];
 			if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
-				$lines = self::mergeCausedByLines( $lines, $overallFuncErr );
+				$lines = $overallFuncErr;
 			} elseif ( !$overallFuncErr || self::getArraySubsetIdx( $argErr, $overallFuncErr ) !== false ) {
-				$lines = self::mergeCausedByLines( $lines, $argErr );
+				$lines = $argErr;
 			} else {
-				$lines = self::mergeCausedByLines( self::mergeCausedByLines( $lines, $argErr ), $overallFuncErr );
+				$lines = self::mergeCausedByLines( $argErr, $overallFuncErr );
 			}
 		}
 
@@ -2443,8 +2471,8 @@ trait TaintednessBaseVisitor {
 		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
 		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
-		$argErrors = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
-		return new TaintednessWithError( $callTaintedness, $argErrors, MethodLinks::newEmpty() );
+		$callError = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
+		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::newEmpty() );
 	}
 
 	/**
