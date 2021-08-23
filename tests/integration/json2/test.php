@@ -10,6 +10,12 @@ class MyHookHandler {
 	public static function additionalSecondHookHandler( $arg ) {
 		echo $arg;
 	}
+	public function onThirdHook__method() {
+
+	}
+	public function onFourthHook_spec() {
+
+	}
 }
 
 function doStuff() {

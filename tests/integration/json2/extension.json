@@ -10,6 +10,8 @@
 		"SecondHook": [
 			"Not-A-Valid-Class-Name",
 			"MyHookHandler::additionalSecondHookHandler"
-		]
+		],
+		"ThirdHook::method": "Not-A-Valid-Class-Name",
+		"FourthHook-spec": "Not-A-Valid-Class-Name"
 	}
 }
