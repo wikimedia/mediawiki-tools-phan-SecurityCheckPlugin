@@ -11,4 +11,4 @@ class CausedByMethod {
 }
 
 $test = new CausedByMethod();
-echo $test->getData();
+echo $test->getData();// Should have line 9 in its caused-by

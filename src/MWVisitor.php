@@ -350,23 +350,8 @@ class MWVisitor extends TaintednessVisitor {
 		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $fqsen );
 		if ( !$alreadyRegistered ) {
 			$this->debug( __METHOD__, "registering $fqsen for hook $hookType" );
-			// If this is the first time seeing this, re-analyze the
-			// node, just in case we had already passed it by.
-			if ( $fqsen->isClosure() ) {
-				// For closures we have to reanalyze the parent
-				// function, as we can't reanalyze the closure, and
-				// we definitely need to since the closure would
-				// have already been analyzed at this point since
-				// we are operating in post-order.
-				if ( $this->context->isInFunctionLikeScope() ) {
-					$callback = $this->context->getFunctionLikeInScope( $this->code_base );
-				} else {
-					return;
-				}
-			}
-			// Make sure we reanalyze the hook function now that
-			// we know what it is, in case its already been
-			// analyzed.
+			// If this is the first time seeing this, make sure we reanalyze the hook function now that
+			// we know what it is, in case it's already been analyzed.
 			$this->analyzeFunc( $callback );
 		}
 	}

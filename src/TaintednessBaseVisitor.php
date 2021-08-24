@@ -604,19 +604,14 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given a func, get the defining func or null
+	 * Given a func, if it has a defining func different from itself, return that defining func. Returns null otherwise.
 	 *
 	 * @param FunctionInterface $func
-	 * @return null|FunctionInterface
+	 * @return FunctionInterface|null
 	 */
-	private function getDefiningFunc( FunctionInterface $func ): ?FunctionInterface {
-		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
-			// Our function has a parent, and potentially interface and traits.
-			if ( $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
-				return $this->code_base->getMethodByFQSEN(
-					$func->getDefiningFQSEN()
-				);
-			}
+	private function getDefiningFuncIfDifferent( FunctionInterface $func ): ?FunctionInterface {
+		if ( $func instanceof Method && $func->hasDefiningFQSEN() && $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
+			return $this->code_base->getMethodByFQSEN( $func->getDefiningFQSEN() );
 		}
 		return null;
 	}
@@ -633,7 +628,7 @@ trait TaintednessBaseVisitor {
 
 		// If we don't have a defining func, stay with the same func.
 		// definingFunc is used later on during fallback processing.
-		$definingFunc = $this->getDefiningFunc( $func );
+		$definingFunc = $this->getDefiningFuncIfDifferent( $func );
 		if ( $definingFunc ) {
 			yield $definingFunc;
 		}
@@ -697,30 +692,27 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		$definingFunc = $this->getDefiningFunc( $func ) ?: $func;
-		// Ensure we don't indef loop.
-		if (
-			!$definingFunc->isPHPInternal() &&
-			( !$this->context->isInFunctionLikeScope() ||
-			$definingFunc->getFQSEN() !== $this->context->getFunctionLikeFQSEN() )
-		) {
-			// $this->debug( __METHOD__, 'no taint info for func ' . $func->getName() );
-			$definingFuncTaint = self::getFuncTaint( $definingFunc );
-			if ( $definingFuncTaint === null ) {
-				// Optim: don't reanalyze if we already have taint data. This might rarely hide
-				// some issues, see T203651#6046483.
-				try {
-					$this->analyzeFunc( $definingFunc );
-				} catch ( Exception $e ) {
-					$this->debug( __METHOD__, "FIXME: " . $this->getDebugInfo( $e ) );
-				}
-				// $this->debug( __METHOD__, 'updated taint info for ' . $definingFunc->getName() );
+		$definingFunc = $this->getDefiningFuncIfDifferent( $func );
+		if ( $definingFunc ) {
+			// TODO Should we recurse here?
+			if ( !$definingFunc->isPHPInternal() ) {
 				$definingFuncTaint = self::getFuncTaint( $definingFunc );
-			}
+				if ( $definingFuncTaint === null ) {
+					// Optim: don't reanalyze if we already have taint data. This might rarely hide
+					// some issues, see T203651#6046483.
+					$this->analyzeFunc( $definingFunc );
+					$definingFuncTaint = self::getFuncTaint( $definingFunc );
+				}
 
-			// var_dump( $definingFuncTaint ?? "NO INFO" );
-			if ( $definingFuncTaint !== null ) {
-				return $definingFuncTaint;
+				if ( $definingFuncTaint !== null ) {
+					return $definingFuncTaint;
+				}
+			}
+		} else {
+			$this->analyzeFunc( $func );
+			$funcTaint = self::getFuncTaint( $func );
+			if ( $funcTaint !== null ) {
+				return $funcTaint;
 			}
 		}
 		// TODO: Maybe look at __toString() if we are at __construct().
@@ -746,6 +738,10 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 */
 	public function analyzeFunc( FunctionInterface $func ): void {
+		if ( $this->context->isInFunctionLikeScope() && $func->getFQSEN() === $this->context->getFunctionLikeFQSEN() ) {
+			// Avoid pointless recursion
+			return;
+		}
 		static $depth = 0;
 		$node = $func->getNode();
 		if ( !$node ) {
@@ -1972,6 +1968,7 @@ trait TaintednessBaseVisitor {
 	 * @phan-return array<int,array{0:Taintedness,1:string}>
 	 */
 	private function getOriginalTaintArray( TypedElementInterface $element, int $arg = -1 ): array {
+		$element = $this->getActualElementWithCausedBy( $element );
 		if ( $arg === -1 ) {
 			$lines = self::getCausedByRaw( $element ) ?? [];
 			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
@@ -1994,6 +1991,21 @@ trait TaintednessBaseVisitor {
 		}
 
 		return $lines;
+	}
+
+	/**
+	 * Given a phan element, get the actual element where caused-by data is stored. For instance, for methods, this
+	 * returns the defining methods.
+	 *
+	 * @param TypedElementInterface $element
+	 * @return TypedElementInterface
+	 */
+	private function getActualElementWithCausedBy( TypedElementInterface $element ): TypedElementInterface {
+		if ( !$element instanceof FunctionInterface ) {
+			return $element;
+		}
+		$definingFunc = $this->getDefiningFuncIfDifferent( $element );
+		return $definingFunc ?? $element;
 	}
 
 	/**
@@ -3026,19 +3038,12 @@ trait TaintednessBaseVisitor {
 	public function getReturnObjsOfFunc( FunctionInterface $func ): array {
 		$retObjs = self::getRetObjs( $func );
 		if ( $retObjs === null ) {
-			if (
-				$this->context->isInFunctionLikeScope() &&
-				$func->getFQSEN() === $this->context->getFunctionLikeFQSEN()
-			) {
-				// Prevent infinite recursion
-				return [];
-			}
 			// We still have to see the function. Analyze it now.
 			$this->analyzeFunc( $func );
 			$retObjs = self::getRetObjs( $func );
 			if ( $retObjs === null ) {
-				// If it still doesn't exist, perhaps we reached the recursion limit, or it might be
-				// a kind of function that we can't handle.
+				// If it still doesn't exist, perhaps we reached the recursion limit, or it may be a recursive
+				// function, or a kind of function that we can't handle.
 				return [];
 			}
 		}

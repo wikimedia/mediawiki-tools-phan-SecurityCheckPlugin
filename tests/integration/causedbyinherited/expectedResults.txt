@@ -1,0 +1,1 @@
+integration/causedbyinherited/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedbyinherited/test.php +5)
