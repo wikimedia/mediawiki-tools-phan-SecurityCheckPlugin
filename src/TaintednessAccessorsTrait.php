@@ -45,28 +45,30 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param TypedElementInterface $element
-	 * @return array|null
-	 * @phan-return list<array{0:Taintedness,1:string}>|null
+	 * @return CausedByLines|null
 	 */
-	protected static function getCausedByRaw( TypedElementInterface $element ): ?array {
+	protected static function getCausedByRaw( TypedElementInterface $element ): ?CausedByLines {
 		return $element->taintedOriginalError ?? null;
 	}
 
 	/**
 	 * @param TypedElementInterface $element
-	 * @param array $lines
-	 * @phan-param list<array{0:Taintedness,1:string}> $lines
+	 * @return CausedByLines
 	 */
-	protected static function setCausedByRaw( TypedElementInterface $element, array $lines ): void {
+	protected static function getCausedByRawCloneOrEmpty( TypedElementInterface $element ): CausedByLines {
+		return isset( $element->taintedOriginalError ) ? clone $element->taintedOriginalError : new CausedByLines();
+	}
+
+	/**
+	 * @param TypedElementInterface $element
+	 * @param CausedByLines $lines
+	 */
+	protected static function setCausedByRaw( TypedElementInterface $element, CausedByLines $lines ): void {
 		$element->taintedOriginalError = $lines;
 		if ( $element instanceof PassByReferenceVariable ) {
-			self::setCausedByRaw(
-				$element->getElement(),
-				TaintednessVisitor::mergeCausedByLines(
-					self::getCausedByRaw( $element->getElement() ) ?? [],
-					$lines
-				)
-			);
+			$curCausedBy = self::getCausedByRaw( $element->getElement() );
+			$newCausedBy = $curCausedBy ? $curCausedBy->asMergedWith( $lines ) : $lines;
+			self::setCausedByRaw( $element->getElement(), $newCausedBy );
 		}
 	}
 
@@ -74,10 +76,10 @@ trait TaintednessAccessorsTrait {
 	 * @param TypedElementInterface $element
 	 */
 	protected static function ensureCausedByRawExists( TypedElementInterface $element ): void {
-		$element->taintedOriginalError = $element->taintedOriginalError ?? [];
+		$element->taintedOriginalError = $element->taintedOriginalError ?? new CausedByLines();
 		if ( $element instanceof PassByReferenceVariable ) {
 			$realElement = $element->getElement();
-			$realElement->taintedOriginalError = $realElement->taintedOriginalError ?? [];
+			$realElement->taintedOriginalError = $realElement->taintedOriginalError ?? new CausedByLines();
 		}
 	}
 
@@ -87,13 +89,12 @@ trait TaintednessAccessorsTrait {
 	 */
 	protected static function ensureCausedByArgRawExists( TypedElementInterface $element, int $arg ): void {
 		$element->taintedOriginalErrorByArg = $element->taintedOriginalErrorByArg ?? [];
-		$element->taintedOriginalErrorByArg[$arg] = $element->taintedOriginalErrorByArg[$arg] ?? [];
+		$element->taintedOriginalErrorByArg[$arg] = $element->taintedOriginalErrorByArg[$arg] ?? new CausedByLines();
 	}
 
 	/**
 	 * @param TypedElementInterface $element
-	 * @return array|null
-	 * @phan-return array<int,list<array{0:Taintedness,1:string}>>|null
+	 * @return CausedByLines[]|null
 	 */
 	protected static function getAllCausedByArgRaw( TypedElementInterface $element ): ?array {
 		return $element->taintedOriginalErrorByArg ?? null;
@@ -102,20 +103,22 @@ trait TaintednessAccessorsTrait {
 	/**
 	 * @param TypedElementInterface $element
 	 * @param int $arg
-	 * @return array|null
-	 * @phan-return list<array{0:Taintedness,1:string}>|null
+	 * @return CausedByLines|null
 	 */
-	protected static function getCausedByArgRaw( TypedElementInterface $element, int $arg ): ?array {
+	protected static function getCausedByArgRaw( TypedElementInterface $element, int $arg ): ?CausedByLines {
 		return $element->taintedOriginalErrorByArg[$arg] ?? null;
 	}
 
 	/**
 	 * @param TypedElementInterface $element
 	 * @param int $arg
-	 * @param array $lines
-	 * @phan-param list<array{0:Taintedness,1:string}> $lines
+	 * @param CausedByLines $lines
 	 */
-	protected static function setCausedByArgRaw( TypedElementInterface $element, int $arg, array $lines ): void {
+	protected static function setCausedByArgRaw(
+		TypedElementInterface $element,
+		int $arg,
+		CausedByLines $lines
+	): void {
 		$element->taintedOriginalErrorByArg[$arg] = $lines;
 	}
 
