@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v3.3.1
 ### Internal changes
 * Bumped phan/phan to 5.1.0
 
