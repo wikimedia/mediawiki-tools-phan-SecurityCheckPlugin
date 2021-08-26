@@ -37,7 +37,8 @@ return [
 		'DuplicateArrayKeyPlugin',
 		'StrictComparisonPlugin',
 		'SimplifyExpressionPlugin',
-		'RemoveDebugStatementPlugin'
+		'RemoveDebugStatementPlugin',
+		'AddNeverReturnTypePlugin',
 	],
 	'redundant_condition_detection' => true
 ];
