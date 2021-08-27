@@ -330,7 +330,10 @@ class FunctionTaintedness {
 	public function toString(): string {
 		$str = "[\n\toverall: " . $this->overall->toShortString() .
 			self::flagsToString( $this->overallFlags ) . ",\n";
-		$parKeys = array_keys( array_merge( $this->paramSinkTaints, $this->paramPreserveTaints ) );
+		$parKeys = array_unique( array_merge(
+			array_keys( $this->paramSinkTaints ),
+			array_keys( $this->paramPreserveTaints )
+		) );
 		foreach ( $parKeys as $par ) {
 			$str .= "\t$par: {";
 			if ( isset( $this->paramSinkTaints[$par] ) ) {
