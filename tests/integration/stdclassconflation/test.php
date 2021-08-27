@@ -34,3 +34,17 @@ function func1() {
 function func2( User $user ) {
 	htmlspecialchars( $user->getName() ); // No DoubleEscaped
 }
+
+
+
+
+
+function write1() {
+	$row = (object)[ 'a' => $_GET['foo'] ];
+	echo $row->a; // Unsafe
+}
+
+function write2() {
+	$other = (object)[ 'a' => 'foo' ];
+	echo $other->a; // Safe
+}

@@ -6,7 +6,7 @@ class Foo {
 		$this->value = $value;
 	}
 
-	public function __toString() {
+	public function __toString(): string {
 		return $this->value;
 	}
 }
@@ -18,7 +18,7 @@ class SafeFoo extends Foo {
 }
 
 class DoEvil {
-	public function __toString() {
+	public function __toString(): string {
 		return $_GET['stuff'];
 	}
 }
@@ -49,3 +49,27 @@ $f = new Foo2;
 $f->setVal( $_GET['d'] );
 $g = $f->toString();
 echo $g;
+
+
+
+class SafeToString {
+	public function __toString(): string {
+		return 'safe';
+	}
+}
+class UnsafeToString {
+	public function __toString(): string {
+		return $_GET['f'];
+	}
+}
+
+function testMultiple() {
+	if ( rand() ) {
+		$class = SafeToString::class;
+	} else {
+		$class = UnsafeToString::class;
+	}
+	$obj = new $class;
+	echo $obj; // Unsafe
+}
+

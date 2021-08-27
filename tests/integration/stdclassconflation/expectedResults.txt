@@ -1,0 +1,1 @@
+integration/stdclassconflation/test.php:44 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/stdclassconflation/test.php +43)

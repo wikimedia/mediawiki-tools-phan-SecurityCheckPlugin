@@ -92,17 +92,6 @@ trait TaintednessBaseVisitor {
 		bool $override = false,
 		$reason = null
 	): void {
-		if (
-			$func instanceof Method &&
-			$func->getDefiningFQSEN() !== $func->getFQSEN()
-		) {
-			$this->debug( __METHOD__, "Setting taint on function " . $func->getFQSEN() . " other than"
-				. " its implementation " . $func->getDefiningFQSEN()
-			);
-			// FIXME we should maybe do something here.
-			// As it stands, this case probably can't be reached.
-		}
-
 		if ( $override ) {
 			$newTaint = $taint;
 		} else {
@@ -357,8 +346,20 @@ trait TaintednessBaseVisitor {
 		$errorTaint = $errorTaint ?? $taintedness;
 
 		if ( $variableObj instanceof FunctionInterface ) {
-			// FIXME what about closures?
 			throw new AssertionError( "Must use setFuncTaint for functions" );
+		}
+
+		if (
+			$variableObj instanceof Property &&
+			$variableObj->getClass( $this->code_base )->getFQSEN() ===
+			FullyQualifiedClassName::getStdClassFQSEN()
+		) {
+			// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
+			// Avoid doing the same with taintedness, as that would cause weird issues (see
+			// 'stdclassconflation' test).
+			// TODO Is it possible to store prop taintedness in the Variable object?
+			// that would be similar to a fine-grained handling of arrays.
+			return;
 		}
 
 		if ( $variableObj instanceof GlobalVariable ) {
@@ -912,7 +913,6 @@ trait TaintednessBaseVisitor {
 	 * @warning This does not take into account preexisting taint
 	 *  unless you provide it with a Phan object (Not an AST node).
 	 *
-	 * FIXME maybe it should try and turn into phan object.
 	 * @param mixed $expr An expression from the AST tree.
 	 * @return TaintednessWithError
 	 */
@@ -1044,19 +1044,6 @@ trait TaintednessBaseVisitor {
 		array $lhsOffsets,
 		bool $allowClearLHSData
 	): void {
-		if (
-			$variableObj instanceof Property &&
-			$variableObj->getClass( $this->code_base )->getFQSEN() ===
-			FullyQualifiedClassName::getStdClassFQSEN()
-		) {
-			// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
-			// Avoid doing the same with taintedness, as that would cause weird issues (see
-			// 'stdclassconflation' test).
-			// @todo Is it possible to store prop taintedness in the Variable object?
-			// that would be similar to a fine-grained handling of arrays.
-			return;
-		}
-
 		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
 		// Note: If there is a local variable that is a reference
 		// to another non-local variable, this will probably incorrectly
@@ -1340,17 +1327,6 @@ trait TaintednessBaseVisitor {
 		try {
 			return $this->getCtxN( $node )->getProperty( $node->kind === \ast\AST_STATIC_PROP );
 		} catch ( NodeException | IssueException | UnanalyzableException $e ) {
-			// There won't be an expr for static prop.
-			if ( isset( $node->children['expr'] ) && $node->children['expr'] instanceof Node ) {
-				$cnClass = $this->getCtxN( $node->children['expr'] );
-				if ( $cnClass->getVariableName() === 'row' ) {
-					// Its probably a db row, so ignore.
-					// FIXME, we should handle the
-					// db row situation much better.
-					return null;
-				}
-			}
-
 			$this->debug( __METHOD__, "Cannot determine " .
 				"property [3] (Maybe don't know what class) - " .
 				$this->getDebugInfo( $e )
@@ -1368,17 +1344,6 @@ trait TaintednessBaseVisitor {
 		return $e instanceof IssueException
 			? $e->getIssueInstance()->__toString()
 			: ( get_class( $e ) . " {$e->getMessage()}" );
-	}
-
-	/**
-	 * Whether a variable can be considered a superglobal. Phan doesn't consider $argv and $argc
-	 * as such, but for our use case, they should be.
-	 * @param string $varName
-	 * @return bool
-	 */
-	protected function isSuperGlobal( $varName ): bool {
-		return Variable::isSuperglobalVariableWithName( $varName ) ||
-			$varName === 'argv' || $varName === 'argc';
 	}
 
 	/**
@@ -1460,7 +1425,6 @@ trait TaintednessBaseVisitor {
 		array $lhsOffsets = []
 	): void {
 		if ( $rhsLinks->isEmpty() ) {
-			// $this->debug( __METHOD__, "FIXME no back links on preserved taint" );
 			return;
 		}
 
@@ -1830,7 +1794,7 @@ trait TaintednessBaseVisitor {
 			// Easy case, 'Foo::Bar'
 			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
 			// And also NOTE: 'self::methodname()' is not valid PHP.
-			// And also, TODO: We should probably emit a non-security issue in the missing case
+			// TODO: We should probably emit a non-security issue in the missing case
 			if ( strpos( $node, '::' ) === false ) {
 				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
 				return $this->code_base->hasFunctionWithFQSEN( $callback )
@@ -2328,7 +2292,6 @@ trait TaintednessBaseVisitor {
 			// the overall function either preserves taint
 			// when unspecified or is unknown. So just
 			// pass the taint through.
-			// FIXME, could maybe check if type is safe like int.
 			$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
 			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
 			// . " via preserve or unknown $funcName" );
