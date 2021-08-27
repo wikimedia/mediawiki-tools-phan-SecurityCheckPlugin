@@ -109,4 +109,5 @@ for BASE_TEST in $BASE_TESTS ; do
     fi
 done
 
+export PHAN_TEST_PARALLEL=0
 ./$TESTDIR/run_all_tests

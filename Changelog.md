@@ -1,5 +1,11 @@
 # MediaWiki Security Check Plugin changelog
 
+## v3.3.2
+### Bug fixes
+* Improved caused-by lines for return statements consisting of a function-like call and for inherited methods.
+### Internal changes
+* Bumped phan/phan to 5.2.0
+
 ## v3.3.1
 ### Internal changes
 * Bumped phan/phan to 5.1.0
