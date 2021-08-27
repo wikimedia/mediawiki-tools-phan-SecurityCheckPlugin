@@ -136,6 +136,10 @@ Notable limitations
 * The plugin won't recognize things that do custom escaping. If you have
   custom escaping methods, you must add annotations to its docblock so
   that the plugin can recognize it. See the Customizing section.
+* Phan does not currently have an API for accessing subclasses for a given class.
+  Therefore the SecurityCheckPlugin cannot accommodate certain data flows for
+  subclasses that should obviously be considered tainted. The workaround for this
+  is to mark any relevant subclass functions as `@return-taint html`.
 
 ### MediaWiki specific limitations
 * With pass by reference parameters to MediaWiki hooks,
