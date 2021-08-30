@@ -1,0 +1,1 @@
+integration/causedby-annotation/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedby-annotation/test.php +11; integration/causedby-annotation/test.php +7)
