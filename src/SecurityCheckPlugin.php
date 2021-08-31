@@ -232,7 +232,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 			$methodLinks = new MethodLinks();
 			$prevLinks = null;
-			$error = [];
+			$error = new CausedByLines();
 			$prevErr = null;
 			$taintedness = new Taintedness( self::NO_TAINT );
 			$prevTaint = null;
@@ -262,7 +262,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$varErrorOrNull = $localVar->taintedOriginalError ?? null;
 				if ( $varErrorOrNull && $varErrorOrNull !== $prevErr ) {
 					$prevErr = $varErrorOrNull;
-					$error = TaintednessVisitor::mergeCausedByLines( $error, $varErrorOrNull );
+					$error->mergeWith( $varErrorOrNull );
 				}
 			}
 

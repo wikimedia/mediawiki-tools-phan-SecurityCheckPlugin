@@ -60,8 +60,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	protected $curTaint;
 
 	/**
-	 * @var array
-	 * @phan-var list<array{0:Taintedness,1:string}>
+	 * @var CausedByLines
 	 */
 	protected $curError;
 
@@ -71,18 +70,19 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @inheritDoc
 	 * @param Taintedness|null &$taint
-	 * @param array &$taintError
-	 * @phan-param list<array{0:Taintedness,1:string}> $taintError
+	 * @param CausedByLines|null &$taintError
+	 * @param MethodLinks|null &$methodLinks
 	 */
 	public function __construct(
 		CodeBase $code_base,
 		Context $context,
 		Taintedness &$taint = null,
-		array &$taintError = [],
+		CausedByLines &$taintError = null,
 		MethodLinks &$methodLinks = null
 	) {
 		parent::__construct( $code_base, $context );
 		$this->curTaint =& $taint;
+		$taintError = $taintError ?? new CausedByLines();
 		$this->curError =& $taintError;
 		$methodLinks = $methodLinks ?? new MethodLinks;
 		$this->curLinks =& $methodLinks;
@@ -613,8 +613,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$adjustedRHS,
 			"Assigning a tainted value to a variable that later does something unsafe with it{DETAILS}",
 			/** @phan-return array{0:string} */
-			function () use ( $lhsTaintednessWithError ): array {
-				return [ $this->getStringTaintLine( $lhsTaintednessWithError->getError(), null ) ];
+			static function () use ( $lhsTaintednessWithError ): array {
+				return [ $lhsTaintednessWithError->getError()->toStringForIssue( null ) ];
 			}
 		);
 
@@ -651,7 +651,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$node->flags,
 			$mask
 		);
-		$this->curError = self::mergeCausedByLines( $leftTaint->getError(), $rightTaint->getError() );
+		$this->curError = $leftTaint->getError()->asMergedWith( $rightTaint->getError() );
 		$this->curLinks = $leftTaint->getMethodLinks()->asMergedWith( $rightTaint->getMethodLinks() );
 		$this->setCachedData( $node );
 	}
@@ -794,8 +794,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsTaint,
 			"$issueMsg{DETAILS}",
 			/** @phan-return array{0:string} */
-			function () use ( $exprTaint, $sinkTaint ): array {
-				return [ $this->getStringTaintLine( $exprTaint->getError(), $sinkTaint ) ];
+			static function () use ( $exprTaint, $sinkTaint ): array {
+				return [ $exprTaint->getError()->toStringForIssue( $sinkTaint ) ];
 			}
 		);
 
@@ -916,7 +916,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( !$func instanceof FunctionLikeDeclarationType ) {
 				$callTaint = $this->handleMethodCall( $func, $func->getFQSEN(), $args );
 				$this->curTaint->mergeWith( $callTaint->getTaintedness() );
-				$this->curError = self::mergeCausedByLines( $this->curError, $callTaint->getError() );
+				$this->curError->mergeWith( $callTaint->getError() );
 			}
 		}
 		$this->setCachedData( $node );
@@ -997,7 +997,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
 		$this->curTaint = $this->getTaintednessPhanObj( $variableObj );
-		$this->curError = self::getCausedByRaw( $variableObj ) ?? [];
+		$this->curError = self::getCausedByRawCloneOrEmpty( $variableObj );
 		$this->curLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
 		$this->setCachedData( $node );
 	}
@@ -1066,7 +1066,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$actualGlobal = $gvar->getElement();
 		self::setTaintednessRaw( $gvar, self::getTaintednessRawClone( $actualGlobal ) ?: Taintedness::newSafe() );
-		self::setCausedByRaw( $gvar, self::getCausedByRaw( $actualGlobal ) ?: [] );
+		self::setCausedByRaw( $gvar, self::getCausedByRawCloneOrEmpty( $actualGlobal ) );
 		self::setMethodLinks( $gvar, self::getMethodLinksCloneOrEmpty( $actualGlobal ) );
 	}
 
@@ -1143,6 +1143,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitArray( Node $node ): void {
 		$curTaint = Taintedness::newSafe();
+		$curError = new CausedByLines();
 		$links = MethodLinks::newEmpty();
 		// Current numeric key in the array
 		$curNumKey = 0;
@@ -1183,12 +1184,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// Note that we remove numkey taint because that's only for the outer array
 			$curTaint->setOffsetTaintedness( $offset, $valTaint->without( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) );
 			$curTaint->addKeysTaintedness( $keyTaint->get() );
-			$this->curError = self::mergeCausedByLines( $this->curError, $keyTaintAll->getError() );
-			$this->curError = self::mergeCausedByLines( $this->curError, $valTaintAll->getError() );
+			$curError->mergeWith( $keyTaintAll->getError() );
+			$curError->mergeWith( $valTaintAll->getError() );
 			$links->mergeWith( $keyTaintAll->getMethodLinks()->asCollapsed() );
 			$links->setAtDim( $offset, $valTaintAll->getMethodLinks() );
 		}
 		$this->curTaint = $curTaint;
+		$this->curError = $curError;
 		$this->curLinks = $links;
 		$this->setCachedData( $node );
 	}
@@ -1232,7 +1234,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
-		$this->curError = self::getCausedByRaw( $prop ) ?? [];
+		$this->curError = self::getCausedByRawCloneOrEmpty( $prop );
 		$this->curLinks = self::getMethodLinksCloneOrEmpty( $prop );
 		$this->setCachedData( $node );
 	}
@@ -1302,7 +1304,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$this->curTaint = $this->getTaintednessPhanObj( $prop );
-		$this->curError = self::getCausedByRaw( $prop ) ?? [];
+		$this->curError = self::getCausedByRawCloneOrEmpty( $prop );
 		$this->curLinks = self::getMethodLinksCloneOrEmpty( $prop );
 		$this->setCachedData( $node );
 	}
@@ -1327,7 +1329,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$falseTaint = $this->getTaintedness( $node->children['false'] );
 		$this->curTaint = clone $trueTaint->getTaintedness()->withObj( $falseTaint->getTaintedness() );
-		$this->curError = self::mergeCausedByLines( $trueTaint->getError(), $falseTaint->getError() );
+		$this->curError = $trueTaint->getError()->asMergedWith( $falseTaint->getError() );
 		$this->curLinks = $trueTaint->getMethodLinks()->asMergedWith( $falseTaint->getMethodLinks() );
 		$this->setCachedData( $node );
 	}
@@ -1448,14 +1450,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitEncapsList( Node $node ): void {
 		$taint = Taintedness::newSafe();
+		$error = new CausedByLines();
 		$links = MethodLinks::newEmpty();
 		foreach ( $node->children as $child ) {
 			$childTaint = $this->getTaintedness( $child );
 			$taint->addObj( $childTaint->getTaintedness() );
-			$this->curError = self::mergeCausedByLines( $this->curError, $childTaint->getError() );
+			$error->mergeWith( $childTaint->getError() );
 			$links->mergeWith( $childTaint->getMethodLinks() );
 		}
 		$this->curTaint = $taint;
+		$this->curError = $error;
 		$this->curLinks = $links;
 		$this->setCachedData( $node );
 	}
@@ -1508,7 +1512,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// Note, we're straight using the expr to avoid implementing visitMatchArm
 				$armTaint = $this->getTaintedness( $armNode->children['expr'] );
 				$taint->mergeWith( $armTaint->getTaintedness() );
-				$this->curError = self::mergeCausedByLines( $this->curError, $armTaint->getError() );
+				$this->curError->mergeWith( $armTaint->getError() );
 				$this->curLinks->mergeWith( $armTaint->getMethodLinks() );
 			}
 		}

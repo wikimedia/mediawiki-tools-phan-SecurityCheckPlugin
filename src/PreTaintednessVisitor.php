@@ -116,7 +116,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				$this->setTaintDependenciesInAssignment(
 					new TaintednessWithError(
 						$startTaint,
-						[],
+						new CausedByLines(),
 						self::getMethodLinks( $varObj ) ?: MethodLinks::newEmpty()
 					),
 					$promotedProps[$i]

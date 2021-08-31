@@ -175,140 +175,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Check whether $needle is subset of $haystack, regardless of the keys, and returns
-	 * the starting index of the subset in the $haystack array. If the subset occurs multiple
-	 * times, this will just find the first one.
-	 *
-	 * @param array[] $haystack
-	 * @phan-param list<array{0:Taintedness,1:string}> $haystack
-	 * @param array[] $needle
-	 * @phan-param list<array{0:Taintedness,1:string}> $needle
-	 * @return false|int False if not a subset, the starting index if it is.
-	 * @note Use strict comparisons with the return value!
-	 */
-	private static function getArraySubsetIdx( array $haystack, array $needle ) {
-		if ( !$needle || !$haystack ) {
-			// For our needs, the empty array is not a subset of anything
-			return false;
-		}
-
-		$needleLength = count( $needle );
-		$haystackLength = count( $haystack );
-		if ( $haystackLength < $needleLength ) {
-			return false;
-		}
-		$curIdx = 0;
-		foreach ( $haystack as $i => $el ) {
-			if ( $el === $needle[ $curIdx ] ) {
-				$curIdx++;
-			} else {
-				$curIdx = 0;
-			}
-			if ( $curIdx === $needleLength ) {
-				return $i - ( $needleLength - 1 );
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Merge the caused-by lines of $new into $base. Note that this isn't a merge operation like
-	 * array_merge. What this method does is:
-	 * 1 - if $new is a subset of $base, return $base;
-	 * 2 - update taintedness values in $base if the *lines* (not taint values) in $new
-	 *   are a subset of the lines in $base;
-	 * 3 - if an upper set of $base *lines* is also a lower set of $new *lines*, remove that upper
-	 *   set from $base and merge the rest with $new;
-	 * 4 - array_merge otherwise;
-	 *
-	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
-	 * even a single taintedness value in $base changes.
-	 *
-	 * @warning This modifies Taintedness values in $base!
-	 *
-	 * @param array[] $base
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
-	 * @param array[] $new
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $new
-	 * @return array[]
-	 * @phan-return array<int,array{0:Taintedness,1:string}>
-	 */
-	public static function mergeCausedByLines( array $base, array $new ): array {
-		if ( !$base ) {
-			return $new;
-		}
-		if ( !$new || self::getArraySubsetIdx( $base, $new ) !== false ) {
-			return $base;
-		}
-
-		$baseLines = array_column( $base, 1 );
-		$newLines = array_column( $new, 1 );
-		$subsIdx = self::getArraySubsetIdx( $baseLines, $newLines );
-		if ( $subsIdx !== false ) {
-			foreach ( $new as $i => $cur ) {
-				$base[ $i + $subsIdx ][0]->addObj( $cur[0] );
-			}
-			return $base;
-		}
-
-		$ret = null;
-		$baseLen = count( $base );
-		$newLen = count( $new );
-		// NOTE: array_shift is O(n), and O(n^2) over all iterations, because it reindexes the whole array.
-		// So reverse the arrays, that is O(n) twice, and use array_pop which is O(1) (O(n) for all iterations)
-		$remaining = array_reverse( $baseLines );
-		$newRev = array_reverse( $newLines );
-		// Assuming the lines as posets with the "natural" order used by PHP (that is, not the keys):
-		// since we're working with reversed arrays, remaining lines should be an upper set of the reversed
-		// new lines; which is to say, a lower set of the non-reversed new lines.
-		$expectedIndex = $newLen - $baseLen;
-		do {
-			if ( $expectedIndex >= 0 && self::getArraySubsetIdx( $newRev, $remaining ) === $expectedIndex ) {
-				$startIdx = $baseLen - $newLen + $expectedIndex;
-				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
-					$base[$j][0]->addObj( $new[$j - $startIdx][0] );
-				}
-				$ret = array_merge( $base, array_slice( $new, $newLen - $expectedIndex ) );
-				break;
-			}
-			array_pop( $remaining );
-			$expectedIndex++;
-		} while ( $remaining );
-		$ret = $ret ?? array_merge( $base, $new );
-
-		// HACK: Set a hard limit, or this may time out
-		return array_slice( $ret, 0, 25 );
-	}
-
-	/**
-	 * Same as mergeTaintError, but for a single new line
-	 *
-	 * @param array[] $base
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $base
-	 * @param array $new
-	 * @phan-param array{0:Taintedness,1:string} $new
-	 * @return array[]
-	 * @phan-return array<int,array{0:Taintedness,1:string}>
-	 */
-	private static function addCausedByLine( array $base, array $new ): array {
-		if ( !$base ) {
-			return [ $new ];
-		}
-		if ( count( $base ) >= 25 ) {
-			// HACK: Enforce a hard limit
-			return $base;
-		}
-
-		$idx = array_search( $new[1], array_column( $base, 1 ), true );
-		if ( $idx !== false ) {
-			$base[ $idx ][0] = $base[ $idx ][0]->withObj( $new[0] );
-		} else {
-			$base[] = $new;
-		}
-		return $base;
-	}
-
-	/**
 	 * Merge the info on original cause of taint to left variable
 	 *
 	 * If you have something like $left = $right, merge any information
@@ -317,7 +183,7 @@ trait TaintednessBaseVisitor {
 	 * or its not a local variable).
 	 *
 	 * @param TypedElementInterface $left (LHS-ish variable)
-	 * @param array|TypedElementInterface $rightError Error, or a phan object to get error from
+	 * @param CausedByLines|TypedElementInterface $rightError Error, or a phan object to get error from
 	 * @param int $arg If $left is a Function, which arg
 	 */
 	protected function mergeTaintError( TypedElementInterface $left, $rightError, int $arg = -1 ): void {
@@ -332,20 +198,23 @@ trait TaintednessBaseVisitor {
 
 		if ( $arg === -1 ) {
 			self::ensureCausedByRawExists( $left );
-			$newLeftError = self::getCausedByRaw( $left );
+			$leftError = self::getCausedByRaw( $left );
 		} else {
 			self::ensureCausedByArgRawExists( $left, $arg );
-			$newLeftError = self::getCausedByArgRaw( $left, $arg );
+			$leftError = self::getCausedByArgRaw( $left, $arg );
 		}
+		assert( $leftError instanceof CausedByLines );
 
 		if ( $rightError instanceof TypedElementInterface ) {
-			$rightError = $this->getOriginalTaintArray( $rightError );
+			$rightError = $this->getCausedByLines( $rightError );
 		}
-		assert( is_array( $rightError ) );
-		if ( $newLeftError && self::getArraySubsetIdx( $rightError, $newLeftError ) !== false ) {
+		assert( $rightError instanceof CausedByLines );
+		if ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) {
 			$newLeftError = $rightError;
-		} elseif ( $rightError && self::getArraySubsetIdx( $newLeftError, $rightError ) === false ) {
-			$newLeftError = self::mergeCausedByLines( $newLeftError, $rightError );
+		} elseif ( !$rightError->isEmpty() && !$leftError->isSupersetOf( $rightError ) ) {
+			$newLeftError = $leftError->asMergedWith( $rightError );
+		} else {
+			return;
 		}
 
 		if ( $arg === -1 ) {
@@ -392,11 +261,6 @@ trait TaintednessBaseVisitor {
 
 		assert( $arg === -1 || $elem instanceof FunctionInterface );
 
-		if ( $arg === -1 ) {
-			self::ensureCausedByRawExists( $elem );
-		} else {
-			self::ensureCausedByArgRawExists( $elem, $arg );
-		}
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
 		} else {
@@ -408,22 +272,25 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( $arg === -1 ) {
-			$elemError = $newErr = self::getCausedByRaw( $elem );
-			assert( is_array( $elemError ) );
+			self::ensureCausedByRawExists( $elem );
+			$elemError = self::getCausedByRaw( $elem );
+			assert( $elemError instanceof CausedByLines );
+			$newErr = clone $elemError;
 			foreach ( $newErrors as $newError ) {
-				$newElement = [ clone $taintedness, $newError ];
-				$newErr = self::addCausedByLine( $newErr, $newElement );
+				$newErr->addLine( clone $taintedness, $newError );
 			}
-			if ( $newErr !== $elemError ) {
+			if ( !$newErr->equals( $elemError ) ) {
 				self::setCausedByRaw( $elem, $newErr );
 			}
 		} else {
-			$argErr = $newErr = self::getCausedByArgRaw( $elem, $arg );
+			self::ensureCausedByArgRawExists( $elem, $arg );
+			$argErr = self::getCausedByArgRaw( $elem, $arg );
+			assert( $argErr instanceof CausedByLines );
+			$newErr = clone $argErr;
 			foreach ( $newErrors as $newError ) {
-				$newElement = [ $taintedness->asExecToYesTaint(), $newError ];
-				$newErr = self::addCausedByLine( $newErr, $newElement );
+				$newErr->addLine( $taintedness->asExecToYesTaint(), $newError );
 			}
-			if ( $newErr !== $argErr ) {
+			if ( !$newErr->equals( $argErr ) ) {
 				self::setCausedByArgRaw( $elem, $arg, $newErr );
 			}
 		}
@@ -1069,7 +936,7 @@ trait TaintednessBaseVisitor {
 		case "double":
 		case "NULL":
 			// simple literal
-			return new TaintednessWithError( Taintedness::newSafe(), [], MethodLinks::newEmpty() );
+			return new TaintednessWithError( Taintedness::newSafe(), new CausedByLines(), MethodLinks::newEmpty() );
 		case "object":
 		case "resource":
 		case "unknown type":
@@ -1103,7 +970,7 @@ trait TaintednessBaseVisitor {
 		$this->context->setLineNumberStart( $node->lineno );
 		/** @var Taintedness $taint */
 		$taint = null;
-		$lines = [];
+		$lines = null;
 		$links = null;
 
 		try {
@@ -1786,14 +1653,13 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $method The function or method in question
 	 * @param int $i The number of the argument in question.
 	 * @param Taintedness $taint The taint to apply.
-	 * @param array $error Caused-by lines to propagate
-	 * @phan-param list<array{0:Taintedness,1:string}> $error
+	 * @param CausedByLines $error Caused-by lines to propagate
 	 */
 	protected function markAllDependentVarsYes(
 		FunctionInterface $method,
 		int $i,
 		Taintedness $taint,
-		array $error
+		CausedByLines $error
 	): void {
 		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 		if ( $method->isPHPInternal() ) {
@@ -1858,135 +1724,32 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given an array of caused-by lines, return a truncated, stringified representation of it.
-	 *
-	 * @todo Perhaps this should include the first and last X lines, not the first 2X. However,
-	 *   doing so would make phan emit a new issue for the same line whenever new caused-by
-	 *   lines are added to the array.
-	 *
-	 * @param string[] $lines
-	 * @return string
-	 */
-	private function stringifyCausedByLines( array $lines ): string {
-		$maxLines = 12;
-		if ( count( $lines ) <= $maxLines ) {
-			return implode( '; ', $lines );
-		}
-		return implode( '; ', array_slice( $lines, 0, $maxLines ) ) . '; ...';
-	}
-
-	/**
-	 * Get the line number of the original cause of taint.
-	 * @todo Keep per-offset caused-by lines
-	 *
-	 * @param TypedElementInterface $element
-	 * @param Taintedness|null $taintedness Only consider caused-by lines having (at least) these bits, null
-	 *   to include all lines.
-	 * @param int $arg [optional] For functions what arg. -1 for overall.
-	 * @return string
-	 */
-	protected function getOriginalTaintLine(
-		TypedElementInterface $element,
-		?Taintedness $taintedness,
-		int $arg = -1
-	): string {
-		$lines = $this->getOriginalTaintArray( $element, $arg );
-		return $this->getStringTaintLine( $lines, $taintedness );
-	}
-
-	/**
-	 * @param array $rawLines
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $rawLines
-	 * @param Taintedness|null $taintedness
-	 * @return string
-	 */
-	protected function getStringTaintLine( array $rawLines, ?Taintedness $taintedness ): string {
-		$filteredLines = $this->extractInterestingCausedbyLines( $rawLines, $taintedness );
-		if ( $filteredLines ) {
-			return ' (Caused by: ' . $this->stringifyCausedByLines( $filteredLines ) . ')';
-		}
-		return '';
-	}
-
-	/**
-	 * Normalize a taintedness value for caused-by lookup
-	 *
-	 * @param Taintedness $taintedness
-	 * @return Taintedness
-	 */
-	private function normalizeTaintForCausedBy( Taintedness $taintedness ): Taintedness {
-		$taintedness = $taintedness->withExecToYesTaint();
-		// Special case: we assume the bad case, preferring false positives over false negatives
-		$taintedness->addSqlToNumkey();
-		return $taintedness;
-	}
-
-	/**
-	 * @param array[] $allLines
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $allLines
-	 * @param Taintedness|null $taintedness
-	 * @return string[]
-	 */
-	private function extractInterestingCausedbyLines( array $allLines, ?Taintedness $taintedness ): array {
-		if ( $taintedness === null ) {
-			return array_column( $allLines, 1 );
-		}
-
-		$taintedness = $this->normalizeTaintForCausedBy( $taintedness )->get();
-		$ret = [];
-		foreach ( $allLines as [ $lineTaint, $lineText ] ) {
-			// Don't check for equality, as that would fail with MultiTaint
-			if ( $lineTaint->has( $taintedness ) ) {
-				$ret[] = $lineText;
-			}
-		}
-		return $ret;
-	}
-
-	/**
-	 * @param array $lines
-	 * @phan-param list<array{0:Taintedness,1:string}> $lines
-	 * @param Taintedness $taintedness
-	 * @return array
-	 * @phan-return list<array{0:Taintedness,1:string}>
-	 */
-	private function intersectCausedByTaintedness( array $lines, Taintedness $taintedness ): array {
-		$ret = [];
-		$curTaint = $taintedness->get();
-		foreach ( $lines as [ $eTaint, $eLine ] ) {
-			$ret[] = [ $eTaint->withOnly( $curTaint ), $eLine ];
-		}
-		return $ret;
-	}
-
-	/**
 	 * Get the original cause of taint for the given phan element.
 	 *
 	 * @param TypedElementInterface $element
 	 * @param int $arg [optional] For functions what arg. -1 for overall.
-	 * @return array[]
-	 * @phan-return array<int,array{0:Taintedness,1:string}>
+	 * @return CausedByLines
 	 */
-	private function getOriginalTaintArray( TypedElementInterface $element, int $arg = -1 ): array {
+	private function getCausedByLines( TypedElementInterface $element, int $arg = -1 ): CausedByLines {
 		$element = $this->getActualElementWithCausedBy( $element );
 		if ( $arg === -1 ) {
-			$lines = self::getCausedByRaw( $element ) ?? [];
+			$lines = self::getCausedByRawCloneOrEmpty( $element );
 			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
 				// FIXME is this right? In the generic
 				// case should we include all arguments as
 				// well?
-				$lines = self::mergeCausedByLines( $lines, $origArg );
+				$lines->mergeWith( $origArg );
 			}
 		} else {
 			assert( $element instanceof FunctionInterface );
 			$argErr = $this->getTaintErrorByArg( $element, $arg );
-			$overallFuncErr = self::getCausedByRaw( $element ) ?? [];
-			if ( !$argErr || self::getArraySubsetIdx( $overallFuncErr, $argErr ) !== false ) {
+			$overallFuncErr = self::getCausedByRaw( $element ) ?? new CausedByLines();
+			if ( $argErr->isEmpty() || $overallFuncErr->isSupersetOf( $argErr ) ) {
 				$lines = $overallFuncErr;
-			} elseif ( !$overallFuncErr || self::getArraySubsetIdx( $argErr, $overallFuncErr ) !== false ) {
+			} elseif ( $overallFuncErr->isEmpty() || $argErr->isSupersetOf( $overallFuncErr ) ) {
 				$lines = $argErr;
 			} else {
-				$lines = self::mergeCausedByLines( $argErr, $overallFuncErr );
+				$lines = $argErr->asMergedWith( $overallFuncErr );
 			}
 		}
 
@@ -2011,10 +1774,9 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param FunctionInterface $element
 	 * @param int $arg
-	 * @return array
-	 * @phan-return list<array{0:Taintedness,1:string}>
+	 * @return CausedByLines
 	 */
-	private function getTaintErrorByArg( FunctionInterface $element, int $arg ): array {
+	private function getTaintErrorByArg( FunctionInterface $element, int $arg ): CausedByLines {
 		$errorOrNull = self::getCausedByArgRaw( $element, $arg );
 		if ( $errorOrNull !== null ) {
 			return $errorOrNull;
@@ -2022,13 +1784,13 @@ trait TaintednessBaseVisitor {
 		// Check the variadic case. TODO Ideally, we might store caused-by and taintedness close together
 		$funcTaint = self::getFuncTaint( $element );
 		if ( !$funcTaint ) {
-			return [];
+			return new CausedByLines();
 		}
 		$variadicIdx = $funcTaint->getVariadicParamIndex();
 		if ( $variadicIdx !== null && $arg >= $variadicIdx ) {
-			return self::getCausedByArgRaw( $element, $variadicIdx ) ?: [];
+			return self::getCausedByArgRaw( $element, $variadicIdx ) ?: new CausedByLines();
 		}
-		return [];
+		return new CausedByLines();
 	}
 
 	/**
@@ -2208,8 +1970,8 @@ trait TaintednessBaseVisitor {
 			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			function () use ( $params, $rhsTaint, $lhsTaint ): array {
-				return array_merge( $params, [ $this->getStringTaintLine( $rhsTaint->getError(), $lhsTaint ) ] );
+			static function () use ( $params, $rhsTaint, $lhsTaint ): array {
+				return array_merge( $params, [ $rhsTaint->getError()->toStringForIssue( $lhsTaint ) ] );
 			}
 		);
 	}
@@ -2354,7 +2116,7 @@ trait TaintednessBaseVisitor {
 
 		if ( $computePreserve ) {
 			$overallArgTaint = Taintedness::newSafe();
-			$argErrors = [];
+			$argErrors = new CausedByLines();
 		}
 
 		foreach ( $args as $i => $argument ) {
@@ -2445,8 +2207,8 @@ trait TaintednessBaseVisitor {
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$this->getOriginalTaintLine( $func, $paramSinkTaint, $i ),
-					$this->getStringTaintLine( $baseArgError, $paramSinkTaint ),
+					$this->getCausedByLines( $func, $i )->toStringForIssue( $paramSinkTaint ),
+					$baseArgError->toStringForIssue( $paramSinkTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
 			};
@@ -2464,10 +2226,10 @@ trait TaintednessBaseVisitor {
 					$taint, $curArgTaintedness, $baseArgError, $i, $func
 				);
 
-				// @phan-suppress-next-line PhanPossiblyUndeclaredVariable
+				'@phan-var Taintedness $overallArgTaint';
+				'@phan-var CausedByLines $argErrors';
 				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-				// @phan-suppress-next-line PhanPossiblyUndeclaredVariable
-				$argErrors = self::mergeCausedByLines( $argErrors, $curArgError );
+				$argErrors->mergeWith( $curArgError );
 			}
 		}
 
@@ -2475,7 +2237,7 @@ trait TaintednessBaseVisitor {
 			return null;
 		}
 		'@phan-var Taintedness $overallArgTaint';
-		'@phan-var list<array{0:Taintedness,1:string}> $argErrors';
+		'@phan-var CausedByLines $argErrors';
 
 		$overallTaint = $taint->getOverall();
 		$overallTaint = $overallTaint->without(
@@ -2483,7 +2245,7 @@ trait TaintednessBaseVisitor {
 		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
 		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
-		$callError = self::mergeCausedByLines( $this->getOriginalTaintArray( $func ), $argErrors );
+		$callError = $this->getCausedByLines( $func )->asMergedWith( $argErrors );
 		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::newEmpty() );
 	}
 
@@ -2547,17 +2309,16 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionTaintedness $funcTaint
 	 * @param Taintedness $curArgTaintedness
-	 * @param array $baseArgError
-	 * @phan-param list<array{0:Taintedness,1:string}> $baseArgError
+	 * @param CausedByLines $baseArgError
 	 * @param int $i Position of the param
 	 * @param FunctionInterface $func
 	 * @return array [ effective taintedness, error ]
-	 * @phan-return array{0:Taintedness,1:list<array{0:Taintedness,1:string}>}
+	 * @phan-return array{0:Taintedness,1:CausedByLines}
 	 */
 	private function getArgTaint(
 		FunctionTaintedness $funcTaint,
 		Taintedness $curArgTaintedness,
-		array $baseArgError,
+		CausedByLines $baseArgError,
 		int $i,
 		FunctionInterface $func
 	): array {
@@ -2588,7 +2349,7 @@ trait TaintednessBaseVisitor {
 
 		$argError = $effectiveArgTaintedness->isSafe()
 			? $baseArgError
-			: $this->intersectCausedByTaintedness( $baseArgError, $effectiveArgTaintedness );
+			: $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
 		return [ $effectiveArgTaintedness, $argError ];
 	}
 

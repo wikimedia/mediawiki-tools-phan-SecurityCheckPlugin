@@ -9,8 +9,7 @@ class TaintednessWithError {
 	/** @var Taintedness */
 	private $taintedness;
 	/**
-	 * @var array
-	 * @phan-var list<array{0:Taintedness,1:string}>
+	 * @var CausedByLines
 	 */
 	private $error;
 
@@ -19,11 +18,10 @@ class TaintednessWithError {
 
 	/**
 	 * @param Taintedness $taintedness
-	 * @param array $error
+	 * @param CausedByLines $error
 	 * @param MethodLinks $methodLinks
-	 * @phan-param list<array{0:Taintedness,1:string}> $error
 	 */
-	public function __construct( Taintedness $taintedness, array $error, MethodLinks $methodLinks ) {
+	public function __construct( Taintedness $taintedness, CausedByLines $error, MethodLinks $methodLinks ) {
 		$this->taintedness = $taintedness;
 		$this->error = $error;
 		$this->methodLinks = $methodLinks;
@@ -37,10 +35,9 @@ class TaintednessWithError {
 	}
 
 	/**
-	 * @return array
-	 * @phan-return list<array{0:Taintedness,1:string}>
+	 * @return CausedByLines
 	 */
-	public function getError(): array {
+	public function getError(): CausedByLines {
 		return $this->error;
 	}
 
