@@ -460,9 +460,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitClone( Node $node ): void {
-		// @todo This should first check the __clone method, acknowledge its side effects
-		// (probably via handleMethodCall), and *then* return the taintedness of the cloned
-		// item. But finding the __clone definition might be hard...
 		$val = $this->getTaintedness( $node->children['expr'] );
 		$this->curTaint = clone $val->getTaintedness();
 		$this->curError = $val->getError();
@@ -821,71 +818,61 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->setCurTaintInapplicable();
 			return;
 		}
-		if ( $node->children['class']->kind === \ast\AST_NAME ) {
-			// We check the __construct() method first, but the
-			// final resulting taint is from the __toString()
-			// method. This is a little hacky.
-			try {
-				// First do __construct()
-				$constructor = $ctxNode->getMethod(
-					'__construct',
-					false,
-					false,
-					true
-				);
-				$this->handleMethodCall(
-					$constructor,
-					$constructor->getFQSEN(),
-					$node->children['args']->children,
-					false
-				);
-			} catch ( NodeException | CodeBaseException | IssueException $e ) {
-				$this->debug( __METHOD__, 'constructor doesn\'t exist: ' . $this->getDebugInfo( $e ) );
-			}
 
-			// Now return __toString()
-			try {
-				$clazzes = $ctxNode->getClassList(
-					false,
-					ContextNode::CLASS_LIST_ACCEPT_OBJECT_OR_CLASS_NAME,
-					null,
-					false
-				);
-			} catch ( CodeBaseException | IssueException $e ) {
-				$this->debug( __METHOD__, 'Cannot get class: ' . $this->getDebugInfo( $e ) );
-				$this->setCurTaintUnknown();
-				$this->setCachedData( $node );
-				return;
-			}
+		// We check the __construct() method first, but the
+		// final resulting taint is from the __toString()
+		// method. This is a little hacky.
+		try {
+			// First do __construct()
+			$constructor = $ctxNode->getMethod(
+				'__construct',
+				false,
+				false,
+				true
+			);
+		} catch ( NodeException | CodeBaseException | IssueException $_ ) {
+			$constructor = null;
+		}
 
-			$clazzesCount = count( $clazzes );
-			if ( $clazzesCount !== 1 ) {
-				// TODO None or too many, we give up for now
-				$this->debug( __METHOD__, "got $clazzesCount, giving up" );
-				$this->setCurTaintUnknown();
-				$this->setCachedData( $node );
-				return;
-			}
-			$clazz = $clazzes[0];
+		if ( $constructor ) {
+			$this->handleMethodCall(
+				$constructor,
+				$constructor->getFQSEN(),
+				$node->children['args']->children,
+				false
+			);
+		}
+
+		// Now return __toString()
+		try {
+			$clazzes = $ctxNode->getClassList(
+				false,
+				ContextNode::CLASS_LIST_ACCEPT_OBJECT_OR_CLASS_NAME,
+				null,
+				false
+			);
+		} catch ( CodeBaseException | IssueException $e ) {
+			$this->debug( __METHOD__, 'Cannot get class: ' . $this->getDebugInfo( $e ) );
+			$this->setCurTaintUnknown();
+			$this->setCachedData( $node );
+			return;
+		}
+
+		// If we find no __toString(), then presumably the object can't be outputted, so should be safe.
+		$this->curTaint = Taintedness::newSafe();
+		foreach ( $clazzes as $clazz ) {
 			try {
 				$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
 			} catch ( CodeBaseException $_ ) {
-				// There is no __toString(), then presumably the object can't be outputted, so should be safe.
-				// $this->debug( __METHOD__, "no __toString() in $clazz" );
-				$this->curTaint = Taintedness::newSafe();
-				$this->setCachedData( $node );
-				return;
+				// No __toString() in this class
+				continue;
 			}
 
-			$this->curTaint = $this->handleMethodCall(
-				$toString,
-				$toString->getFQSEN(),
-				[] // __toString() has no args
-			)->getTaintedness();
-		} else {
-			$this->debug( __METHOD__, "cannot understand new" );
-			$this->setCurTaintUnknown();
+			$callTaintWithError = $this->handleMethodCall( $toString, $toString->getFQSEN(), [] );
+			$this->curTaint->mergeWith( $callTaintWithError->getTaintedness() );
+			$this->curError->mergeWith( $callTaintWithError->getError() );
 		}
+
 		$this->setCachedData( $node );
 	}
 
@@ -979,16 +966,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	public function visitVar( Node $node ): void {
 		$varName = $this->getCtxN( $node )->getVariableName();
 		if ( $varName === '' ) {
-			$this->debug( __METHOD__, "FIXME: Complex variable case not handled." );
-			// Debug::printNode( $node );
+			// Something that phan can't understand, e.g. `$$foo` with unknown `$foo`.
 			$this->setCurTaintUnknown();
 			return;
 		}
-		if ( $this->isSuperGlobal( $varName ) ) {
-			$this->curTaint = $this->getTaintednessOfSuperGlobal( $varName );
+
+		$hardcodedTaint = $this->getHardcodedTaintednessForVar( $varName );
+		if ( $hardcodedTaint ) {
+			$this->curTaint = $hardcodedTaint;
 			$this->setCachedData( $node );
 			return;
-		} elseif ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
+		}
+		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
 			// Probably the var just isn't in scope yet.
 			// $this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
 			$this->setCurTaintUnknown();
@@ -1003,13 +992,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * Get the taintedness of a superglobal. Note that superglobals are tainted, regardless of whether they're in
+	 * If we hardcode taintedness for the given var name, return that taintedness; return null otherwise.
+	 * This is currently used for superglobals, since they're always tainted, regardless of whether they're in
 	 * the current scope: `function foo() use ($argv)` puts $argv in the local scope, but it retains its
 	 * taintedness (see test closure2).
+	 *
 	 * @param string $varName
-	 * @return Taintedness
+	 * @return Taintedness|null
 	 */
-	private function getTaintednessOfSuperGlobal( string $varName ): Taintedness {
+	private function getHardcodedTaintednessForVar( string $varName ): ?Taintedness {
 		switch ( $varName ) {
 			case '_GET':
 			case '_POST':
@@ -1038,8 +1029,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$ret->setOffsetTaintedness( null, $elTaint );
 				return $ret;
 			default:
-				$this->debug( __METHOD__, "FIXME Unknown superglobal $varName" );
-				return Taintedness::newTainted();
+				return null;
 		}
 	}
 
@@ -1138,7 +1128,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	/**
-	 * @todo Handle array shape mutations (e.g. unset, array_shift, array_pop, etc.)
 	 * @param Node $node
 	 */
 	public function visitArray( Node $node ): void {
@@ -1244,68 +1233,43 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitProp( Node $node ): void {
+		$nodeExpr = $node->children['expr'];
+		if ( !$nodeExpr instanceof Node ) {
+			// Syntax error.
+			$this->setCurTaintInapplicable();
+			return;
+		}
+
+		// If the LHS expr can potentially be a stdClass, merge in its taintedness as well.
+		// TODO Improve this (should similar to array offsets)
+		$foundStdClass = false;
+		$exprType = $this->getNodeType( $nodeExpr );
+		$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
+		if ( $exprType && $exprType->hasType( $stdClassType ) ) {
+			$exprTaintWithError = $this->getTaintedness( $nodeExpr );
+			$this->curTaint = $exprTaintWithError->getTaintedness();
+			$this->curError->mergeWith( $exprTaintWithError->getError() );
+			$foundStdClass = true;
+		}
+
 		$prop = $this->getPropFromNode( $node );
 		if ( !$prop ) {
-			if (
-				is_object( $node->children['expr'] ) &&
-				$node->children['expr']->kind === \ast\AST_VAR &&
-				$node->children['expr']->children['name'] === 'row'
-			) {
-				// Almost certainly a MW db result.
-				// FIXME this case isn't fully handled.
-				// Stuff from db probably not escaped. Most of the time.
-				// Don't include serialize here due to high false positives
-				// Even though unserializing stuff from db can be very
-				// problematic if user can ever control.
-				// FIXME This is MW specific so should not be
-				// in the generic visitor.
-				$taint = SecurityCheckPlugin::YES_TAINT & ~SecurityCheckPlugin::SERIALIZE_TAINT;
-				$this->curTaint = new Taintedness( $taint );
-				$this->setCachedData( $node );
-				return;
+			if ( !$foundStdClass ) {
+				$this->setCurTaintUnknown();
 			}
-			if (
-				is_object( $node->children['expr'] ) &&
-				$node->children['expr']->kind === \ast\AST_VAR &&
-				is_string( $node->children['expr']->children['name'] ) &&
-				is_string( $node->children['prop'] )
-			) {
-				$this->debug( __METHOD__, "Could not find Property \$" .
-					$node->children['expr']->children['name'] . "->" .
-					$node->children['prop']
-				);
-			} else {
-				// FIXME, we should handle $this->foo->bar
-				$this->debug( __METHOD__, 'Nested property reference' );
-				# Debug::printNode( $node );
-			}
-
-			// Should this be NO_TAINT?
-			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
 
-		if ( $node->children['expr'] instanceof Node && $node->children['expr']->kind === \ast\AST_VAR ) {
-			$variable = $this->getCtxN( $node->children['expr'] )->getVariable();
-			// If the LHS is a variable and it can potentially be a stdClass, share its taintedness
-			// with the property. TODO Improve this.
-			$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
-			if ( $variable->getUnionType()->hasType( $stdClassType ) ) {
-				$this->doSetTaintedness(
-					$prop,
-					[],
-					$this->getTaintednessPhanObj( $variable ),
-					false,
-					Taintedness::newSafe()
-				);
-				$this->mergeTaintError( $prop, $variable );
-			}
+		$objTaint = $this->getTaintednessPhanObj( $prop );
+		if ( $foundStdClass ) {
+			$this->curTaint->mergeWith( $objTaint->without( SecurityCheckPlugin::UNKNOWN_TAINT ) );
+		} else {
+			$this->curTaint = $objTaint;
 		}
+		$this->curError->mergeWith( self::getCausedByRawCloneOrEmpty( $prop ) );
+		$this->curLinks->mergeWith( self::getMethodLinksCloneOrEmpty( $prop ) );
 
-		$this->curTaint = $this->getTaintednessPhanObj( $prop );
-		$this->curError = self::getCausedByRawCloneOrEmpty( $prop );
-		$this->curLinks = self::getMethodLinksCloneOrEmpty( $prop );
 		$this->setCachedData( $node );
 	}
 
@@ -1338,12 +1302,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitName( Node $node ): void {
-		// FIXME I'm a little unclear on what a name is in php.
-		// I think this means literal true, false, null
-		// or a class name (The Foo part of Foo::bar())
-		// Maybe other things too? Are class references always
-		// untainted? Probably.
-
 		$this->curTaint = Taintedness::newSafe();
 	}
 
@@ -1436,9 +1394,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->curTaint = Taintedness::newSafe();
 		} else {
 			$exprTaint = $this->getTaintedness( $node->children['expr'] );
-			$this->curTaint = clone $exprTaint->getTaintedness();
+			// Note, casting deletes shapes.
+			$this->curTaint = $exprTaint->getTaintedness()->asCollapsed();
 			$this->curError = $exprTaint->getError();
-			$this->curLinks = clone $exprTaint->getMethodLinks();
+			$this->curLinks = $exprTaint->getMethodLinks()->asCollapsed();
 		}
 		$this->setCachedData( $node );
 	}

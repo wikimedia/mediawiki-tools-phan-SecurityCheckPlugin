@@ -975,7 +975,6 @@ class MWVisitor extends TaintednessVisitor {
 			'usersmultiselect',
 		];
 
-		// FIXME: TODO options key is very confusing.
 		$type = null;
 		$raw = null;
 		$class = null;
