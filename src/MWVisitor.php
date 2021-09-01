@@ -128,16 +128,16 @@ class MWVisitor extends TaintednessVisitor {
 	 */
 	private function doSelectWrapperSpecialHandling( Node $node, Method $method ): void {
 		$relevantMethods = [
-			'makeList',
-			'select',
-			'selectField',
-			'selectFieldValues',
-			'selectSQLText',
-			'selectRowCount',
-			'selectRow'
+			'makeList' => true,
+			'select' => true,
+			'selectField' => true,
+			'selectFieldValues' => true,
+			'selectSQLText' => true,
+			'selectRowCount' => true,
+			'selectRow' => true,
 		];
 
-		if ( !in_array( $method->getName(), $relevantMethods, true ) ) {
+		if ( !isset( $relevantMethods[$method->getName()] ) ) {
 			return;
 		}
 
@@ -454,8 +454,8 @@ class MWVisitor extends TaintednessVisitor {
 		// result in false positive, so prevent that.
 		$func = $this->context->getFunctionLikeInScope( $this->code_base );
 		$taint = clone $this->getTaintOfFunction( $func );
-		$mask = ~( SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-		$taint->setOverall( $taint->getOverall()->withOnly( $mask ) );
+		$removeTaint = SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+		$taint->setOverall( $taint->getOverall()->without( $removeTaint ) );
 		$taint->addOverallFlags( SecurityCheckPlugin::NO_OVERRIDE );
 		$this->setFuncTaint( $func, $taint, true );
 	}
@@ -529,7 +529,7 @@ class MWVisitor extends TaintednessVisitor {
 				);
 				break;
 			default:
-				$this->debug( __METHOD__, "Unregonized 2nd arg " . "to IDatabase::makeList: '$typeArg'" );
+				$this->debug( __METHOD__, "Unrecognized 2nd arg " . "to IDatabase::makeList: '$typeArg'" );
 		}
 	}
 
@@ -581,18 +581,18 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 		$relevant = [
-			'GROUP BY',
-			'ORDER BY',
-			'HAVING',
-			'USE INDEX',
-			'IGNORE INDEX',
+			'GROUP BY' => true,
+			'ORDER BY' => true,
+			'HAVING' => true,
+			'USE INDEX' => true,
+			'IGNORE INDEX' => true,
 		];
 		foreach ( $node->children as $arrayElm ) {
 			assert( $arrayElm->kind === \ast\AST_ARRAY_ELEM );
 			$val = $arrayElm->children['value'];
 			$key = $arrayElm->children['key'];
 
-			if ( in_array( $key, $relevant, true ) ) {
+			if ( isset( $relevant[$key] ) ) {
 				$taintType = ( $key === 'HAVING' && $this->nodeIsArray( $val ) ) ?
 					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
 					SecurityCheckPlugin::SQL_EXEC_TAINT;
@@ -637,10 +637,7 @@ class MWVisitor extends TaintednessVisitor {
 				$table->children['key'] :
 				'[UNKNOWN TABLE]';
 			$joinInfo = $table->children['value'];
-			if (
-				$joinInfo instanceof Node
-				&& $joinInfo->kind === \ast\AST_ARRAY
-			) {
+			if ( $joinInfo instanceof Node && $joinInfo->kind === \ast\AST_ARRAY ) {
 				if (
 					count( $joinInfo->children ) === 0 ||
 					$joinInfo->children[0]->children['key'] !== null
@@ -704,10 +701,7 @@ class MWVisitor extends TaintednessVisitor {
 		}
 		$isHTML = false;
 		foreach ( $node->children as $child ) {
-			assert(
-				$child instanceof Node
-				&& $child->kind === \ast\AST_ARRAY_ELEM
-			);
+			assert( $child instanceof Node && $child->kind === \ast\AST_ARRAY_ELEM );
 
 			if (
 				$child->children['key'] === 'isHTML' &&

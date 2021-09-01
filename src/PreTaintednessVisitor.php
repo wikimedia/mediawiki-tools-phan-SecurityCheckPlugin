@@ -146,6 +146,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 */
 	public function visitPropElem( Node $node ): void {
 		$prop = $this->getPropInCurrentScopeByName( $node->children['name'] );
-		$this->setTaintednessOld( $prop, Taintedness::newSafe(), false );
+		$this->ensureTaintednessIsSet( $prop );
 	}
 }

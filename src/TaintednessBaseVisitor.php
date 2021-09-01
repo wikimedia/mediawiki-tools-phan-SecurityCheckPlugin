@@ -297,6 +297,23 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
+	 * Ensures that the given variable obj has some taintedness set, initializing to safe if it doesn't.
+	 *
+	 * @param TypedElementInterface $varObj
+	 */
+	protected function ensureTaintednessIsSet( TypedElementInterface $varObj ): void {
+		if ( !self::getTaintednessRaw( $varObj ) ) {
+			self::setTaintednessRaw( $varObj, Taintedness::newSafe() );
+		}
+		if ( $varObj instanceof GlobalVariable ) {
+			$gVarObj = $varObj->getElement();
+			if ( !self::getTaintednessRaw( $gVarObj ) ) {
+				self::setTaintednessRaw( $gVarObj, Taintedness::newSafe() );
+			}
+		}
+	}
+
+	/**
 	 * TEMPORARY METHOD
 	 * @param TypedElementInterface $variableObj
 	 * @param Taintedness $taintedness
@@ -318,7 +335,7 @@ trait TaintednessBaseVisitor {
 	 * Change the taintedness of a variable
 	 *
 	 * @param TypedElementInterface $variableObj The variable in question
-	 * @param (Node|mixed)[] $resolvedOffsetsLhs List of possibly-resolved offsets at the LHS
+	 * @param array<Node|mixed> $resolvedOffsetsLhs List of possibly-resolved offsets at the LHS
 	 * @param Taintedness $taintedness
 	 * @param bool $override Override taintedness or just take max.
 	 * @param bool $allowClearLHSData Whether we're allowed to clear taint error and links
@@ -344,9 +361,6 @@ trait TaintednessBaseVisitor {
 			throw new AssertionError( "Must use setFuncTaint for functions" );
 		}
 
-		// $this->debug( __METHOD__, "\$" . $variableObj->getName() . " has outer scope - "
-		// . get_class( $this->context->getScope() ) . "" );
-
 		if ( $variableObj instanceof GlobalVariable ) {
 			// TODO: Every piece of code doing something like this should probably be handled in
 			// TaintednessAccessorsTrait instead.
@@ -362,8 +376,7 @@ trait TaintednessBaseVisitor {
 
 		if ( $override && $allowClearLHSData ) {
 			// Clear any error and link before setting taintedness if we're overriding taint.
-			// Checking for $override here already takes into account globals, props,
-			// outer scope, and whatnot.
+			// Checking for $override here already takes into account globals, props and whatnot.
 			self::clearTaintError( $variableObj );
 			self::clearTaintLinks( $variableObj );
 		}
@@ -418,7 +431,7 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Given a list of resolved offsets, return the corresponding list of taintedness values
-	 * @param (Node|mixed)[] $offsets
+	 * @param array<Node|mixed> $offsets
 	 * @return Taintedness[]
 	 */
 	protected function getKeysTaintednessList( array $offsets ): array {
@@ -444,30 +457,6 @@ trait TaintednessBaseVisitor {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * Get the taint of a PHP builtin function/method
-	 *
-	 * Assume that anything not-hardcoded just passes its
-	 * arguments into its return value
-	 *
-	 * @param FunctionInterface $func A builtin Function/Method
-	 * @return FunctionTaintedness
-	 */
-	private function getTaintOfFunctionPHP( FunctionInterface $func ): FunctionTaintedness {
-		$taint = $this->getBuiltinFuncTaint( $func->getFQSEN() );
-		if ( $taint !== null ) {
-			return clone $taint;
-		}
-
-		// Assume that anything really dangerous we've already
-		// hardcoded. So just preserve taint
-		$taintFromReturnType = $this->getTaintByType( $func->getUnionType() );
-		if ( $taintFromReturnType->isSafe() ) {
-			return new FunctionTaintedness( Taintedness::newSafe() );
-		}
-		return new FunctionTaintedness( new Taintedness( SecurityCheckPlugin::PRESERVE_TAINT ) );
 	}
 
 	/**
@@ -511,8 +500,8 @@ trait TaintednessBaseVisitor {
 			foreach ( $nonParents as $nonParentFQSEN ) {
 				if ( $this->code_base->hasClassWithFQSEN( $nonParentFQSEN ) ) {
 					$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
-					// TODO Assuming this isn't a direct invocation, but does it always make sense?
-					$directInvocation = false;
+					// TODO Assuming this is a direct invocation, but it doesn't always make sense
+					$directInvocation = true;
 					if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName(), $directInvocation ) ) {
 						yield $nonParent->getMethodByName( $this->code_base, $func->getName() );
 					}
@@ -529,67 +518,71 @@ trait TaintednessBaseVisitor {
 	 * @return FunctionTaintedness Always a clone
 	 */
 	protected function getTaintOfFunction( FunctionInterface $func ): FunctionTaintedness {
-		// Fast case, either a builtin to php function or we already
-		// know taint:
-		if ( $func->isPHPInternal() ) {
-			return $this->getTaintOfFunctionPHP( $func );
-		}
-
 		$funcTaint = self::getFuncTaint( $func );
 		if ( $funcTaint !== null ) {
 			return $funcTaint;
 		}
 
-		// Gather up
-
+		$isPHPInternalFunc = $func->isPHPInternal();
 		$funcsToTry = $this->getPossibleFuncDefinitions( $func );
 		foreach ( $funcsToTry as $trialFunc ) {
-			$trialFuncName = $trialFunc->getFQSEN();
-			$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
-			if ( $taint !== null ) {
-				$this->setFuncTaint( $func, $taint, true, $trialFunc->getContext() );
-
-				return $taint;
+			/** @var FunctionInterface $trialFunc */
+			if ( !$trialFunc->isPHPInternal() ) {
+				// PHP internal functions can't have a docblock.
+				$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
+				if ( $taint !== null ) {
+					$this->setFuncTaint( $func, $taint, true, $trialFunc->getContext() );
+					return $taint;
+				}
 			}
+
+			$trialFuncName = $trialFunc->getFQSEN();
 			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
 			if ( $taint !== null ) {
 				$taint = clone $taint;
-				$this->setFuncTaint( $func, $taint, true, "Builtin-$trialFuncName" );
+				if ( $isPHPInternalFunc ) {
+					// We're not adding any error here, since it's presumably unnecessary for PHP internal stuff.
+					self::doSetFuncTaint( $func, $taint );
+				} else {
+					$this->setFuncTaint( $func, $taint, true, "Builtin-$trialFuncName" );
+				}
 				return $taint;
 			}
 		}
 
 		$definingFunc = $this->getDefiningFuncIfDifferent( $func );
 		if ( $definingFunc ) {
-			// TODO Should we recurse here?
-			if ( !$definingFunc->isPHPInternal() ) {
-				$definingFuncTaint = self::getFuncTaint( $definingFunc );
-				if ( $definingFuncTaint === null ) {
-					// Optim: don't reanalyze if we already have taint data. This might rarely hide
-					// some issues, see T203651#6046483.
-					$this->analyzeFunc( $definingFunc );
-					$definingFuncTaint = self::getFuncTaint( $definingFunc );
-				}
-
-				if ( $definingFuncTaint !== null ) {
-					return $definingFuncTaint;
-				}
-			}
-		} else {
-			$this->analyzeFunc( $func );
-			$funcTaint = self::getFuncTaint( $func );
-			if ( $funcTaint !== null ) {
-				return $funcTaint;
+			$definingFuncTaint = self::getFuncTaint( $definingFunc );
+			if ( $definingFuncTaint !== null ) {
+				return $definingFuncTaint;
 			}
 		}
-		// TODO: Maybe look at __toString() if we are at __construct().
-		// FIXME this could probably use a second look.
 
-		// If we haven't seen this function before, first of all
-		// check the return type. If it (e.g.) returns just an int,
-		// its probably safe.
-		$taint = new FunctionTaintedness( $this->getTaintByType( $func->getUnionType() ) );
-		$this->setFuncTaint( $func, $taint, true );
+		if ( !$isPHPInternalFunc ) {
+			// PHP internal functions cannot be analyzed because they don't have a body.
+			$funcToAnalyze = $definingFunc ?: $func;
+			$this->analyzeFunc( $funcToAnalyze );
+			$analyzedFuncTaint = self::getFuncTaint( $funcToAnalyze );
+			if ( $analyzedFuncTaint !== null ) {
+				return $analyzedFuncTaint;
+			}
+		}
+
+		$taintFromReturnType = $this->getTaintByType( $func->getUnionType() );
+		if ( !$isPHPInternalFunc ) {
+			// If we haven't seen this function before, first of all check the return type. If it
+			// returns a safe type (like int), it's safe.
+			$taint = new FunctionTaintedness( $taintFromReturnType );
+			$this->setFuncTaint( $func, $taint, true );
+		} else {
+			// Assume that anything really dangerous we've already hardcoded. So just preserve taint.
+			$overall = $taintFromReturnType->isSafe()
+				? $taintFromReturnType
+				: new Taintedness( SecurityCheckPlugin::PRESERVE_TAINT );
+			$taint = new FunctionTaintedness( $overall );
+			// We're not adding any error here, since it's presumably unnecessary for PHP internal stuff.
+			self::doSetFuncTaint( $func, $taint );
+		}
 		return $taint;
 	}
 
@@ -1064,7 +1057,7 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		// Make sure $this->bar doesn't kill taint of $foo generally, or props in general just in case.
+		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
 		// Note: If there is a local variable that is a reference
 		// to another non-local variable, this will probably incorrectly
 		// override the taint (Pass by reference variables are handled
@@ -1138,9 +1131,7 @@ trait TaintednessBaseVisitor {
 			if (
 				( $dim === null || $this->nodeIsInt( $dim ) )
 				&& !$this->nodeIsArray( $rhs )
-				&& !( $lhs->children['expr'] instanceof Node
-					&& $lhs->children['expr']->kind === \ast\AST_DIM
-				)
+				&& !( $lhs->children['expr'] instanceof Node && $lhs->children['expr']->kind === \ast\AST_DIM )
 			) {
 				$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
@@ -1765,6 +1756,10 @@ trait TaintednessBaseVisitor {
 	 */
 	private function getActualElementWithCausedBy( TypedElementInterface $element ): TypedElementInterface {
 		if ( !$element instanceof FunctionInterface ) {
+			return $element;
+		}
+
+		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $element->getFQSEN() ) ) {
 			return $element;
 		}
 		$definingFunc = $this->getDefiningFuncIfDifferent( $element );

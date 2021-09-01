@@ -74,33 +74,25 @@ class MWPreVisitor extends PreTaintednessVisitor {
 				continue;
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
+			// TODO This would need a custom caused-by message.
 			$this->setTaintednessOld( $varObj, Taintedness::newTainted() );
 			// $this->debug( __METHOD__, "In $method setting param $varObj as tainted" );
 		}
 		// If there are no type hints, phan won't know that the parser
 		// is a parser as the hook isn't triggered from a real func call.
-		if ( isset( $params[2] ) ) {
-			$param = $params[2];
-			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
-				// Well uh-oh.
-				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
-			} else {
-				$varObj = $scope->getVariableByName( $param->children['name'] );
-				$varObj->setUnionType(
-					UnionType::fromFullyQualifiedPHPDocString( '\\Parser' )
-				);
-			}
-		}
-		if ( isset( $params[3] ) ) {
-			$param = $params[3];
-			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
-				// Well uh-oh.
-				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
-			} else {
-				$varObj = $scope->getVariableByName( $param->children['name'] );
-				$varObj->setUnionType(
-					UnionType::fromFullyQualifiedPHPDocString( '\\PPFrame' )
-				);
+		$paramTypes = [ 2 => '\\Parser', 3 => '\\PPFrame' ];
+		foreach ( $paramTypes as $i => $type ) {
+			if ( isset( $params[$i] ) ) {
+				$param = $params[$i];
+				if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
+					// Well uh-oh.
+					$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+				} else {
+					$varObj = $scope->getVariableByName( $param->children['name'] );
+					$varObj->setUnionType(
+						UnionType::fromFullyQualifiedPHPDocString( $type )
+					);
+				}
 			}
 		}
 	}
@@ -140,25 +132,8 @@ class MWPreVisitor extends PreTaintednessVisitor {
 				continue;
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
+			// TODO This would need a custom caused-by message.
 			$this->setTaintednessOld( $varObj, Taintedness::newTainted() );
-			/* Is this needed ? Disabling for now.
-			$funcTaint = $this->getTaintOfFunction( $method );
-			if ( isset( $funcTaint[$i] ) ) {
-				if ( !$this->isSafeAssignment(
-					$funcTaint[$i],
-					SecurityCheckPlugin::YES_TAINT
-				) ) {
-					$funcName = $method->getFQSEN();
-					MediaWikiSecurityCheckPlugin::$pluginInstance->emitIssue(
-						$this->code_base,
-						$this->context,
-						'SecurityCheckTaintedOutput',
-						"Outputting evil HTML from Parser function hook $funcName (case 2)"
-							. $this->getOriginalTaintLine( $method )
-					);
-				}
-			}
-			*/
 		}
 	}
 

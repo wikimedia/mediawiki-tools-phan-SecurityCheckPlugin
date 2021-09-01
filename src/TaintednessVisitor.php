@@ -534,7 +534,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitStatic( Node $node ): void {
 		$var = $this->getCtxN( $node->children['var'] )->getVariable();
-		$this->setTaintednessOld( $var, Taintedness::newSafe(), false );
+		$this->ensureTaintednessIsSet( $var );
 		$this->curTaint = Taintedness::newInapplicable();
 		$this->setCachedData( $node );
 	}
