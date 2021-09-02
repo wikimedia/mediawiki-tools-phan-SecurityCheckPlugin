@@ -3,7 +3,6 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Exception;
 use Phan\Analysis\PostOrderAnalysisVisitor;
 use Phan\AST\ContextNode;
 use Phan\Exception\CodeBaseException;
@@ -52,47 +51,45 @@ class MWVisitor extends TaintednessVisitor {
 	 */
 	public function visitMethodCall( Node $node ): void {
 		parent::visitMethodCall( $node );
-		try {
-			$ctx = $this->getCtxN( $node );
-			if ( !isset( $node->children['method'] ) ) {
-				// Called by visitCall
-				return;
-			}
-			$methodName = $node->children['method'];
-			$method = $ctx->getMethod(
-				$methodName,
-				$node->kind === \ast\AST_STATIC_CALL,
-				true
-			);
-			// Should this be getDefiningFQSEN() instead?
-			$methodName = (string)$method->getFQSEN();
-			// $this->debug( __METHOD__, "Checking to see if we should register $methodName" );
-			switch ( $methodName ) {
-				case '\Parser::setFunctionHook':
-				case '\Parser::setHook':
-				case '\Parser::setTransparentTagHook':
-					$type = $this->getHookTypeForRegistrationMethod( $methodName );
-					if ( $type === null ) {
-						break;
-					}
-					// $this->debug( __METHOD__, "registering $methodName as $type" );
-					$this->handleParserHookRegistration( $node, $type );
+		if ( !isset( $node->children['method'] ) ) {
+			// Called by visitCall
+			return;
+		}
+
+		$funcs = $this->getFuncsFromNode( $node, __METHOD__ );
+		assert( is_array( $funcs ) && count( $funcs ) <= 1 );
+		if ( !$funcs ) {
+			return;
+		}
+		$method = $funcs[0];
+		assert( $method instanceof Method );
+
+		// Should this be getDefiningFQSEN() instead?
+		$methodName = (string)$method->getFQSEN();
+		// $this->debug( __METHOD__, "Checking to see if we should register $methodName" );
+		switch ( $methodName ) {
+			case '\Parser::setFunctionHook':
+			case '\Parser::setHook':
+			case '\Parser::setTransparentTagHook':
+				$type = $this->getHookTypeForRegistrationMethod( $methodName );
+				if ( $type === null ) {
 					break;
-				case '\Hooks::register':
-					$this->handleNormalHookRegistration( $node );
-					break;
-				case '\Hooks::run':
-				case '\Hooks::runWithoutAbort':
-					$this->triggerHook( $node );
-					break;
-				case '\Linker::makeExternalLink':
-					$this->checkExternalLink( $node );
-					break;
-				default:
-					$this->doSelectWrapperSpecialHandling( $node, $method );
-			}
-		} catch ( Exception $e ) {
-			$this->debug( __METHOD__, 'FIXME cannot understand hook: ' . $this->getDebugInfo( $e ) );
+				}
+				// $this->debug( __METHOD__, "registering $methodName as $type" );
+				$this->handleParserHookRegistration( $node, $type );
+				break;
+			case '\Hooks::register':
+				$this->handleNormalHookRegistration( $node );
+				break;
+			case '\Hooks::run':
+			case '\Hooks::runWithoutAbort':
+				$this->triggerHook( $node );
+				break;
+			case '\Linker::makeExternalLink':
+				$this->checkExternalLink( $node );
+				break;
+			default:
+				$this->doSelectWrapperSpecialHandling( $node, $method );
 		}
 	}
 
@@ -349,7 +346,7 @@ class MWVisitor extends TaintednessVisitor {
 		$fqsen = $callback->getFQSEN();
 		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $fqsen );
 		if ( !$alreadyRegistered ) {
-			$this->debug( __METHOD__, "registering $fqsen for hook $hookType" );
+			// $this->debug( __METHOD__, "registering $fqsen for hook $hookType" );
 			// If this is the first time seeing this, make sure we reanalyze the hook function now that
 			// we know what it is, in case it's already been analyzed.
 			$this->analyzeFunc( $callback );

@@ -20,7 +20,6 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Exception;
 use Phan\Analysis\BlockExitStatusChecker;
 use Phan\AST\ContextNode;
 use Phan\CodeBase;
@@ -257,6 +256,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $node
 	 */
+	public function visitNullableType( Node $node ): void {
+		$this->setCurTaintInapplicable();
+	}
+
+	/**
+	 * @param Node $node
+	 */
 	public function visitArgList( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
@@ -288,6 +294,23 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitClassConstDecl( Node $node ): void {
 		$this->setCurTaintInapplicable();
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitClassConstGroup( Node $node ): void {
+		$this->setCurTaintInapplicable();
+	}
+
+	/**
+	 * FooBar::class, presumably safe since class names cannot have special chars.
+	 *
+	 * @param Node $node
+	 */
+	public function visitClassName( Node $node ): void {
+		$this->curTaint = Taintedness::newSafe();
+		$this->setCachedData( $node );
 	}
 
 	/**
@@ -453,6 +476,21 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitArrayElem( Node $node ): void {
 		// Key and value are handled in visitArray()
+		$this->setCurTaintInapplicable();
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitPropElem( Node $node ): void {
+		// Done in preorder
+		$this->setCurTaintInapplicable();
+	}
+
+	/**
+	 * @param Node $node
+	 */
+	public function visitPropGroup( Node $node ): void {
 		$this->setCurTaintInapplicable();
 	}
 
@@ -914,37 +952,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitNullsafeMethodCall( Node $node ): void {
 		$this->visitMethodCall( $node );
-	}
-
-	/**
-	 * @param Node $node
-	 * @param string $caller
-	 * @return iterable<mixed,FunctionInterface>
-	 */
-	private function getFuncsFromNode( Node $node, $caller = __METHOD__ ): iterable {
-		$logError = function ( Exception $e ) use ( $caller ): void {
-			$this->debug(
-				$caller,
-				"FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e )
-			);
-		};
-		if ( $node->kind === \ast\AST_CALL ) {
-			try {
-				return $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
-			} catch ( IssueException $e ) {
-				$logError( $e );
-				return [];
-			}
-		}
-
-		$methodName = $node->children['method'];
-		$isStatic = $node->kind === \ast\AST_STATIC_CALL;
-		try {
-			return [ $this->getCtxN( $node )->getMethod( $methodName, $isStatic, true ) ];
-		} catch ( NodeException | CodeBaseException | IssueException $e ) {
-			$logError( $e );
-			return [];
-		}
 	}
 
 	/**

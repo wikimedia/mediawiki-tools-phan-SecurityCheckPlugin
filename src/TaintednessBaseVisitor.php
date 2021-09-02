@@ -561,7 +561,7 @@ trait TaintednessBaseVisitor {
 		// false positives, it becomes harder to tell where an issue is coming from.
 		// Thus, this value should be increased only when we'll have better error reporting.
 		if ( $depth > 5 ) {
-			$this->debug( __METHOD__, 'WARNING: aborting analysis earlier due to max depth' );
+			// $this->debug( __METHOD__, 'WARNING: aborting analysis earlier due to max depth' );
 			return;
 		}
 		if ( $node->kind === \ast\AST_CLOSURE && isset( $node->children['uses'] ) ) {
@@ -705,7 +705,8 @@ trait TaintednessBaseVisitor {
 	 * @return Taintedness
 	 */
 	protected function getTaintByType( UnionType $types ): Taintedness {
-		$typelist = $types->getTypeSet();
+		// NOTE: This flattens intersection types
+		$typelist = $types->getUniqueFlattenedTypeSet();
 		if ( !$typelist ) {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
 			return Taintedness::newUnknown();
@@ -741,6 +742,7 @@ trait TaintednessBaseVisitor {
 			case 'resource':
 			case 'mixed':
 			case 'non-empty-mixed':
+			case 'non-null-mixed':
 				// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
 				$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 				break;
@@ -753,7 +755,7 @@ trait TaintednessBaseVisitor {
 
 				if ( !$type->isObjectWithKnownFQSEN() ) {
 					// Likely some phan-specific types not included above
-					$this->debug( __METHOD__, " $type not a class?" );
+					$this->debug( __METHOD__, " $type (" . get_class( $type ) . ') not a class?' );
 					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 					break;
 				}
@@ -782,6 +784,37 @@ trait TaintednessBaseVisitor {
 			}
 		}
 		return $taint;
+	}
+
+	/**
+	 * @param Node $node
+	 * @param string $caller
+	 * @return iterable<mixed,FunctionInterface>
+	 */
+	protected function getFuncsFromNode( Node $node, $caller = __METHOD__ ): iterable {
+		$logError = function ( Exception $e ) use ( $caller ): void {
+			$this->debug(
+				$caller,
+				"FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e )
+			);
+		};
+		if ( $node->kind === \ast\AST_CALL ) {
+			try {
+				return $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
+			} catch ( IssueException $e ) {
+				$logError( $e );
+				return [];
+			}
+		}
+
+		$methodName = $node->children['method'];
+		$isStatic = $node->kind === \ast\AST_STATIC_CALL;
+		try {
+			return [ $this->getCtxN( $node )->getMethod( $methodName, $isStatic, true ) ];
+		} catch ( NodeException | CodeBaseException | IssueException $e ) {
+			$logError( $e );
+			return [];
+		}
 	}
 
 	/**
@@ -1437,7 +1470,7 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		$this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
+		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
 
 		foreach ( self::getRelevantLinksForTaintedness( $varLinks, $taint ) as [ $curLinks, $curTaint ] ) {
@@ -1563,7 +1596,6 @@ trait TaintednessBaseVisitor {
 		}
 		$varLinks = self::getVarLinks( $method, $i );
 		if ( $varLinks === null ) {
-			$this->debug( __METHOD__, "returning early no backlinks" );
 			return;
 		}
 		$oldMem = memory_get_peak_usage();
