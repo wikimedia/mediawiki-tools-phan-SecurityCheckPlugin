@@ -309,11 +309,27 @@ trait TaintednessBaseVisitor {
 	private function addTaintedness( TypedElementInterface $variableObj, Taintedness $taintedness ): void {
 		assert( !$variableObj instanceof FunctionInterface, 'Must use setFuncTaint for functions' );
 
-		$this->setTaintedness( $variableObj, [], $taintedness, false, $taintedness );
+		$this->setTaintednessNoOffsets( $variableObj, $taintedness, false );
+		$this->addTaintError( $taintedness, $variableObj );
 		if ( $variableObj instanceof GlobalVariable ) {
 			$globalVar = $variableObj->getElement();
-			$this->setTaintedness( $globalVar, [], $taintedness, false, $taintedness );
+			$this->setTaintednessNoOffsets( $globalVar, $taintedness, false );
+			$this->addTaintError( $taintedness, $globalVar );
 		}
+	}
+
+	/**
+	 * Shorthand for setTaintedness
+	 * @param TypedElementInterface $variableObj
+	 * @param Taintedness $taintedness
+	 * @param bool $override
+	 */
+	private function setTaintednessNoOffsets(
+		TypedElementInterface $variableObj,
+		Taintedness $taintedness,
+		bool $override
+	): void {
+		$this->setTaintedness( $variableObj, [], [], $taintedness, $override );
 	}
 
 	/**
@@ -321,27 +337,22 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $variableObj
 	 * @param list<Node|mixed> $resolvedOffsetsLhs List of possibly-resolved offsets at the LHS
+	 * @param Taintedness[] $offsetsTaint Taintedness for each offset in $resolvedOffsetsLhs
 	 * @param Taintedness $taintedness
 	 * @param bool $override
-	 * @param Taintedness $errorTaint The taintedness to use for adding the taint error. By default,
-	 *   this is identical to $taintedness. This can be useful when the element is already tainted
-	 *   (e.g. for assign ops like `.=`, so that `$tainted .= 'safe'` doesn't add a caused-by line),
-	 *   but it should only be used when there's no actual taint being added (so e.g. don't use this
-	 *   for `$tainted .= $anotherTainted`).
 	 */
 	private function setTaintedness(
 		TypedElementInterface $variableObj,
 		array $resolvedOffsetsLhs,
+		array $offsetsTaint,
 		Taintedness $taintedness,
-		bool $override,
-		Taintedness $errorTaint
+		bool $override
 	): void {
 		assert( !$variableObj instanceof FunctionInterface, 'Must use setFuncTaint for functions' );
 
 		if (
 			$variableObj instanceof Property &&
-			$variableObj->getClass( $this->code_base )->getFQSEN() ===
-			FullyQualifiedClassName::getStdClassFQSEN()
+			$variableObj->getClassFQSEN() === FullyQualifiedClassName::getStdClassFQSEN()
 		) {
 			// Phan conflates all stdClass props, see https://github.com/phan/phan/issues/3869
 			// Avoid doing the same with taintedness, as that would cause weird issues (see
@@ -357,12 +368,8 @@ trait TaintednessBaseVisitor {
 
 		if ( $resolvedOffsetsLhs ) {
 			$offsetOverride = $override && $this->wereAllKeysResolved( $resolvedOffsetsLhs );
-			$keysTaint = $this->getKeysTaintednessList( $resolvedOffsetsLhs );
 			$newTaint = $curTaint ? clone $curTaint : Taintedness::newSafe();
-			$newTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $keysTaint, $taintedness, $offsetOverride );
-			foreach ( $keysTaint as $keyTaint ) {
-				$errorTaint->addKeysTaintedness( $keyTaint->get() );
-			}
+			$newTaint->setTaintednessAtOffsetList( $resolvedOffsetsLhs, $offsetsTaint, $taintedness, $offsetOverride );
 		} elseif ( $override || !$curTaint ) {
 			$newTaint = $taintedness;
 		} else {
@@ -370,12 +377,10 @@ trait TaintednessBaseVisitor {
 		}
 		if ( $variableObj instanceof Property || $variableObj instanceof GlobalVariable ) {
 			// See test "preservebug". Don't let PRESERVE exit from the current function.
-			// Not removing it from error taint because it might be useful sometimes.
 			// TODO Improve this
 			$newTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
 		}
 		self::setTaintednessRaw( $variableObj, $newTaint );
-		$this->addTaintError( $errorTaint, $variableObj );
 	}
 
 	/**
@@ -1041,10 +1046,18 @@ trait TaintednessBaseVisitor {
 			self::clearTaintLinks( $variableObj );
 		}
 
-		$this->setTaintedness( $variableObj, $lhsOffsets, $allRHSTaint, $override, $rhsTaintedness );
+		$offsetsTaint = $this->getKeysTaintednessList( $lhsOffsets );
+		// In case of assign ops, add a caused-by line only with the taintedness actually being added.
+		$errorTaint = $rhsTaintedness;
+		foreach ( $offsetsTaint as $keyTaint ) {
+			$errorTaint->addKeysTaintedness( $keyTaint->get() );
+		}
+		$this->setTaintedness( $variableObj, $lhsOffsets, $offsetsTaint, $allRHSTaint, $override );
+		$this->addTaintError( $errorTaint, $variableObj );
 		if ( $globalVarObj ) {
 			// Merge the taint on the "true" global object, too
-			$this->setTaintedness( $globalVarObj, $lhsOffsets, $allRHSTaint, false, $rhsTaintedness );
+			$this->setTaintedness( $globalVarObj, $lhsOffsets, $offsetsTaint, $allRHSTaint, false );
+			$this->addTaintError( $errorTaint, $globalVarObj );
 		}
 
 		$this->mergeTaintDependencies( $variableObj, $rhsLinks, $lhsOffsets );
@@ -2342,9 +2355,11 @@ trait TaintednessBaseVisitor {
 				->asMergedWith( $this->getTaintednessPhanObj( $argObj ) );
 		}
 
-		$this->setTaintedness( $argObj, [], $refTaint, $overrideTaint, $errTaint );
+		$this->setTaintednessNoOffsets( $argObj, $refTaint, $overrideTaint );
+		$this->addTaintError( $errTaint, $argObj );
 		if ( $globalVarObj ) {
-			$this->setTaintedness( $globalVarObj, [], $refTaint, false, $errTaint );
+			$this->setTaintednessNoOffsets( $globalVarObj, $refTaint, false );
+			$this->addTaintError( $errTaint, $globalVarObj );
 		}
 		if ( $overrideTaint ) {
 			self::clearTaintednessRef( $argObj );
