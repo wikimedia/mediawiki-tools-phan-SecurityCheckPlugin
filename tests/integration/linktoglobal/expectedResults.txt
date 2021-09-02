@@ -3,4 +3,4 @@ integration/linktoglobal/test.php:17 SecurityCheck-XSS Echoing expression that w
 integration/linktoglobal/test.php:18 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$myGlobal`). (Caused by: integration/linktoglobal/test.php +13)
 integration/linktoglobal/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linktoglobal/test.php +24; integration/linktoglobal/test.php +26)
 integration/linktoglobal/test.php:29 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$myArrayGlobal`). (Caused by: integration/linktoglobal/test.php +28)
-integration/linktoglobal/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linktoglobal/test.php +24; integration/linktoglobal/test.php +26; integration/linktoglobal/test.php +28)
+integration/linktoglobal/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/linktoglobal/test.php +24; integration/linktoglobal/test.php +26)

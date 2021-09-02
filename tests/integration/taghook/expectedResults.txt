@@ -1,4 +1,4 @@
 integration/taghook/Parser.php:48 SecurityCheck-LikelyFalsePositive Calling method \preg_match() in \StripState::addItem that outputs using tainted argument #1 (`$this->regex`).
-integration/taghook/test.php:17 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SomeClass::evil (Caused by: integration/taghook/test.php +16; integration/taghook/test.php +15)
-integration/taghook/test.php:21 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SomeClass::wrapper (Caused by: integration/taghook/test.php +25; integration/taghook/test.php +20)
-integration/taghook/test.php:36 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SecondClass::evilAttribs (Caused by: integration/taghook/test.php +33; integration/taghook/test.php +30)
+integration/taghook/test.php:17 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SomeClass::evil (Caused by: integration/taghook/test.php +16; tainted argument to tag hook)
+integration/taghook/test.php:21 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SomeClass::wrapper (Caused by: integration/taghook/test.php +25; tainted argument to tag hook)
+integration/taghook/test.php:36 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SecondClass::evilAttribs (Caused by: integration/taghook/test.php +33; tainted argument to tag hook)

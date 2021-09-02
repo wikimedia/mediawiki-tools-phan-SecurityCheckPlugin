@@ -156,9 +156,10 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$obj,
 			$this->allRightTaint,
 			$this->rightTaint->getTaintedness(),
+			$this->rightTaint->getMethodLinks(),
+			$this->rightTaint->getError(),
 			$offsets,
 			$this->allowClearLHSData
 		);
-		$this->setTaintDependenciesInAssignment( $this->rightTaint, $obj, $offsets );
 	}
 }

@@ -46,15 +46,15 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			if ( $valueObj !== null ) {
 				// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
 				// the right taint to the value if we discover what the key is for the current iteration
-				$this->setTaintednessOld(
+				$this->doAssignmentSingleElement(
 					$valueObj,
 					$lhsTaintedness->asValueFirstLevel(),
-					// NOTE: In overriding, we assume that the foreach has at least one iteration
-					$value->kind === \ast\AST_VAR,
+					$lhsTaintedness->asValueFirstLevel(),
+					$lhsTaintednessWithError->getMethodLinks(),
+					$lhsTaintednessWithError->getError(),
+					[],
 					true
 				);
-				$this->mergeTaintDependencies( $valueObj, $lhsTaintednessWithError->getMethodLinks() );
-				$this->mergeTaintError( $valueObj, $lhsTaintednessWithError->getError() );
 			}
 		} else {
 			$this->debug( __METHOD__, "FIXME foreach complex value not handled: " . Debug::nodeToString( $value ) );
@@ -73,15 +73,15 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				}
 
 				if ( $keyObj !== null ) {
-					$this->setTaintednessOld(
+					$this->doAssignmentSingleElement(
 						$keyObj,
 						$lhsTaintedness->asKeyForForeach(),
-						// NOTE: In overriding, we assume that the foreach has at least one iteration
-						$key->kind === \ast\AST_VAR,
+						$lhsTaintedness->asKeyForForeach(),
+						$lhsTaintednessWithError->getMethodLinks(),
+						$lhsTaintednessWithError->getError(),
+						[],
 						true
 					);
-					$this->mergeTaintDependencies( $keyObj, $lhsTaintednessWithError->getMethodLinks() );
-					$this->mergeTaintError( $keyObj, $lhsTaintednessWithError->getError() );
 				}
 			} else {
 				$this->debug( __METHOD__, "FIXME foreach complex key not handled: " . Debug::nodeToString( $key ) );

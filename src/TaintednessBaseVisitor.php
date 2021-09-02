@@ -303,51 +303,40 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * TEMPORARY METHOD
 	 * @param TypedElementInterface $variableObj
 	 * @param Taintedness $taintedness
-	 * @param bool $override
-	 * @param bool $allowClearLHSData
-	 * @param Taintedness|null $errorTaint
 	 */
-	protected function setTaintednessOld(
-		TypedElementInterface $variableObj,
-		Taintedness $taintedness,
-		$override = true,
-		bool $allowClearLHSData = false,
-		Taintedness $errorTaint = null
-	): void {
-		$this->setTaintedness( $variableObj, [], $taintedness, $override, $allowClearLHSData, $errorTaint );
+	private function addTaintedness( TypedElementInterface $variableObj, Taintedness $taintedness ): void {
+		assert( !$variableObj instanceof FunctionInterface, 'Must use setFuncTaint for functions' );
+
+		$this->setTaintedness( $variableObj, [], $taintedness, false, $taintedness );
+		if ( $variableObj instanceof GlobalVariable ) {
+			$globalVar = $variableObj->getElement();
+			$this->setTaintedness( $globalVar, [], $taintedness, false, $taintedness );
+		}
 	}
 
 	/**
-	 * Change the taintedness of a variable
+	 * Change the taintedness of $variableObj.
 	 *
-	 * @param TypedElementInterface $variableObj The variable in question
-	 * @param array<Node|mixed> $resolvedOffsetsLhs List of possibly-resolved offsets at the LHS
+	 * @param TypedElementInterface $variableObj
+	 * @param list<Node|mixed> $resolvedOffsetsLhs List of possibly-resolved offsets at the LHS
 	 * @param Taintedness $taintedness
-	 * @param bool $override Override taintedness or just take max.
-	 * @param bool $allowClearLHSData Whether we're allowed to clear taint error and links
-	 *   from the LHS. This is only honored when the taint is being overridden.
-	 * @param Taintedness|null $errorTaint The taintedness to use for adding the taint error. By default,
+	 * @param bool $override
+	 * @param Taintedness $errorTaint The taintedness to use for adding the taint error. By default,
 	 *   this is identical to $taintedness. This can be useful when the element is already tainted
 	 *   (e.g. for assign ops like `.=`, so that `$tainted .= 'safe'` doesn't add a caused-by line),
 	 *   but it should only be used when there's no actual taint being added (so e.g. don't use this
 	 *   for `$tainted .= $anotherTainted`).
 	 */
-	protected function setTaintedness(
+	private function setTaintedness(
 		TypedElementInterface $variableObj,
 		array $resolvedOffsetsLhs,
 		Taintedness $taintedness,
-		$override = true,
-		bool $allowClearLHSData = false,
-		Taintedness $errorTaint = null
+		bool $override,
+		Taintedness $errorTaint
 	): void {
-		$errorTaint = $errorTaint ?? $taintedness;
-
-		if ( $variableObj instanceof FunctionInterface ) {
-			throw new AssertionError( "Must use setFuncTaint for functions" );
-		}
+		assert( !$variableObj instanceof FunctionInterface, 'Must use setFuncTaint for functions' );
 
 		if (
 			$variableObj instanceof Property &&
@@ -362,47 +351,6 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		if ( $variableObj instanceof GlobalVariable ) {
-			// TODO: Every piece of code doing something like this should probably be handled in
-			// TaintednessAccessorsTrait instead.
-			$globalVar = $variableObj->getElement();
-			// Merge the taint on the "true" global object, too
-			$this->doSetTaintedness( $globalVar, $resolvedOffsetsLhs, $taintedness, false, $errorTaint );
-			$override = false;
-		}
-		if ( $resolvedOffsetsLhs ) {
-			// Don't clear data if this is an array assignment (regardless of whether offsets were resolved)
-			$allowClearLHSData = false;
-		}
-
-		if ( $override && $allowClearLHSData ) {
-			// Clear any error and link before setting taintedness if we're overriding taint.
-			// Checking for $override here already takes into account globals, props and whatnot.
-			self::clearTaintError( $variableObj );
-			self::clearTaintLinks( $variableObj );
-		}
-
-		$this->doSetTaintedness( $variableObj, $resolvedOffsetsLhs, $taintedness, $override, $errorTaint );
-	}
-
-	/**
-	 * Actually sets the taintedness on $variableObj. This should almost never be used.
-	 *
-	 * @see self::setTaintedness for param docs
-	 *
-	 * @param TypedElementInterface $variableObj
-	 * @param list<Node|mixed> $resolvedOffsetsLhs
-	 * @param Taintedness $taintedness
-	 * @param bool $override
-	 * @param Taintedness $errorTaint
-	 */
-	private function doSetTaintedness(
-		TypedElementInterface $variableObj,
-		array $resolvedOffsetsLhs,
-		Taintedness $taintedness,
-		bool $override,
-		Taintedness $errorTaint
-	): void {
 		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
 		// objects of which $variableObj is a clone!
 		$curTaint = self::getTaintednessRaw( $variableObj );
@@ -1033,6 +981,8 @@ trait TaintednessBaseVisitor {
 	 * @param TypedElementInterface $variableObj
 	 * @param Taintedness $allRHSTaint
 	 * @param Taintedness $rhsTaintedness
+	 * @param MethodLinks $rhsLinks
+	 * @param CausedByLines $rhsError
 	 * @param array $lhsOffsets
 	 * @phan-param list<Node|mixed> $lhsOffsets
 	 * @param bool $allowClearLHSData
@@ -1041,47 +991,38 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $variableObj,
 		Taintedness $allRHSTaint,
 		Taintedness $rhsTaintedness,
+		MethodLinks $rhsLinks,
+		CausedByLines $rhsError,
 		array $lhsOffsets,
 		bool $allowClearLHSData
 	): void {
-		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
-		// Note: If there is a local variable that is a reference
-		// to another non-local variable, this will probably incorrectly
-		// override the taint (Pass by reference variables are handled
-		// specially and should be ok).
-		$override = !( $variableObj instanceof Property );
-		$this->setTaintedness(
-			$variableObj,
-			$lhsOffsets,
-			$allRHSTaint,
-			$override,
-			$allowClearLHSData,
-			$rhsTaintedness
-		);
-	}
-
-	/**
-	 * @param TaintednessWithError $rhsTaintedness
-	 * @param TypedElementInterface $variableObj
-	 * @param array $lhsOffsets
-	 * @phan-param array<Node|mixed> $lhsOffsets
-	 */
-	private function setTaintDependenciesInAssignment(
-		TaintednessWithError $rhsTaintedness,
-		TypedElementInterface $variableObj,
-		array $lhsOffsets = []
-	): void {
 		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
-		$this->mergeTaintDependencies( $variableObj, $rhsTaintedness->getMethodLinks(), $lhsOffsets );
-		if ( $globalVarObj ) {
-			// Merge dependencies on the global copy as well
-			$this->mergeTaintDependencies( $globalVarObj, $rhsTaintedness->getMethodLinks(), $lhsOffsets );
+
+		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
+		// Note: If there is a local variable that is a reference to another non-local variable, this will not
+		// affect the non-local one (Pass by reference arguments are handled separately and work as expected).
+		$override = !( $variableObj instanceof Property ) && !$globalVarObj;
+		if ( $override && $allowClearLHSData && !$lhsOffsets ) {
+			// Clear any error and link before setting taintedness if we're overriding taint.
+			self::clearTaintError( $variableObj );
+			self::clearTaintLinks( $variableObj );
 		}
 
-		$lines = $rhsTaintedness->getError();
-		$this->mergeTaintError( $variableObj, $lines );
+		$this->setTaintedness( $variableObj, $lhsOffsets, $allRHSTaint, $override, $rhsTaintedness );
 		if ( $globalVarObj ) {
-			$this->mergeTaintError( $globalVarObj, $lines );
+			// Merge the taint on the "true" global object, too
+			$this->setTaintedness( $globalVarObj, $lhsOffsets, $allRHSTaint, false, $rhsTaintedness );
+		}
+
+		$this->mergeTaintDependencies( $variableObj, $rhsLinks, $lhsOffsets );
+		if ( $globalVarObj ) {
+			// Merge dependencies on the global copy as well
+			$this->mergeTaintDependencies( $globalVarObj, $rhsLinks, $lhsOffsets );
+		}
+
+		$this->mergeTaintError( $variableObj, $rhsError );
+		if ( $globalVarObj ) {
+			$this->mergeTaintError( $globalVarObj, $rhsError );
 		}
 	}
 
@@ -1531,7 +1472,7 @@ trait TaintednessBaseVisitor {
 			// when examining a function call. Inside the function body, we'll already have all the
 			// info we need, and actually, this extra taint would cause false positives with variable
 			// names reuse.
-			$this->setTaintednessOld( $var, $taint, false );
+			$this->addTaintedness( $var, $taint );
 		}
 
 		$newMem = memory_get_peak_usage();
@@ -1638,10 +1579,7 @@ trait TaintednessBaseVisitor {
 			assert( $var instanceof TypedElementInterface );
 
 			$curVarTaint = $this->getTaintednessPhanObj( $var );
-			$newTaint = $curVarTaint->withObj( $taintAdjusted );
-			// $this->debug( __METHOD__, "handling $var as dependent yes" .
-			// " of $method($i). Prev=$curVarTaint; new=$newTaint" );
-			$this->setTaintednessOld( $var, $newTaint );
+			$this->addTaintedness( $var, $taintAdjusted );
 			$this->mergeTaintError( $var, $error );
 			if (
 				$var instanceof Property &&
@@ -2357,10 +2295,11 @@ trait TaintednessBaseVisitor {
 			// Watch out for nested references, and do not reset taint in that case, yet
 			$overrideTaint = false;
 		}
+		$globalVarObj = $argObj instanceof GlobalVariable ? $argObj->getElement() : null;
 		// Move the ref taintedness to the "actual" taintedness of the object
 		// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
 		// we never override arg taint for reference params in this case.
-		$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $isHookHandler );
+		$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $globalVarObj || $isHookHandler );
 		$refTaint = self::getTaintednessRef( $argObj ) ?? Taintedness::newSafe();
 		// The call itself is only responsible if it adds some taintedness
 		$errTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT );
@@ -2371,7 +2310,10 @@ trait TaintednessBaseVisitor {
 				->asMergedWith( $this->getTaintednessPhanObj( $argObj ) );
 		}
 
-		$this->setTaintednessOld( $argObj, $refTaint, $overrideTaint, false, $errTaint );
+		$this->setTaintedness( $argObj, [], $refTaint, $overrideTaint, $errTaint );
+		if ( $globalVarObj ) {
+			$this->setTaintedness( $globalVarObj, [], $refTaint, false, $errTaint );
+		}
 		if ( $overrideTaint ) {
 			self::clearTaintednessRef( $argObj );
 		}
