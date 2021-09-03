@@ -20,23 +20,23 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	/** @var Taintedness */
 	private $taintedness;
 
-	/** @var TypedElementInterface|null */
-	private $trigger;
+	/** @var CausedByLines|null */
+	private $additionalError;
 
 	/**
 	 * @inheritDoc
 	 * @param Taintedness $taintedness
-	 * @param TypedElementInterface|null $trigger
+	 * @param CausedByLines|null $additionalError
 	 */
 	public function __construct(
 		CodeBase $code_base,
 		Context $context,
 		Taintedness $taintedness,
-		TypedElementInterface $trigger = null
+		CausedByLines $additionalError = null
 	) {
 		parent::__construct( $code_base, $context );
 		$this->taintedness = $taintedness;
-		$this->trigger = $trigger;
+		$this->additionalError = $additionalError;
 	}
 
 	/**
@@ -297,7 +297,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 */
 	private function doBackpropElements( ?TypedElementInterface ...$elements ): void {
 		foreach ( array_unique( array_filter( $elements ) ) as $el ) {
-			$this->markAllDependentMethodsExec( $el, $this->taintedness, $this->trigger );
+			$this->markAllDependentMethodsExec( $el, $this->taintedness, $this->additionalError );
 		}
 	}
 }

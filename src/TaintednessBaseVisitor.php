@@ -172,10 +172,10 @@ trait TaintednessBaseVisitor {
 	 * or its not a local variable).
 	 *
 	 * @param TypedElementInterface $left (LHS-ish variable)
-	 * @param CausedByLines|TypedElementInterface $rightError Error, or a phan object to get error from
+	 * @param CausedByLines $rightError
 	 * @param int $arg If $left is a Function, which arg
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, $rightError, int $arg = -1 ): void {
+	protected function mergeTaintError( TypedElementInterface $left, CausedByLines $rightError, int $arg = -1 ): void {
 		assert( $arg === -1 || $left instanceof FunctionInterface );
 
 		if (
@@ -194,10 +194,6 @@ trait TaintednessBaseVisitor {
 		}
 		assert( $leftError instanceof CausedByLines );
 
-		if ( $rightError instanceof TypedElementInterface ) {
-			$rightError = $this->getCausedByLines( $rightError );
-		}
-		assert( $rightError instanceof CausedByLines );
 		if ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) {
 			$newLeftError = $rightError;
 		} elseif ( !$rightError->isEmpty() && !$leftError->isSupersetOf( $rightError ) ) {
@@ -1461,12 +1457,12 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $var The variable in question
 	 * @param Taintedness $taint What taint to mark them as.
-	 * @param TypedElementInterface|null $triggeringElm To propagate caused-by lines
+	 * @param CausedByLines|null $additionalError Any extra caused-by lines to add
 	 */
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
 		Taintedness $taint,
-		TypedElementInterface $triggeringElm = null
+		CausedByLines $additionalError = null
 	): void {
 		$futureTaint = $this->getPossibleFutureTaintOfElement( $var );
 		if ( $futureTaint !== null && !$futureTaint->has( $taint->get() ) ) {
@@ -1482,6 +1478,7 @@ trait TaintednessBaseVisitor {
 		if ( $varLinks === null || $varLinks->isEmpty() ) {
 			return;
 		}
+		$varCausedBy = self::getCausedByRawCloneOrEmpty( $var );
 
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
@@ -1506,9 +1503,9 @@ trait TaintednessBaseVisitor {
 				}
 				$this->setFuncTaint( $method, $paramTaint );
 				// TODO: Ideally we would merge taint error per argument
-				$this->mergeTaintError( $method, $var );
-				if ( $triggeringElm ) {
-					$this->mergeTaintError( $method, $triggeringElm );
+				$this->mergeTaintError( $method, $varCausedBy );
+				if ( $additionalError ) {
+					$this->mergeTaintError( $method, $additionalError );
 				}
 			}
 		}
@@ -1561,13 +1558,13 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Node $node
 	 * @param Taintedness $taint What taint to mark them as.
-	 * @param TypedElementInterface|null $triggeringElm To propagate caused-by lines
+	 * @param CausedByLines|null $additionalError Additional caused-by lines to propagate
 	 * @param bool $tempNumkey Temporary param
 	 */
 	protected function markAllDependentMethodsExecForNode(
 		Node $node,
 		Taintedness $taint,
-		TypedElementInterface $triggeringElm = null,
+		CausedByLines $additionalError = null,
 		bool $tempNumkey = false
 	): void {
 		if ( !$tempNumkey ) {
@@ -1575,14 +1572,14 @@ trait TaintednessBaseVisitor {
 				$this->code_base,
 				$this->context,
 				$taint,
-				$triggeringElm
+				$additionalError
 			);
 			$backpropVisitor( $node );
 			return;
 		}
 		$phanObjs = $this->getObjsForNodeForNumkeyBackprop( $node );
 		foreach ( array_unique( $phanObjs ) as $phanObj ) {
-			$this->markAllDependentMethodsExec( $phanObj, $taint, $triggeringElm );
+			$this->markAllDependentMethodsExec( $phanObj, $taint, $additionalError );
 		}
 	}
 
@@ -1662,14 +1659,14 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get the original cause of taint for the given phan element.
+	 * Get the original cause of taint for the given func
 	 *
-	 * @param TypedElementInterface $element
-	 * @param int $arg [optional] For functions what arg. -1 for overall.
+	 * @param FunctionInterface $element
+	 * @param int $arg What arg, -1 for overall.
 	 * @return CausedByLines
 	 */
-	private function getCausedByLines( TypedElementInterface $element, int $arg = -1 ): CausedByLines {
-		$element = $this->getActualElementWithCausedBy( $element );
+	private function getCausedByLinesForFunc( FunctionInterface $element, int $arg = -1 ): CausedByLines {
+		$element = $this->getActualFuncWithCausedBy( $element );
 		if ( $arg === -1 ) {
 			$lines = self::getCausedByRawCloneOrEmpty( $element );
 			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
@@ -1679,9 +1676,13 @@ trait TaintednessBaseVisitor {
 				$lines->mergeWith( $origArg );
 			}
 		} else {
-			assert( $element instanceof FunctionInterface );
 			$argErr = $this->getTaintErrorByArg( $element, $arg );
-			$overallFuncErr = self::getCausedByRaw( $element ) ?? new CausedByLines();
+			$overallFuncErr = self::getCausedByRaw( $element );
+
+			if ( !$overallFuncErr ) {
+				return $argErr;
+			}
+
 			if ( $argErr->isEmpty() || $overallFuncErr->isSupersetOf( $argErr ) ) {
 				$lines = $overallFuncErr;
 			} elseif ( $overallFuncErr->isEmpty() || $argErr->isSupersetOf( $overallFuncErr ) ) {
@@ -1698,14 +1699,10 @@ trait TaintednessBaseVisitor {
 	 * Given a phan element, get the actual element where caused-by data is stored. For instance, for methods, this
 	 * returns the defining methods.
 	 *
-	 * @param TypedElementInterface $element
-	 * @return TypedElementInterface
+	 * @param FunctionInterface $element
+	 * @return FunctionInterface
 	 */
-	private function getActualElementWithCausedBy( TypedElementInterface $element ): TypedElementInterface {
-		if ( !$element instanceof FunctionInterface ) {
-			return $element;
-		}
-
+	private function getActualFuncWithCausedBy( FunctionInterface $element ): FunctionInterface {
 		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $element->getFQSEN() ) ) {
 			return $element;
 		}
@@ -2055,6 +2052,7 @@ trait TaintednessBaseVisitor {
 	): ?TaintednessWithError {
 		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
+		$funcError = $this->getCausedByLinesForFunc( $func );
 
 		if ( $computePreserve ) {
 			$overallArgTaint = Taintedness::newSafe();
@@ -2129,7 +2127,7 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
-				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $func );
+				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
@@ -2149,7 +2147,7 @@ trait TaintednessBaseVisitor {
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$this->getCausedByLines( $func, $i )->toStringForIssue( $paramSinkTaint ),
+					$this->getCausedByLinesForFunc( $func, $i )->toStringForIssue( $paramSinkTaint ),
 					$baseArgError->toStringForIssue( $paramSinkTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
@@ -2187,7 +2185,7 @@ trait TaintednessBaseVisitor {
 		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
 		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
-		$callError = $this->getCausedByLines( $func )->asMergedWith( $argErrors );
+		$callError = $funcError->asMergedWith( $argErrors );
 		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::newEmpty() );
 	}
 
@@ -2214,7 +2212,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param Node $argument
 	 * @param Taintedness $taint
-	 * @param FunctionInterface|null $func
+	 * @param CausedByLines|null $funcError
 	 *
 	 * @todo This has false negatives, because we don't collect function arguments in
 	 * getPhanObjsForNode (we'd have to pass option 'all'), so we can't handle e.g. array_merge
@@ -2228,7 +2226,7 @@ trait TaintednessBaseVisitor {
 	protected function backpropagateArgTaint(
 		Node $argument,
 		Taintedness $taint,
-		FunctionInterface $func = null
+		CausedByLines $funcError = null
 	): void {
 		if ( $taint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) ) {
 			// Special case for numkey, we need to "filter" the argument.
@@ -2239,11 +2237,11 @@ trait TaintednessBaseVisitor {
 			// TODO This should be limited to the outer array, see TODO in backpropnumkey test
 			// Note that this is true in general for NUMKEY taint, not just when backpropagating it
 			$numkeyTaint = $taint->withOnly( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
-			$this->markAllDependentMethodsExecForNode( $argument, $numkeyTaint, $func, true );
+			$this->markAllDependentMethodsExecForNode( $argument, $numkeyTaint, $funcError, true );
 			$taint = $taint->without( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT );
 		}
 
-		$this->markAllDependentMethodsExecForNode( $argument, $taint, $func );
+		$this->markAllDependentMethodsExecForNode( $argument, $taint, $funcError );
 	}
 
 	/**
