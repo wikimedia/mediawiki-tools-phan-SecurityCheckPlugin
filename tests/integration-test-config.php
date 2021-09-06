@@ -244,6 +244,7 @@ return [
 		'SecurityCheck-OTHER',
 		'SecurityCheck-LikelyFalsePositive',
 		'SecurityCheckDebugTaintedness',
+		'SecurityCheckInvalidAnnotation',
 		// These are to make testing easier
 		'PhanDebugAnnotation',
 		// Uncomment when needed, cannot be left in place because it might be emitted

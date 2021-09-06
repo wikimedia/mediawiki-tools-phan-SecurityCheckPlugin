@@ -1,3 +1,5 @@
+integration/docblock-interface/Foo.php:37 SecurityCheckInvalidAnnotation Invalid return taintedness 'fdasdfa_html'
+integration/docblock-interface/IFoo.php:47 SecurityCheckInvalidAnnotation Invalid return taintedness 'fdasdfa_html'
 integration/docblock-interface/test.php:6 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/docblock-interface/IFoo.php +11)
 integration/docblock-interface/test.php:12 SecurityCheck-DoubleEscaped Calling method \Foo::escapeHTML() in [no method] that outputs using tainted argument #1 (`$foo->escapeHTML('foo')`). (Caused by: integration/docblock-interface/IFoo.php +6) (Caused by: integration/docblock-interface/IFoo.php +6)
 integration/docblock-interface/test.php:17 SecurityCheck-SQLInjection Calling method \Foo::doQuery() in [no method] that outputs using tainted argument #1 (`$foo->getUserInput()`). (Caused by: integration/docblock-interface/IFoo.php +22) (Caused by: integration/docblock-interface/IFoo.php +16)

@@ -1,0 +1,5 @@
+integration/invalidannotations/test.php:6 SecurityCheckInvalidAnnotation Cannot parse taint line '@param-taint none'
+integration/invalidannotations/test.php:12 SecurityCheckInvalidAnnotation Cannot parse taint line '@param-taint $x'
+integration/invalidannotations/test.php:18 SecurityCheckInvalidAnnotation Invalid param taintedness 'invalid'
+integration/invalidannotations/test.php:24 SecurityCheckInvalidAnnotation Invalid return taintedness 'invalid'
+integration/invalidannotations/test.php:30 SecurityCheckInvalidAnnotation Return taintedness cannot be exec

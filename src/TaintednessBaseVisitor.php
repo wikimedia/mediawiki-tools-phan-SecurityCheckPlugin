@@ -616,6 +616,16 @@ trait TaintednessBaseVisitor {
 			return null;
 		}
 		$lines = explode( "\n", $docBlock );
+		/** @param string[] $args */
+		$invalidLineIssueEmitter = function ( string $msg, array $args ): void {
+			SecurityCheckPlugin::emitIssue(
+				$this->code_base,
+				$this->context,
+				'SecurityCheckInvalidAnnotation',
+				$msg,
+				$args
+			);
+		};
 		$validTaintEncountered = false;
 		// Assume that if some of the taint is specified, then
 		// the person would specify all the dangerous taints, so
@@ -624,7 +634,13 @@ trait TaintednessBaseVisitor {
 		$funcTaint = new FunctionTaintedness( Taintedness::newSafe() );
 		foreach ( $lines as $line ) {
 			$m = [];
-			if ( preg_match( SecurityCheckPlugin::PARAM_ANNOTATION_REGEX, $line, $m ) ) {
+			$trimmedLine = ltrim( rtrim( $line ), "* \t/" );
+			if ( strpos( $trimmedLine, '@param-taint' ) === 0 ) {
+				$matched = preg_match( SecurityCheckPlugin::PARAM_ANNOTATION_REGEX, $trimmedLine, $m );
+				if ( !$matched ) {
+					$invalidLineIssueEmitter( "Cannot parse taint line '{COMMENT}'", [ $trimmedLine ] );
+					continue;
+				}
 				$paramNumber = $this->getParamNumberGivenName( $func, $m['paramname'] );
 				// TODO: Should we check the real signature, rather than relying on the annotation?
 				// Probably yes, as currently we're 100% trusting the annotation, but it might be wrong.
@@ -633,45 +649,49 @@ trait TaintednessBaseVisitor {
 					continue;
 				}
 				$taintData = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
-				if ( $taintData !== null ) {
-					/** @var Taintedness $taint */
-					[ $taint, $flags ] = $taintData;
-					$sinkTaint = $taint->withOnly( SecurityCheckPlugin::ALL_EXEC_TAINT );
-					$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT )->asPreservedTaintedness();
-					if ( $isVariadic ) {
-						$funcTaint->setVariadicParamSinkTaint( $paramNumber, $sinkTaint );
-						$funcTaint->setVariadicParamPreservedTaint( $paramNumber, $preserveTaint );
-						$funcTaint->addVariadicParamFlags( $flags );
-					} else {
-						$funcTaint->setParamSinkTaint( $paramNumber, $sinkTaint );
-						$funcTaint->setParamPreservedTaint( $paramNumber, $preserveTaint );
-						$funcTaint->addParamFlags( $paramNumber, $flags );
-					}
-					$validTaintEncountered = true;
-					if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
-						// Special case to auto-set anything that escapes html to detect double escaping.
-						$funcTaint->setOverall( $funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT ) );
-					}
-				} else {
-					$this->debug( __METHOD__, "Could not " .
-						"understand taint line '" . $m['taint'] . "'" );
+				if ( $taintData === null ) {
+					$invalidLineIssueEmitter( "Invalid param taintedness '{COMMENT}'", [ $m['taint'] ] );
+					continue;
 				}
-			} elseif ( strpos( $line, '@return-taint' ) !== false ) {
-				$taintLine = substr(
-					$line,
-					strpos( $line, '@return-taint' ) + strlen( '@return-taint' ) + 1
-				);
+				/** @var Taintedness $taint */
+				[ $taint, $flags ] = $taintData;
+				$sinkTaint = $taint->withOnly( SecurityCheckPlugin::ALL_EXEC_TAINT );
+				$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT )->asPreservedTaintedness();
+				if ( $isVariadic ) {
+					$funcTaint->setVariadicParamSinkTaint( $paramNumber, $sinkTaint );
+					$funcTaint->setVariadicParamPreservedTaint( $paramNumber, $preserveTaint );
+					$funcTaint->addVariadicParamFlags( $flags );
+				} else {
+					$funcTaint->setParamSinkTaint( $paramNumber, $sinkTaint );
+					$funcTaint->setParamPreservedTaint( $paramNumber, $preserveTaint );
+					$funcTaint->addParamFlags( $paramNumber, $flags );
+				}
+				$validTaintEncountered = true;
+				if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
+					// Special case to auto-set anything that escapes html to detect double escaping.
+					$funcTaint->setOverall( $funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT ) );
+				}
+			} elseif ( strpos( $trimmedLine, '@return-taint' ) === 0 ) {
+				$taintLine = substr( $trimmedLine, strlen( '@return-taint' ) + 1 );
 				$taintData = SecurityCheckPlugin::parseTaintLine( $taintLine );
-				if ( $taintData !== null ) {
-					[ $taint, $flags ] = $taintData;
-					$funcTaint->setOverall( $taint );
-					$funcTaint->addOverallFlags( $flags );
-					$validTaintEncountered = true;
-				} else {
-					$this->debug( __METHOD__, "Could not " .
-						"understand return taint '$taintLine'" );
+				if ( $taintData === null ) {
+					$invalidLineIssueEmitter( "Invalid return taintedness '{COMMENT}'", [ $taintLine ] );
+					continue;
 				}
+				/** @var Taintedness $taint */
+				[ $taint, $flags ] = $taintData;
+				if ( $taint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
+					$invalidLineIssueEmitter( "Return taintedness cannot be exec", [] );
+					continue;
+				}
+				$funcTaint->setOverall( $taint );
+				$funcTaint->addOverallFlags( $flags );
+				$validTaintEncountered = true;
 			}
+		}
+
+		if ( !$validTaintEncountered ) {
+			$this->debug( __METHOD__, 'Possibly wrong taint annotation in docblock: ' . json_encode( $docBlock ) );
 		}
 
 		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $validTaintEncountered ? clone $funcTaint : null;
