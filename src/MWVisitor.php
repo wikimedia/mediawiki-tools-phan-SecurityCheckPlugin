@@ -438,8 +438,6 @@ class MWVisitor extends TaintednessVisitor {
 		}
 		$select = $this->code_base->getMethodByFQSEN( $selectFQSEN );
 		// TODO: The message about calling Database::select here is not very clear.
-		// TODO: The issue line here can be different in php-ast and polyfill, see
-		// test getqueryinfo if you try to add a linebreak after the first bracket at line 13
 		$this->handleMethodCall( $select, $selectFQSEN, $args, false );
 		if ( isset( $args[4] ) ) {
 			$this->checkSQLOptions( $args[4] );
