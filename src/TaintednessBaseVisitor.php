@@ -1578,36 +1578,11 @@ trait TaintednessBaseVisitor {
 	 * Get the original cause of taint for the given func
 	 *
 	 * @param FunctionInterface $element
-	 * @param int $arg What arg, -1 for overall.
-	 * @return CausedByLines
+	 * @return FunctionCausedByLines
 	 */
-	private function getCausedByLinesForFunc( FunctionInterface $element, int $arg = -1 ): CausedByLines {
+	private function getCausedByLinesForFunc( FunctionInterface $element ): FunctionCausedByLines {
 		$element = $this->getActualFuncWithCausedBy( $element );
-		if ( $arg === -1 ) {
-			$funcErr = self::getFuncCausedByRawCloneOrEmpty( $element );
-			// FIXME is this right? In the generic
-			// case should we include all arguments as
-			// well?
-			$lines = $funcErr->getAllLinesMerged();
-		} else {
-			$funcErr = self::getFuncCausedByRaw( $element );
-			if ( !$funcErr ) {
-				return new CausedByLines();
-			}
-
-			$argErr = $funcErr->getParamLines( $arg );
-			$overallFuncErr = $funcErr->getGenericLines();
-
-			if ( $argErr->isEmpty() || $overallFuncErr->isSupersetOf( $argErr ) ) {
-				$lines = $overallFuncErr;
-			} elseif ( $overallFuncErr->isEmpty() || $argErr->isSupersetOf( $overallFuncErr ) ) {
-				$lines = $argErr;
-			} else {
-				$lines = $argErr->asMergedWith( $overallFuncErr );
-			}
-		}
-
-		return $lines;
+		return self::getFuncCausedByRawCloneOrEmpty( $element );
 	}
 
 	/**
@@ -1946,6 +1921,8 @@ trait TaintednessBaseVisitor {
 		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
 		$funcError = $this->getCausedByLinesForFunc( $func );
+		// FIXME is this right? In the generic case should we include all arguments as well?
+		$allFuncError = $funcError->getAllLinesMerged();
 
 		if ( $computePreserve ) {
 			$overallArgTaint = Taintedness::newSafe();
@@ -2020,7 +1997,7 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
-				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError );
+				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $allFuncError );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
@@ -2032,15 +2009,15 @@ trait TaintednessBaseVisitor {
 
 			// TODO PHP 7.4 arrow functions would be very much useful here.
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			$msgArgsGetter = function () use (
-				$funcName, $containingMethod, $taintedArg, $func, $paramSinkTaint, $i,
+			$msgArgsGetter = static function () use (
+				$funcName, $containingMethod, $taintedArg, $funcError, $paramSinkTaint, $i,
 				$isRawParam, $baseArgError
 			): array {
 				return [
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$this->getCausedByLinesForFunc( $func, $i )->toStringForIssue( $paramSinkTaint ),
+					$funcError->getParamLinesForIssue( $i )->toStringForIssue( $paramSinkTaint ),
 					$baseArgError->toStringForIssue( $paramSinkTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
@@ -2091,7 +2068,7 @@ trait TaintednessBaseVisitor {
 		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
 		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
-		$callError = $funcError->asMergedWith( $argErrors );
+		$callError = $allFuncError->asMergedWith( $argErrors );
 		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::newEmpty() );
 	}
 

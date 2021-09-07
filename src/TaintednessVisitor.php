@@ -1083,7 +1083,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 
-		$paramTaint = new FunctionTaintedness( Taintedness::newUnknown() );
+		$paramTaint = new FunctionTaintedness( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
 
 		$links = $retTaintednessWithError->getMethodLinks();
 		// Note, not forCaller, as that doesn't see variadic parameters
@@ -1097,7 +1097,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			}
 		}
 
-		$paramTaint->setOverall( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
 		$this->setFuncTaint( $func, $paramTaint );
 		$this->mergeFuncGenericTaintError( $func, $retTaintednessWithError->getError() );
 	}
