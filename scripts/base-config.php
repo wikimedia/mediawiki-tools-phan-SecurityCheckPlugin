@@ -75,6 +75,7 @@ return [
 		'SecurityCheck-LikelyFalsePositive',
 		'PhanSyntaxError',
 		'SecurityCheckDebugTaintedness',
+		'SecurityCheckInvalidAnnotation',
 	],
 
 	/**
