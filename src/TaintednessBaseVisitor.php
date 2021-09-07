@@ -864,6 +864,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		assert( is_scalar( $expr ) || $expr === null );
+		// Optim: avoid using TaintednessWithError::newEmpty()
 		return new TaintednessWithError(
 			new Taintedness( SecurityCheckPlugin::NO_TAINT ),
 			new CausedByLines(),
@@ -893,21 +894,15 @@ trait TaintednessBaseVisitor {
 		// more than once on different lines (see test 'multilineissue').
 		$oldLine = $this->context->getLineNumberStart();
 		$this->context->setLineNumberStart( $node->lineno );
-		/** @var Taintedness $taint */
-		$taint = null;
-		$lines = null;
-		$links = null;
 
+		$visitor = new TaintednessVisitor( $this->code_base, $this->context );
 		try {
-			( new TaintednessVisitor( $this->code_base, $this->context, $taint, $lines, $links ) )(
-				$node
-			);
-
-			$node->taint = new TaintednessWithError( clone $taint, $lines, clone $links );
-			return $node->taint;
+			$visitor( $node );
 		} finally {
 			$this->context->setLineNumberStart( $oldLine );
 		}
+		$node->taint = $visitor->getTaintednessWithErrorAfterAnalysis();
+		return $node->taint;
 	}
 
 	/**

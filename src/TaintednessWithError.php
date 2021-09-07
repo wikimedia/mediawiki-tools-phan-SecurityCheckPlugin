@@ -27,6 +27,10 @@ class TaintednessWithError {
 		$this->methodLinks = $methodLinks;
 	}
 
+	public static function newEmpty(): self {
+		return new self( Taintedness::newSafe(), new CausedByLines(), MethodLinks::newEmpty() );
+	}
+
 	/**
 	 * @return Taintedness
 	 */
@@ -46,5 +50,30 @@ class TaintednessWithError {
 	 */
 	public function getMethodLinks(): MethodLinks {
 		return $this->methodLinks;
+	}
+
+	/**
+	 * @param TaintednessWithError $other
+	 */
+	public function mergeWith( self $other ): void {
+		$this->taintedness->mergeWith( $other->taintedness );
+		$this->error->mergeWith( $other->error );
+		$this->methodLinks->mergeWith( $other->methodLinks );
+	}
+
+	/**
+	 * @param self $other
+	 * @return self
+	 */
+	public function asMergedWith( self $other ): self {
+		$ret = clone $this;
+		$ret->mergeWith( $other );
+		return $ret;
+	}
+
+	public function __clone() {
+		$this->taintedness = clone $this->taintedness;
+		$this->error = clone $this->error;
+		$this->methodLinks = clone $this->methodLinks;
 	}
 }
