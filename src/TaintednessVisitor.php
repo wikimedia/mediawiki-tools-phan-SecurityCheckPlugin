@@ -1099,7 +1099,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$paramTaint->setOverall( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
 		$this->setFuncTaint( $func, $paramTaint );
-		$this->mergeTaintError( $func, $retTaintednessWithError->getError() );
+		$this->mergeFuncTaintError( $func, $retTaintednessWithError->getError() );
 	}
 
 	/**
