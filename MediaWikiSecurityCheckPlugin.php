@@ -28,7 +28,9 @@ use Phan\CodeBase;
 use Phan\Exception\CodeBaseException;
 use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
+use Phan\Language\Element\Method;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
+use Phan\Language\Type\GenericArrayType;
 use SecurityCheckPlugin\FunctionTaintedness;
 use SecurityCheckPlugin\MWPreVisitor;
 use SecurityCheckPlugin\MWVisitor;
@@ -67,9 +69,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		$insertTaint->setParamSinkTaint( 0, new Taintedness( self::SQL_EXEC_TAINT ) );
 		$insertTaint->addParamFlags( 0, self::NO_OVERRIDE );
 		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
-		// FIXME This doesn't correctly work when inserting multiple things at once.
-		$insertRowsTaint = new Taintedness( self::SQL_NUMKEY_EXEC_TAINT );
-		$insertTaint->setParamSinkTaint( 1, $insertRowsTaint );
+		// Note, here we are assuming the single row case. The multiple rows case is handled in modifyParamSinkTaint.
+		$sqlExecKeysTaint = Taintedness::newSafe();
+		$sqlExecKeysTaint->addKeysTaintedness( self::SQL_EXEC_TAINT );
+		$insertTaint->setParamSinkTaint( 1, $sqlExecKeysTaint );
 		$insertTaint->addParamFlags( 1, self::NO_OVERRIDE );
 		// method name
 		$insertTaint->setParamSinkTaint( 2, new Taintedness( self::SQL_EXEC_TAINT ) );
@@ -190,6 +193,50 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Special-case the $rows argument to Database::insert (T290563)
+	 * @inheritDoc
+	 * @suppress PhanUnusedPublicMethodParameter
+	 */
+	public function modifyParamSinkTaint(
+		Taintedness $paramSinkTaint,
+		Taintedness $curArgTaintedness,
+		Node $argument,
+		int $argIndex,
+		FunctionInterface $func,
+		FunctionTaintedness $funcTaint,
+		Context $context,
+		CodeBase $code_base
+	): Taintedness {
+		if ( !$func instanceof Method || $argIndex !== 1 || $func->getName() !== 'insert' ) {
+			return $paramSinkTaint;
+		}
+
+		$classFQSEN = $func->getClassFQSEN();
+		if ( $classFQSEN->__toString() !== '\\Wikimedia\\Rdbms\\Database' ) {
+			$idbFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( '\\Wikimedia\\Rdbms\\IDatabase' );
+			$isDBSubclass = $classFQSEN->asType()->asExpandedTypes( $code_base )->hasType( $idbFQSEN->asType() );
+			if ( !$isDBSubclass ) {
+				return $paramSinkTaint;
+			}
+		}
+
+		$argType = UnionTypeVisitor::unionTypeFromNode( $code_base, $context, $argument );
+		$keyType = GenericArrayType::keyUnionTypeFromTypeSetStrict( $argType->getTypeSet() );
+		if ( $keyType !== GenericArrayType::KEY_INT ) {
+			// Note, it might still be an array of rows, but it's too hard for us to tell.
+			return $paramSinkTaint;
+		}
+
+		// Definitely a list of rows, so remove taintedness from the outer array keys, and instead add it to the
+		// keys of inner arrays.
+		$sqlExecKeysTaint = Taintedness::newSafe();
+		$sqlExecKeysTaint->addKeysTaintedness( self::SQL_EXEC_TAINT );
+		$adjustedParamTaint = Taintedness::newSafe();
+		$adjustedParamTaint->setOffsetTaintedness( null, $sqlExecKeysTaint );
+		return $adjustedParamTaint;
 	}
 
 	/**

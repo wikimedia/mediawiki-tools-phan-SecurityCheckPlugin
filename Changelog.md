@@ -8,6 +8,7 @@
 ### New features
 * getCustomFuncTaints implementations can now return FunctionTaintedness objects directly, in addition to arrays.
 * Array keys (and shapes in general) are now tracked more granularly when backpropagating the effects of a function call.
+* (MW) Analyze the `$rows` argument to `Database::insert()` more accurately.
 
 ## v5.0.0
 ### Breaking changes

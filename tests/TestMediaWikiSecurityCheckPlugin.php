@@ -27,9 +27,10 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertTaint->setParamSinkTaint( 0, new Taintedness( self::SQL_EXEC_TAINT ) );
 		$insertTaint->addParamFlags( 0, self::NO_OVERRIDE );
 		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
-		// FIXME This doesn't correctly work when inserting multiple things at once.
-		$insertRowsTaint = new Taintedness( self::SQL_NUMKEY_EXEC_TAINT );
-		$insertTaint->setParamSinkTaint( 1, $insertRowsTaint );
+		// Note, here we are assuming the single row case. The multiple rows case is handled in modifyParamSinkTaint.
+		$sqlExecKeysTaint = Taintedness::newSafe();
+		$sqlExecKeysTaint->addKeysTaintedness( self::SQL_EXEC_TAINT );
+		$insertTaint->setParamSinkTaint( 1, $sqlExecKeysTaint );
 		$insertTaint->addParamFlags( 1, self::NO_OVERRIDE );
 		// method name
 		$insertTaint->setParamSinkTaint( 2, new Taintedness( self::SQL_EXEC_TAINT ) );

@@ -643,6 +643,36 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	}
 
 	/**
+	 * Hook to override the sink taintedness of a method parameter depending on the current argument.
+	 *
+	 * @internal This method is unstable and may be removed without prior notice.
+	 *
+	 * @param Taintedness $paramSinkTaint
+	 * @param Taintedness $curArgTaintedness
+	 * @param Node $argument Note: This hook is not called on literals
+	 * @param int $argIndex Which argument number is this
+	 * @param FunctionInterface $func The function/method being called
+	 * @param FunctionTaintedness $funcTaint Taint of method formal parameters
+	 * @param Context $context Context object
+	 * @param CodeBase $code_base CodeBase object
+	 * @return Taintedness The taint to use for actual parameter
+	 * @suppress PhanUnusedPublicMethodParameter
+	 */
+	public function modifyParamSinkTaint(
+		Taintedness $paramSinkTaint,
+		Taintedness $curArgTaintedness,
+		Node $argument,
+		int $argIndex,
+		FunctionInterface $func,
+		FunctionTaintedness $funcTaint,
+		Context $context,
+		CodeBase $code_base
+	): Taintedness {
+		// no-op
+		return $paramSinkTaint;
+	}
+
+	/**
 	 * Hook to override how taint of an argument to method call is calculated
 	 *
 	 * @param Taintedness $curArgTaintedness

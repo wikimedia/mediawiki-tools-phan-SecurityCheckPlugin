@@ -1819,6 +1819,17 @@ trait TaintednessBaseVisitor {
 				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 
+			$paramSinkTaint = SecurityCheckPlugin::$pluginInstance->modifyParamSinkTaint(
+				$paramSinkTaint,
+				$curArgTaintedness,
+				$argument,
+				$i,
+				$func,
+				$taint,
+				$this->context,
+				$this->code_base
+			);
+
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
 			// the Message class doesn't have double escape taint if method takes Message|string.
 			// TODO This is quite hacky.

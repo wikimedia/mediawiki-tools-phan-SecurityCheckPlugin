@@ -1,0 +1,3 @@
+integration/numkeyassignment2/test.php:12 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}
+integration/numkeyassignment2/test.php:16 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}
+integration/numkeyassignment2/test.php:20 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {0 => {Own: YES}}}
