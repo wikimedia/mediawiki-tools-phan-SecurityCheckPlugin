@@ -1011,22 +1011,22 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * @param TypedElementInterface $variableObj
-	 * @param Taintedness $allRHSTaint
-	 * @param Taintedness $rhsTaintedness
+	 * @param Taintedness $rhsTaint
 	 * @param MethodLinks $rhsLinks
 	 * @param CausedByLines $rhsError
+	 * @param Taintedness $errorTaint
 	 * @param array $lhsOffsets
 	 * @phan-param list<Node|mixed> $lhsOffsets
-	 * @param bool $allowClearLHSData
+	 * @param bool $isAssignOp Whether it's an assign op like .= (and not normal =)
 	 */
 	private function doAssignmentSingleElement(
 		TypedElementInterface $variableObj,
-		Taintedness $allRHSTaint,
-		Taintedness $rhsTaintedness,
+		Taintedness $rhsTaint,
 		MethodLinks $rhsLinks,
 		CausedByLines $rhsError,
+		Taintedness $errorTaint,
 		array $lhsOffsets,
-		bool $allowClearLHSData
+		bool $isAssignOp
 	): void {
 		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
 
@@ -1034,7 +1034,7 @@ trait TaintednessBaseVisitor {
 		// Note: If there is a local variable that is a reference to another non-local variable, this will not
 		// affect the non-local one (Pass by reference arguments are handled separately and work as expected).
 		$override = !( $variableObj instanceof Property ) && !$globalVarObj;
-		if ( $override && $allowClearLHSData && !$lhsOffsets ) {
+		if ( $override && !$isAssignOp && !$lhsOffsets ) {
 			// Clear any error and link before setting taintedness if we're overriding taint.
 			self::clearTaintError( $variableObj );
 			self::clearTaintLinks( $variableObj );
@@ -1042,7 +1042,6 @@ trait TaintednessBaseVisitor {
 
 		$offsetsTaint = $this->getKeysTaintednessList( $lhsOffsets );
 		// In case of assign ops, add a caused-by line only with the taintedness actually being added.
-		$errorTaint = $rhsTaintedness;
 		foreach ( $offsetsTaint as $keyTaint ) {
 			$errorTaint->addKeysTaintedness( $keyTaint->get() );
 		}
@@ -1052,10 +1051,10 @@ trait TaintednessBaseVisitor {
 			$curTaint = self::getTaintednessRaw( $variableObj );
 			$offsetOverride = $overrideTaint && $this->wereAllKeysResolved( $lhsOffsets );
 			$newTaint = $curTaint ? clone $curTaint : Taintedness::newSafe();
-			$newTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $allRHSTaint, $offsetOverride );
+			$newTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $rhsTaint, $offsetOverride );
 			$overrideTaint = true;
 		} else {
-			$newTaint = $allRHSTaint;
+			$newTaint = $rhsTaint;
 		}
 		$this->setTaintedness( $variableObj, $newTaint, $overrideTaint );
 		$this->addTaintError( $errorTaint, $variableObj );
@@ -1066,10 +1065,10 @@ trait TaintednessBaseVisitor {
 			if ( $lhsOffsets ) {
 				$curGlobalTaint = self::getTaintednessRaw( $globalVarObj );
 				$newGlobalTaint = $curGlobalTaint ? clone $curGlobalTaint : Taintedness::newSafe();
-				$newGlobalTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $allRHSTaint, false );
+				$newGlobalTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $rhsTaint, false );
 				$overrideGlobalTaint = true;
 			} else {
-				$newGlobalTaint = $allRHSTaint;
+				$newGlobalTaint = $rhsTaint;
 			}
 			$this->setTaintedness( $globalVarObj, $newGlobalTaint, $overrideGlobalTaint );
 			$this->addTaintError( $errorTaint, $globalVarObj );

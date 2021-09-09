@@ -109,9 +109,9 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				$this->doAssignmentSingleElement(
 					$promotedProps[$i],
 					$startTaint,
-					$startTaint,
 					self::getMethodLinks( $varObj ) ?: MethodLinks::newEmpty(),
 					new CausedByLines(),
+					$startTaint,
 					[],
 					false
 				);

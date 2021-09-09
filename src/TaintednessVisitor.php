@@ -547,15 +547,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$node->flags,
 			$mask
 		);
-		// TODO We don't need $allowClearLHSData if we merge caused-by lines and links from the LHS now.
-		$allowClearLHSData = false;
+
 		$this->curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
 			$lhsTaintedness,
-			$rhsTaintedness,
 			$allRHSTaint,
-			$allowClearLHSData
+			$rhsTaintedness->getError(),
+			$rhsTaintedness->getMethodLinks(),
+			$rhsTaintedness->getTaintedness(),
+			// TODO Merge things from the LHS now instead?
+			true
 		);
 		$this->setCachedData( $node );
 	}
@@ -595,16 +597,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$lhsTaintedness = $this->getTaintedness( $lhs );
 		$rhsTaintedness = $this->getTaintedness( $rhs );
-		$allRHSTaint = clone $rhsTaintedness->getTaintedness();
-		$allowClearLHSData = true;
 
 		$this->curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
 			$lhsTaintedness,
-			$rhsTaintedness,
-			$allRHSTaint,
-			$allowClearLHSData
+			clone $rhsTaintedness->getTaintedness(),
+			$rhsTaintedness->getError(),
+			$rhsTaintedness->getMethodLinks(),
+			$rhsTaintedness->getTaintedness(),
+			false
 		);
 		$this->setCachedData( $node );
 	}
@@ -613,22 +615,25 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $lhs
 	 * @param Node|mixed $rhs
 	 * @param TaintednessWithError $lhsTaintednessWithError
-	 * @param TaintednessWithError $rhsTaintednessWithError
-	 * @param Taintedness $allRHSTaint
-	 * @param bool $allowClearLHSData
+	 * @param Taintedness $rhsTaint
+	 * @param CausedByLines $rhsError
+	 * @param MethodLinks $rhsLinks
+	 * @param Taintedness $errorTaint
+	 * @param bool $isAssignOp
 	 * @return Taintedness
 	 */
 	private function doVisitAssign(
 		Node $lhs,
 		$rhs,
 		TaintednessWithError $lhsTaintednessWithError,
-		TaintednessWithError $rhsTaintednessWithError,
-		Taintedness $allRHSTaint,
-		bool $allowClearLHSData
+		Taintedness $rhsTaint,
+		CausedByLines $rhsError,
+		MethodLinks $rhsLinks,
+		Taintedness $errorTaint,
+		bool $isAssignOp
 	): Taintedness {
-		$rhsTaintedness = $rhsTaintednessWithError->getTaintedness();
 		if ( $lhs->kind === \ast\AST_DIM ) {
-			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $rhsTaintedness, $allRHSTaint );
+			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $errorTaint, $rhsTaint );
 		}
 
 		// If we're assigning to a variable we know will be output later
@@ -642,7 +647,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// and it doesn't handle props or globals.
 		// TODO: This should probably be moved to setTaintednessForAssignmentNode
 		$lhsTaintedness = $lhsTaintednessWithError->getTaintedness();
-		$adjustedRHS = $rhsTaintedness->withoutObj( $lhsTaintedness );
+		$adjustedRHS = $errorTaint->withoutObj( $lhsTaintedness );
 		$this->maybeEmitIssue(
 			$lhsTaintedness,
 			$adjustedRHS,
@@ -656,12 +661,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$vis = new TaintednessAssignVisitor(
 			$this->code_base,
 			$this->context,
-			$allRHSTaint,
-			$rhsTaintednessWithError,
-			$allowClearLHSData
+			$rhsTaint,
+			$rhsError,
+			$rhsLinks,
+			$errorTaint,
+			$isAssignOp
 		);
 		$vis( $lhs );
-		return $allRHSTaint;
+		return $rhsTaint;
 	}
 
 	/**

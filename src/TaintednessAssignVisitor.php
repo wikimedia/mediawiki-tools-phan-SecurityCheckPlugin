@@ -18,13 +18,19 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	use TaintednessBaseVisitor;
 
 	/** @var Taintedness */
-	private $allRightTaint;
-
-	/** @var TaintednessWithError */
 	private $rightTaint;
 
+	/** @var Taintedness */
+	private $errorTaint;
+
+	/** @var CausedByLines */
+	private $rightError;
+
+	/** @var MethodLinks */
+	private $rightLinks;
+
 	/** @var bool */
-	private $allowClearLHSData;
+	private $isAssignOp;
 
 	/**
 	 * List of resolved LHS offsets. NOTE: This list goes from outer to inner (i.e. with $x[1][2], the
@@ -36,24 +42,30 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 
 	/**
 	 * @inheritDoc
-	 * @param Taintedness $allRightTaint
-	 * @param TaintednessWithError $rightTaint
-	 * @param bool $allowClearLHSData
+	 * @param Taintedness $rightTaint
+	 * @param CausedByLines $rightLines
+	 * @param MethodLinks $rightLinks
+	 * @param Taintedness $errorTaint
+	 * @param bool $isAssignOp
 	 * @param array $resolvedOffsets
 	 * @phan-param list<Node|mixed|null> $resolvedOffsets
 	 */
 	public function __construct(
 		CodeBase $code_base,
 		Context $context,
-		Taintedness $allRightTaint,
-		TaintednessWithError $rightTaint,
-		bool $allowClearLHSData,
+		Taintedness $rightTaint,
+		CausedByLines $rightLines,
+		MethodLinks $rightLinks,
+		Taintedness $errorTaint,
+		bool $isAssignOp,
 		array $resolvedOffsets = []
 	) {
 		parent::__construct( $code_base, $context );
-		$this->allRightTaint = $allRightTaint;
 		$this->rightTaint = $rightTaint;
-		$this->allowClearLHSData = $allowClearLHSData;
+		$this->rightError = $rightLines;
+		$this->rightLinks = $rightLinks;
+		$this->errorTaint = $errorTaint;
+		$this->isAssignOp = $isAssignOp;
 		$this->resolvedOffsets = $resolvedOffsets;
 	}
 
@@ -80,13 +92,11 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$childVisitor = new self(
 				$this->code_base,
 				$this->context,
-				$this->allRightTaint->getTaintednessForOffsetOrWhole( $key ),
-				new TaintednessWithError(
-					$this->rightTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $key ),
-					$this->rightTaint->getError(),
-					$this->rightTaint->getMethodLinks()
-				),
-				$this->allowClearLHSData,
+				$this->rightTaint->getTaintednessForOffsetOrWhole( $key ),
+				$this->rightError,
+				$this->rightLinks,
+				$this->errorTaint->getTaintednessForOffsetOrWhole( $key ),
+				$this->isAssignOp,
 				$this->resolvedOffsets
 			);
 			$childVisitor( $value );
@@ -154,12 +164,12 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$offsets = array_reverse( $this->resolvedOffsets );
 		$this->doAssignmentSingleElement(
 			$obj,
-			$this->allRightTaint,
-			$this->rightTaint->getTaintedness(),
-			$this->rightTaint->getMethodLinks(),
-			$this->rightTaint->getError(),
+			$this->rightTaint,
+			$this->rightLinks,
+			$this->rightError,
+			$this->errorTaint,
 			$offsets,
-			$this->allowClearLHSData
+			$this->isAssignOp
 		);
 	}
 }

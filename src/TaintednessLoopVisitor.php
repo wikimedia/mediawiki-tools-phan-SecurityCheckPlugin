@@ -49,11 +49,11 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$this->doAssignmentSingleElement(
 					$valueObj,
 					$lhsTaintedness->asValueFirstLevel(),
-					$lhsTaintedness->asValueFirstLevel(),
 					$lhsTaintednessWithError->getMethodLinks(),
 					$lhsTaintednessWithError->getError(),
+					$lhsTaintedness->asValueFirstLevel(),
 					[],
-					true
+					false
 				);
 			}
 		} else {
@@ -76,11 +76,11 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 					$this->doAssignmentSingleElement(
 						$keyObj,
 						$lhsTaintedness->asKeyForForeach(),
-						$lhsTaintedness->asKeyForForeach(),
 						$lhsTaintednessWithError->getMethodLinks(),
 						$lhsTaintednessWithError->getError(),
+						$lhsTaintedness->asKeyForForeach(),
 						[],
-						true
+						false
 					);
 				}
 			} else {
