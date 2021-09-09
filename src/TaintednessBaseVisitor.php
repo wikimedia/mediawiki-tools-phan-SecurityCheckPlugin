@@ -371,23 +371,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Check whether we could *really* resolve (100% accuracy) all keys in $keys
-	 *
-	 * @param array $keys
-	 * @phan-param list<Node|mixed> $keys
-	 * @return bool
-	 */
-	private function wereAllKeysResolved( array $keys ): bool {
-		foreach ( $keys as $key ) {
-			if ( $key === null || $key instanceof Node ) {
-				// Null is for `$arr[] = 'foo'`. Phan doesn't infer real types here, nor will we.
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
 	 * Given a func, if it has a defining func different from itself, return that defining func. Returns null otherwise.
 	 *
 	 * @param FunctionInterface $func
@@ -1034,11 +1017,6 @@ trait TaintednessBaseVisitor {
 		// Note: If there is a local variable that is a reference to another non-local variable, this will not
 		// affect the non-local one (Pass by reference arguments are handled separately and work as expected).
 		$override = !( $variableObj instanceof Property ) && !$globalVarObj;
-		if ( $override && !$isAssignOp && !$lhsOffsets ) {
-			// Clear any error and link before setting taintedness if we're overriding taint.
-			self::clearTaintError( $variableObj );
-			self::clearTaintLinks( $variableObj );
-		}
 
 		$offsetsTaint = $this->getKeysTaintednessList( $lhsOffsets );
 		// In case of assign ops, add a caused-by line only with the taintedness actually being added.
@@ -1049,19 +1027,16 @@ trait TaintednessBaseVisitor {
 		$overrideTaint = $override;
 		if ( $lhsOffsets ) {
 			$curTaint = self::getTaintednessRaw( $variableObj );
-			$offsetOverride = $overrideTaint && $this->wereAllKeysResolved( $lhsOffsets );
 			$newTaint = $curTaint ? clone $curTaint : Taintedness::newSafe();
-			$newTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $rhsTaint, $offsetOverride );
+			$newTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $rhsTaint, $override );
 			$overrideTaint = true;
 		} else {
 			$newTaint = $rhsTaint;
 		}
 		$this->setTaintedness( $variableObj, $newTaint, $overrideTaint );
-		$this->addTaintError( $errorTaint, $variableObj );
 
 		if ( $globalVarObj ) {
 			// Merge the taint on the "true" global object, too
-			$overrideGlobalTaint = false;
 			if ( $lhsOffsets ) {
 				$curGlobalTaint = self::getTaintednessRaw( $globalVarObj );
 				$newGlobalTaint = $curGlobalTaint ? clone $curGlobalTaint : Taintedness::newSafe();
@@ -1069,19 +1044,42 @@ trait TaintednessBaseVisitor {
 				$overrideGlobalTaint = true;
 			} else {
 				$newGlobalTaint = $rhsTaint;
+				$overrideGlobalTaint = false;
 			}
 			$this->setTaintedness( $globalVarObj, $newGlobalTaint, $overrideGlobalTaint );
-			$this->addTaintError( $errorTaint, $globalVarObj );
 		}
 
-		$this->mergeTaintDependencies( $variableObj, $rhsLinks, $lhsOffsets );
+		if ( $lhsOffsets ) {
+			$newLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
+			$newLinks->setLinksAtOffsetList( $lhsOffsets, $rhsLinks, $override );
+			$overrideLinks = true;
+		} else {
+			$newLinks = $rhsLinks;
+			$overrideLinks = $override && !$isAssignOp;
+		}
+		$this->mergeTaintDependencies( $variableObj, $newLinks, $overrideLinks );
 		if ( $globalVarObj ) {
 			// Merge dependencies on the global copy as well
-			$this->mergeTaintDependencies( $globalVarObj, $rhsLinks, $lhsOffsets );
+			if ( $lhsOffsets ) {
+				$newGlobalLinks = self::getMethodLinksCloneOrEmpty( $globalVarObj );
+				$newGlobalLinks->setLinksAtOffsetList( $lhsOffsets, $rhsLinks, false );
+				$overrideGlobalLinks = true;
+			} else {
+				$newGlobalLinks = $rhsLinks;
+				$overrideGlobalLinks = false;
+			}
+			$this->mergeTaintDependencies( $globalVarObj, $newGlobalLinks, $overrideGlobalLinks );
 		}
 
+		$overrideError = $override && !$isAssignOp && !$lhsOffsets;
+
+		if ( $overrideError ) {
+			self::clearTaintError( $variableObj );
+		}
+		$this->addTaintError( $errorTaint, $variableObj );
 		$this->mergeTaintError( $variableObj, $rhsError );
 		if ( $globalVarObj ) {
+			$this->addTaintError( $errorTaint, $globalVarObj );
 			$this->mergeTaintError( $globalVarObj, $rhsError );
 		}
 	}
@@ -1089,26 +1087,27 @@ trait TaintednessBaseVisitor {
 	/**
 	 * If we're assigning an SQL tainted value as an array key
 	 * or as the value of a numeric key, then set NUMKEY taint.
+	 *
 	 * @note This method modifies $rhsTaintedness and $allRHSTaint in-place
 	 * @todo Can this be moved elsewhere, now that we resolve LHS offsets
 	 *
 	 * @param Node $lhs
 	 * @param Node|mixed $rhs
-	 * @param Taintedness $rhsTaintedness
-	 * @param Taintedness $allRHSTaint
+	 * @param Taintedness $errorTaint
+	 * @param Taintedness $rhsTaint
 	 */
 	private function maybeAddNumkeyOnAssignmentLHS(
 		Node $lhs,
 		$rhs,
-		Taintedness $rhsTaintedness,
-		Taintedness $allRHSTaint
+		Taintedness $errorTaint,
+		Taintedness $rhsTaint
 	): void {
 		$dim = $lhs->children['dim'];
-		if ( $allRHSTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+		if ( $rhsTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
 			// Things like 'foo' => ['taint', 'taint']
 			// are ok.
-			$allRHSTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-		} elseif ( $allRHSTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+			$rhsTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		} elseif ( $rhsTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
 			// Checking the case:
 			// $foo[1] = $sqlTainted;
 			// $foo[] = $sqlTainted;
@@ -1121,13 +1120,13 @@ trait TaintednessBaseVisitor {
 				&& !$this->nodeIsArray( $rhs )
 				&& !( $lhs->children['expr'] instanceof Node && $lhs->children['expr']->kind === \ast\AST_DIM )
 			) {
-				$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-				$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$rhsTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$errorTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 		}
 		if ( $this->getTaintedness( $dim )->getTaintedness()->has( SecurityCheckPlugin::SQL_TAINT ) ) {
-			$allRHSTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			$rhsTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$rhsTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$errorTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 		}
 	}
 
@@ -1417,18 +1416,13 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $lhs Source of method list
 	 * @param MethodLinks $rhsLinks New links
-	 * @param array $lhsOffsets
-	 * @phan-param array<Node|mixed> $lhsOffsets
+	 * @param bool $override
 	 */
 	protected function mergeTaintDependencies(
 		TypedElementInterface $lhs,
 		MethodLinks $rhsLinks,
-		array $lhsOffsets = []
+		bool $override
 	): void {
-		if ( $rhsLinks->isEmpty() ) {
-			return;
-		}
-
 		// So if we have $a = $b;
 		// First we find out all the methods that can set $b
 		// Then we add $a to the list of variables that those methods can set.
@@ -1454,11 +1448,11 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		$newLinks = self::getMethodLinksCloneOrEmpty( $lhs );
-		if ( $lhsOffsets ) {
-			$newLinks->setLinksAtOffsetList( $lhsOffsets, $rhsLinks );
+		$curLinks = self::getMethodLinks( $lhs );
+		if ( $override || !$curLinks ) {
+			$newLinks = $rhsLinks;
 		} else {
-			$newLinks->mergeWith( $rhsLinks );
+			$newLinks = $curLinks->asMergedWith( $rhsLinks );
 		}
 		self::setMethodLinks( $lhs, $newLinks );
 	}

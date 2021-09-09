@@ -394,7 +394,7 @@ class Taintedness {
 				// "implicit" dim (`$a[] = 'b'`), aka unknown dim.
 
 				if ( $isLast ) {
-					if ( !$base->unknownDimsTaint || $override ) {
+					if ( !$base->unknownDimsTaint ) {
 						$base->unknownDimsTaint = $val;
 					} else {
 						$base->unknownDimsTaint->mergeWith( $val );

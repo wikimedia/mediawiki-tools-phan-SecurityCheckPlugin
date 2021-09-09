@@ -149,8 +149,9 @@ class MethodLinks {
 	 * @param array $offsets
 	 * @phan-param array<Node|mixed> $offsets
 	 * @param MethodLinks $links
+	 * @param bool $override
 	 */
-	public function setLinksAtOffsetList( array $offsets, self $links ): void {
+	public function setLinksAtOffsetList( array $offsets, self $links, bool $override ): void {
 		assert( (bool)$offsets, 'Should not be empty' );
 		$base = $this;
 		// Just in case keys are not consecutive
@@ -176,10 +177,10 @@ class MethodLinks {
 
 			if ( $isLast ) {
 				// Mission accomplished!
-				if ( isset( $base->dimLinks[$offset] ) ) {
-					$base->dimLinks[$offset]->mergeWith( $links );
-				} else {
+				if ( !isset( $base->dimLinks[$offset] ) || $override ) {
 					$base->dimLinks[$offset] = $links;
+				} else {
+					$base->dimLinks[$offset]->mergeWith( $links );
 				}
 				break;
 			}

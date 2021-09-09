@@ -520,17 +520,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$lhsTaintedness = $this->getTaintedness( $lhs );
 		$rhsTaintedness = $this->getTaintedness( $rhs );
 
-		if ( $node->flags === \ast\flags\BINARY_ADD ) {
-			// Sanity: using `+=` should restrict the list of possible LHS nodes
-			static $allowedLHS = [ \ast\AST_VAR, \ast\AST_DIM, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
-			if ( !in_array( $lhs->kind, $allowedLHS, true ) ) {
-				// Probably a syntax error.
-				$this->debug( __METHOD__, 'Unexpected LHS: ' . Debug::nodeName( $lhs ) );
-				$this->setCurTaintInapplicable();
-				return;
-			}
-		}
-
 		if ( property_exists( $node, 'assignTaintMask' ) ) {
 			// @phan-suppress-next-line PhanUndeclaredProperty
 			$mask = $node->assignTaintMask;

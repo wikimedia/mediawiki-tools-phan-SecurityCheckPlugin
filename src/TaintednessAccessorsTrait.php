@@ -201,15 +201,6 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * Clears any taintedness links on this object
-	 *
-	 * @param TypedElementInterface $elem
-	 */
-	protected static function clearTaintLinks( TypedElementInterface $elem ): void {
-		unset( $elem->taintedMethodLinks, $elem->taintedVarLinks );
-	}
-
-	/**
 	 * Get $func's taint, or null if not set. NOTE: This doesn't create a clone.
 	 *
 	 * @param FunctionInterface $func
