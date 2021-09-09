@@ -29,6 +29,8 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			$value = $value->children['var'];
 		}
 
+		// TODO Actually compute this
+		$rhsIsArray = false;
 		// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
 		// the right taint to the value if we discover what the key is for the current iteration
 		$valueVisitor = new TaintednessAssignVisitor(
@@ -38,7 +40,8 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			$lhsTaintednessWithError->getError(),
 			$lhsTaintednessWithError->getMethodLinks(),
 			$lhsTaintedness->asValueFirstLevel(),
-			$lhsTaintednessWithError->getMethodLinks()
+			$lhsTaintednessWithError->getMethodLinks(),
+			$rhsIsArray
 		);
 		$valueVisitor( $value );
 
@@ -51,7 +54,8 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$lhsTaintednessWithError->getError(),
 				$lhsTaintednessWithError->getMethodLinks(),
 				$lhsTaintedness->asKeyForForeach(),
-				$lhsTaintednessWithError->getMethodLinks()
+				$lhsTaintednessWithError->getMethodLinks(),
+				$rhsIsArray
 			);
 			$keyVisitor( $key );
 		}

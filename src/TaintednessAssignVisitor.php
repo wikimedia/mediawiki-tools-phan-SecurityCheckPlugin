@@ -3,6 +3,7 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
+use Closure;
 use Phan\CodeBase;
 use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
@@ -34,6 +35,12 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/** @var MethodLinks */
 	private $rightLinks;
 
+	/** @var bool|null */
+	private $rhsIsArray;
+
+	/** @var Closure|null */
+	private $rhsIsArrayGetter;
+
 	/** @var int */
 	private $dimDepth;
 
@@ -44,6 +51,8 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @param MethodLinks $rightLinks
 	 * @param Taintedness $errorTaint
 	 * @param MethodLinks $errorLinks
+	 * @param Closure|bool $rhsIsArrayOrGetter
+	 * @phan-param Closure():bool|bool $rhsIsArrayOrGetter
 	 * @param int $depth
 	 */
 	public function __construct(
@@ -54,6 +63,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		MethodLinks $rightLinks,
 		Taintedness $errorTaint,
 		MethodLinks $errorLinks,
+		$rhsIsArrayOrGetter,
 		int $depth = 0
 	) {
 		parent::__construct( $code_base, $context );
@@ -62,7 +72,20 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightLinks = $rightLinks;
 		$this->errorTaint = $errorTaint;
 		$this->errorLinks = $errorLinks;
+		if ( is_callable( $rhsIsArrayOrGetter ) ) {
+			$this->rhsIsArrayGetter = $rhsIsArrayOrGetter;
+		} else {
+			$this->rhsIsArray = $rhsIsArrayOrGetter;
+		}
 		$this->dimDepth = $depth;
+	}
+
+	private function isRHSArray(): bool {
+		if ( $this->rhsIsArray !== null ) {
+			return $this->rhsIsArray;
+		}
+		$this->rhsIsArray = ( $this->rhsIsArrayGetter )();
+		return $this->rhsIsArray;
 	}
 
 	/**
@@ -93,6 +116,8 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				$this->rightLinks,
 				$this->errorTaint->getTaintednessForOffsetOrWhole( $key ),
 				$this->errorLinks,
+				// @phan-suppress-next-line PhanTypeMismatchArgumentNullable
+				$this->rhsIsArray ?? $this->rhsIsArrayGetter,
 				$this->dimDepth
 			);
 			$childVisitor( $value );
@@ -136,6 +161,29 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	}
 
 	/**
+	 * If we're assigning an SQL tainted value as an array key
+	 * or as the value of a numeric key, then set NUMKEY taint.
+	 *
+	 * @param Node $dimLHS
+	 */
+	private function maybeAddNumkeyOnAssignmentLHS( Node $dimLHS ): void {
+		if ( $this->rightTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+			// Already there, no need to add it again.
+			return;
+		}
+
+		$dim = $dimLHS->children['dim'];
+		if (
+			$this->rightTaint->has( SecurityCheckPlugin::SQL_TAINT )
+			&& ( $dim === null || $this->nodeCanBeIntKey( $dim ) )
+			&& !$this->isRHSArray()
+		) {
+			$this->rightTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$this->errorTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		}
+	}
+
+	/**
 	 * @param Node $node
 	 */
 	public function visitDim( Node $node ): void {
@@ -154,6 +202,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightTaint = $this->rightTaint->asMaybeMovedAtOffset( $curOff, $dimTaintInt );
 		$this->rightLinks = $this->rightLinks->asMaybeMovedAtOffset( $curOff );
 		$this->errorTaint->addKeysTaintedness( $dimTaintInt );
+		$this->maybeAddNumkeyOnAssignmentLHS( $node );
 		$this( $node->children['expr'] );
 	}
 
