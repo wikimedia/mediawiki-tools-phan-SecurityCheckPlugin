@@ -1,0 +1,3 @@
+integration/arrayoffsets8/test.php:15 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {0 => {Own: SHELL}; 1 => {Own: HTML}}}
+integration/arrayoffsets8/test.php:21 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {1 => {Own: HTML}}}
+integration/arrayoffsets8/test.php:26 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {0 => {Own: SHELL}; 1 => {Own: NONE; Elements: {0 => {Own: HTML}; 2 => {Own: SHELL}}}}}

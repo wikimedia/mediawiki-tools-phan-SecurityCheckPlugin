@@ -3,10 +3,6 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Phan\Debug;
-use Phan\Exception\IssueException;
-use Phan\Exception\NodeException;
-use Phan\Exception\UnanalyzableException;
 use Phan\PluginV3\BeforeLoopBodyAnalysisVisitor;
 
 class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
@@ -33,59 +29,31 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			$value = $value->children['var'];
 		}
 
-		$handledNodes = [ \ast\AST_VAR, \ast\AST_PROP, \ast\AST_STATIC_PROP ];
-		if ( in_array( $value->kind, $handledNodes, true ) ) {
-			try {
-				$valueObj = $value->kind === \ast\AST_VAR
-					? $this->getCtxN( $value )->getVariable()
-					: $this->getCtxN( $value )->getProperty( $value->kind === \ast\AST_STATIC_PROP );
-			} catch ( NodeException | IssueException | UnanalyzableException $e ) {
-				$valueObj = null;
-				$this->debug( __METHOD__, "Cannot get foreach value " . $this->getDebugInfo( $e ) );
-			}
-			if ( $valueObj !== null ) {
-				// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
-				// the right taint to the value if we discover what the key is for the current iteration
-				$this->doAssignmentSingleElement(
-					$valueObj,
-					$lhsTaintedness->asValueFirstLevel(),
-					$lhsTaintednessWithError->getMethodLinks(),
-					$lhsTaintednessWithError->getError(),
-					$lhsTaintedness->asValueFirstLevel(),
-					[],
-					false
-				);
-			}
-		} else {
-			$this->debug( __METHOD__, "FIXME foreach complex value not handled: " . Debug::nodeToString( $value ) );
-		}
+		// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
+		// the right taint to the value if we discover what the key is for the current iteration
+		$valueVisitor = new TaintednessAssignVisitor(
+			$this->code_base,
+			$this->context,
+			$lhsTaintedness->asValueFirstLevel(),
+			$lhsTaintednessWithError->getError(),
+			$lhsTaintednessWithError->getMethodLinks(),
+			$lhsTaintedness->asValueFirstLevel(),
+			false
+		);
+		$valueVisitor( $value );
 
 		$key = $node->children['key'] ?? null;
 		if ( $key instanceof Node ) {
-			if ( in_array( $key->kind, $handledNodes, true ) ) {
-				try {
-					$keyObj = $key->kind === \ast\AST_VAR
-						? $this->getCtxN( $key )->getVariable()
-						: $this->getCtxN( $key )->getProperty( $key->kind === \ast\AST_STATIC_PROP );
-				} catch ( NodeException | IssueException | UnanalyzableException $e ) {
-					$keyObj = null;
-					$this->debug( __METHOD__, "Cannot get foreach key " . $this->getDebugInfo( $e ) );
-				}
-
-				if ( $keyObj !== null ) {
-					$this->doAssignmentSingleElement(
-						$keyObj,
-						$lhsTaintedness->asKeyForForeach(),
-						$lhsTaintednessWithError->getMethodLinks(),
-						$lhsTaintednessWithError->getError(),
-						$lhsTaintedness->asKeyForForeach(),
-						[],
-						false
-					);
-				}
-			} else {
-				$this->debug( __METHOD__, "FIXME foreach complex key not handled: " . Debug::nodeToString( $key ) );
-			}
+			$keyVisitor = new TaintednessAssignVisitor(
+				$this->code_base,
+				$this->context,
+				$lhsTaintedness->asKeyForForeach(),
+				$lhsTaintednessWithError->getError(),
+				$lhsTaintednessWithError->getMethodLinks(),
+				$lhsTaintedness->asKeyForForeach(),
+				false
+			);
+			$keyVisitor( $key );
 		}
 	}
 }

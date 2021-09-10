@@ -8,6 +8,8 @@ use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
 use Phan\Exception\UnanalyzableException;
 use Phan\Language\Context;
+use Phan\Language\Element\GlobalVariable;
+use Phan\Language\Element\Property;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\PluginV3\PluginAwareBaseAnalysisVisitor;
 
@@ -46,7 +48,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @param CausedByLines $rightLines
 	 * @param MethodLinks $rightLinks
 	 * @param Taintedness $errorTaint
-	 * @param bool $isAssignOp
+	 * @param bool $isAssignOp Whether it's an assign op like .= (and not normal =)
 	 * @param array $resolvedOffsets
 	 * @phan-param list<Node|mixed|null> $resolvedOffsets
 	 */
@@ -112,7 +114,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		} catch ( NodeException | IssueException $_ ) {
 			return;
 		}
-		$this->handlePhanObject( $var );
+		$this->doAssignmentSingleElement( $var );
 	}
 
 	/**
@@ -124,7 +126,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		} catch ( NodeException | IssueException | UnanalyzableException $_ ) {
 			return;
 		}
-		$this->handlePhanObject( $prop );
+		$this->doAssignmentSingleElement( $prop );
 	}
 
 	/**
@@ -136,7 +138,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		} catch ( NodeException | IssueException | UnanalyzableException $_ ) {
 			return;
 		}
-		$this->handlePhanObject( $prop );
+		$this->doAssignmentSingleElement( $prop );
 	}
 
 	/**
@@ -158,18 +160,82 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	}
 
 	/**
-	 * @param TypedElementInterface $obj
+	 * @param TypedElementInterface $variableObj
 	 */
-	private function handlePhanObject( TypedElementInterface $obj ): void {
-		$offsets = array_reverse( $this->resolvedOffsets );
-		$this->doAssignmentSingleElement(
-			$obj,
-			$this->rightTaint,
-			$this->rightLinks,
-			$this->rightError,
-			$this->errorTaint,
-			$offsets,
-			$this->isAssignOp
-		);
+	private function doAssignmentSingleElement(
+		TypedElementInterface $variableObj
+	): void {
+		$lhsOffsets = array_reverse( $this->resolvedOffsets );
+		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
+
+		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
+		// Note: If there is a local variable that is a reference to another non-local variable, this will not
+		// affect the non-local one (Pass by reference arguments are handled separately and work as expected).
+		$override = !( $variableObj instanceof Property ) && !$globalVarObj;
+
+		$offsetsTaint = $this->getKeysTaintednessList( $lhsOffsets );
+		// In case of assign ops, add a caused-by line only with the taintedness actually being added.
+		foreach ( $offsetsTaint as $keyTaint ) {
+			$this->errorTaint->addKeysTaintedness( $keyTaint->get() );
+		}
+
+		$overrideTaint = $override;
+		if ( $lhsOffsets ) {
+			$curTaint = self::getTaintednessRaw( $variableObj );
+			$newTaint = $curTaint ? clone $curTaint : Taintedness::newSafe();
+			$newTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $this->rightTaint, $override );
+			$overrideTaint = true;
+		} else {
+			$newTaint = $this->rightTaint;
+		}
+		$this->setTaintedness( $variableObj, $newTaint, $overrideTaint );
+
+		if ( $globalVarObj ) {
+			// Merge the taint on the "true" global object, too
+			if ( $lhsOffsets ) {
+				$curGlobalTaint = self::getTaintednessRaw( $globalVarObj );
+				$newGlobalTaint = $curGlobalTaint ? clone $curGlobalTaint : Taintedness::newSafe();
+				$newGlobalTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $this->rightTaint, false );
+				$overrideGlobalTaint = true;
+			} else {
+				$newGlobalTaint = $this->rightTaint;
+				$overrideGlobalTaint = false;
+			}
+			$this->setTaintedness( $globalVarObj, $newGlobalTaint, $overrideGlobalTaint );
+		}
+
+		if ( $lhsOffsets ) {
+			$newLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
+			$newLinks->setLinksAtOffsetList( $lhsOffsets, $this->rightLinks, $override );
+			$overrideLinks = true;
+		} else {
+			$newLinks = $this->rightLinks;
+			$overrideLinks = $override && !$this->isAssignOp;
+		}
+		$this->mergeTaintDependencies( $variableObj, $newLinks, $overrideLinks );
+		if ( $globalVarObj ) {
+			// Merge dependencies on the global copy as well
+			if ( $lhsOffsets ) {
+				$newGlobalLinks = self::getMethodLinksCloneOrEmpty( $globalVarObj );
+				$newGlobalLinks->setLinksAtOffsetList( $lhsOffsets, $this->rightLinks, false );
+				$overrideGlobalLinks = true;
+			} else {
+				$newGlobalLinks = $this->rightLinks;
+				$overrideGlobalLinks = false;
+			}
+			$this->mergeTaintDependencies( $globalVarObj, $newGlobalLinks, $overrideGlobalLinks );
+		}
+
+		$overrideError = $override && !$this->isAssignOp && !$lhsOffsets;
+
+		if ( $overrideError ) {
+			self::clearTaintError( $variableObj );
+		}
+		$this->addTaintError( $this->errorTaint, $variableObj );
+		$this->mergeTaintError( $variableObj, $this->rightError );
+		if ( $globalVarObj ) {
+			$this->addTaintError( $this->errorTaint, $globalVarObj );
+			$this->mergeTaintError( $globalVarObj, $this->rightError );
+		}
 	}
 }

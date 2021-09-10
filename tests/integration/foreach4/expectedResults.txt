@@ -1,0 +1,12 @@
+integration/foreach4/test.php:21 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {y => {Own: SHELL}; x => {Own: HTML}}}
+integration/foreach4/test.php:29 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {x => {Own: HTML}}}
+integration/foreach4/test.php:37 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {x => {Own: HTML, SHELL}}}
+integration/foreach4/test.php:46 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {y => {Own: SHELL}; x => {Own: HTML}}}
+integration/foreach4/test.php:54 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {x => {Own: HTML}}}
+integration/foreach4/test.php:62 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {x => {Own: HTML, SHELL}}}
+integration/foreach4/test.php:71 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {v => {Own: SQL}; k => {Own: HTML}}}
+integration/foreach4/test.php:79 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {k => {Own: HTML}; v => {Own: SQL}}}
+integration/foreach4/test.php:87 SecurityCheckDebugTaintedness Variable $val has taintedness: {Own: NONE; Elements: {v => {Own: SQL, SHELL}; k => {Own: HTML, SHELL}}}
+integration/foreach4/test.php:94 SecurityCheckDebugTaintedness Variable $v has taintedness: {Own: HTML}
+integration/foreach4/test.php:101 SecurityCheckDebugTaintedness Variable $v has taintedness: {Own: HTML}
+integration/foreach4/test.php:108 SecurityCheckDebugTaintedness Variable $v has taintedness: {Own: NONE; Elements: {x => {Own: HTML}; 0 => {Own: SHELL}}}

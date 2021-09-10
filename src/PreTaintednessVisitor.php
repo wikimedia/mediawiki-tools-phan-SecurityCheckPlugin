@@ -77,7 +77,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 		$promotedProps = [];
 		if ( $node->kind === \ast\AST_METHOD && $node->children['name'] === '__construct' ) {
 			foreach ( $method->getParameterList() as $i => $param ) {
-				if ( $param->getFlags() & Parameter::PARAM_MODIFIER_VISIBILITY_FLAGS ) {
+				if ( $param->getFlags() & Parameter::PARAM_MODIFIER_FLAGS ) {
 					$promotedProps[$i] = $this->getPropInCurrentScopeByName( $param->getName() );
 				}
 			}
@@ -106,15 +106,12 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				$this->linkParamAndFunc( $varObj, $method, $i );
 			}
 			if ( isset( $promotedProps[$i] ) ) {
-				$this->doAssignmentSingleElement(
-					$promotedProps[$i],
-					$startTaint,
-					self::getMethodLinks( $varObj ) ?: MethodLinks::newEmpty(),
-					new CausedByLines(),
-					$startTaint,
-					[],
-					false
-				);
+				$this->ensureTaintednessIsSet( $promotedProps[$i] );
+				$paramLinks = self::getMethodLinks( $varObj );
+				if ( $paramLinks ) {
+					$this->mergeTaintDependencies( $promotedProps[$i], $paramLinks, false );
+				}
+				$this->addTaintError( $startTaint, $promotedProps[$i] );
 			}
 		}
 	}
