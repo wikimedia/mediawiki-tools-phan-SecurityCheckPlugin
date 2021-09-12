@@ -1,2 +1,2 @@
-integration/causedbyappend/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedbyappend/test.php +9; integration/causedbyappend/test.php +15)
+integration/causedbyappend/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedbyappend/test.php +15; integration/causedbyappend/test.php +9)
 integration/causedbyappend/test.php:39 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedbyappend/test.php +36; integration/causedbyappend/test.php +35; integration/causedbyappend/test.php +34; integration/causedbyappend/test.php +30; integration/causedbyappend/test.php +29)

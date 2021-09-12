@@ -38,7 +38,6 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			$lhsTaintednessWithError->getError(),
 			$lhsTaintednessWithError->getMethodLinks(),
 			$lhsTaintedness->asValueFirstLevel(),
-			false,
 			$lhsTaintednessWithError->getMethodLinks()
 		);
 		$valueVisitor( $value );
@@ -52,7 +51,6 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$lhsTaintednessWithError->getError(),
 				$lhsTaintednessWithError->getMethodLinks(),
 				$lhsTaintedness->asKeyForForeach(),
-				false,
 				$lhsTaintednessWithError->getMethodLinks()
 			);
 			$keyVisitor( $key );
