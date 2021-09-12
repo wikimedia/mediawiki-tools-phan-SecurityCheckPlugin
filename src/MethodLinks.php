@@ -146,52 +146,44 @@ class MethodLinks {
 	}
 
 	/**
-	 * @param array $offsets
-	 * @phan-param array<Node|mixed> $offsets
-	 * @param MethodLinks $links
-	 * @param bool $override
+	 * Create a new object with $this at the given $offset (if scalar) or as unknown object.
+	 *
+	 * @param Node|string|int|bool|float|null $offset
+	 * @return self Always a copy
 	 */
-	public function setLinksAtOffsetList( array $offsets, self $links, bool $override ): void {
-		assert( (bool)$offsets, 'Should not be empty' );
-		$base = $this;
-		// Just in case keys are not consecutive
-		$offsets = array_values( $offsets );
-		$lastIdx = count( $offsets ) - 1;
-		foreach ( $offsets as $i => $offset ) {
-			$isLast = $i === $lastIdx;
-			if ( !is_scalar( $offset ) ) {
-				if ( $isLast ) {
-					if ( $base->unknownDimLinks ) {
-						$base->unknownDimLinks->mergeWith( $links );
-					} else {
-						$base->unknownDimLinks = $links;
-					}
-					break;
-				}
-				if ( !$base->unknownDimLinks ) {
-					$base->unknownDimLinks = new self;
-				}
-				$base = $base->unknownDimLinks;
-				continue;
-			}
-
-			if ( $isLast ) {
-				// Mission accomplished!
-				if ( !isset( $base->dimLinks[$offset] ) || $override ) {
-					$base->dimLinks[$offset] = $links;
-				} else {
-					$base->dimLinks[$offset]->mergeWith( $links );
-				}
-				break;
-			}
-
-			if ( !isset( $base->dimLinks[$offset] ) ) {
-				// Create the element as safe and move on
-				$base->dimLinks[$offset] = new self;
-			}
-			$base = $base->dimLinks[$offset];
+	public function asMaybeMovedAtOffset( $offset ): self {
+		$ret = new self;
+		if ( $offset instanceof Node || $offset === null ) {
+			$ret->unknownDimLinks = clone $this;
+		} else {
+			$ret->dimLinks[$offset] = clone $this;
 		}
-		$this->normalize();
+		return $ret;
+	}
+
+	/**
+	 * @param self $other
+	 * @param int $depth
+	 * @return self
+	 */
+	public function asMergedForAssignment( self $other, int $depth ): self {
+		if ( $depth === 0 ) {
+			return $other;
+		}
+		$ret = clone $this;
+		$ret->links->mergeWith( $other->links );
+		if ( !$ret->unknownDimLinks ) {
+			$ret->unknownDimLinks = $other->unknownDimLinks;
+		} elseif ( $other->unknownDimLinks ) {
+			$ret->unknownDimLinks->mergeWith( $other->unknownDimLinks );
+		}
+		foreach ( $other->dimLinks as $k => $v ) {
+			$ret->dimLinks[$k] = isset( $ret->dimLinks[$k] )
+				? $ret->dimLinks[$k]->asMergedForAssignment( $v, $depth - 1 )
+				: $v;
+		}
+		$ret->normalize();
+		return $ret;
 	}
 
 	/**

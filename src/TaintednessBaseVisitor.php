@@ -310,19 +310,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given a list of resolved offsets, return the corresponding list of taintedness values
-	 * @param array<Node|mixed> $offsets
-	 * @return Taintedness[]
-	 */
-	protected function getKeysTaintednessList( array $offsets ): array {
-		$ret = [];
-		foreach ( $offsets as $offset ) {
-			$ret[] = $this->getTaintedness( $offset )->getTaintedness();
-		}
-		return $ret;
-	}
-
-	/**
 	 * Given a func, if it has a defining func different from itself, return that defining func. Returns null otherwise.
 	 *
 	 * @param FunctionInterface $func

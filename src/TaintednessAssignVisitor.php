@@ -34,13 +34,8 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/** @var MethodLinks */
 	private $rightLinks;
 
-	/**
-	 * List of resolved LHS offsets. NOTE: This list goes from outer to inner (i.e. with $x[1][2], the
-	 * list would be [ 2, 1 ]).
-	 * @var array
-	 * @phan-var list<Node|mixed|null>
-	 */
-	private $resolvedOffsets;
+	/** @var int */
+	private $dimDepth;
 
 	/**
 	 * @inheritDoc
@@ -49,8 +44,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @param MethodLinks $rightLinks
 	 * @param Taintedness $errorTaint
 	 * @param MethodLinks $errorLinks
-	 * @param array $resolvedOffsets
-	 * @phan-param list<Node|mixed|null> $resolvedOffsets
+	 * @param int $depth
 	 */
 	public function __construct(
 		CodeBase $code_base,
@@ -60,7 +54,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		MethodLinks $rightLinks,
 		Taintedness $errorTaint,
 		MethodLinks $errorLinks,
-		array $resolvedOffsets = []
+		int $depth = 0
 	) {
 		parent::__construct( $code_base, $context );
 		$this->rightTaint = $rightTaint;
@@ -68,7 +62,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightLinks = $rightLinks;
 		$this->errorTaint = $errorTaint;
 		$this->errorLinks = $errorLinks;
-		$this->resolvedOffsets = $resolvedOffsets;
+		$this->dimDepth = $depth;
 	}
 
 	/**
@@ -99,7 +93,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				$this->rightLinks,
 				$this->errorTaint->getTaintednessForOffsetOrWhole( $key ),
 				$this->errorLinks,
-				$this->resolvedOffsets
+				$this->dimDepth
 			);
 			$childVisitor( $value );
 		}
@@ -155,7 +149,11 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		} else {
 			$curOff = $this->resolveOffset( $dimNode );
 		}
-		$this->resolvedOffsets[] = $curOff;
+		$this->dimDepth++;
+		$dimTaintInt = $this->getTaintedness( $dimNode )->getTaintedness()->get();
+		$this->rightTaint = $this->rightTaint->asMaybeMovedAtOffset( $curOff, $dimTaintInt );
+		$this->rightLinks = $this->rightLinks->asMaybeMovedAtOffset( $curOff );
+		$this->errorTaint->addKeysTaintedness( $dimTaintInt );
 		$this( $node->children['expr'] );
 	}
 
@@ -165,7 +163,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	private function doAssignmentSingleElement(
 		TypedElementInterface $variableObj
 	): void {
-		$lhsOffsets = array_reverse( $this->resolvedOffsets );
 		$globalVarObj = $variableObj instanceof GlobalVariable ? $variableObj->getElement() : null;
 
 		// Make sure assigning to $this->bar doesn't kill the whole prop taint.
@@ -174,17 +171,16 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		// TODO Should we also check for normal Variables in the global scope? See test setafterexec
 		$override = !( $variableObj instanceof Property ) && !$globalVarObj;
 
-		$offsetsTaint = $this->getKeysTaintednessList( $lhsOffsets );
-		// In case of assign ops, add a caused-by line only with the taintedness actually being added.
-		foreach ( $offsetsTaint as $keyTaint ) {
-			$this->errorTaint->addKeysTaintedness( $keyTaint->get() );
-		}
-
 		$overrideTaint = $override;
-		if ( $lhsOffsets ) {
+		if ( $this->dimDepth > 0 ) {
 			$curTaint = self::getTaintednessRaw( $variableObj );
-			$newTaint = $curTaint ? clone $curTaint : Taintedness::newSafe();
-			$newTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $this->rightTaint, $override );
+			if ( $curTaint ) {
+				$newTaint = $override
+					? $curTaint->asMergedForAssignment( $this->rightTaint, $this->dimDepth )
+					: $curTaint->asMergedWith( $this->rightTaint );
+			} else {
+				$newTaint = $this->rightTaint;
+			}
 			$overrideTaint = true;
 		} else {
 			$newTaint = $this->rightTaint;
@@ -193,10 +189,14 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 
 		if ( $globalVarObj ) {
 			// Merge the taint on the "true" global object, too
-			if ( $lhsOffsets ) {
+			if ( $this->dimDepth > 0 ) {
 				$curGlobalTaint = self::getTaintednessRaw( $globalVarObj );
-				$newGlobalTaint = $curGlobalTaint ? clone $curGlobalTaint : Taintedness::newSafe();
-				$newGlobalTaint->setTaintednessAtOffsetList( $lhsOffsets, $offsetsTaint, $this->rightTaint, false );
+				if ( $curGlobalTaint ) {
+					$newGlobalTaint = clone $curGlobalTaint;
+					$newGlobalTaint->mergeWith( $this->rightTaint );
+				} else {
+					$newGlobalTaint = $this->rightTaint;
+				}
 				$overrideGlobalTaint = true;
 			} else {
 				$newGlobalTaint = $this->rightTaint;
@@ -205,9 +205,11 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->setTaintedness( $globalVarObj, $newGlobalTaint, $overrideGlobalTaint );
 		}
 
-		if ( $lhsOffsets ) {
-			$newLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
-			$newLinks->setLinksAtOffsetList( $lhsOffsets, $this->rightLinks, $override );
+		if ( $this->dimDepth > 0 ) {
+			$curLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
+			$newLinks = $override
+				? $curLinks->asMergedForAssignment( $this->rightLinks, $this->dimDepth )
+				: $curLinks->asMergedWith( $this->rightLinks );
 			$overrideLinks = true;
 		} else {
 			$newLinks = $this->rightLinks;
@@ -216,9 +218,9 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->mergeTaintDependencies( $variableObj, $newLinks, $overrideLinks );
 		if ( $globalVarObj ) {
 			// Merge dependencies on the global copy as well
-			if ( $lhsOffsets ) {
-				$newGlobalLinks = self::getMethodLinksCloneOrEmpty( $globalVarObj );
-				$newGlobalLinks->setLinksAtOffsetList( $lhsOffsets, $this->rightLinks, false );
+			if ( $this->dimDepth > 0 ) {
+				$curGlobalLinks = self::getMethodLinksCloneOrEmpty( $globalVarObj );
+				$newGlobalLinks = $curGlobalLinks->asMergedWith( $this->rightLinks );
 				$overrideGlobalLinks = true;
 			} else {
 				$newGlobalLinks = $this->rightLinks;
@@ -227,7 +229,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->mergeTaintDependencies( $globalVarObj, $newGlobalLinks, $overrideGlobalLinks );
 		}
 
-		if ( $lhsOffsets ) {
+		if ( $this->dimDepth > 0 ) {
 			$curError = self::getCausedByRaw( $variableObj );
 			$newError = $curError ? clone $curError : new CausedByLines();
 			$newError->mergeWith( $this->rightError );
