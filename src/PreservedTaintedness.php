@@ -40,7 +40,12 @@ class PreservedTaintedness {
 	 * @return Taintedness
 	 */
 	public function asTaintednessForCausedBy(): Taintedness {
-		$ret = new Taintedness( $this->ownOffsets->getFlags() );
+		$flags = $this->ownOffsets->getFlags();
+		if ( $flags ) {
+			// TODO Avoid PRESERVE for caused-by
+			$flags |= SecurityCheckPlugin::PRESERVE_TAINT;
+		}
+		$ret = new Taintedness( $flags );
 		foreach ( $this->dimTaint as $k => $val ) {
 			$ret->setOffsetTaintedness( $k, $val->asTaintednessForCausedBy() );
 		}

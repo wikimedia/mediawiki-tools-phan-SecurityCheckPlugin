@@ -665,7 +665,9 @@ class Taintedness {
 	 * @return self
 	 */
 	public function asMovedAtRelevantOffsetsForBackprop( ParamLinksOffsets $offsets ): self {
-		$ret = $offsets->getOwn() ? clone $this : self::newSafe();
+		$ret = $offsets->getOwn() ?
+			$this->withOnly( ( $offsets->getFlags() & SecurityCheckPlugin::ALL_TAINT ) << 1 )
+			: self::newSafe();
 		foreach ( $offsets->getDims() as $k => $val ) {
 			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $val );
 			if ( isset( $ret->dimTaint[$k] ) ) {

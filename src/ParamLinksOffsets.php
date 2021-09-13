@@ -32,7 +32,7 @@ class ParamLinksOffsets {
 	 * @return self
 	 */
 	public static function newAll(): self {
-		return new self( true, SecurityCheckPlugin::PRESERVE_TAINT );
+		return new self( true, SecurityCheckPlugin::ALL_TAINT );
 	}
 
 	/**
@@ -132,9 +132,7 @@ class ParamLinksOffsets {
 	 */
 	public function appliedToTaintedness( Taintedness $taintedness ): Taintedness {
 		if ( $this->own ) {
-			$ret = $this->ownFlags === SecurityCheckPlugin::PRESERVE_TAINT
-				? clone $taintedness
-				: $taintedness->withOnly( $this->ownFlags );
+			$ret = $taintedness->withOnly( $this->ownFlags );
 		} else {
 			$ret = new Taintedness( SecurityCheckPlugin::NO_TAINT );
 		}
