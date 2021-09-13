@@ -27,7 +27,7 @@ class SingleMethodLinks {
 	 * @param int $i
 	 */
 	public function addParam( int $i ): void {
-		$this->params[$i] = new ParamLinksOffsets();
+		$this->params[$i] = ParamLinksOffsets::newAll();
 	}
 
 	/**

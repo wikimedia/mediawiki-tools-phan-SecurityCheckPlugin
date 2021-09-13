@@ -134,7 +134,7 @@ trait TaintednessBaseVisitor {
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
 			$this->addFuncTaintError(
 				$func,
-				$addedTaint->getParamPreservedTaint( $key )->asTaintedness(),
+				$addedTaint->getParamPreservedTaint( $key )->asTaintednessForCausedBy(),
 				$key,
 				$allNewTaint->getParamFlags( $key ),
 				false,
@@ -152,7 +152,7 @@ trait TaintednessBaseVisitor {
 			if ( $preserveVariadic ) {
 				$this->addFuncTaintError(
 					$func,
-					$preserveVariadic->asTaintedness(),
+					$preserveVariadic->asTaintednessForCausedBy(),
 					$variadicIndex,
 					$variadicFlags,
 					true,
@@ -1441,7 +1441,7 @@ trait TaintednessBaseVisitor {
 				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
 				$funcError = new FunctionCausedByLines();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
-					$curParTaint = $curTaint->asMovedAtRelevantOffsets( $paramOffsets );
+					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint->setVariadicParamSinkTaint( $i, $curParTaint );
 						$funcError->setVariadicParamLines( $i, $backpropError );
@@ -2033,7 +2033,7 @@ trait TaintednessBaseVisitor {
 				} else {
 					// This parameter has no taint info. And overall this function doesn't depend on param
 					// for taint and isn't unknown. So we consider this argument untainted.
-					$effectiveArgTaintedness = Taintedness::newSafe();
+					continue;
 				}
 
 				$curArgError = $effectiveArgTaintedness->isSafe()

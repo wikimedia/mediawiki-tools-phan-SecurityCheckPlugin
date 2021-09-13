@@ -256,12 +256,11 @@ class MethodLinks {
 
 	/**
 	 * Temporary method until proper handlers are created.
-	 * @note This doesn't return a clone
 	 *
 	 * @return LinksSet
 	 */
 	public function getLinks(): LinksSet {
-		$ret = $this->links;
+		$ret = clone $this->links;
 		foreach ( $this->dimLinks as $link ) {
 			$ret = self::mergeSets( $ret, $link->getLinks() );
 		}
@@ -320,7 +319,6 @@ class MethodLinks {
 	}
 
 	/**
-	 * @todo Store it here?
 	 * @param FunctionInterface $func
 	 * @param int $param
 	 * @return PreservedTaintedness
