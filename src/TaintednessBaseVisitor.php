@@ -603,15 +603,18 @@ trait TaintednessBaseVisitor {
 		}
 		$lines = explode( "\n", $docBlock );
 		/** @param string[] $args */
-		$invalidLineIssueEmitter = function ( string $msg, array $args ): void {
+		$invalidLineIssueEmitter = function ( string $msg, array $args ) use ( $func ): void {
 			SecurityCheckPlugin::emitIssue(
 				$this->code_base,
-				$this->context,
+				// Emit issues at the line of the signature
+				$func->getContext(),
 				'SecurityCheckInvalidAnnotation',
 				$msg,
 				$args
 			);
 		};
+		// Note, not forCaller, as that doesn't see variadic parameters
+		$calleeParamList = $func->getParameterList();
 		$validTaintEncountered = false;
 		// Assume that if some of the taint is specified, then
 		// the person would specify all the dangerous taints, so
@@ -627,12 +630,30 @@ trait TaintednessBaseVisitor {
 					$invalidLineIssueEmitter( "Cannot parse taint line '{COMMENT}'", [ $trimmedLine ] );
 					continue;
 				}
-				$paramNumber = $this->getParamNumberGivenName( $func, $m['paramname'] );
-				// TODO: Should we check the real signature, rather than relying on the annotation?
-				// Probably yes, as currently we're 100% trusting the annotation, but it might be wrong.
-				$isVariadic = $m['variadic'] !== '';
+
+				$paramNumber = null;
+				$isVariadic = null;
+				foreach ( $calleeParamList as $i => $param ) {
+					if ( $m['paramname'] === $param->getName() ) {
+						$paramNumber = $i;
+						$isVariadic = $param->isVariadic();
+						break;
+					}
+				}
 				if ( $paramNumber === null ) {
+					$invalidLineIssueEmitter(
+						'Annotated parameter ${PARAMETER} not found in the signature',
+						[ $m['paramname'] ]
+					);
 					continue;
+				}
+
+				$annotatedAsVariadic = $m['variadic'] !== '';
+				if ( $isVariadic !== $annotatedAsVariadic ) {
+					$msg = $isVariadic
+						? 'Variadic parameter ${PARAMETER} should be annotated as `...${PARAMETER}`'
+						: 'Non-variadic parameter ${PARAMETER} should be annotated as `${PARAMETER}`';
+					$invalidLineIssueEmitter( $msg, [ $m['paramname'], $m['paramname'] ] );
 				}
 				$taintData = SecurityCheckPlugin::parseTaintLine( $m['taint'] );
 				if ( $taintData === null ) {
@@ -682,22 +703,6 @@ trait TaintednessBaseVisitor {
 
 		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $validTaintEncountered ? clone $funcTaint : null;
 		return SecurityCheckPlugin::$docblockCache[ $fqsen ];
-	}
-
-	/**
-	 * @param FunctionInterface $func
-	 * @param string $name The name of parameter, no $ or & prefixed
-	 * @return null|int null on no such parameter
-	 */
-	private function getParamNumberGivenName( FunctionInterface $func, string $name ): ?int {
-		$parameters = $func->getParameterList();
-		foreach ( $parameters as $i => $param ) {
-			if ( $name === $param->getName() ) {
-				return $i;
-			}
-		}
-		$this->debug( __METHOD__, $func->getName() . " does not have param $name" );
-		return null;
 	}
 
 	/**
