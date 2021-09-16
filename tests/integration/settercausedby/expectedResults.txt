@@ -1,0 +1,2 @@
+integration/settercausedby/test.php:23 SecurityCheck-XSS Calling method \echoArg() in \doEvil that outputs using tainted argument #1 (`$obj->propDirect`). (Caused by: integration/settercausedby/test.php +17) (Caused by: integration/settercausedby/test.php +12)
+integration/settercausedby/test.php:27 SecurityCheck-XSS Calling method \SetterCausedBy::setPropParam() in [no method] that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: integration/settercausedby/test.php +22; integration/settercausedby/test.php +8; integration/settercausedby/test.php +17)
