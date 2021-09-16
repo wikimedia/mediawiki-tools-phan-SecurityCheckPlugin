@@ -63,9 +63,15 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @param string $folderName
 	 * @param string $cfgFile
 	 * @param bool $usePolyfill Whether to force the polyfill parser
+	 * @param bool $analyzeTwice
 	 * @return string|null
 	 */
-	private function runPhan( string $folderName, string $cfgFile, bool $usePolyfill = false ): ?string {
+	private function runPhan(
+		string $folderName,
+		string $cfgFile,
+		bool $usePolyfill = false,
+		bool $analyzeTwice = false
+	): ?string {
 		if ( !$usePolyfill && !extension_loaded( 'ast' ) ) {
 			$this->markTestSkipped( 'This test requires PHP extension \'ast\' loaded' );
 		}
@@ -80,6 +86,9 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$cliBuilder->setOption( 'no-progress-bar', true );
 		if ( $usePolyfill ) {
 			$cliBuilder->setOption( 'force-polyfill-parser', true );
+		}
+		if ( $analyzeTwice ) {
+			$cliBuilder->setOption( 'analyze-twice', true );
 		}
 		$cli = $cliBuilder->build();
 
@@ -140,6 +149,30 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	/**
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider provideAnalyzeTwiceTests
+	 */
+	public function testAnalyzeTwice( $name, $expected ) {
+		$this->checkSkipTest( $name );
+		// Note: $expected is from the analyze-twice dir, but the source files are in integration/
+		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', false, true );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
+	 * @param string $name Test name, and name of the folder
+	 * @param string $expected Expected seccheck output for the directory
+	 * @dataProvider provideAnalyzeTwiceTests
+	 */
+	public function testAnalyzeTwice_Polyfill( $name, $expected ) {
+		$this->checkSkipTest( $name );
+		// Note: $expected is from the analyze-twice dir, but the source files are in integration/
+		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', true, true );
+		$this->assertEquals( $expected, $res );
+	}
+
+	/**
 	 * @param string $testName
 	 */
 	private function checkSkipTest( string $testName ): void {
@@ -158,6 +191,13 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	public function provideIntegrationTests() {
 		return $this->extractTestCases( 'integration' );
+	}
+
+	/**
+	 * @return Generator
+	 */
+	public function provideAnalyzeTwiceTests() {
+		return $this->extractTestCases( 'analyze-twice' );
 	}
 
 	/**

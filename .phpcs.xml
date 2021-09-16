@@ -10,5 +10,5 @@
 	<arg name="encoding" value="UTF-8"/>
 
 	<!-- No point in linting tests -->
-	<exclude-pattern type="relative">^tests/(integration|numkey|phan-interaction)/*</exclude-pattern>
+	<exclude-pattern type="relative">^tests/(integration|numkey|phan-interaction|analyze-twice)/*</exclude-pattern>
 </ruleset>
