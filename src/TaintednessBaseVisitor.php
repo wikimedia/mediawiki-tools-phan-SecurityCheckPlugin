@@ -200,28 +200,17 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * @param FunctionInterface $left
-	 * @param CausedByLines $rightError
+	 * @param FunctionInterface $func
+	 * @param FunctionCausedByLines $newError
 	 */
-	protected function mergeFuncGenericTaintError( FunctionInterface $left, CausedByLines $rightError ): void {
-		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $left->getFQSEN() ) ) {
+	protected function mergeFuncError( FunctionInterface $func, FunctionCausedByLines $newError ): void {
+		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) ) {
 			return;
 		}
 
-		self::ensureFuncCausedByRawExists( $left );
-		$leftError = self::getFuncCausedByRaw( $left );
-		assert( $leftError instanceof FunctionCausedByLines );
-		$leftGenericError = $leftError->getGenericLines();
-
-		if ( !$leftGenericError->isEmpty() && $rightError->isSupersetOf( $leftGenericError ) ) {
-			$newLeftError = $rightError;
-		} elseif ( !$rightError->isEmpty() && !$leftGenericError->isSupersetOf( $rightError ) ) {
-			$newLeftError = $leftGenericError->asMergedWith( $rightError );
-		} else {
-			return;
-		}
-
-		self::setFuncCausedByRaw( $left, $leftError->withGenericError( $newLeftError ) );
+		$funcError = self::getFuncCausedByRawCloneOrEmpty( $func );
+		$funcError->mergeWith( $newError );
+		self::setFuncCausedByRaw( $func, $funcError );
 	}
 
 	/**
@@ -1433,7 +1422,10 @@ trait TaintednessBaseVisitor {
 		if ( $varLinks === null || $varLinks->isEmpty() ) {
 			return;
 		}
-		$varCausedBy = self::getCausedByRawCloneOrEmpty( $var );
+		$backpropError = self::getCausedByRawCloneOrEmpty( $var );
+		if ( $additionalError ) {
+			$backpropError->mergeWith( $additionalError );
+		}
 
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
@@ -1447,21 +1439,20 @@ trait TaintednessBaseVisitor {
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
 				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
+				$funcError = new FunctionCausedByLines();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsets( $paramOffsets );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint->setVariadicParamSinkTaint( $i, $curParTaint );
+						$funcError->setVariadicParamLines( $i, $backpropError );
 					} else {
 						$paramTaint->setParamSinkTaint( $i, $curParTaint );
+						$funcError->setParamLines( $i, $backpropError );
 					}
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
 				$this->setFuncTaint( $method, $paramTaint );
-				// TODO: Ideally we would merge taint error per argument
-				$this->mergeFuncGenericTaintError( $method, $varCausedBy );
-				if ( $additionalError ) {
-					$this->mergeFuncGenericTaintError( $method, $additionalError );
-				}
+				$this->mergeFuncError( $method, $funcError );
 			}
 		}
 

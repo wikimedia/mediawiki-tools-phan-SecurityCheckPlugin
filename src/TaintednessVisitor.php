@@ -1098,7 +1098,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$this->setFuncTaint( $func, $paramTaint );
-		$this->mergeFuncGenericTaintError( $func, $retTaintednessWithError->getError() );
+		$funcError = new FunctionCausedByLines();
+		$funcError->setGenericLines( $retTaintednessWithError->getError() );
+		$this->mergeFuncError( $func, $funcError );
 	}
 
 	/**
