@@ -93,6 +93,25 @@ class ParamLinksOffsets {
 		}
 	}
 
+	/**
+	 * @param int $taint
+	 * @return bool
+	 */
+	public function hasTaintRecursively( int $taint ): bool {
+		if ( $this->own && ( $this->ownFlags & $taint ) ) {
+			return true;
+		}
+		foreach ( $this->dims as $dimOffsets ) {
+			if ( $dimOffsets->hasTaintRecursively( $taint ) ) {
+				return true;
+			}
+		}
+		if ( $this->unknown && $this->unknown->hasTaintRecursively( $taint ) ) {
+			return true;
+		}
+		return false;
+	}
+
 	public function __clone() {
 		foreach ( $this->dims as $k => $v ) {
 			$this->dims[$k] = clone $v;

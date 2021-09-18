@@ -1,7 +1,7 @@
 <?php
 
 function identicalSides( &$arg ) {
-	$arg = $arg;
+	$arg = $arg; // TODO Should be in caused-by
 }
 
 $var1 = $_GET['baz']; // Note: this MUST be in caused-by
@@ -10,7 +10,7 @@ echo $var1;
 
 
 function indirect( &$arg ) {
-	$temp = $arg;
+	$temp = $arg;// TODO This and the next line should be in caused-by
 	$arg = $temp;
 }
 
@@ -20,7 +20,7 @@ echo $var2;
 
 
 function usingList( &$arg ) {
-	[ $foo, $_ ] = $arg;
+	[ $foo, $_ ] = $arg;// TODO This and the next line should be in caused-by
 	$arg = $foo;
 }
 
@@ -30,7 +30,7 @@ echo $var3;
 
 
 function ternary( &$arg ) {
-	[ $foo, $_ ] = $arg ?: [ 'baz' ];
+	[ $foo, $_ ] = $arg ?: [ 'baz' ];// TODO This and the next line should be in caused-by
 	$arg = $foo;
 }
 

@@ -2,6 +2,8 @@
 
 namespace SecurityCheckPlugin;
 
+use Phan\Language\Element\FunctionInterface;
+
 /**
  * Value object used to store caused-by lines.
  *
@@ -16,18 +18,20 @@ class CausedByLines {
 	private const LINES_HARD_LIMIT = 30;
 
 	/**
-	 * @var array[]
-	 * @phan-var list<array{0:Taintedness,1:string}>
+	 * @var array<array<Taintedness|string|MethodLinks>>
+	 * @phan-var list<array{0:Taintedness,1:string,2:MethodLinks}>
 	 */
 	private $lines = [];
 
 	/**
 	 * @param Taintedness $taintedness
 	 * @param string $line
+	 * @param MethodLinks|null $links
 	 */
-	public function addLine( Taintedness $taintedness, string $line ): void {
+	public function addLine( Taintedness $taintedness, string $line, MethodLinks $links = null ): void {
+		$links = $links ?? MethodLinks::newEmpty();
 		if ( !$this->lines ) {
-			$this->lines = [ [ $taintedness, $line ] ];
+			$this->lines = [ [ $taintedness, $line, $links ] ];
 			return;
 		}
 		if ( count( $this->lines ) >= self::LINES_HARD_LIMIT ) {
@@ -37,8 +41,9 @@ class CausedByLines {
 		$idx = array_search( $line, array_column( $this->lines, 1 ), true );
 		if ( $idx !== false ) {
 			$this->lines[ $idx ][0] = $this->lines[ $idx ][0]->withObj( $taintedness );
+			$this->lines[ $idx ][2] = $this->lines[ $idx ][2]->asMergedWith( $links );
 		} else {
-			$this->lines[] = [ $taintedness, $line ];
+			$this->lines[] = [ $taintedness, $line, $links ];
 		}
 	}
 
@@ -49,8 +54,37 @@ class CausedByLines {
 	public function asIntersectedWithTaintedness( Taintedness $taintedness ): self {
 		$ret = new self;
 		$curTaint = $taintedness->get();
-		foreach ( $this->lines as [ $eTaint, $eLine ] ) {
-			$ret->lines[] = [ $eTaint->withOnly( $curTaint ), $eLine ];
+		foreach ( $this->lines as [ $eTaint, $eLine, $links ] ) {
+			$ret->lines[] = [ $eTaint->withOnly( $curTaint ), $eLine, $links ];
+		}
+		return $ret;
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 * @param int $param
+	 * @return self
+	 */
+	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
+		$ret = new self;
+		foreach ( $this->lines as $line ) {
+			if ( $line[2]->hasDataForFuncAndParam( $func, $param ) ) {
+				$ret->lines[] = $line;
+			}
+		}
+		return $ret;
+	}
+
+	/**
+	 * @return self
+	 */
+	public function getLinesForGenericReturn(): self {
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $_ ] ) {
+			if ( !$lineTaint->isSafe() ) {
+				// For generic lines, links don't matter
+				$ret->lines[] = [ $lineTaint, $lineLine, MethodLinks::newEmpty() ];
+			}
 		}
 		return $ret;
 	}
@@ -85,12 +119,12 @@ class CausedByLines {
 	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
 	 * even a single taintedness value in $first changes.
 	 *
-	 * @param array[] $first
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $first
-	 * @param array[] $second
-	 * @phan-param array<int,array{0:Taintedness,1:string}> $second
-	 * @return array[]
-	 * @phan-return array<int,array{0:Taintedness,1:string}>
+	 * @param array<array<Taintedness|string|MethodLinks>> $first
+	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $first
+	 * @param array<array<Taintedness|string|MethodLinks>> $second
+	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $second
+	 * @return array<array<Taintedness|string|MethodLinks>>
+	 * @phan-return list<array{0:Taintedness,1:string,2:MethodLinks}>
 	 */
 	private static function mergeRaw( array $first, array $second ): array {
 		if ( !$first ) {
@@ -106,6 +140,7 @@ class CausedByLines {
 		if ( $subsIdx !== false ) {
 			foreach ( $second as $i => $cur ) {
 				$first[ $i + $subsIdx ][0] = $first[ $i + $subsIdx ][0]->withObj( $cur[0] );
+				$first[ $i + $subsIdx ][2] = $first[ $i + $subsIdx ][2]->asMergedWith( $cur[2] );
 			}
 			return $first;
 		}
@@ -126,6 +161,7 @@ class CausedByLines {
 				$startIdx = $baseLen - $newLen + $expectedIndex;
 				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
 					$first[$j][0] = $first[$j][0]->withObj( $second[$j - $startIdx][0] );
+					$first[$j][2] = $first[$j][2]->asMergedWith( $second[$j - $startIdx][2] );
 				}
 				$ret = array_merge( $first, array_slice( $second, $newLen - $expectedIndex ) );
 				break;
@@ -144,9 +180,9 @@ class CausedByLines {
 	 * times, this will just find the first one.
 	 *
 	 * @param array[] $haystack
-	 * @phan-param list<array{0:Taintedness,1:string}> $haystack
+	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $haystack
 	 * @param array[] $needle
-	 * @phan-param list<array{0:Taintedness,1:string}> $needle
+	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $needle
 	 * @return false|int False if not a subset, the starting index if it is.
 	 * @note Use strict comparisons with the return value!
 	 */
@@ -222,9 +258,9 @@ class CausedByLines {
 
 		$taintedness = $this->normalizeTaintForCausedBy( $taintedness )->get();
 		$ret = [];
-		foreach ( $this->lines as [ $lineTaint, $lineText ] ) {
+		foreach ( $this->lines as [ $lineTaint, $lineText, $lineLinks ] ) {
 			// Don't check for equality, as that would fail with MultiTaint
-			if ( $lineTaint->has( $taintedness ) ) {
+			if ( $lineTaint->has( $taintedness ) || $lineLinks->canPreserveTaintFlags( $taintedness ) ) {
 				$ret[] = $lineText;
 			}
 		}
@@ -258,8 +294,8 @@ class CausedByLines {
 	 */
 	public function toDebugString(): string {
 		$r = [];
-		foreach ( $this->lines as [ $t, $l ] ) {
-			$r[] = "\t[\n\t\tT: " . $t->toShortString() . "\n\t\tL: " . $l . "\n\t]";
+		foreach ( $this->lines as [ $t, $line, $links ] ) {
+			$r[] = "\t[\n\t\tT: " . $t->toShortString() . "\n\t\tL: " . $line . "\n\t\tLinks: " . $links . "\n\t]";
 		}
 		return "[\n" . implode( ",\n", $r ) . "\n]";
 	}

@@ -38,7 +38,7 @@ class SpecialMultiLock {
 
 	private function showUserTable() {
 		$cache = new MapCacheLRU();
-		echo Html::rawElement( 'td', [], $cache->get( $_GET['a'] ) );
+		echo Html::rawElement( 'td', [], $cache->get( $_GET['a'] ) );//TODO Should have Core line 11 in its caused-by
 	}
 
 	private function showLogExtract() {

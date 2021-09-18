@@ -25,6 +25,9 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/** @var Taintedness */
 	private $errorTaint;
 
+	/** @var MethodLinks */
+	private $errorLinks;
+
 	/** @var CausedByLines */
 	private $rightError;
 
@@ -49,6 +52,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @param MethodLinks $rightLinks
 	 * @param Taintedness $errorTaint
 	 * @param bool $isAssignOp Whether it's an assign op like .= (and not normal =)
+	 * @param MethodLinks $errorLinks
 	 * @param array $resolvedOffsets
 	 * @phan-param list<Node|mixed|null> $resolvedOffsets
 	 */
@@ -60,6 +64,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		MethodLinks $rightLinks,
 		Taintedness $errorTaint,
 		bool $isAssignOp,
+		MethodLinks $errorLinks,
 		array $resolvedOffsets = []
 	) {
 		parent::__construct( $code_base, $context );
@@ -68,6 +73,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightLinks = $rightLinks;
 		$this->errorTaint = $errorTaint;
 		$this->isAssignOp = $isAssignOp;
+		$this->errorLinks = $errorLinks;
 		$this->resolvedOffsets = $resolvedOffsets;
 	}
 
@@ -99,6 +105,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				$this->rightLinks,
 				$this->errorTaint->getTaintednessForOffsetOrWhole( $key ),
 				$this->isAssignOp,
+				$this->errorLinks,
 				$this->resolvedOffsets
 			);
 			$childVisitor( $value );
@@ -232,10 +239,10 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		if ( $overrideError ) {
 			self::clearTaintError( $variableObj );
 		}
-		$this->addTaintError( $this->errorTaint, $variableObj );
+		$this->addTaintError( $this->errorTaint, $variableObj, $this->errorLinks );
 		$this->mergeTaintError( $variableObj, $this->rightError );
 		if ( $globalVarObj ) {
-			$this->addTaintError( $this->errorTaint, $globalVarObj );
+			$this->addTaintError( $this->errorTaint, $globalVarObj, $this->errorLinks );
 			$this->mergeTaintError( $globalVarObj, $this->rightError );
 		}
 	}

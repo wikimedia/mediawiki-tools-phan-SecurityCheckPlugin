@@ -16,8 +16,8 @@ echo $y;
 
 $z = $_GET['baz'];
 // These _are_ double escaped
-getEscaped( htmlspecialchars( $z ) );// TODO: Line 26 shouldn't be in the caused-by lines
-getEscaped2( htmlspecialchars( $z ) );// TODO: Line 32 shouldn't be in the caused-by lines
+getEscaped( htmlspecialchars( $z ) );// Only line 25 must be in the caused-by lines
+getEscaped2( htmlspecialchars( $z ) );// Only line 30 must be in the caused-by lines
 // This is safe because it doesn't use the arg
 getEscaped3( htmlspecialchars( $z ) );
 

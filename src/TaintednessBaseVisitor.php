@@ -220,20 +220,20 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Taintedness $taintedness
 	 * @param TypedElementInterface $elem Where to put it
+	 * @param MethodLinks|null $links
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		Taintedness $taintedness,
 		TypedElementInterface $elem,
+		MethodLinks $links = null,
 		$reason = null
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
-		// NOTE: Parameters here are excluded just to keep caused-by lines shorter, although it wouldn't
-		// be wrong to include them.
-		if ( !$elem instanceof Parameter && $taintedness->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
-			$taintedness = Taintedness::newTainted();
-		}
-		if ( !$taintedness->isExecOrAllTaint() ) {
+
+		$taintedness = $taintedness->without( SecurityCheckPlugin::PRESERVE_TAINT );
+
+		if ( !$taintedness->isExecOrAllTaint() && ( !$links || $links->isEmpty() ) ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
 		}
@@ -253,7 +253,7 @@ trait TaintednessBaseVisitor {
 		assert( $elemError instanceof CausedByLines );
 		$newErr = clone $elemError;
 		foreach ( $newErrors as $newError ) {
-			$newErr->addLine( clone $taintedness, $newError );
+			$newErr->addLine( clone $taintedness, $newError, $links );
 		}
 		self::setCausedByRaw( $elem, $newErr );
 	}
@@ -2011,7 +2011,7 @@ trait TaintednessBaseVisitor {
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$funcError->getParamLinesForIssue( $i )->toStringForIssue( $paramSinkTaint ),
+					$funcError->getParamLines( $i )->toStringForIssue( $paramSinkTaint ),
 					$baseArgError->toStringForIssue( $paramSinkTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
@@ -2039,18 +2039,19 @@ trait TaintednessBaseVisitor {
 					continue;
 				}
 
-				$curArgError = $effectiveArgTaintedness->isSafe()
-					? $baseArgError
-					: $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
-
 				'@phan-var Taintedness $overallArgTaint';
 				'@phan-var CausedByLines $argErrors';
 				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-				// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
-				// than one argument, it will appear once per preserved argument in the overall caused-by of the call
-				// expression. This is probably a good thing, but can increase the length of caused-by lines.
-				// TODO Something like T291379 might help here.
-				$argErrors->mergeWith( $curArgError->asMergedWith( $funcError->getParamLines( $i ) ) );
+				if ( !$effectiveArgTaintedness->isSafe() ) {
+					$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
+					$relevantParamError = $funcError->getParamLines( $i )
+						->asIntersectedWithTaintedness( $effectiveArgTaintedness );
+					// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
+					// than one argument, it will appear once per preserved argument in the overall caused-by of the
+					// call expression. This is probably a good thing, but can increase the length of caused-by lines.
+					// TODO Something like T291379 might help here.
+					$argErrors->mergeWith( $curArgError->asMergedWith( $relevantParamError ) );
+				}
 			}
 		}
 

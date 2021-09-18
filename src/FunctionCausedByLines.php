@@ -86,6 +86,7 @@ class FunctionCausedByLines {
 	/**
 	 * @param int $param
 	 * @return CausedByLines
+	 * @todo Param lines should be split into preserved vs sink, like in FunctionTaintedness
 	 */
 	public function getParamLines( int $param ): CausedByLines {
 		if ( isset( $this->paramLines[$param] ) ) {
@@ -98,24 +99,6 @@ class FunctionCausedByLines {
 			return $this->variadicParamLines;
 		}
 		return new CausedByLines();
-	}
-
-	/**
-	 * Get the caused-by lines for the given parameter, including everything possibly useful when reporting an issue.
-	 * @param int $param
-	 * @return CausedByLines
-	 */
-	public function getParamLinesForIssue( int $param ): CausedByLines {
-		$paramLines = $this->getParamLines( $param );
-
-		if ( $paramLines->isEmpty() || $this->genericLines->isSupersetOf( $paramLines ) ) {
-			$lines = $this->genericLines;
-		} elseif ( $this->genericLines->isEmpty() || $paramLines->isSupersetOf( $this->genericLines ) ) {
-			$lines = $paramLines;
-		} else {
-			$lines = $paramLines->asMergedWith( $this->genericLines );
-		}
-		return $lines;
 	}
 
 	/**

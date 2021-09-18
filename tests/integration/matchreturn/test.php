@@ -67,7 +67,7 @@ shell_exec( differentTaintsForDifferentParams( 'a', 'b' ) ); // Unsafe
 shell_exec( differentTaintsForDifferentParams( $_GET['a'], $_GET['b'] ) ); // Unsafe
 shell_exec( differentTaintsForDifferentParams( $_GET['a'], 'b' ) ); // Unsafe
 shell_exec( differentTaintsForDifferentParams( 'a', $_GET['b'] ) ); // Unsafe
-shell_exec( differentTaintsForDifferentParams( getHTML(), getHTML() ) ); // TODO Unsafe
+shell_exec( differentTaintsForDifferentParams( getHTML(), getHTML() ) ); // Unsafe
 shell_exec( differentTaintsForDifferentParams( getHTML(), getShell() ) ); // Unsafe
 shell_exec( differentTaintsForDifferentParams( getShell(), getHTML() ) ); // Unsafe
 shell_exec( differentTaintsForDifferentParams( getShell(), getShell() ) ); // Unsafe

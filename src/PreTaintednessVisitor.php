@@ -111,7 +111,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				if ( $paramLinks ) {
 					$this->mergeTaintDependencies( $promotedProps[$i], $paramLinks, false );
 				}
-				$this->addTaintError( $startTaint, $promotedProps[$i] );
+				$this->addTaintError( $startTaint, $promotedProps[$i], $paramLinks );
 			}
 		}
 	}

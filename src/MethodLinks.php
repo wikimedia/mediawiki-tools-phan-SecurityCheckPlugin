@@ -291,6 +291,26 @@ class MethodLinks {
 	/**
 	 * @param FunctionInterface $func
 	 * @param int $i
+	 * @return bool
+	 */
+	public function hasDataForFuncAndParam( FunctionInterface $func, int $i ): bool {
+		if ( $this->links->contains( $func ) && $this->links[$func]->hasParam( $i ) ) {
+			return true;
+		}
+		foreach ( $this->dimLinks as $dimLinks ) {
+			if ( $dimLinks->hasDataForFuncAndParam( $func, $i ) ) {
+				return true;
+			}
+		}
+		if ( $this->unknownDimLinks && $this->unknownDimLinks->hasDataForFuncAndParam( $func, $i ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 * @param int $i
 	 */
 	public function initializeParamForFunc( FunctionInterface $func, int $i ): void {
 		if ( $this->links->contains( $func ) ) {
@@ -298,6 +318,29 @@ class MethodLinks {
 		} else {
 			$this->links[$func] = SingleMethodLinks::newWithParam( $i );
 		}
+	}
+
+	/**
+	 * Can the given taintedness flags be preserved by anything stored in this object?
+	 *
+	 * @param int $taint
+	 * @return bool
+	 */
+	public function canPreserveTaintFlags( int $taint ): bool {
+		foreach ( $this->links as $func ) {
+			if ( $this->links[$func]->canPreserveTaintFlags( $taint ) ) {
+				return true;
+			}
+		}
+		foreach ( $this->dimLinks as $dimLinks ) {
+			if ( $dimLinks->canPreserveTaintFlags( $taint ) ) {
+				return true;
+			}
+		}
+		if ( $this->unknownDimLinks && $this->unknownDimLinks->canPreserveTaintFlags( $taint ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	/**

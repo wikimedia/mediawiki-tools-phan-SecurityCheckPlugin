@@ -21,7 +21,7 @@ $myArrayGlobal = [];
 
 function addToGlobal( $par ) {
 	global $myArrayGlobal;
-	$myArrayGlobal[] = $par; // TODO Ideally this would be in the caused-by lines
+	$myArrayGlobal[] = $par; // This must be in the caused-by lines
 }
 addToGlobal( $_GET['foo'] );
 echo $myArrayGlobal; // XSS

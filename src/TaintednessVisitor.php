@@ -544,6 +544,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsTaintedness->getError(),
 			$rhsTaintedness->getMethodLinks(),
 			$rhsTaintedness->getTaintedness(),
+			$rhsTaintedness->getMethodLinks(),
 			// TODO Merge things from the LHS now instead?
 			true
 		);
@@ -592,6 +593,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsTaintedness->getError(),
 			$rhsTaintedness->getMethodLinks(),
 			$rhsTaintedness->getTaintedness(),
+			$rhsTaintedness->getMethodLinks(),
 			false
 		);
 		$this->setCachedData( $node );
@@ -604,6 +606,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param CausedByLines $rhsError
 	 * @param MethodLinks $rhsLinks
 	 * @param Taintedness $errorTaint
+	 * @param MethodLinks $errorLinks
 	 * @param bool $isAssignOp
 	 * @return Taintedness
 	 */
@@ -614,6 +617,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		CausedByLines $rhsError,
 		MethodLinks $rhsLinks,
 		Taintedness $errorTaint,
+		MethodLinks $errorLinks,
 		bool $isAssignOp
 	): Taintedness {
 		if ( $lhs->kind === \ast\AST_DIM ) {
@@ -627,7 +631,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsError,
 			$rhsLinks,
 			$errorTaint,
-			$isAssignOp
+			$isAssignOp,
+			$errorLinks
 		);
 		$vis( $lhs );
 		return $rhsTaint;
@@ -1084,22 +1089,28 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$paramTaint = new FunctionTaintedness( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
+		$funcError = new FunctionCausedByLines();
 
 		$links = $retTaintednessWithError->getMethodLinks();
+		$retError = $retTaintednessWithError->getError();
 		// Note, not forCaller, as that doesn't see variadic parameters
 		$calleeParamList = $func->getParameterList();
 		foreach ( $calleeParamList as $i => $param ) {
 			$presTaint = $links->asPreservedTaintednessForFuncParam( $func, $i );
+			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
 			if ( $param->isVariadic() ) {
 				$paramTaint->setVariadicParamPreservedTaint( $i, $presTaint );
+				$funcError->setVariadicParamLines( $i, $paramError );
 			} else {
 				$paramTaint->setParamPreservedTaint( $i, $presTaint );
+				$funcError->setParamLines( $i, $paramError );
 			}
 		}
 
+		$funcError->setGenericLines( $retError->getLinesForGenericReturn() );
 		$this->setFuncTaint( $func, $paramTaint );
-		$funcError = new FunctionCausedByLines();
-		$funcError->setGenericLines( $retTaintednessWithError->getError() );
+		// Note: adding the error after setting the taintedness means that the return line comes before
+		// the other lines
 		$this->mergeFuncError( $func, $funcError );
 	}
 

@@ -84,6 +84,19 @@ class SingleMethodLinks {
 		$this->params = array_diff_key( $this->params, array_fill_keys( $params, 1 ) );
 	}
 
+	/**
+	 * @param int $taint
+	 * @return bool
+	 */
+	public function canPreserveTaintFlags( int $taint ): bool {
+		foreach ( $this->params as $offsets ) {
+			if ( $offsets->hasTaintRecursively( $taint ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public function __clone() {
 		foreach ( $this->params as $k => $val ) {
 			$this->params[$k] = clone $val;

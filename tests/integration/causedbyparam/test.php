@@ -26,7 +26,7 @@ function concatEscapedArgAndEvil( $arg ) {
 echo concatEscapedArgAndEvil( 's' ); // Only lines 23 and 24 in the caused-by
 echo concatEscapedArgAndEvil( $_GET['b'] ); // Only lines 23 and 24 in the caused-by
 require concatEscapedArgAndEvil( 's' ); // Only lines 23 and 24 in the caused-by
-require concatEscapedArgAndEvil( $_GET['b'] ); // Lines 22, 23 and 24 in the caused-by
+require concatEscapedArgAndEvil( $_GET['b'] ); // TODO: Lines 22, 23 and 24 in the caused-by
 
 
 function concatArgInterleaved( $arg ) {
@@ -36,7 +36,7 @@ function concatArgInterleaved( $arg ) {
 	return $x;
 }
 echo concatArgInterleaved( 's' ); // Only lines 34 and 36 in the caused-by
-echo concatArgInterleaved( $_GET['b'] ); // Lines 33-36 in the caused-by, ordered.
+echo concatArgInterleaved( $_GET['b'] ); // Lines 33-36 in the caused-by.
 
 function concatArgInterleaved2( string $a, string $b ) {
 	$x = $_GET['a'];
@@ -56,3 +56,27 @@ function concatArgAndEvilSameLine( string $x ) {
 }
 echo concatArgAndEvilSameLine( 's' ); // Lines 54, 55
 echo concatArgAndEvilSameLine( $_GET['y'] ); // Lines 54, 55
+
+
+function returnEscapedParam( $par ) {
+	$x = $par;
+	return htmlspecialchars( $x );
+}
+htmlspecialchars( returnEscapedParam( [] ) );// Line 63 only, in particular NOT line 62. NOTE: For some reason, the argument to returnEscapedParam must be [] here.
+
+
+function escapeAndReturnParam( $par ) {
+	$encValue = htmlspecialchars( $par );
+	return $par . $encValue;
+}
+
+escapeAndReturnParam( htmlspecialchars( 'foo' ) );// Line 69 only, in particular NOT line 70.
+
+
+function escapeAndReturnParamWithIntermediateAssignment( $par ) {
+	$encValue = htmlspecialchars( $par );
+	$ret = $par . $encValue;
+	return $ret;
+}
+
+escapeAndReturnParamWithIntermediateAssignment( htmlspecialchars( 'foo' ) );// TODO: Line 77 only, in particular NOT lines 78 and 79.
