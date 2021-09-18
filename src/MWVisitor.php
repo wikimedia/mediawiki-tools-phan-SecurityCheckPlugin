@@ -284,14 +284,14 @@ class MWVisitor extends TaintednessVisitor {
 	 */
 	private function getHookTypeForRegistrationMethod( string $method ): ?string {
 		switch ( $method ) {
-		case '\Parser::setFunctionHook':
-			return '!ParserFunctionHook';
-		case '\Parser::setHook':
-		case '\Parser::setTransparentTagHook':
-			return '!ParserHook';
-		default:
-			$this->debug( __METHOD__, "$method not a hook registerer" );
-			return null;
+			case '\Parser::setFunctionHook':
+				return '!ParserFunctionHook';
+			case '\Parser::setHook':
+			case '\Parser::setTransparentTagHook':
+				return '!ParserHook';
+			default:
+				$this->debug( __METHOD__, "$method not a hook registerer" );
+				return null;
 		}
 	}
 
@@ -375,18 +375,18 @@ class MWVisitor extends TaintednessVisitor {
 
 		$hookType = MediaWikiHooksHelper::getInstance()->isSpecialHookSubscriber( $funcFQSEN );
 		switch ( $hookType ) {
-		case '!ParserFunctionHook':
-			$this->visitReturnOfFunctionHook( $node->children['expr'], $funcFQSEN );
-			break;
-		case '!ParserHook':
-			$ret = $node->children['expr'];
-			$this->maybeEmitIssueSimplified(
-				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$ret,
-				"Outputting user controlled HTML from Parser tag hook {FUNCTIONLIKE}",
-				[ $funcFQSEN ]
-			);
-			break;
+			case '!ParserFunctionHook':
+				$this->visitReturnOfFunctionHook( $node->children['expr'], $funcFQSEN );
+				break;
+			case '!ParserHook':
+				$ret = $node->children['expr'];
+				$this->maybeEmitIssueSimplified(
+					new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+					$ret,
+					"Outputting user controlled HTML from Parser tag hook {FUNCTIONLIKE}",
+					[ $funcFQSEN ]
+				);
+				break;
 		}
 	}
 

@@ -42,12 +42,12 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		$params = $node->children['params']->children;
 
 		switch ( $hookType ) {
-		case '!ParserFunctionHook':
-			$this->setFuncHookParamTaint( $params );
-			break;
-		case '!ParserHook':
-			$this->setTagHookParamTaint( $params );
-			break;
+			case '!ParserFunctionHook':
+				$this->setFuncHookParamTaint( $params );
+				break;
+			case '!ParserHook':
+				$this->setTagHookParamTaint( $params );
+				break;
 		}
 	}
 

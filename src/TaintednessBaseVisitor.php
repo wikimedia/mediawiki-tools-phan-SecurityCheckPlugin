@@ -701,68 +701,68 @@ trait TaintednessBaseVisitor {
 				continue;
 			}
 			switch ( $type->getName() ) {
-			case 'int':
-			case 'non-zero-int':
-			case 'float':
-			case 'bool':
-			case 'false':
-			case 'true':
-			case 'null':
-			case 'void':
-			case 'class-string':
-			case 'callable-string':
-			case 'callable-object':
-			case 'callable-array':
-				break;
-			case 'string':
-			case 'non-empty-string':
-			case 'Closure':
-			case 'callable':
-			case 'array':
-			case 'iterable':
-			case 'object':
-			case 'resource':
-			case 'mixed':
-			case 'non-empty-mixed':
-			case 'non-null-mixed':
-				// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
-				$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
-				break;
-			default:
-				if ( $type->hasTemplateTypeRecursive() ) {
-					// TODO Can we do better for template types?
+				case 'int':
+				case 'non-zero-int':
+				case 'float':
+				case 'bool':
+				case 'false':
+				case 'true':
+				case 'null':
+				case 'void':
+				case 'class-string':
+				case 'callable-string':
+				case 'callable-object':
+				case 'callable-array':
+					break;
+				case 'string':
+				case 'non-empty-string':
+				case 'Closure':
+				case 'callable':
+				case 'array':
+				case 'iterable':
+				case 'object':
+				case 'resource':
+				case 'mixed':
+				case 'non-empty-mixed':
+				case 'non-null-mixed':
+					// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
 					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
 					break;
-				}
+				default:
+					if ( $type->hasTemplateTypeRecursive() ) {
+						// TODO Can we do better for template types?
+						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						break;
+					}
 
-				if ( !$type->isObjectWithKnownFQSEN() ) {
-					// Likely some phan-specific types not included above
-					$this->debug( __METHOD__, " $type (" . get_class( $type ) . ') not a class?' );
-					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
-					break;
-				}
+					if ( !$type->isObjectWithKnownFQSEN() ) {
+						// Likely some phan-specific types not included above
+						$this->debug( __METHOD__, " $type (" . get_class( $type ) . ') not a class?' );
+						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						break;
+					}
 
-				$fqsenStr = $type->asFQSEN()->__toString();
-				if ( isset( self::$fqsensWithoutToStringCache[$fqsenStr] ) ) {
-					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
-					break;
-				}
+					$fqsenStr = $type->asFQSEN()->__toString();
+					if ( isset( self::$fqsensWithoutToStringCache[$fqsenStr] ) ) {
+						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						break;
+					}
 
-				// This means specific class, so look up __toString()
-				$toStringFQSEN = FullyQualifiedMethodName::fromStringInContext(
-					$fqsenStr . '::__toString',
-					$this->context
-				);
-				if ( !$this->code_base->hasMethodWithFQSEN( $toStringFQSEN ) ) {
-					// This is common in a void context.
-					// e.g. code like $this->foo() will reach this
-					// check.
-					self::$fqsensWithoutToStringCache[$fqsenStr] = true;
-					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
-					break;
-				}
-				$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
-				$taint->addObj( $this->handleMethodCall( $toString, $toStringFQSEN, [] )->getTaintedness() );
+					// This means specific class, so look up __toString()
+					$toStringFQSEN = FullyQualifiedMethodName::fromStringInContext(
+						$fqsenStr . '::__toString',
+						$this->context
+					);
+					if ( !$this->code_base->hasMethodWithFQSEN( $toStringFQSEN ) ) {
+						// This is common in a void context.
+						// e.g. code like $this->foo() will reach this
+						// check.
+						self::$fqsensWithoutToStringCache[$fqsenStr] = true;
+						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						break;
+					}
+					$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
+					$taint->addObj( $this->handleMethodCall( $toString, $toStringFQSEN, [] )->getTaintedness() );
 			}
 		}
 		return $taint;
@@ -886,19 +886,19 @@ trait TaintednessBaseVisitor {
 
 		$type = gettype( $expr );
 		switch ( $type ) {
-		case "string":
-		case "boolean":
-		case "integer":
-		case "double":
-		case "NULL":
-			// simple literal
-			return new TaintednessWithError( Taintedness::newSafe(), new CausedByLines(), MethodLinks::newEmpty() );
-		case "object":
-		case "resource":
-		case "unknown type":
-		case "array":
-		default:
-			throw new AssertionError( __METHOD__ . " called with invalid type $type" );
+			case "string":
+			case "boolean":
+			case "integer":
+			case "double":
+			case "NULL":
+				// simple literal
+				return new TaintednessWithError( Taintedness::newSafe(), new CausedByLines(), MethodLinks::newEmpty() );
+			case "object":
+			case "resource":
+			case "unknown type":
+			case "array":
+			default:
+				throw new AssertionError( __METHOD__ . " called with invalid type $type" );
 		}
 	}
 
