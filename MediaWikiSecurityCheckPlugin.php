@@ -56,20 +56,20 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	 */
 	protected function getCustomFuncTaints(): array {
 		$selectWrapper = [
-				self::SQL_EXEC_TAINT,
-				// List of fields. MW does not escape things like COUNT(*)
-				self::SQL_EXEC_TAINT,
-				// Where conditions
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// the function name doesn't seem to be escaped
-				self::SQL_EXEC_TAINT,
-				// OPTIONS. Its complicated. HAVING is like WHERE
-				// This is treated as special case
-				self::NO_TAINT,
-				// Join conditions. This is treated as special case
-				self::NO_TAINT,
-				// What should DB results be considered?
-				'overall' => self::YES_TAINT
+			self::SQL_EXEC_TAINT,
+			// List of fields. MW does not escape things like COUNT(*)
+			self::SQL_EXEC_TAINT,
+			// Where conditions
+			self::SQL_NUMKEY_EXEC_TAINT,
+			// the function name doesn't seem to be escaped
+			self::SQL_EXEC_TAINT,
+			// OPTIONS. Its complicated. HAVING is like WHERE
+			// This is treated as special case
+			self::NO_TAINT,
+			// Join conditions. This is treated as special case
+			self::NO_TAINT,
+			// What should DB results be considered?
+			'overall' => self::YES_TAINT
 		];
 
 		$linkRendererMethods = [
