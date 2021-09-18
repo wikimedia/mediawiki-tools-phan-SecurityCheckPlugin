@@ -1535,7 +1535,7 @@ trait TaintednessBaseVisitor {
 		$classesNeedRefresh = new Set;
 		foreach ( $varLinks as $var ) {
 			if ( $var instanceof PassByReferenceVariable ) {
-				// TODO This check is probably misplaced.f
+				// TODO This check is probably misplaced.
 				$var = $var->getElement();
 			}
 			assert( $var instanceof TypedElementInterface );
