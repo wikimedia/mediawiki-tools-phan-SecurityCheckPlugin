@@ -76,6 +76,24 @@ class FunctionCausedByLines {
 	}
 
 	/**
+	 * Get the caused-by lines for the given parameter, including everything possibly useful when reporting an issue.
+	 * @param int $param
+	 * @return CausedByLines
+	 */
+	public function getParamLinesForIssue( int $param ): CausedByLines {
+		$paramLines = $this->getParamLines( $param );
+
+		if ( $paramLines->isEmpty() || $this->genericLines->isSupersetOf( $paramLines ) ) {
+			$lines = $this->genericLines;
+		} elseif ( $this->genericLines->isEmpty() || $paramLines->isSupersetOf( $this->genericLines ) ) {
+			$lines = $paramLines;
+		} else {
+			$lines = $paramLines->asMergedWith( $this->genericLines );
+		}
+		return $lines;
+	}
+
+	/**
 	 * @return CausedByLines
 	 */
 	public function getAllLinesMerged(): CausedByLines {
