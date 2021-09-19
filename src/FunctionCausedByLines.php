@@ -18,6 +18,7 @@ class FunctionCausedByLines {
 
 	/**
 	 * @return CausedByLines
+	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function getGenericLines(): CausedByLines {
 		return $this->genericLines;
@@ -32,6 +33,13 @@ class FunctionCausedByLines {
 	}
 
 	/**
+	 * @param CausedByLines $lines
+	 */
+	public function setGenericLines( CausedByLines $lines ): void {
+		$this->genericLines = $lines;
+	}
+
+	/**
 	 * @param int $param
 	 * @param string $line
 	 * @param Taintedness $taint
@@ -42,6 +50,23 @@ class FunctionCausedByLines {
 			$this->paramLines[$param] = new CausedByLines();
 		}
 		$this->paramLines[$param]->addLine( $taint, $line );
+	}
+
+	/**
+	 * @param int $param
+	 * @param CausedByLines $lines
+	 */
+	public function setParamLines( int $param, CausedByLines $lines ): void {
+		$this->paramLines[$param] = $lines;
+	}
+
+	/**
+	 * @param int $param
+	 * @param CausedByLines $lines
+	 */
+	public function setVariadicParamLines( int $param, CausedByLines $lines ): void {
+		$this->variadicParamIndex = $param;
+		$this->variadicParamLines = $lines;
 	}
 
 	/**
@@ -108,13 +133,20 @@ class FunctionCausedByLines {
 	}
 
 	/**
-	 * @param CausedByLines $generic
-	 * @return self
+	 * @param FunctionCausedByLines $other
 	 */
-	public function withGenericError( CausedByLines $generic ): self {
-		$ret = clone $this;
-		$ret->genericLines = $generic;
-		return $ret;
+	public function mergeWith( self $other ): void {
+		$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
+		foreach ( $other->paramLines as $param => $lines ) {
+			$this->paramLines[$param] = isset( $this->paramLines[$param] )
+				? $this->paramLines[$param]->asMergedWith( $lines )
+				: $lines;
+		}
+		if ( $other->variadicParamIndex !== null ) {
+			$this->variadicParamLines = $this->variadicParamLines
+				? $this->variadicParamLines->asMergedWith( $other->variadicParamLines )
+				: $other->variadicParamLines;
+		}
 	}
 
 	public function __clone() {
