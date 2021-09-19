@@ -75,9 +75,6 @@ trait TaintednessBaseVisitor {
 	 */
 	protected static $fqsensWithoutToStringCache = [];
 
-	/** @var bool[] Classes already reanalyzed in markAllDependentVarsYes, map of [ (string)FQSEN => true ] */
-	protected static $reanalyzedClasses = [];
-
 	/**
 	 * Change taintedness of a function/method
 	 *
@@ -295,22 +292,6 @@ trait TaintednessBaseVisitor {
 			if ( !self::getTaintednessRaw( $gVarObj ) ) {
 				self::setTaintednessRaw( $gVarObj, Taintedness::newSafe() );
 			}
-		}
-	}
-
-	/**
-	 * @param TypedElementInterface $variableObj
-	 * @param Taintedness $taintedness
-	 */
-	private function addTaintedness( TypedElementInterface $variableObj, Taintedness $taintedness ): void {
-		assert( !$variableObj instanceof FunctionInterface, 'Must use setFuncTaint for functions' );
-
-		$this->setTaintedness( $variableObj, $taintedness, false );
-		$this->addTaintError( $taintedness, $variableObj );
-		if ( $variableObj instanceof GlobalVariable ) {
-			$globalVar = $variableObj->getElement();
-			$this->setTaintedness( $globalVar, $taintedness, false );
-			$this->addTaintError( $taintedness, $globalVar );
 		}
 	}
 
@@ -1430,14 +1411,6 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		if ( $var instanceof Property || $var instanceof GlobalVariable ) {
-			// For local variables, don't set the taint: the taintedness set here should only be used
-			// when examining a function call. Inside the function body, we'll already have all the
-			// info we need, and actually, this extra taint would cause false positives with variable
-			// names reuse.
-			$this->addTaintedness( $var, $taint );
-		}
-
 		$newMem = memory_get_peak_usage();
 		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
 		if ( $diffMem > 2 ) {
@@ -1528,11 +1501,7 @@ trait TaintednessBaseVisitor {
 		if ( $varLinks === null ) {
 			return;
 		}
-		$oldMem = memory_get_peak_usage();
-		// If we mark a class member as being tainted, we recheck all the
-		// methods of the class, as the previous taint of the methods may
-		// have assumed the class member was not tainted.
-		$classesNeedRefresh = new Set;
+
 		foreach ( $varLinks as $var ) {
 			if ( $var instanceof PassByReferenceVariable ) {
 				// TODO This check is probably misplaced.
@@ -1540,41 +1509,14 @@ trait TaintednessBaseVisitor {
 			}
 			assert( $var instanceof TypedElementInterface );
 
-			$curVarTaint = $this->getTaintednessPhanObj( $var );
-			$this->addTaintedness( $var, $taintAdjusted );
+			$this->setTaintedness( $var, $taintAdjusted, false );
+			$this->addTaintError( $taintAdjusted, $var );
+			if ( $var instanceof GlobalVariable ) {
+				$globalVar = $var->getElement();
+				$this->setTaintedness( $globalVar, $taintAdjusted, false );
+				$this->addTaintError( $taintAdjusted, $globalVar );
+			}
 			$this->mergeTaintError( $var, $error );
-			if (
-				$var instanceof Property &&
-				!$taintAdjusted->withoutObj( $curVarTaint )->isSafe()
-			) {
-				// FIXME: This is subpar -
-				// * It's VERY inefficient, reanalyzing much more than needed.
-				// * It doesn't handle parent classes properly
-				// * For public class members, it wouldn't catch uses
-				// outside of the member's own class.
-				// TODO This would be unnecessary when using --analyze-twice. Perhaps we can recommend running
-				// taint-check with that option? (T269816)
-				$curClass = $var->getClass( $this->code_base );
-				// We allow at most 1 analysis per class, to avoid massive increases in run time or memory usage.
-				$checkKey = $curClass->getFQSEN()->__toString();
-				if ( !isset( self::$reanalyzedClasses[$checkKey] ) ) {
-					$classesNeedRefresh->attach( $curClass );
-					self::$reanalyzedClasses[$checkKey] = true;
-				}
-			}
-		}
-		/** @var \Phan\Language\Element\Clazz $class */
-		foreach ( $classesNeedRefresh as $class ) {
-			foreach ( $class->getMethodMap( $this->code_base ) as $classMethod ) {
-				// $this->debug( __METHOD__, "reanalyze $classMethod" );
-				$this->analyzeFunc( $classMethod );
-			}
-		}
-		// Maybe delete links??
-		$newMem = memory_get_peak_usage();
-		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
-		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for method {$method->getName()}" );
 		}
 	}
 

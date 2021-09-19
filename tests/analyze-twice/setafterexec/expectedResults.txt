@@ -1,0 +1,3 @@
+integration/setafterexec/test.php:27 SecurityCheck-XSS Calling method \echoArg() in \execVar3 that outputs using tainted argument #1 (`$var3`). (Caused by: integration/setafterexec/test.php +71) (Caused by: integration/setafterexec/test.php +29)
+integration/setafterexec/test.php:38 SecurityCheck-XSS Calling method \echoArg() in \execVar4 that outputs using tainted argument #1 (`$var4`). (Caused by: integration/setafterexec/test.php +71) (Caused by: integration/setafterexec/test.php +42)
+integration/setafterexec/test.php:51 SecurityCheck-XSS Calling method \echoArg() in \TestClassPropsSetAfterExec::execProp that outputs using tainted argument #1 (`$this->myProp`). (Caused by: integration/setafterexec/test.php +71) (Caused by: integration/setafterexec/test.php +54)

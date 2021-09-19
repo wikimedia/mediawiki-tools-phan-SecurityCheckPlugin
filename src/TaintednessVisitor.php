@@ -540,7 +540,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
-			$lhsTaintedness,
 			$allRHSTaint,
 			$rhsTaintedness->getError(),
 			$rhsTaintedness->getMethodLinks(),
@@ -584,13 +583,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$rhs = $node->children['expr'];
 
-		$lhsTaintedness = $this->getTaintedness( $lhs );
 		$rhsTaintedness = $this->getTaintedness( $rhs );
 
 		$this->curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
-			$lhsTaintedness,
 			clone $rhsTaintedness->getTaintedness(),
 			$rhsTaintedness->getError(),
 			$rhsTaintedness->getMethodLinks(),
@@ -603,7 +600,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * @param Node $lhs
 	 * @param Node|mixed $rhs
-	 * @param TaintednessWithError $lhsTaintednessWithError
 	 * @param Taintedness $rhsTaint
 	 * @param CausedByLines $rhsError
 	 * @param MethodLinks $rhsLinks
@@ -614,7 +610,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private function doVisitAssign(
 		Node $lhs,
 		$rhs,
-		TaintednessWithError $lhsTaintednessWithError,
 		Taintedness $rhsTaint,
 		CausedByLines $rhsError,
 		MethodLinks $rhsLinks,
@@ -624,28 +619,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $lhs->kind === \ast\AST_DIM ) {
 			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $errorTaint, $rhsTaint );
 		}
-
-		// If we're assigning to a variable we know will be output later
-		// raise an issue now.
-		// We only want to give a warning if we are adding new taint to the
-		// variable. If the variable is already tainted, no need to retaint.
-		// Otherwise, this could result in a variable basically tainting itself.
-		// TODO: Additionally, we maybe consider skipping this when in
-		// branch scope and variable is not pass by reference.
-		// @fixme Is this really necessary? It doesn't seem helpful for local variables,
-		// and it doesn't handle props or globals.
-		// TODO: This should probably be moved to setTaintednessForAssignmentNode
-		$lhsTaintedness = $lhsTaintednessWithError->getTaintedness();
-		$adjustedRHS = $errorTaint->withoutObj( $lhsTaintedness );
-		$this->maybeEmitIssue(
-			$lhsTaintedness,
-			$adjustedRHS,
-			"Assigning a tainted value to a variable that later does something unsafe with it{DETAILS}",
-			/** @phan-return array{0:string} */
-			static function () use ( $lhsTaintednessWithError ): array {
-				return [ $lhsTaintednessWithError->getError()->toStringForIssue( null ) ];
-			}
-		);
 
 		$vis = new TaintednessAssignVisitor(
 			$this->code_base,
@@ -1100,8 +1073,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		assert( $node->kind === \ast\AST_RETURN );
 		$retExpr = $node->children['expr'];
 		$retTaintednessWithError = $this->getTaintedness( $retExpr );
-		// The EXEC taint flags have different meaning for variables and
-		// functions. We don't want to transmit exec flags here.
+		// Ensure we don't transmit any EXEC flag.
 		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
 		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
 		$retTaintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
