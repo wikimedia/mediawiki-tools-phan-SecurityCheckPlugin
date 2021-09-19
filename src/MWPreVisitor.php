@@ -76,7 +76,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$argTaint = Taintedness::newTainted();
 			self::setTaintednessRaw( $varObj, $argTaint );
-			$this->addTaintError( $argTaint, $varObj, -1, 0, 'tainted argument to tag hook' );
+			$this->addTaintError( $argTaint, $varObj, 'tainted argument to tag hook' );
 			// $this->debug( __METHOD__, "In $method setting param $varObj as tainted" );
 		}
 		// If there are no type hints, phan won't know that the parser
@@ -135,7 +135,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$argTaint = Taintedness::newTainted();
 			self::setTaintednessRaw( $varObj, $argTaint );
-			$this->addTaintError( $argTaint, $varObj, -1, 0, 'tainted argument to parser hook' );
+			$this->addTaintError( $argTaint, $varObj, 'tainted argument to parser hook' );
 		}
 	}
 

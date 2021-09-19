@@ -52,11 +52,27 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
+	 * @param FunctionInterface $func
+	 * @return CausedByLines|null
+	 */
+	protected static function getFuncCausedByRaw( FunctionInterface $func ): ?CausedByLines {
+		return $func->funcTaintedOriginalError ?? null;
+	}
+
+	/**
 	 * @param TypedElementInterface $element
 	 * @return CausedByLines
 	 */
 	protected static function getCausedByRawCloneOrEmpty( TypedElementInterface $element ): CausedByLines {
 		return isset( $element->taintedOriginalError ) ? clone $element->taintedOriginalError : new CausedByLines();
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 * @return CausedByLines
+	 */
+	protected static function getFuncCausedByRawCloneOrEmpty( FunctionInterface $func ): CausedByLines {
+		return isset( $func->funcTaintedOriginalError ) ? clone $func->funcTaintedOriginalError : new CausedByLines();
 	}
 
 	/**
@@ -73,6 +89,14 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
+	 * @param FunctionInterface $func
+	 * @param CausedByLines $lines
+	 */
+	protected static function setFuncCausedByRaw( FunctionInterface $func, CausedByLines $lines ): void {
+		$func->funcTaintedOriginalError = $lines;
+	}
+
+	/**
 	 * @param TypedElementInterface $element
 	 */
 	protected static function ensureCausedByRawExists( TypedElementInterface $element ): void {
@@ -81,6 +105,13 @@ trait TaintednessAccessorsTrait {
 			$realElement = $element->getElement();
 			$realElement->taintedOriginalError = $realElement->taintedOriginalError ?? new CausedByLines();
 		}
+	}
+
+	/**
+	 * @param FunctionInterface $func
+	 */
+	protected static function ensureFuncCausedByRawExists( FunctionInterface $func ): void {
+		$func->funcTaintedOriginalError = $func->funcTaintedOriginalError ?? new CausedByLines();
 	}
 
 	/**

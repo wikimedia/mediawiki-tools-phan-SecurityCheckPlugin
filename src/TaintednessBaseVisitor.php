@@ -122,18 +122,18 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 		foreach ( $addedTaint->getSinkParamKeysNoVariadic() as $key ) {
-			$this->addTaintError(
-				$addedTaint->getParamSinkTaint( $key ),
+			$this->addFuncTaintError(
 				$func,
+				$addedTaint->getParamSinkTaint( $key ),
 				$key,
 				$allNewTaint->getParamFlags( $key ),
 				$reason
 			);
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
-			$this->addTaintError(
-				$addedTaint->getParamPreservedTaint( $key )->asTaintedness(),
+			$this->addFuncTaintError(
 				$func,
+				$addedTaint->getParamPreservedTaint( $key )->asTaintedness(),
 				$key,
 				$allNewTaint->getParamFlags( $key ),
 				$reason
@@ -144,20 +144,20 @@ trait TaintednessBaseVisitor {
 			$variadicFlags = $allNewTaint->getVariadicParamFlags();
 			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
 			if ( $sinkVariadic ) {
-				$this->addTaintError( $sinkVariadic, $func, $variadicIndex, $variadicFlags, $reason );
+				$this->addFuncTaintError( $func, $sinkVariadic, $variadicIndex, $variadicFlags, $reason );
 			}
 			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
 			if ( $preserveVariadic ) {
-				$this->addTaintError(
-					$preserveVariadic->asTaintedness(),
+				$this->addFuncTaintError(
 					$func,
+					$preserveVariadic->asTaintedness(),
 					$variadicIndex,
 					$variadicFlags,
 					$reason
 				);
 			}
 		}
-		$this->addTaintError( $addedTaint->getOverall(), $func, -1, $allNewTaint->getOverallFlags(), $reason );
+		$this->addFuncTaintError( $func, $addedTaint->getOverall(), -1, $allNewTaint->getOverallFlags(), $reason );
 	}
 
 	/**
@@ -170,25 +170,12 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param TypedElementInterface $left (LHS-ish variable)
 	 * @param CausedByLines $rightError
-	 * @param int $arg If $left is a Function, which arg
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, CausedByLines $rightError, int $arg = -1 ): void {
-		assert( $arg === -1 || $left instanceof FunctionInterface );
+	protected function mergeTaintError( TypedElementInterface $left, CausedByLines $rightError ): void {
+		assert( !$left instanceof FunctionInterface, 'Should use mergeFuncTaintError' );
 
-		if (
-			$left instanceof FunctionInterface &&
-			SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $left->getFQSEN() )
-		) {
-			return;
-		}
-
-		if ( $arg === -1 ) {
-			self::ensureCausedByRawExists( $left );
-			$leftError = self::getCausedByRaw( $left );
-		} else {
-			self::ensureCausedByArgRawExists( $left, $arg );
-			$leftError = self::getCausedByArgRaw( $left, $arg );
-		}
+		self::ensureCausedByRawExists( $left );
+		$leftError = self::getCausedByRaw( $left );
 		assert( $leftError instanceof CausedByLines );
 
 		if ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) {
@@ -199,11 +186,31 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		if ( $arg === -1 ) {
-			self::setCausedByRaw( $left, $newLeftError );
-		} else {
-			self::setCausedByArgRaw( $left, $arg, $newLeftError );
+		self::setCausedByRaw( $left, $newLeftError );
+	}
+
+	/**
+	 * @param FunctionInterface $left
+	 * @param CausedByLines $rightError
+	 */
+	protected function mergeFuncTaintError( FunctionInterface $left, CausedByLines $rightError ): void {
+		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $left->getFQSEN() ) ) {
+			return;
 		}
+
+		self::ensureFuncCausedByRawExists( $left );
+		$leftError = self::getFuncCausedByRaw( $left );
+		assert( $leftError instanceof CausedByLines );
+
+		if ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) {
+			$newLeftError = $rightError;
+		} elseif ( !$rightError->isEmpty() && !$leftError->isSupersetOf( $rightError ) ) {
+			$newLeftError = $leftError->asMergedWith( $rightError );
+		} else {
+			return;
+		}
+
+		self::setFuncCausedByRaw( $left, $newLeftError );
 	}
 
 	/**
@@ -213,35 +220,76 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Taintedness $taintedness
 	 * @param TypedElementInterface $elem Where to put it
-	 * @param int $arg [Optional] For functions, which argument
-	 * @param int $argFlags If $arg is set, its flags
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		Taintedness $taintedness,
 		TypedElementInterface $elem,
-		int $arg = -1,
-		int $argFlags = 0,
 		$reason = null
 	): void {
+		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
 		// NOTE: Parameters here are excluded just to keep caused-by lines shorter, although it wouldn't
 		// be wrong to include them.
 		if ( !$elem instanceof Parameter && $taintedness->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
-			// PRESERVE means all EXECs for a func, and all taints otherwise.
-			if ( !$elem instanceof FunctionInterface ) {
-				$taintedness = Taintedness::newTainted();
-			} elseif ( ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-				// Don't do anything if the param is NO_OVERRIDE (i.e. it's probably annotated,
-				// or the taintedness is hardcoded in the plugin)
-				$taintedness = new Taintedness( SecurityCheckPlugin::YES_EXEC_TAINT );
-			}
+			$taintedness = Taintedness::newTainted();
 		}
 		if ( !$taintedness->isExecOrAllTaint() ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
 		}
 
-		assert( $arg === -1 || $elem instanceof FunctionInterface );
+		if ( !is_string( $reason ) ) {
+			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
+		} else {
+			$newErrors = [ $reason ];
+		}
+		if ( $this->overrideContext && !( $this->isHook ?? false ) ) {
+			// @phan-suppress-previous-line PhanUndeclaredProperty
+			$newErrors[] = $this->dbgInfo( $this->overrideContext );
+		}
+
+		self::ensureCausedByRawExists( $elem );
+		$elemError = self::getCausedByRaw( $elem );
+		assert( $elemError instanceof CausedByLines );
+		$newErr = clone $elemError;
+		foreach ( $newErrors as $newError ) {
+			$newErr->addLine( clone $taintedness, $newError );
+		}
+		if ( !$newErr->equals( $elemError ) ) {
+			self::setCausedByRaw( $elem, $newErr );
+		}
+	}
+
+	/**
+	 * Add the current context to taintedOriginalError book-keeping
+	 *
+	 * This allows us to show users what line caused an issue.
+	 *
+	 * @param FunctionInterface $func
+	 * @param Taintedness $taintedness
+	 * @param int $arg Which argument
+	 * @param int $argFlags Argument flags
+	 * @param string|Context|null $reason To override the caused by line
+	 */
+	protected function addFuncTaintError(
+		FunctionInterface $func,
+		Taintedness $taintedness,
+		int $arg = -1,
+		int $argFlags = 0,
+		$reason = null
+	): void {
+		if (
+			( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 &&
+			$taintedness->has( SecurityCheckPlugin::PRESERVE_TAINT )
+		) {
+			// Don't do anything if the param is NO_OVERRIDE (i.e. it's probably annotated,
+			// or the taintedness is hardcoded in the plugin)
+			$taintedness = new Taintedness( SecurityCheckPlugin::YES_EXEC_TAINT );
+		}
+		if ( !$taintedness->isExecOrAllTaint() ) {
+			// Don't add book-keeping if no actual taint was added.
+			return;
+		}
 
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
@@ -254,26 +302,26 @@ trait TaintednessBaseVisitor {
 		}
 
 		if ( $arg === -1 ) {
-			self::ensureCausedByRawExists( $elem );
-			$elemError = self::getCausedByRaw( $elem );
+			self::ensureFuncCausedByRawExists( $func );
+			$elemError = self::getFuncCausedByRaw( $func );
 			assert( $elemError instanceof CausedByLines );
 			$newErr = clone $elemError;
 			foreach ( $newErrors as $newError ) {
 				$newErr->addLine( clone $taintedness, $newError );
 			}
 			if ( !$newErr->equals( $elemError ) ) {
-				self::setCausedByRaw( $elem, $newErr );
+				self::setFuncCausedByRaw( $func, $newErr );
 			}
 		} else {
-			self::ensureCausedByArgRawExists( $elem, $arg );
-			$argErr = self::getCausedByArgRaw( $elem, $arg );
+			self::ensureCausedByArgRawExists( $func, $arg );
+			$argErr = self::getCausedByArgRaw( $func, $arg );
 			assert( $argErr instanceof CausedByLines );
 			$newErr = clone $argErr;
 			foreach ( $newErrors as $newError ) {
 				$newErr->addLine( $taintedness->asExecToYesTaint(), $newError );
 			}
 			if ( !$newErr->equals( $argErr ) ) {
-				self::setCausedByArgRaw( $elem, $arg, $newErr );
+				self::setCausedByArgRaw( $func, $arg, $newErr );
 			}
 		}
 	}
@@ -1404,9 +1452,9 @@ trait TaintednessBaseVisitor {
 				}
 				$this->setFuncTaint( $method, $paramTaint );
 				// TODO: Ideally we would merge taint error per argument
-				$this->mergeTaintError( $method, $varCausedBy );
+				$this->mergeFuncTaintError( $method, $varCausedBy );
 				if ( $additionalError ) {
-					$this->mergeTaintError( $method, $additionalError );
+					$this->mergeFuncTaintError( $method, $additionalError );
 				}
 			}
 		}
@@ -1530,7 +1578,7 @@ trait TaintednessBaseVisitor {
 	private function getCausedByLinesForFunc( FunctionInterface $element, int $arg = -1 ): CausedByLines {
 		$element = $this->getActualFuncWithCausedBy( $element );
 		if ( $arg === -1 ) {
-			$lines = self::getCausedByRawCloneOrEmpty( $element );
+			$lines = self::getFuncCausedByRawCloneOrEmpty( $element );
 			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
 				// FIXME is this right? In the generic
 				// case should we include all arguments as
@@ -1539,7 +1587,7 @@ trait TaintednessBaseVisitor {
 			}
 		} else {
 			$argErr = $this->getTaintErrorByArg( $element, $arg );
-			$overallFuncErr = self::getCausedByRaw( $element );
+			$overallFuncErr = self::getFuncCausedByRaw( $element );
 
 			if ( !$overallFuncErr ) {
 				return $argErr;
