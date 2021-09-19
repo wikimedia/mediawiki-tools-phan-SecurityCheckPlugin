@@ -53,9 +53,9 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param FunctionInterface $func
-	 * @return CausedByLines|null
+	 * @return FunctionCausedByLines|null
 	 */
-	protected static function getFuncCausedByRaw( FunctionInterface $func ): ?CausedByLines {
+	protected static function getFuncCausedByRaw( FunctionInterface $func ): ?FunctionCausedByLines {
 		return $func->funcTaintedOriginalError ?? null;
 	}
 
@@ -69,10 +69,12 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param FunctionInterface $func
-	 * @return CausedByLines
+	 * @return FunctionCausedByLines
 	 */
-	protected static function getFuncCausedByRawCloneOrEmpty( FunctionInterface $func ): CausedByLines {
-		return isset( $func->funcTaintedOriginalError ) ? clone $func->funcTaintedOriginalError : new CausedByLines();
+	protected static function getFuncCausedByRawCloneOrEmpty( FunctionInterface $func ): FunctionCausedByLines {
+		return isset( $func->funcTaintedOriginalError )
+			? clone $func->funcTaintedOriginalError
+			: new FunctionCausedByLines();
 	}
 
 	/**
@@ -90,9 +92,9 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param FunctionInterface $func
-	 * @param CausedByLines $lines
+	 * @param FunctionCausedByLines $lines
 	 */
-	protected static function setFuncCausedByRaw( FunctionInterface $func, CausedByLines $lines ): void {
+	protected static function setFuncCausedByRaw( FunctionInterface $func, FunctionCausedByLines $lines ): void {
 		$func->funcTaintedOriginalError = $lines;
 	}
 
@@ -111,46 +113,7 @@ trait TaintednessAccessorsTrait {
 	 * @param FunctionInterface $func
 	 */
 	protected static function ensureFuncCausedByRawExists( FunctionInterface $func ): void {
-		$func->funcTaintedOriginalError = $func->funcTaintedOriginalError ?? new CausedByLines();
-	}
-
-	/**
-	 * @param TypedElementInterface $element
-	 * @param int $arg
-	 */
-	protected static function ensureCausedByArgRawExists( TypedElementInterface $element, int $arg ): void {
-		$element->taintedOriginalErrorByArg = $element->taintedOriginalErrorByArg ?? [];
-		$element->taintedOriginalErrorByArg[$arg] = $element->taintedOriginalErrorByArg[$arg] ?? new CausedByLines();
-	}
-
-	/**
-	 * @param TypedElementInterface $element
-	 * @return CausedByLines[]|null
-	 */
-	protected static function getAllCausedByArgRaw( TypedElementInterface $element ): ?array {
-		return $element->taintedOriginalErrorByArg ?? null;
-	}
-
-	/**
-	 * @param TypedElementInterface $element
-	 * @param int $arg
-	 * @return CausedByLines|null
-	 */
-	protected static function getCausedByArgRaw( TypedElementInterface $element, int $arg ): ?CausedByLines {
-		return $element->taintedOriginalErrorByArg[$arg] ?? null;
-	}
-
-	/**
-	 * @param TypedElementInterface $element
-	 * @param int $arg
-	 * @param CausedByLines $lines
-	 */
-	protected static function setCausedByArgRaw(
-		TypedElementInterface $element,
-		int $arg,
-		CausedByLines $lines
-	): void {
-		$element->taintedOriginalErrorByArg[$arg] = $lines;
+		$func->funcTaintedOriginalError = $func->funcTaintedOriginalError ?? new FunctionCausedByLines();
 	}
 
 	/**

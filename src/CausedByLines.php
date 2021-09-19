@@ -183,23 +183,6 @@ class CausedByLines {
 		return self::getArraySubsetIdx( $this->lines, $other->lines ) !== false;
 	}
 
-	/**
-	 * @param self $other
-	 * @return bool
-	 */
-	public function equals( self $other ): bool {
-		if ( count( $this->lines ) !== count( $other->lines ) ) {
-			return false;
-		}
-		foreach ( $this->lines as $i => [ $taint, $line ] ) {
-			// A bit hacky, but it works.
-			if ( $line !== $other->lines[$i][1] || $taint->toShortString() !== $other->lines[$i][0]->toShortString() ) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	public function isEmpty(): bool {
 		return $this->lines === [];
 	}

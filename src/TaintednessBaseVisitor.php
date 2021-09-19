@@ -127,6 +127,7 @@ trait TaintednessBaseVisitor {
 				$addedTaint->getParamSinkTaint( $key ),
 				$key,
 				$allNewTaint->getParamFlags( $key ),
+				false,
 				$reason
 			);
 		}
@@ -136,6 +137,7 @@ trait TaintednessBaseVisitor {
 				$addedTaint->getParamPreservedTaint( $key )->asTaintedness(),
 				$key,
 				$allNewTaint->getParamFlags( $key ),
+				false,
 				$reason
 			);
 		}
@@ -144,7 +146,7 @@ trait TaintednessBaseVisitor {
 			$variadicFlags = $allNewTaint->getVariadicParamFlags();
 			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
 			if ( $sinkVariadic ) {
-				$this->addFuncTaintError( $func, $sinkVariadic, $variadicIndex, $variadicFlags, $reason );
+				$this->addFuncTaintError( $func, $sinkVariadic, $variadicIndex, $variadicFlags, true, $reason );
 			}
 			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
 			if ( $preserveVariadic ) {
@@ -153,11 +155,19 @@ trait TaintednessBaseVisitor {
 					$preserveVariadic->asTaintedness(),
 					$variadicIndex,
 					$variadicFlags,
+					true,
 					$reason
 				);
 			}
 		}
-		$this->addFuncTaintError( $func, $addedTaint->getOverall(), -1, $allNewTaint->getOverallFlags(), $reason );
+		$this->addFuncTaintError(
+			$func,
+			$addedTaint->getOverall(),
+			-1,
+			$allNewTaint->getOverallFlags(),
+			false,
+			$reason
+		);
 	}
 
 	/**
@@ -193,24 +203,25 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $left
 	 * @param CausedByLines $rightError
 	 */
-	protected function mergeFuncTaintError( FunctionInterface $left, CausedByLines $rightError ): void {
+	protected function mergeFuncGenericTaintError( FunctionInterface $left, CausedByLines $rightError ): void {
 		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $left->getFQSEN() ) ) {
 			return;
 		}
 
 		self::ensureFuncCausedByRawExists( $left );
 		$leftError = self::getFuncCausedByRaw( $left );
-		assert( $leftError instanceof CausedByLines );
+		assert( $leftError instanceof FunctionCausedByLines );
+		$leftGenericError = $leftError->getGenericLines();
 
-		if ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) {
+		if ( !$leftGenericError->isEmpty() && $rightError->isSupersetOf( $leftGenericError ) ) {
 			$newLeftError = $rightError;
-		} elseif ( !$rightError->isEmpty() && !$leftError->isSupersetOf( $rightError ) ) {
-			$newLeftError = $leftError->asMergedWith( $rightError );
+		} elseif ( !$rightError->isEmpty() && !$leftGenericError->isSupersetOf( $rightError ) ) {
+			$newLeftError = $leftGenericError->asMergedWith( $rightError );
 		} else {
 			return;
 		}
 
-		self::setFuncCausedByRaw( $left, $newLeftError );
+		self::setFuncCausedByRaw( $left, $leftError->withGenericError( $newLeftError ) );
 	}
 
 	/**
@@ -255,9 +266,7 @@ trait TaintednessBaseVisitor {
 		foreach ( $newErrors as $newError ) {
 			$newErr->addLine( clone $taintedness, $newError );
 		}
-		if ( !$newErr->equals( $elemError ) ) {
-			self::setCausedByRaw( $elem, $newErr );
-		}
+		self::setCausedByRaw( $elem, $newErr );
 	}
 
 	/**
@@ -267,15 +276,17 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param FunctionInterface $func
 	 * @param Taintedness $taintedness
-	 * @param int $arg Which argument
+	 * @param int $arg Which argument, -1 for generic
 	 * @param int $argFlags Argument flags
+	 * @param bool $isVariadic
 	 * @param string|Context|null $reason To override the caused by line
 	 */
 	protected function addFuncTaintError(
 		FunctionInterface $func,
 		Taintedness $taintedness,
-		int $arg = -1,
-		int $argFlags = 0,
+		int $arg,
+		int $argFlags,
+		bool $isVariadic,
 		$reason = null
 	): void {
 		if (
@@ -301,29 +312,24 @@ trait TaintednessBaseVisitor {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
 
+		self::ensureFuncCausedByRawExists( $func );
+		$funcErr = self::getFuncCausedByRaw( $func );
+		assert( $funcErr instanceof FunctionCausedByLines );
+		$newErr = clone $funcErr;
 		if ( $arg === -1 ) {
-			self::ensureFuncCausedByRawExists( $func );
-			$elemError = self::getFuncCausedByRaw( $func );
-			assert( $elemError instanceof CausedByLines );
-			$newErr = clone $elemError;
 			foreach ( $newErrors as $newError ) {
-				$newErr->addLine( clone $taintedness, $newError );
+				$newErr->addGenericLine( $newError, clone $taintedness );
 			}
-			if ( !$newErr->equals( $elemError ) ) {
-				self::setFuncCausedByRaw( $func, $newErr );
+		} elseif ( $isVariadic ) {
+			foreach ( $newErrors as $newError ) {
+				$newErr->addVariadicParamLine( $arg, $newError, $taintedness->asExecToYesTaint() );
 			}
 		} else {
-			self::ensureCausedByArgRawExists( $func, $arg );
-			$argErr = self::getCausedByArgRaw( $func, $arg );
-			assert( $argErr instanceof CausedByLines );
-			$newErr = clone $argErr;
 			foreach ( $newErrors as $newError ) {
-				$newErr->addLine( $taintedness->asExecToYesTaint(), $newError );
-			}
-			if ( !$newErr->equals( $argErr ) ) {
-				self::setCausedByArgRaw( $func, $arg, $newErr );
+				$newErr->addParamLine( $arg, $newError, $taintedness->asExecToYesTaint() );
 			}
 		}
+		self::setFuncCausedByRaw( $func, $newErr );
 	}
 
 	/**
@@ -1452,9 +1458,9 @@ trait TaintednessBaseVisitor {
 				}
 				$this->setFuncTaint( $method, $paramTaint );
 				// TODO: Ideally we would merge taint error per argument
-				$this->mergeFuncTaintError( $method, $varCausedBy );
+				$this->mergeFuncGenericTaintError( $method, $varCausedBy );
 				if ( $additionalError ) {
-					$this->mergeFuncTaintError( $method, $additionalError );
+					$this->mergeFuncGenericTaintError( $method, $additionalError );
 				}
 			}
 		}
@@ -1578,20 +1584,19 @@ trait TaintednessBaseVisitor {
 	private function getCausedByLinesForFunc( FunctionInterface $element, int $arg = -1 ): CausedByLines {
 		$element = $this->getActualFuncWithCausedBy( $element );
 		if ( $arg === -1 ) {
-			$lines = self::getFuncCausedByRawCloneOrEmpty( $element );
-			foreach ( self::getAllCausedByArgRaw( $element ) ?? [] as $origArg ) {
-				// FIXME is this right? In the generic
-				// case should we include all arguments as
-				// well?
-				$lines->mergeWith( $origArg );
-			}
+			$funcErr = self::getFuncCausedByRawCloneOrEmpty( $element );
+			// FIXME is this right? In the generic
+			// case should we include all arguments as
+			// well?
+			$lines = $funcErr->getAllLinesMerged();
 		} else {
-			$argErr = $this->getTaintErrorByArg( $element, $arg );
-			$overallFuncErr = self::getFuncCausedByRaw( $element );
-
-			if ( !$overallFuncErr ) {
-				return $argErr;
+			$funcErr = self::getFuncCausedByRaw( $element );
+			if ( !$funcErr ) {
+				return new CausedByLines();
 			}
+
+			$argErr = $funcErr->getParamLines( $arg );
+			$overallFuncErr = $funcErr->getGenericLines();
 
 			if ( $argErr->isEmpty() || $overallFuncErr->isSupersetOf( $argErr ) ) {
 				$lines = $overallFuncErr;
@@ -1618,28 +1623,6 @@ trait TaintednessBaseVisitor {
 		}
 		$definingFunc = $this->getDefiningFuncIfDifferent( $element );
 		return $definingFunc ?? $element;
-	}
-
-	/**
-	 * @param FunctionInterface $element
-	 * @param int $arg
-	 * @return CausedByLines
-	 */
-	private function getTaintErrorByArg( FunctionInterface $element, int $arg ): CausedByLines {
-		$errorOrNull = self::getCausedByArgRaw( $element, $arg );
-		if ( $errorOrNull !== null ) {
-			return $errorOrNull;
-		}
-		// Check the variadic case. TODO Ideally, we might store caused-by and taintedness close together
-		$funcTaint = self::getFuncTaint( $element );
-		if ( !$funcTaint ) {
-			return new CausedByLines();
-		}
-		$variadicIdx = $funcTaint->getVariadicParamIndex();
-		if ( $variadicIdx !== null && $arg >= $variadicIdx ) {
-			return self::getCausedByArgRaw( $element, $variadicIdx ) ?: new CausedByLines();
-		}
-		return new CausedByLines();
 	}
 
 	/**
