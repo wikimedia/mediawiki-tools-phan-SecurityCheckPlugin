@@ -2054,10 +2054,23 @@ trait TaintednessBaseVisitor {
 			);
 
 			if ( $computePreserve ) {
-				/** @var Taintedness $effectiveArgTaintedness */
-				[ $effectiveArgTaintedness, $curArgError ] = $this->getArgTaint(
-					$taint, $curArgTaintedness, $baseArgError, $i, $func
-				);
+				$preserveOrUnknown = SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT;
+				if ( $taint->hasParamPreserve( $i ) ) {
+					$parTaint = $taint->getParamPreservedTaint( $i );
+					$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
+				} elseif ( $taint->getOverall()->has( $preserveOrUnknown ) ) {
+					// No info for this specific parameter, but the overall function either preserves taint
+					// when unspecified or is unknown. So just pass the taint through.
+					$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
+				} else {
+					// This parameter has no taint info. And overall this function doesn't depend on param
+					// for taint and isn't unknown. So we consider this argument untainted.
+					$effectiveArgTaintedness = Taintedness::newSafe();
+				}
+
+				$curArgError = $effectiveArgTaintedness->isSafe()
+					? $baseArgError
+					: $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
 
 				'@phan-var Taintedness $overallArgTaint';
 				'@phan-var CausedByLines $argErrors';
@@ -2135,54 +2148,6 @@ trait TaintednessBaseVisitor {
 		}
 
 		$this->markAllDependentMethodsExecForNode( $argument, $taint, $funcError );
-	}
-
-	/**
-	 * Get current and effective taint of an argument when examining a func call
-	 *
-	 * @param FunctionTaintedness $funcTaint
-	 * @param Taintedness $curArgTaintedness
-	 * @param CausedByLines $baseArgError
-	 * @param int $i Position of the param
-	 * @param FunctionInterface $func
-	 * @return array [ effective taintedness, error ]
-	 * @phan-return array{0:Taintedness,1:CausedByLines}
-	 */
-	private function getArgTaint(
-		FunctionTaintedness $funcTaint,
-		Taintedness $curArgTaintedness,
-		CausedByLines $baseArgError,
-		int $i,
-		FunctionInterface $func
-	): array {
-		if ( $funcTaint->hasParamPreserve( $i ) ) {
-			$parTaint = $funcTaint->getParamPreservedTaint( $i );
-			$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
-			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness via arg $i $funcName" );
-		} elseif (
-			$funcTaint->getOverall()->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
-		) {
-			// No info for this specific parameter, but
-			// the overall function either preserves taint
-			// when unspecified or is unknown. So just
-			// pass the taint through.
-			$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
-			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-			// . " via preserve or unknown $funcName" );
-		} else {
-			// This parameter has no taint info.
-			// And overall this function doesn't depend on param
-			// for taint and isn't unknown.
-			// So we consider this argument untainted.
-			$effectiveArgTaintedness = Taintedness::newSafe();
-			// $this->debug( __METHOD__, "effective $effectiveArgTaintedness"
-			// . " via no taint info $funcName" );
-		}
-
-		$argError = $effectiveArgTaintedness->isSafe()
-			? $baseArgError
-			: $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
-		return [ $effectiveArgTaintedness, $argError ];
 	}
 
 	/**
