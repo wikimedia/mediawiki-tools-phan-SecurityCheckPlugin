@@ -70,7 +70,6 @@ class MWVisitor extends TaintednessVisitor {
 		switch ( $methodName ) {
 			case '\Parser::setFunctionHook':
 			case '\Parser::setHook':
-			case '\Parser::setTransparentTagHook':
 				$type = $this->getHookTypeForRegistrationMethod( $methodName );
 				if ( $type === null ) {
 					break;
@@ -287,7 +286,6 @@ class MWVisitor extends TaintednessVisitor {
 			case '\Parser::setFunctionHook':
 				return '!ParserFunctionHook';
 			case '\Parser::setHook':
-			case '\Parser::setTransparentTagHook':
 				return '!ParserHook';
 			default:
 				$this->debug( __METHOD__, "$method not a hook registerer" );
