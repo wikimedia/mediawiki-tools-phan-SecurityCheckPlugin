@@ -1917,8 +1917,6 @@ trait TaintednessBaseVisitor {
 		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
 		$funcError = $this->getCausedByLinesForFunc( $func );
-		// FIXME is this right? In the generic case should we include all arguments as well?
-		$allFuncError = $funcError->getAllLinesMerged();
 
 		if ( $computePreserve ) {
 			$overallArgTaint = Taintedness::newSafe();
@@ -1993,7 +1991,7 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
-				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $allFuncError );
+				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError->getParamLines( $i ) );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
@@ -2048,7 +2046,11 @@ trait TaintednessBaseVisitor {
 				'@phan-var Taintedness $overallArgTaint';
 				'@phan-var CausedByLines $argErrors';
 				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-				$argErrors->mergeWith( $curArgError );
+				// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
+				// than one argument, it will appear once per preserved argument in the overall caused-by of the call
+				// expression. This is probably a good thing, but can increase the length of caused-by lines.
+				// TODO Something like T291379 might help here.
+				$argErrors->mergeWith( $curArgError->asMergedWith( $funcError->getParamLines( $i ) ) );
 			}
 		}
 
@@ -2064,7 +2066,7 @@ trait TaintednessBaseVisitor {
 		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
 		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
-		$callError = $allFuncError->asMergedWith( $argErrors );
+		$callError = $funcError->getGenericLines()->asMergedWith( $argErrors );
 		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::newEmpty() );
 	}
 

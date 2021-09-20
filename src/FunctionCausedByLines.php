@@ -119,20 +119,6 @@ class FunctionCausedByLines {
 	}
 
 	/**
-	 * @return CausedByLines
-	 */
-	public function getAllLinesMerged(): CausedByLines {
-		$ret = clone $this->genericLines;
-		foreach ( $this->paramLines as $line ) {
-			$ret->mergeWith( $line );
-		}
-		if ( $this->variadicParamLines ) {
-			$ret->mergeWith( $this->variadicParamLines );
-		}
-		return $ret;
-	}
-
-	/**
 	 * @param FunctionCausedByLines $other
 	 */
 	public function mergeWith( self $other ): void {

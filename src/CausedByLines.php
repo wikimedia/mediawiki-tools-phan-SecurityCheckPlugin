@@ -11,9 +11,9 @@ namespace SecurityCheckPlugin;
  * @todo Keep per-offset caused-by lines
  */
 class CausedByLines {
-	private const MAX_LINES_PER_ISSUE = 12;
+	private const MAX_LINES_PER_ISSUE = 15;
 	// XXX Hack: Enforce a hard limit, or things may explode
-	private const LINES_HARD_LIMIT = 25;
+	private const LINES_HARD_LIMIT = 30;
 
 	/**
 	 * @var array[]
