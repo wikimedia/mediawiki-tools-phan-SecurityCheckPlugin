@@ -223,7 +223,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// somewhere else - the exec status of this won't be detected
 			// until later, so setting this to NO_TAINT here might miss
 			// some issues in the inbetween period.
-			$this->setFuncTaint( $func, new FunctionTaintedness( Taintedness::newSafe() ) );
+			$this->ensureFuncTaintIsSet( $func );
 		}
 		return Taintedness::newInapplicable();
 	}
@@ -1084,11 +1084,19 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$retTaintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
 		if ( !$retExpr instanceof Node ) {
 			assert( $retTaintedness->isSafe() );
-			$this->setFuncTaint( $func, new FunctionTaintedness( $retTaintedness ) );
+			$this->ensureFuncTaintIsSet( $func );
 			return;
 		}
 
-		$paramTaint = new FunctionTaintedness( $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT ) );
+		$overallFuncTaint = $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT );
+		// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
+		// the PHPDoc type, as it may be wrong.
+		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
+		if ( $mask !== null ) {
+			$overallFuncTaint->keepOnly( $mask->get() );
+		}
+
+		$paramTaint = new FunctionTaintedness( $overallFuncTaint );
 		$funcError = new FunctionCausedByLines();
 
 		$links = $retTaintednessWithError->getMethodLinks();
@@ -1108,7 +1116,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$funcError->setGenericLines( $retError->getLinesForGenericReturn() );
-		$this->setFuncTaint( $func, $paramTaint );
+		$this->addFuncTaint( $func, $paramTaint );
 		// Note: adding the error after setting the taintedness means that the return line comes before
 		// the other lines
 		$this->mergeFuncError( $func, $funcError );

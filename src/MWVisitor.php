@@ -450,7 +450,7 @@ class MWVisitor extends TaintednessVisitor {
 		$removeTaint = SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 		$taint->setOverall( $taint->getOverall()->without( $removeTaint ) );
 		$taint->addOverallFlags( SecurityCheckPlugin::NO_OVERRIDE );
-		$this->setFuncTaint( $func, $taint, true );
+		self::doSetFuncTaint( $func, $taint );
 	}
 
 	/**

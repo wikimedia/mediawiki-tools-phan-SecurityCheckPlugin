@@ -79,30 +79,36 @@ trait TaintednessBaseVisitor {
 	 * Change taintedness of a function/method
 	 *
 	 * @param FunctionInterface $func
-	 * @param FunctionTaintedness $taint NOTE: This is not cloned if $override is true
-	 * @param bool $override Whether to merge taint or override
+	 * @param FunctionTaintedness $taint NOTE: This is not cloned
 	 * @param string|Context|null $reason Either a reason or a context representing the line number
 	 */
-	protected function setFuncTaint(
-		FunctionInterface $func,
-		FunctionTaintedness $taint,
-		bool $override = false,
-		$reason = null
-	): void {
-		if ( $override ) {
-			$newTaint = $taint;
-		} else {
-			$newTaint = $this->getTaintOfFunction( $func )->asMergedWith( $taint );
-			// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
-			// the PHPDoc type, as it may be wrong.
-			// TODO Is this the right place?
-			$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
-			if ( $mask !== null ) {
-				$newTaint->setOverall( $newTaint->getOverall()->withOnly( $mask->get() ) );
-			}
-		}
+	protected function setFuncTaint( FunctionInterface $func, FunctionTaintedness $taint, $reason = null ): void {
+		$this->maybeAddFuncError( $func, $reason, $taint, $taint );
+		self::doSetFuncTaint( $func, $taint );
+	}
 
-		$this->maybeAddFuncError( $func, $reason, $taint, $newTaint );
+	/**
+	 * Merge taintedness of a function/method
+	 * @note As a side-effect, this might analyze $func to get its current taintedness
+	 *
+	 * @param FunctionInterface $func
+	 * @param FunctionTaintedness $taint
+	 */
+	protected function addFuncTaint( FunctionInterface $func, FunctionTaintedness $taint ): void {
+		$newTaint = $this->getTaintOfFunction( $func )->asMergedWith( $taint );
+		$this->maybeAddFuncError( $func, null, $taint, $newTaint );
+		self::doSetFuncTaint( $func, $newTaint );
+	}
+
+	/**
+	 * Ensure a function-like has its taintedness set and not unknown
+	 * @note As a side-effect, this might analyze $func to get its current taintedness
+	 *
+	 * @param FunctionInterface $func
+	 */
+	protected function ensureFuncTaintIsSet( FunctionInterface $func ): void {
+		$newTaint = clone $this->getTaintOfFunction( $func );
+		$newTaint->setOverall( $newTaint->getOverall()->without( SecurityCheckPlugin::UNKNOWN_TAINT ) );
 		self::doSetFuncTaint( $func, $newTaint );
 	}
 
@@ -466,7 +472,7 @@ trait TaintednessBaseVisitor {
 				// PHP internal functions can't have a docblock.
 				$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
 				if ( $taint !== null ) {
-					$this->setFuncTaint( $func, $taint, true, $trialFunc->getContext() );
+					$this->setFuncTaint( $func, $taint, $trialFunc->getContext() );
 					return $taint;
 				}
 			}
@@ -479,7 +485,7 @@ trait TaintednessBaseVisitor {
 					// We're not adding any error here, since it's presumably unnecessary for PHP internal stuff.
 					self::doSetFuncTaint( $func, $taint );
 				} else {
-					$this->setFuncTaint( $func, $taint, true, "Builtin-$trialFuncName" );
+					$this->setFuncTaint( $func, $taint, "Builtin-$trialFuncName" );
 				}
 				return $taint;
 			}
@@ -508,7 +514,7 @@ trait TaintednessBaseVisitor {
 			// If we haven't seen this function before, first of all check the return type. If it
 			// returns a safe type (like int), it's safe.
 			$taint = new FunctionTaintedness( $taintFromReturnType );
-			$this->setFuncTaint( $func, $taint, true );
+			$this->setFuncTaint( $func, $taint );
 		} else {
 			// Assume that anything really dangerous we've already hardcoded. So just preserve taint.
 			$overall = $taintFromReturnType->isSafe()
@@ -1456,7 +1462,7 @@ trait TaintednessBaseVisitor {
 					}
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
-				$this->setFuncTaint( $method, $paramTaint );
+				$this->addFuncTaint( $method, $paramTaint );
 				$this->mergeFuncError( $method, $funcError );
 			}
 		}
