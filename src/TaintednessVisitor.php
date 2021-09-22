@@ -195,35 +195,20 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	/**
 	 * Handles methods, functions and closures.
-	 *
-	 * At this point we should have already hit a return statement
-	 * so if we haven't yet, mark this function as no taint.
-	 *
-	 * @param FunctionInterface $func The func to analyze, or null to retrieve
-	 *   it from the context.
+	 * @param FunctionInterface $func The func to analyze
 	 * @return Taintedness
 	 */
 	private function analyzeFunctionLike( FunctionInterface $func ): Taintedness {
-		if (
-			self::getFuncTaint( $func ) === null &&
-			!SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) &&
-			$this->getDocBlockTaintOfFunc( $func ) === null &&
-			!$func->hasYield() &&
-			!$func->hasReturn()
-		) {
-			// At this point, if func exec's stuff, funcTaint
-			// should already be set.
+		if ( self::getFuncTaint( $func ) === null ) {
+			// If we still have no data, presumably the function doesn't return anything, so mark as safe.
+			if ( $func->hasReturn() || $func->hasYield() ) {
+				$this->debug( __METHOD__, "TODO: $func returns something but has no taint after analysis" );
+			}
 
-			// So we have a func with no yield, return and no
-			// dangerous side effects. Which seems odd, since
-			// what's the point, but mark it as safe.
-
-			// FIXME: In the event that the method stores its arg
-			// to a class prop, and that class prop gets output later
-			// somewhere else - the exec status of this won't be detected
-			// until later, so setting this to NO_TAINT here might miss
-			// some issues in the inbetween period.
-			$this->ensureFuncTaintIsSet( $func );
+			// NOTE: If the method stores its arg to a class prop, and that class prop gets output later,
+			// the exec status of this won't be detected until the output is analyzed, we might miss some issues
+			// in the inbetween period.
+			self::doSetFuncTaint( $func, new FunctionTaintedness( Taintedness::newSafe() ) );
 		}
 		return Taintedness::newInapplicable();
 	}

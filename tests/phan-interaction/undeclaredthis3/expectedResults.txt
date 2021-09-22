@@ -2,4 +2,3 @@ phan-interaction/undeclaredthis3/test.php:9 PhanUndeclaredTypeParameter Paramete
 phan-interaction/undeclaredthis3/test.php:10 PhanUndeclaredClassMethod Call to method getId from undeclared class \MediaWiki\User\UserIdentity
 phan-interaction/undeclaredthis3/test.php:15 PhanUndeclaredInterface Class implements undeclared interface \UserIdentity
 phan-interaction/undeclaredthis3/test.php:30 PhanTypeMissingReturnReal Method \User::newFromAnyId is declared to return \User in its real type signature but has no return value
-phan-interaction/undeclaredthis3/test.php:50 SecurityCheck-LikelyFalsePositive Calling method \htmlspecialchars() in \User::loadOptions that outputs using tainted argument #1 (`$this->getId()`).

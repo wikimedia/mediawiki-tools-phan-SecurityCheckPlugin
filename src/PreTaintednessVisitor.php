@@ -114,6 +114,8 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 				$this->addTaintError( $startTaint, $promotedProps[$i], $paramLinks );
 			}
 		}
+
+		$this->getSetKnownTaintOfFunctionWithoutAnalysis( $method );
 	}
 
 	/**

@@ -89,26 +89,34 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Merge taintedness of a function/method
-	 * @note As a side-effect, this might analyze $func to get its current taintedness
 	 *
 	 * @param FunctionInterface $func
 	 * @param FunctionTaintedness $taint
 	 */
 	protected function addFuncTaint( FunctionInterface $func, FunctionTaintedness $taint ): void {
-		$newTaint = $this->getTaintOfFunction( $func )->asMergedWith( $taint );
+		$curTaint = self::getFuncTaint( $func );
+		if ( $curTaint ) {
+			$newTaint = $curTaint->asMergedWith( $taint );
+		} else {
+			$newTaint = $taint;
+		}
 		$this->maybeAddFuncError( $func, null, $taint, $newTaint );
 		self::doSetFuncTaint( $func, $newTaint );
 	}
 
 	/**
 	 * Ensure a function-like has its taintedness set and not unknown
-	 * @note As a side-effect, this might analyze $func to get its current taintedness
 	 *
 	 * @param FunctionInterface $func
 	 */
 	protected function ensureFuncTaintIsSet( FunctionInterface $func ): void {
-		$newTaint = clone $this->getTaintOfFunction( $func );
-		$newTaint->setOverall( $newTaint->getOverall()->without( SecurityCheckPlugin::UNKNOWN_TAINT ) );
+		$curTaint = self::getFuncTaint( $func );
+		if ( $curTaint ) {
+			$newTaint = clone $curTaint;
+			$newTaint->setOverall( $newTaint->getOverall()->without( SecurityCheckPlugin::UNKNOWN_TAINT ) );
+		} else {
+			$newTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		}
 		self::doSetFuncTaint( $func, $newTaint );
 	}
 
@@ -464,44 +472,15 @@ trait TaintednessBaseVisitor {
 			return $funcTaint;
 		}
 
+		$annotatedTaint = $this->getSetKnownTaintOfFunctionWithoutAnalysis( $func );
+		if ( $annotatedTaint ) {
+			return $annotatedTaint;
+		}
+
 		$isPHPInternalFunc = $func->isPHPInternal();
-		$funcsToTry = $this->getPossibleFuncDefinitions( $func );
-		foreach ( $funcsToTry as $trialFunc ) {
-			/** @var FunctionInterface $trialFunc */
-			if ( !$trialFunc->isPHPInternal() ) {
-				// PHP internal functions can't have a docblock.
-				$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
-				if ( $taint !== null ) {
-					$this->setFuncTaint( $func, $taint, $trialFunc->getContext() );
-					return $taint;
-				}
-			}
-
-			$trialFuncName = $trialFunc->getFQSEN();
-			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
-			if ( $taint !== null ) {
-				$taint = clone $taint;
-				if ( $isPHPInternalFunc ) {
-					// We're not adding any error here, since it's presumably unnecessary for PHP internal stuff.
-					self::doSetFuncTaint( $func, $taint );
-				} else {
-					$this->setFuncTaint( $func, $taint, "Builtin-$trialFuncName" );
-				}
-				return $taint;
-			}
-		}
-
-		$definingFunc = $this->getDefiningFuncIfDifferent( $func );
-		if ( $definingFunc ) {
-			$definingFuncTaint = self::getFuncTaint( $definingFunc );
-			if ( $definingFuncTaint !== null ) {
-				return $definingFuncTaint;
-			}
-		}
-
 		if ( !$isPHPInternalFunc ) {
 			// PHP internal functions cannot be analyzed because they don't have a body.
-			$funcToAnalyze = $definingFunc ?: $func;
+			$funcToAnalyze = $this->getDefiningFuncIfDifferent( $func ) ?: $func;
 			$this->analyzeFunc( $funcToAnalyze );
 			$analyzedFuncTaint = self::getFuncTaint( $funcToAnalyze );
 			if ( $analyzedFuncTaint !== null ) {
@@ -525,6 +504,52 @@ trait TaintednessBaseVisitor {
 			self::doSetFuncTaint( $func, $taint );
 		}
 		return $taint;
+	}
+
+	/**
+	 * Given a function, find out if it has any hardcoded/annotated taint, or whether it should inherit its taint
+	 * from an alternate definition. If anything was found, set that taintedness in the func object and return it.
+	 * In particular, this does NOT cause $func to be analyzed.
+	 *
+	 * @param FunctionInterface $func
+	 * @return FunctionTaintedness|null
+	 */
+	private function getSetKnownTaintOfFunctionWithoutAnalysis( FunctionInterface $func ): ?FunctionTaintedness {
+		$funcsToTry = $this->getPossibleFuncDefinitions( $func );
+		foreach ( $funcsToTry as $trialFunc ) {
+			/** @var FunctionInterface $trialFunc */
+			if ( !$trialFunc->isPHPInternal() ) {
+				// PHP internal functions can't have a docblock.
+				$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
+				if ( $taint !== null ) {
+					$this->setFuncTaint( $func, $taint, $trialFunc->getContext() );
+					return $taint;
+				}
+			}
+
+			$trialFuncName = $trialFunc->getFQSEN();
+			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
+			if ( $taint !== null ) {
+				$taint = clone $taint;
+				if ( $func->isPHPInternal() ) {
+					// We're not adding any error here, since it's presumably unnecessary for PHP internal stuff.
+					self::doSetFuncTaint( $func, $taint );
+				} else {
+					$this->setFuncTaint( $func, $taint, "Builtin-$trialFuncName" );
+				}
+				return $taint;
+			}
+		}
+
+		$definingFunc = $this->getDefiningFuncIfDifferent( $func );
+		if ( $definingFunc ) {
+			$definingFuncTaint = self::getFuncTaint( $definingFunc );
+			if ( $definingFuncTaint !== null ) {
+				return $definingFuncTaint;
+			}
+		}
+
+		return null;
 	}
 
 	/**

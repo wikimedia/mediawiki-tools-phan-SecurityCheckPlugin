@@ -1,0 +1,2 @@
+integration/annotatedfunc/test.php:8 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/annotatedfunc/test.php +6)
+integration/annotatedfunc/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/annotatedfunc/test.php +13)
