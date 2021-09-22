@@ -1,0 +1,4 @@
+integration/functypehint/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/functypehint/test.php +9)
+integration/functypehint/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/functypehint/test.php +19)
+integration/functypehint/test.php:48 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/functypehint/test.php +45; integration/functypehint/test.php +41)
+integration/functypehint/test.php:53 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/functypehint/test.php +51)

@@ -110,14 +110,9 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 */
 	protected function ensureFuncTaintIsSet( FunctionInterface $func ): void {
-		$curTaint = self::getFuncTaint( $func );
-		if ( $curTaint ) {
-			$newTaint = clone $curTaint;
-			$newTaint->setOverall( $newTaint->getOverall()->without( SecurityCheckPlugin::UNKNOWN_TAINT ) );
-		} else {
-			$newTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		if ( !self::getFuncTaint( $func ) ) {
+			self::doSetFuncTaint( $func, new FunctionTaintedness( Taintedness::newSafe() ) );
 		}
-		self::doSetFuncTaint( $func, $newTaint );
 	}
 
 	/**

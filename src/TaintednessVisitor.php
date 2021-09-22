@@ -1076,9 +1076,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$overallFuncTaint = $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT );
 		// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
 		// the PHPDoc type, as it may be wrong.
-		$mask = $this->getTaintMaskForType( $func->getRealReturnType() );
-		if ( $mask !== null ) {
-			$overallFuncTaint->keepOnly( $mask->get() );
+		$retTaintMask = $this->getTaintMaskForType( $func->getRealReturnType() );
+		if ( $retTaintMask !== null ) {
+			$overallFuncTaint->keepOnly( $retTaintMask->get() );
 		}
 
 		$paramTaint = new FunctionTaintedness( $overallFuncTaint );
@@ -1089,7 +1089,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Note, not forCaller, as that doesn't see variadic parameters
 		$calleeParamList = $func->getParameterList();
 		foreach ( $calleeParamList as $i => $param ) {
-			$presTaint = $links->asPreservedTaintednessForFuncParam( $func, $i );
+			$presTaint = $retTaintMask === null || !$retTaintMask->isSafe()
+				? $links->asPreservedTaintednessForFuncParam( $func, $i )
+				: PreservedTaintedness::newEmpty();
 			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
 			if ( $param->isVariadic() ) {
 				$paramTaint->setVariadicParamPreservedTaint( $i, $presTaint );

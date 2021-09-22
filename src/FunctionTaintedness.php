@@ -250,6 +250,7 @@ class FunctionTaintedness {
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
+		// TODO: Is removing UNKNOWN necessary here?
 		$unk = SecurityCheckPlugin::UNKNOWN_TAINT;
 
 		foreach ( $other->paramSinkTaints as $index => $baseT ) {
