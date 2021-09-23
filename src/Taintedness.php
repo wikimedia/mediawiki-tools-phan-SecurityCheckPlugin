@@ -664,10 +664,10 @@ class Taintedness {
 	 * @param ParamLinksOffsets $offsets
 	 * @return self
 	 */
-	public function asMovedAtRelevantOffsets( ParamLinksOffsets $offsets ): self {
+	public function asMovedAtRelevantOffsetsForBackprop( ParamLinksOffsets $offsets ): self {
 		$ret = $offsets->getOwn() ? clone $this : self::newSafe();
 		foreach ( $offsets->getDims() as $k => $val ) {
-			$newVal = $this->asMovedAtRelevantOffsets( $val );
+			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $val );
 			if ( isset( $ret->dimTaint[$k] ) ) {
 				$ret->dimTaint[$k]->mergeWith( $newVal );
 			} else {
@@ -676,7 +676,7 @@ class Taintedness {
 		}
 		$unknownOffs = $offsets->getUnknown();
 		if ( $unknownOffs ) {
-			$newVal = $this->asMovedAtRelevantOffsets( $unknownOffs );
+			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $unknownOffs );
 			if ( $ret->unknownDimsTaint ) {
 				$ret->unknownDimsTaint->mergeWith( $newVal );
 			} else {

@@ -39,13 +39,13 @@ class PreservedTaintedness {
 	/**
 	 * @return Taintedness
 	 */
-	public function asTaintedness(): Taintedness {
+	public function asTaintednessForCausedBy(): Taintedness {
 		$ret = new Taintedness( $this->ownOffsets->getFlags() );
 		foreach ( $this->dimTaint as $k => $val ) {
-			$ret->setOffsetTaintedness( $k, $val->asTaintedness() );
+			$ret->setOffsetTaintedness( $k, $val->asTaintednessForCausedBy() );
 		}
 		if ( $this->unknownDimsTaint ) {
-			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asTaintedness() );
+			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asTaintednessForCausedBy() );
 		}
 		return $ret;
 	}

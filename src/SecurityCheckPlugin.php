@@ -41,7 +41,6 @@ use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
 use Phan\PluginV3\MergeVariableInfoCapability;
 use Phan\PluginV3\PostAnalyzeNodeCapability;
 use Phan\PluginV3\PreAnalyzeNodeCapability;
-use Throwable;
 
 /**
  * Base class used by the Generic and MediaWiki flavours of the plugin.
@@ -308,12 +307,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			// test. We should either find a better way to test that, or maybe add a public annotation
 			// for debugging taintedness of a method (probably unreadable on a single line).
 			$funcName = preg_replace( '/@taint-check-debug-method-first-arg ([a-z:]+)\b.*/i', '$1', $statement );
-			try {
-				$fqsen = FullyQualifiedMethodName::fromStringInContext( $funcName, $context );
-				$method = $codeBase->getMethodByFQSEN( $fqsen );
-			} catch ( Throwable $_ ) {
-				return false;
-			}
+			// Let any exception bubble up here, the annotation is for internal use in testing
+			$fqsen = FullyQualifiedMethodName::fromStringInContext( $funcName, $context );
+			$method = $codeBase->getMethodByFQSEN( $fqsen );
 			/** @var FunctionTaintedness|null $fTaint */
 			// @phan-suppress-next-line PhanUndeclaredProperty
 			$fTaint = $method->funcTaint ?? null;

@@ -23,9 +23,16 @@ class ParamLinksOffsets {
 	 * @param bool $own
 	 * @param int $flags
 	 */
-	public function __construct( bool $own = true, int $flags = SecurityCheckPlugin::PRESERVE_TAINT ) {
+	public function __construct( bool $own, int $flags ) {
 		$this->own = $own;
 		$this->ownFlags = $flags;
+	}
+
+	/**
+	 * @return self
+	 */
+	public static function newAll(): self {
+		return new self( true, SecurityCheckPlugin::PRESERVE_TAINT );
 	}
 
 	/**
@@ -147,7 +154,7 @@ class ParamLinksOffsets {
 	 */
 	public function __toString(): string {
 		if ( $this->own ) {
-			$ret = '(own): Y: ' . SecurityCheckPlugin::taintToString( $this->ownFlags ) . ', ';
+			$ret = '(own): Y: ' . SecurityCheckPlugin::taintToString( $this->ownFlags );
 		} else {
 			$ret = '(own): N';
 		}
