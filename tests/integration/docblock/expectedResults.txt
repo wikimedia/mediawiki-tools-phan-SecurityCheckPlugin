@@ -1,4 +1,4 @@
-integration/docblock/functions.php:64 SecurityCheckInvalidAnnotation Invalid return taintedness 'fdasdfa_html'
+integration/docblock/functions.php:63 SecurityCheckInvalidAnnotation Invalid return taintedness 'fdasdfa_html'
 integration/docblock/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/docblock/functions.php +13)
 integration/docblock/test.php:10 SecurityCheck-DoubleEscaped Calling method \escapeHTML() in [no method] that outputs using tainted argument #1 (`escapeHTML('foo')`). (Caused by: integration/docblock/functions.php +6) (Caused by: integration/docblock/functions.php +6)
 integration/docblock/test.php:15 SecurityCheck-SQLInjection Calling method \doQuery() in [no method] that outputs using tainted argument #1 (`getUserInput()`). (Caused by: integration/docblock/functions.php +28) (Caused by: integration/docblock/functions.php +20)
