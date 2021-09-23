@@ -6,6 +6,9 @@
   that is later output, but didn't work due to a bug. The relevant logic was complicating maintenance. Running phan with `--analyze-twice` will catch this kind of issues.
 * The plugin no longer reanalyzes classes when the taintedness of a property is changed. Running phan with `--analyze-twice` will catch this kind of issues.
 
+### New features
+* Added a new issue type, `SecurityCheckInvalidAnnotation`, emitted for `-taint` annotations that cannot be parsed, use unknown or forbidden values (e.g. EXEC bits in `return-taint`), document non-existing parameters, or have redundant/missing `...`.
+
 ### Internal changes
 * Bumped phan/phan to 5.2.1
 
