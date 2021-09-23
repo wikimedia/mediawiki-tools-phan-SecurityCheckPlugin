@@ -100,7 +100,6 @@ trait TaintednessBaseVisitor {
 		} else {
 			$newTaint = $taint;
 		}
-		$this->maybeAddFuncError( $func, null, $taint, $newTaint );
 		self::doSetFuncTaint( $func, $newTaint );
 	}
 
@@ -120,12 +119,14 @@ trait TaintednessBaseVisitor {
 	 * @param Context|string|null $reason To override the caused-by line
 	 * @param FunctionTaintedness $addedTaint
 	 * @param FunctionTaintedness $allNewTaint
+	 * @param MethodLinks|null $returnLinks
 	 */
 	private function maybeAddFuncError(
 		FunctionInterface $func,
 		$reason,
 		FunctionTaintedness $addedTaint,
-		FunctionTaintedness $allNewTaint
+		FunctionTaintedness $allNewTaint,
+		MethodLinks $returnLinks = null
 	): void {
 		if ( !$reason && SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) ) {
 			return;
@@ -141,60 +142,64 @@ trait TaintednessBaseVisitor {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
 
-		$getActualTaintedness = static function ( Taintedness $paramTaint, int $argFlags ): Taintedness {
-			if (
-				( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 &&
-				$paramTaint->has( SecurityCheckPlugin::PRESERVE_TAINT )
-			) {
-				// Don't do anything if the param is NO_OVERRIDE (i.e. it's probably annotated,
-				// or the taintedness is hardcoded in the plugin)
-				return new Taintedness( SecurityCheckPlugin::YES_EXEC_TAINT );
-			}
-			return $paramTaint;
+		// TODO Should probably also filter links and only keep those for the current param, like setFuncTaintFromReturn
+		$getActualLinks = static function ( ?MethodLinks $links, int $argFlags ): ?MethodLinks {
+			return ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ? $links : null;
 		};
 
 		$newErr = self::getFuncCausedByRawCloneOrEmpty( $func );
 
 		foreach ( $addedTaint->getSinkParamKeysNoVariadic() as $key ) {
-			$curTaint = $getActualTaintedness(
-				$addedTaint->getParamSinkTaint( $key ),
-				$allNewTaint->getParamFlags( $key )
-			);
+			$curTaint = $addedTaint->getParamSinkTaint( $key );
 			if ( $curTaint->isExecOrAllTaint() ) {
-				$newErr->addParamSinkLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
+				$newErr->addParamSinkLines(
+					$key,
+					$newErrors,
+					$curTaint->asExecToYesTaint(),
+					$getActualLinks( $returnLinks, $allNewTaint->getParamFlags( $key ) )
+				);
 			}
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
-			$curTaint = $getActualTaintedness(
-				$addedTaint->getParamPreservedTaint( $key )->asTaintednessForCausedBy(),
-				$allNewTaint->getParamFlags( $key )
-			);
+			$curTaint = $addedTaint->getParamPreservedTaint( $key )->asTaintednessForCausedBy();
 			if ( $curTaint->isExecOrAllTaint() ) {
-				$newErr->addParamPreservedLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
+				$newErr->addParamPreservedLines(
+					$key,
+					$newErrors,
+					$curTaint->asExecToYesTaint(),
+					$getActualLinks( $returnLinks, $allNewTaint->getParamFlags( $key ) )
+				);
 			}
 		}
 		$variadicIndex = $addedTaint->getVariadicParamIndex();
 		if ( $variadicIndex !== null ) {
 			$variadicFlags = $allNewTaint->getVariadicParamFlags();
 			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
-			if ( $sinkVariadic ) {
-				$curTaint = $getActualTaintedness( $sinkVariadic, $variadicFlags );
-				if ( $curTaint->isExecOrAllTaint() ) {
-					$newErr->addVariadicParamSinkLines( $variadicIndex, $newErrors, $curTaint->asExecToYesTaint() );
-				}
+			if ( $sinkVariadic && $sinkVariadic->isExecOrAllTaint() ) {
+				$newErr->addVariadicParamSinkLines(
+					$variadicIndex,
+					$newErrors,
+					$sinkVariadic->asExecToYesTaint(),
+					$getActualLinks( $returnLinks, $variadicFlags )
+				);
 			}
 			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
 			if ( $preserveVariadic ) {
-				$curTaint = $getActualTaintedness( $preserveVariadic->asTaintednessForCausedBy(), $variadicFlags );
+				$curTaint = $preserveVariadic->asTaintednessForCausedBy();
 				if ( $curTaint->isExecOrAllTaint() ) {
 					$newErr->addVariadicParamPreservedLines(
-						$variadicIndex, $newErrors, $curTaint->asExecToYesTaint() );
+						$variadicIndex,
+						$newErrors,
+						$curTaint->asExecToYesTaint(),
+						$getActualLinks( $returnLinks, $variadicFlags )
+					);
 				}
 			}
 		}
 
-		$curTaint = $getActualTaintedness( $addedTaint->getOverall(), $allNewTaint->getOverallFlags() );
+		$curTaint = $addedTaint->getOverall();
 		if ( $curTaint->isExecOrAllTaint() ) {
+			// Note, the generic error shouldn't have any link
 			$newErr->addGenericLines( $newErrors, $curTaint );
 		}
 
@@ -1442,6 +1447,7 @@ trait TaintednessBaseVisitor {
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
 				$this->addFuncTaint( $method, $paramTaint );
+				$this->maybeAddFuncError( $method, null, $paramTaint, self::getFuncTaint( $method ) );
 				$this->mergeFuncError( $method, $funcError );
 			}
 		}
@@ -2030,7 +2036,7 @@ trait TaintednessBaseVisitor {
 				if ( !$effectiveArgTaintedness->isSafe() ) {
 					$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
 					$relevantParamError = $funcError->getParamPreservedLines( $i )
-						->asIntersectedWithTaintedness( $effectiveArgTaintedness );
+						->asPreservingTaintedness( $effectiveArgTaintedness );
 					// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
 					// than one argument, it will appear once per preserved argument in the overall caused-by of the
 					// call expression. This is probably a good thing, but can increase the length of caused-by lines.

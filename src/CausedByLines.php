@@ -48,6 +48,22 @@ class CausedByLines {
 	}
 
 	/**
+	 * Move any possibly preserved taintedness stored in the method links to the actual taintedness of this line.
+	 * @param Taintedness $taintedness
+	 * @return self
+	 */
+	public function asPreservingTaintedness( Taintedness $taintedness ): self {
+		$ret = new self;
+		$curTaint = $taintedness->get();
+		foreach ( $this->lines as [ $_, $eLine, $links ] ) {
+			if ( $links->canPreserveTaintFlags( $curTaint ) ) {
+				$ret->lines[] = [ new Taintedness( $curTaint ), $eLine, MethodLinks::newEmpty() ];
+			}
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param Taintedness $taintedness
 	 * @return self
 	 */

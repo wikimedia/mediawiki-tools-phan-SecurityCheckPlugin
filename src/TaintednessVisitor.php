@@ -1064,9 +1064,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$retExpr = $node->children['expr'];
 		$retTaintednessWithError = $this->getTaintedness( $retExpr );
 		// Ensure we don't transmit any EXEC flag.
-		// Keep PRESERVE, though, as that means that a parameter is being essentially passed through
-		$keepMask = SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::PRESERVE_TAINT;
-		$retTaintedness = $retTaintednessWithError->getTaintedness()->withOnly( $keepMask );
+		$retTaintedness = $retTaintednessWithError->getTaintedness()->withOnly( SecurityCheckPlugin::ALL_TAINT );
 		if ( !$retExpr instanceof Node ) {
 			assert( $retTaintedness->isSafe() );
 			$this->ensureFuncTaintIsSet( $func );
@@ -1104,6 +1102,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$funcError->setGenericLines( $retError->getLinesForGenericReturn() );
 		$this->addFuncTaint( $func, $paramTaint );
+		$this->maybeAddFuncError( $func, null, $paramTaint, self::getFuncTaint( $func ), $links );
 		// Note: adding the error after setting the taintedness means that the return line comes before
 		// the other lines
 		$this->mergeFuncError( $func, $funcError );

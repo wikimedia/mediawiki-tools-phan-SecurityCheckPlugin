@@ -153,6 +153,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		self::PATH_TAINT | self::CODE_TAINT | self::REGEX_TAINT | self::CUSTOM1_TAINT | self::CUSTOM2_TAINT |
 		self::MISC_TAINT;
 	public const EXEC_TAINT = self::YES_TAINT << 1;
+	// @phan-suppress-next-line PhanUnreferencedPublicClassConstant
 	public const YES_EXEC_TAINT = self::YES_TAINT | self::EXEC_TAINT;
 
 	// ALL taint is YES + special purpose taints, but not including special flags.
