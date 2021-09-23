@@ -25,11 +25,13 @@ class FunctionCausedByLines {
 	}
 
 	/**
-	 * @param string $line
+	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 */
-	public function addGenericLine( string $line, Taintedness $taint ): void {
-		$this->genericLines->addLine( $taint, $line );
+	public function addGenericLines( array $lines, Taintedness $taint ): void {
+		foreach ( $lines as $line ) {
+			$this->genericLines->addLine( clone $taint, $line );
+		}
 	}
 
 	/**
@@ -41,15 +43,17 @@ class FunctionCausedByLines {
 
 	/**
 	 * @param int $param
-	 * @param string $line
+	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 */
-	public function addParamLine( int $param, string $line, Taintedness $taint ): void {
+	public function addParamLines( int $param, array $lines, Taintedness $taint ): void {
 		assert( $param !== $this->variadicParamIndex );
 		if ( !isset( $this->paramLines[$param] ) ) {
 			$this->paramLines[$param] = new CausedByLines();
 		}
-		$this->paramLines[$param]->addLine( $taint, $line );
+		foreach ( $lines as $line ) {
+			$this->paramLines[$param]->addLine( clone $taint, $line );
+		}
 	}
 
 	/**
@@ -71,16 +75,18 @@ class FunctionCausedByLines {
 
 	/**
 	 * @param int $param
-	 * @param string $line
+	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 */
-	public function addVariadicParamLine( int $param, string $line, Taintedness $taint ): void {
+	public function addVariadicParamLines( int $param, array $lines, Taintedness $taint ): void {
 		assert( !isset( $this->paramLines[$param] ) );
 		$this->variadicParamIndex = $param;
 		if ( !$this->variadicParamLines ) {
 			$this->variadicParamLines = new CausedByLines();
 		}
-		$this->variadicParamLines->addLine( $taint, $line );
+		foreach ( $lines as $line ) {
+			$this->variadicParamLines->addLine( clone $taint, $line );
+		}
 	}
 
 	/**

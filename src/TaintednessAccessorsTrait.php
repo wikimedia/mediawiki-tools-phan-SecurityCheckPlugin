@@ -52,14 +52,6 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * @param FunctionInterface $func
-	 * @return FunctionCausedByLines|null
-	 */
-	protected static function getFuncCausedByRaw( FunctionInterface $func ): ?FunctionCausedByLines {
-		return $func->funcTaintedOriginalError ?? null;
-	}
-
-	/**
 	 * @param TypedElementInterface $element
 	 * @return CausedByLines
 	 */
@@ -107,13 +99,6 @@ trait TaintednessAccessorsTrait {
 			$realElement = $element->getElement();
 			$realElement->taintedOriginalError = $realElement->taintedOriginalError ?? new CausedByLines();
 		}
-	}
-
-	/**
-	 * @param FunctionInterface $func
-	 */
-	protected static function ensureFuncCausedByRawExists( FunctionInterface $func ): void {
-		$func->funcTaintedOriginalError = $func->funcTaintedOriginalError ?? new FunctionCausedByLines();
 	}
 
 	/**
