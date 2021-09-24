@@ -12,3 +12,10 @@ function testCausedBy() {
 	$x .= returnSafe();
 	echo $x;
 }
+
+/**
+ * @param-taint $par tainted
+ */
+function passParamThrough( $par ) {
+}
+echo passParamThrough( $_GET['a'] ); // TODO: There must be a caused-by line pointing to the annotation

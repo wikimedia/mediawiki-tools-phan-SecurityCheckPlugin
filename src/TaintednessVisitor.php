@@ -1095,10 +1095,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
 			if ( $param->isVariadic() ) {
 				$paramTaint->setVariadicParamPreservedTaint( $i, $presTaint );
-				$funcError->setVariadicParamLines( $i, $paramError );
+				$funcError->setVariadicParamPreservedLines( $i, $paramError );
 			} else {
 				$paramTaint->setParamPreservedTaint( $i, $presTaint );
-				$funcError->setParamLines( $i, $paramError );
+				$funcError->setParamPreservedLines( $i, $paramError );
 			}
 		}
 

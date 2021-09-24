@@ -161,7 +161,7 @@ trait TaintednessBaseVisitor {
 				$allNewTaint->getParamFlags( $key )
 			);
 			if ( $curTaint->isExecOrAllTaint() ) {
-				$newErr->addParamLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
+				$newErr->addParamSinkLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
 			}
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
@@ -170,7 +170,7 @@ trait TaintednessBaseVisitor {
 				$allNewTaint->getParamFlags( $key )
 			);
 			if ( $curTaint->isExecOrAllTaint() ) {
-				$newErr->addParamLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
+				$newErr->addParamPreservedLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
 			}
 		}
 		$variadicIndex = $addedTaint->getVariadicParamIndex();
@@ -180,14 +180,15 @@ trait TaintednessBaseVisitor {
 			if ( $sinkVariadic ) {
 				$curTaint = $getActualTaintedness( $sinkVariadic, $variadicFlags );
 				if ( $curTaint->isExecOrAllTaint() ) {
-					$newErr->addVariadicParamLines( $variadicIndex, $newErrors, $curTaint->asExecToYesTaint() );
+					$newErr->addVariadicParamSinkLines( $variadicIndex, $newErrors, $curTaint->asExecToYesTaint() );
 				}
 			}
 			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
 			if ( $preserveVariadic ) {
 				$curTaint = $getActualTaintedness( $preserveVariadic->asTaintednessForCausedBy(), $variadicFlags );
 				if ( $curTaint->isExecOrAllTaint() ) {
-					$newErr->addVariadicParamLines( $variadicIndex, $newErrors, $curTaint->asExecToYesTaint() );
+					$newErr->addVariadicParamPreservedLines(
+						$variadicIndex, $newErrors, $curTaint->asExecToYesTaint() );
 				}
 			}
 		}
@@ -1433,10 +1434,10 @@ trait TaintednessBaseVisitor {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint->setVariadicParamSinkTaint( $i, $curParTaint );
-						$funcError->setVariadicParamLines( $i, $backpropError );
+						$funcError->setVariadicParamSinkLines( $i, $backpropError );
 					} else {
 						$paramTaint->setParamSinkTaint( $i, $curParTaint );
-						$funcError->setParamLines( $i, $backpropError );
+						$funcError->setParamSinkLines( $i, $backpropError );
 					}
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
@@ -1975,7 +1976,7 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
-				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError->getParamLines( $i ) );
+				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError->getParamSinkLines( $i ) );
 			}
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
@@ -1995,7 +1996,7 @@ trait TaintednessBaseVisitor {
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$funcError->getParamLines( $i )->toStringForIssue( $paramSinkTaint ),
+					$funcError->getParamSinkLines( $i )->toStringForIssue( $paramSinkTaint ),
 					$baseArgError->toStringForIssue( $paramSinkTaint ),
 					$isRawParam ? ' (Param is raw)' : ''
 				];
@@ -2028,7 +2029,7 @@ trait TaintednessBaseVisitor {
 				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
 				if ( !$effectiveArgTaintedness->isSafe() ) {
 					$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
-					$relevantParamError = $funcError->getParamLines( $i )
+					$relevantParamError = $funcError->getParamPreservedLines( $i )
 						->asIntersectedWithTaintedness( $effectiveArgTaintedness );
 					// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
 					// than one argument, it will appear once per preserved argument in the overall caused-by of the

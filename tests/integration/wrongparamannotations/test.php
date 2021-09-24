@@ -8,7 +8,7 @@ function variadicAnnotatedAsNormal( ...$par ) {
 	return $par;
 }
 $test1 = variadicAnnotatedAsNormal( $_GET['a'] ); // Safe
-echo $test1; // Unsafe
+echo $test1; // Unsafe TODO Should have line 6 in the caused-by
 
 /**
  * @param-taint ...$par tainted

@@ -79,4 +79,4 @@ function escapeAndReturnParamWithIntermediateAssignment( $par ) {
 	return $ret;
 }
 
-escapeAndReturnParamWithIntermediateAssignment( htmlspecialchars( 'foo' ) );// TODO: Line 77 only, in particular NOT lines 78 and 79.
+escapeAndReturnParamWithIntermediateAssignment( htmlspecialchars( 'foo' ) );// Line 77 only, in particular NOT lines 78 and 79.

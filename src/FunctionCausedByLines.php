@@ -6,11 +6,15 @@ class FunctionCausedByLines {
 	/** @var CausedByLines */
 	private $genericLines;
 	/** @var CausedByLines[] */
-	private $paramLines = [];
+	private $paramSinkLines = [];
+	/** @var CausedByLines[] */
+	private $paramPreservedLines = [];
 	/** @var int|null Index of a variadic parameter, if any */
 	private $variadicParamIndex;
 	/** @var CausedByLines|null */
-	private $variadicParamLines;
+	private $variadicParamSinkLines;
+	/** @var CausedByLines|null */
+	private $variadicParamPreservedLines;
 
 	public function __construct() {
 		$this->genericLines = new CausedByLines();
@@ -46,31 +50,14 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 */
-	public function addParamLines( int $param, array $lines, Taintedness $taint ): void {
+	public function addParamSinkLines( int $param, array $lines, Taintedness $taint ): void {
 		assert( $param !== $this->variadicParamIndex );
-		if ( !isset( $this->paramLines[$param] ) ) {
-			$this->paramLines[$param] = new CausedByLines();
+		if ( !isset( $this->paramSinkLines[$param] ) ) {
+			$this->paramSinkLines[$param] = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->paramLines[$param]->addLine( clone $taint, $line );
+			$this->paramSinkLines[$param]->addLine( clone $taint, $line );
 		}
-	}
-
-	/**
-	 * @param int $param
-	 * @param CausedByLines $lines
-	 */
-	public function setParamLines( int $param, CausedByLines $lines ): void {
-		$this->paramLines[$param] = $lines;
-	}
-
-	/**
-	 * @param int $param
-	 * @param CausedByLines $lines
-	 */
-	public function setVariadicParamLines( int $param, CausedByLines $lines ): void {
-		$this->variadicParamIndex = $param;
-		$this->variadicParamLines = $lines;
 	}
 
 	/**
@@ -78,31 +65,112 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 */
-	public function addVariadicParamLines( int $param, array $lines, Taintedness $taint ): void {
-		assert( !isset( $this->paramLines[$param] ) );
-		$this->variadicParamIndex = $param;
-		if ( !$this->variadicParamLines ) {
-			$this->variadicParamLines = new CausedByLines();
+	public function addParamPreservedLines( int $param, array $lines, Taintedness $taint ): void {
+		assert( $param !== $this->variadicParamIndex );
+		if ( !isset( $this->paramPreservedLines[$param] ) ) {
+			$this->paramPreservedLines[$param] = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->variadicParamLines->addLine( clone $taint, $line );
+			$this->paramPreservedLines[$param]->addLine( clone $taint, $line );
+		}
+	}
+
+	/**
+	 * @param int $param
+	 * @param CausedByLines $lines
+	 */
+	public function setParamSinkLines( int $param, CausedByLines $lines ): void {
+		$this->paramSinkLines[$param] = $lines;
+	}
+
+	/**
+	 * @param int $param
+	 * @param CausedByLines $lines
+	 */
+	public function setParamPreservedLines( int $param, CausedByLines $lines ): void {
+		$this->paramPreservedLines[$param] = $lines;
+	}
+
+	/**
+	 * @param int $param
+	 * @param CausedByLines $lines
+	 */
+	public function setVariadicParamSinkLines( int $param, CausedByLines $lines ): void {
+		$this->variadicParamIndex = $param;
+		$this->variadicParamSinkLines = $lines;
+	}
+
+	/**
+	 * @param int $param
+	 * @param CausedByLines $lines
+	 */
+	public function setVariadicParamPreservedLines( int $param, CausedByLines $lines ): void {
+		$this->variadicParamIndex = $param;
+		$this->variadicParamPreservedLines = $lines;
+	}
+
+	/**
+	 * @param int $param
+	 * @param string[] $lines
+	 * @param Taintedness $taint
+	 */
+	public function addVariadicParamSinkLines( int $param, array $lines, Taintedness $taint ): void {
+		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
+		$this->variadicParamIndex = $param;
+		if ( !$this->variadicParamSinkLines ) {
+			$this->variadicParamSinkLines = new CausedByLines();
+		}
+		foreach ( $lines as $line ) {
+			$this->variadicParamSinkLines->addLine( clone $taint, $line );
+		}
+	}
+
+	/**
+	 * @param int $param
+	 * @param string[] $lines
+	 * @param Taintedness $taint
+	 */
+	public function addVariadicParamPreservedLines( int $param, array $lines, Taintedness $taint ): void {
+		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
+		$this->variadicParamIndex = $param;
+		if ( !$this->variadicParamPreservedLines ) {
+			$this->variadicParamPreservedLines = new CausedByLines();
+		}
+		foreach ( $lines as $line ) {
+			$this->variadicParamPreservedLines->addLine( clone $taint, $line );
 		}
 	}
 
 	/**
 	 * @param int $param
 	 * @return CausedByLines
-	 * @todo Param lines should be split into preserved vs sink, like in FunctionTaintedness
 	 */
-	public function getParamLines( int $param ): CausedByLines {
-		if ( isset( $this->paramLines[$param] ) ) {
-			return $this->paramLines[$param];
+	public function getParamSinkLines( int $param ): CausedByLines {
+		if ( isset( $this->paramSinkLines[$param] ) ) {
+			return $this->paramSinkLines[$param];
 		}
 		if (
 			$this->variadicParamIndex !== null && $param >= $this->variadicParamIndex &&
-			$this->variadicParamLines
+			$this->variadicParamSinkLines
 		) {
-			return $this->variadicParamLines;
+			return $this->variadicParamSinkLines;
+		}
+		return new CausedByLines();
+	}
+
+	/**
+	 * @param int $param
+	 * @return CausedByLines
+	 */
+	public function getParamPreservedLines( int $param ): CausedByLines {
+		if ( isset( $this->paramPreservedLines[$param] ) ) {
+			return $this->paramPreservedLines[$param];
+		}
+		if (
+			$this->variadicParamIndex !== null && $param >= $this->variadicParamIndex &&
+			$this->variadicParamPreservedLines
+		) {
+			return $this->variadicParamPreservedLines;
 		}
 		return new CausedByLines();
 	}
@@ -112,25 +180,44 @@ class FunctionCausedByLines {
 	 */
 	public function mergeWith( self $other ): void {
 		$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
-		foreach ( $other->paramLines as $param => $lines ) {
-			$this->paramLines[$param] = isset( $this->paramLines[$param] )
-				? $this->paramLines[$param]->asMergedWith( $lines )
+		foreach ( $other->paramSinkLines as $param => $lines ) {
+			$this->paramSinkLines[$param] = isset( $this->paramSinkLines[$param] )
+				? $this->paramSinkLines[$param]->asMergedWith( $lines )
 				: $lines;
 		}
-		if ( $other->variadicParamIndex !== null ) {
-			$this->variadicParamLines = $this->variadicParamLines
-				? $this->variadicParamLines->asMergedWith( $other->variadicParamLines )
-				: $other->variadicParamLines;
+		foreach ( $other->paramPreservedLines as $param => $lines ) {
+			$this->paramPreservedLines[$param] = isset( $this->paramPreservedLines[$param] )
+				? $this->paramPreservedLines[$param]->asMergedWith( $lines )
+				: $lines;
+		}
+		$variadicIndex = $other->variadicParamIndex;
+		if ( $variadicIndex !== null ) {
+			$this->variadicParamIndex = $variadicIndex;
+			$sinkVariadic = $other->variadicParamSinkLines;
+			if ( $sinkVariadic ) {
+				$this->variadicParamSinkLines = $this->variadicParamSinkLines
+					? $this->variadicParamSinkLines->asMergedWith( $sinkVariadic )
+					: $sinkVariadic;
+			}
+			$preserveVariadic = $other->variadicParamPreservedLines;
+			if ( $preserveVariadic ) {
+				$this->variadicParamPreservedLines = $this->variadicParamPreservedLines
+					? $this->variadicParamPreservedLines->asMergedWith( $preserveVariadic )
+					: $preserveVariadic;
+			}
 		}
 	}
 
 	public function __clone() {
 		$this->genericLines = clone $this->genericLines;
-		foreach ( $this->paramLines as $k => $pLines ) {
-			$this->paramLines[$k] = clone $pLines;
+		foreach ( $this->paramSinkLines as $k => $pLines ) {
+			$this->paramSinkLines[$k] = clone $pLines;
 		}
-		if ( $this->variadicParamLines ) {
-			$this->variadicParamLines = clone $this->variadicParamLines;
+		if ( $this->variadicParamSinkLines ) {
+			$this->variadicParamSinkLines = clone $this->variadicParamSinkLines;
+		}
+		if ( $this->variadicParamPreservedLines ) {
+			$this->variadicParamPreservedLines = clone $this->variadicParamPreservedLines;
 		}
 	}
 
@@ -139,11 +226,18 @@ class FunctionCausedByLines {
 	 */
 	public function toString(): string {
 		$str = "{\nGeneric: " . $this->genericLines->toDebugString() . ",\n";
-		foreach ( $this->paramLines as $par => $lines ) {
-			$str .= "$par: " . $lines->toDebugString() . ",\n";
+		foreach ( $this->paramSinkLines as $par => $lines ) {
+			$str .= "$par (sink): " . $lines->toDebugString() . ",\n";
 		}
-		if ( $this->variadicParamIndex !== null ) {
-			$str .= "...{$this->variadicParamIndex}: " . $this->variadicParamLines->toDebugString() . "\n";
+		foreach ( $this->paramPreservedLines as $par => $lines ) {
+			$str .= "$par (preserved): " . $lines->toDebugString() . ",\n";
+		}
+		if ( $this->variadicParamSinkLines ) {
+			$str .= "...{$this->variadicParamIndex} (sink): " . $this->variadicParamSinkLines->toDebugString() . "\n";
+		}
+		if ( $this->variadicParamPreservedLines ) {
+			$str .= "...{$this->variadicParamIndex} (preserved): " .
+				$this->variadicParamPreservedLines->toDebugString() . "\n";
 		}
 		return "$str}";
 	}
