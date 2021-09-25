@@ -2020,10 +2020,12 @@ trait TaintednessBaseVisitor {
 				if ( $taint->hasParamPreserve( $i ) ) {
 					$parTaint = $taint->getParamPreservedTaint( $i );
 					$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
+					$curArgLinks = MethodLinks::newEmpty();
 				} elseif ( $taint->getOverall()->has( $preserveOrUnknown ) ) {
 					// No info for this specific parameter, but the overall function either preserves taint
 					// when unspecified or is unknown. So just pass the taint through.
 					$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
+					$curArgLinks = MethodLinks::newEmpty();
 				} else {
 					// This parameter has no taint info. And overall this function doesn't depend on param
 					// for taint and isn't unknown. So we consider this argument untainted.
@@ -2033,16 +2035,14 @@ trait TaintednessBaseVisitor {
 				'@phan-var Taintedness $overallArgTaint';
 				'@phan-var CausedByLines $argErrors';
 				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-				if ( !$effectiveArgTaintedness->isSafe() ) {
-					$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
-					$relevantParamError = $funcError->getParamPreservedLines( $i )
-						->asPreservingTaintedness( $effectiveArgTaintedness );
-					// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
-					// than one argument, it will appear once per preserved argument in the overall caused-by of the
-					// call expression. This is probably a good thing, but can increase the length of caused-by lines.
-					// TODO Something like T291379 might help here.
-					$argErrors->mergeWith( $curArgError->asMergedWith( $relevantParamError ) );
-				}
+				$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
+				$relevantParamError = $funcError->getParamPreservedLines( $i )
+					->asPreservingTaintednessAndLinks( $effectiveArgTaintedness, $curArgLinks );
+				// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
+				// than one argument, it will appear once per preserved argument in the overall caused-by of the
+				// call expression. This is probably a good thing, but can increase the length of caused-by lines.
+				// TODO Something like T291379 might help here.
+				$argErrors->mergeWith( $curArgError->asMergedWith( $relevantParamError ) );
 			}
 		}
 

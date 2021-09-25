@@ -112,6 +112,21 @@ class ParamLinksOffsets {
 		return false;
 	}
 
+	/**
+	 * @note This should only be used by SingleMethodLinks::getAllPreservedFlags
+	 * @return int
+	 */
+	public function getFlagsRecursively(): int {
+		$ret = $this->own ? $this->ownFlags : SecurityCheckPlugin::NO_TAINT;
+		foreach ( $this->dims as $dimOffsets ) {
+			$ret |= $dimOffsets->getFlagsRecursively();
+		}
+		if ( $this->unknown ) {
+			$ret |= $this->unknown->getFlagsRecursively();
+		}
+		return $ret;
+	}
+
 	public function __clone() {
 		foreach ( $this->dims as $k => $v ) {
 			$this->dims[$k] = clone $v;

@@ -344,6 +344,32 @@ class MethodLinks {
 	}
 
 	/**
+	 * Given some taint flags, return their intersection with the flags that can be preserved by this object
+	 * @param int $taint
+	 * @return int
+	 */
+	public function filterPreservedFlags( int $taint ): int {
+		return $taint & $this->getAllPreservedFlags();
+	}
+
+	/**
+	 * @return int
+	 */
+	private function getAllPreservedFlags(): int {
+		$ret = SecurityCheckPlugin::NO_TAINT;
+		foreach ( $this->links as $func ) {
+			$ret |= $this->links[$func]->getAllPreservedFlags();
+		}
+		foreach ( $this->dimLinks as $dimLinks ) {
+			$ret |= $dimLinks->getAllPreservedFlags();
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret |= $this->unknownDimLinks->getAllPreservedFlags();
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param LinksSet $l1
 	 * @param LinksSet $l2
 	 * @return LinksSet

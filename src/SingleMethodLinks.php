@@ -97,6 +97,18 @@ class SingleMethodLinks {
 		return false;
 	}
 
+	/**
+	 * @note This should only be used by MethodLinks::getAllPreservedFlags
+	 * @return int
+	 */
+	public function getAllPreservedFlags(): int {
+		$ret = SecurityCheckPlugin::NO_TAINT;
+		foreach ( $this->params as $offsets ) {
+			$ret |= $offsets->getFlagsRecursively();
+		}
+		return $ret;
+	}
+
 	public function __clone() {
 		foreach ( $this->params as $k => $val ) {
 			$this->params[$k] = clone $val;
