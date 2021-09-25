@@ -18,4 +18,4 @@ function testCausedBy() {
  */
 function passParamThrough( $par ) {
 }
-echo passParamThrough( $_GET['a'] ); // TODO: There must be a caused-by line pointing to the annotation
+echo passParamThrough( $_GET['a'] ); // There must be a caused-by line pointing to the annotation

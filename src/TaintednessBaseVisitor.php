@@ -76,18 +76,6 @@ trait TaintednessBaseVisitor {
 	protected static $fqsensWithoutToStringCache = [];
 
 	/**
-	 * Change taintedness of a function/method
-	 *
-	 * @param FunctionInterface $func
-	 * @param FunctionTaintedness $taint NOTE: This is not cloned
-	 * @param string|Context|null $reason Either a reason or a context representing the line number
-	 */
-	protected function setFuncTaint( FunctionInterface $func, FunctionTaintedness $taint, $reason = null ): void {
-		$this->maybeAddFuncError( $func, $reason, $taint, $taint );
-		self::doSetFuncTaint( $func, $taint );
-	}
-
-	/**
 	 * Merge taintedness of a function/method
 	 *
 	 * @param FunctionInterface $func
@@ -143,8 +131,9 @@ trait TaintednessBaseVisitor {
 		}
 
 		// TODO Should probably also filter links and only keep those for the current param, like setFuncTaintFromReturn
-		$getActualLinks = static function ( ?MethodLinks $links, int $argFlags ): ?MethodLinks {
-			return ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ? $links : null;
+		// And do we need to add links on sink params?
+		$getActualLinks = static function ( ?MethodLinks $links, int $argFlags ) use ( $reason ): ?MethodLinks {
+			return ( $reason || ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) ? $links : null;
 		};
 
 		$newErr = self::getFuncCausedByRawCloneOrEmpty( $func );
@@ -455,7 +444,8 @@ trait TaintednessBaseVisitor {
 			// If we haven't seen this function before, first of all check the return type. If it
 			// returns a safe type (like int), it's safe.
 			$taint = new FunctionTaintedness( $taintFromReturnType );
-			$this->setFuncTaint( $func, $taint );
+			self::doSetFuncTaint( $func, $taint );
+			$this->maybeAddFuncError( $func, null, $taint, $taint );
 		} else {
 			// Assume that anything really dangerous we've already hardcoded. So just preserve taint.
 			$overall = $taintFromReturnType->isSafe()
@@ -482,9 +472,11 @@ trait TaintednessBaseVisitor {
 			/** @var FunctionInterface $trialFunc */
 			if ( !$trialFunc->isPHPInternal() ) {
 				// PHP internal functions can't have a docblock.
-				$taint = $this->getDocBlockTaintOfFunc( $trialFunc );
-				if ( $taint !== null ) {
-					$this->setFuncTaint( $func, $taint, $trialFunc->getContext() );
+				$taintData = $this->getDocBlockTaintOfFunc( $trialFunc );
+				if ( $taintData !== null ) {
+					[ $taint, $methodLinks ] = $taintData;
+					self::doSetFuncTaint( $func, $taint );
+					$this->maybeAddFuncError( $func, $trialFunc->getContext(), $taint, $taint, $methodLinks );
 					return $taint;
 				}
 			}
@@ -493,11 +485,10 @@ trait TaintednessBaseVisitor {
 			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
 			if ( $taint !== null ) {
 				$taint = clone $taint;
-				if ( $func->isPHPInternal() ) {
-					// We're not adding any error here, since it's presumably unnecessary for PHP internal stuff.
-					self::doSetFuncTaint( $func, $taint );
-				} else {
-					$this->setFuncTaint( $func, $taint, "Builtin-$trialFuncName" );
+				self::doSetFuncTaint( $func, $taint );
+				if ( !$func->isPHPInternal() ) {
+					// Caused-by lines are presumably unnecessary for PHP internal stuff.
+					$this->maybeAddFuncError( $func, "Builtin-$trialFuncName", $taint, $taint );
 				}
 				return $taint;
 			}
@@ -571,14 +562,16 @@ trait TaintednessBaseVisitor {
 	 * Obtain taint information from a docblock comment.
 	 *
 	 * @param FunctionInterface $func The function to check
-	 * @return FunctionTaintedness|null null for no info
+	 * @return array<FunctionTaintedness|MethodLinks>|null null for no info
+	 * @phan-return array{0:FunctionTaintedness,1:MethodLinks}|null
 	 */
-	protected function getDocBlockTaintOfFunc( FunctionInterface $func ): ?FunctionTaintedness {
+	protected function getDocBlockTaintOfFunc( FunctionInterface $func ): ?array {
 		// Note that we're not using the hashed docblock for caching, because the same docblock
 		// may have different meanings in different contexts. E.g. @return self
 		$fqsen = (string)$func->getFQSEN();
 		if ( isset( SecurityCheckPlugin::$docblockCache[ $fqsen ] ) ) {
-			return clone SecurityCheckPlugin::$docblockCache[ $fqsen ];
+			[ $taint, $links ] = SecurityCheckPlugin::$docblockCache[ $fqsen ];
+			return [ clone $taint, clone $links ];
 		}
 		// @phan-suppress-next-line PhanUndeclaredMethod https://github.com/phan/phan/issues/2628
 		if ( !method_exists( $func, 'hasNode' ) || !$func->hasNode() ) {
@@ -614,6 +607,8 @@ trait TaintednessBaseVisitor {
 		// don't set the unknown flag if not taint annotation on
 		// @return.
 		$funcTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		// TODO $fakeMethodLinks here is a bit hacky...
+		$fakeMethodLinks = new MethodLinks();
 		foreach ( $lines as $line ) {
 			$m = [];
 			$trimmedLine = ltrim( rtrim( $line ), "* \t/" );
@@ -666,6 +661,7 @@ trait TaintednessBaseVisitor {
 					$funcTaint->setParamPreservedTaint( $paramNumber, $preserveTaint );
 					$funcTaint->addParamFlags( $paramNumber, $flags );
 				}
+				$fakeMethodLinks->initializeParamForFunc( $func, $paramNumber );
 				$validTaintEncountered = true;
 				if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
 					// Special case to auto-set anything that escapes html to detect double escaping.
@@ -694,7 +690,9 @@ trait TaintednessBaseVisitor {
 			$this->debug( __METHOD__, 'Possibly wrong taint annotation in docblock: ' . json_encode( $docBlock ) );
 		}
 
-		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $validTaintEncountered ? clone $funcTaint : null;
+		SecurityCheckPlugin::$docblockCache[ $fqsen ] = $validTaintEncountered
+			? [ clone $funcTaint, clone $fakeMethodLinks ]
+			: null;
 		return SecurityCheckPlugin::$docblockCache[ $fqsen ];
 	}
 

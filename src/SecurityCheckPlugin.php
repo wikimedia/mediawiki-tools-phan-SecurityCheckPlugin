@@ -187,8 +187,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public static $pluginInstance;
 
 	/**
-	 * @var FunctionTaintedness[] Cache of parsed docblocks. This is declared here (as opposed to
-	 *  the BaseVisitor) so that PHPUnit can snapshot and restore it.
+	 * @var array<array<FunctionTaintedness|MethodLinks>> Cache of parsed docblocks. This is declared here (as opposed
+	 *  to the BaseVisitor) so that PHPUnit can snapshot and restore it.
+	 * @phan-var array<array{0:FunctionTaintedness,1:MethodLinks}>
 	 */
 	public static $docblockCache = [];
 
