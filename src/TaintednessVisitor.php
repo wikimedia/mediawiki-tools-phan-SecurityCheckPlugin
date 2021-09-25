@@ -787,9 +787,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$sinkTaint,
 			$rhsTaint,
 			"$issueMsg{DETAILS}",
-			/** @phan-return array{0:string} */
-			static function () use ( $exprTaint, $sinkTaint ): array {
-				return [ $exprTaint->getError()->toStringForIssue( $sinkTaint ) ];
+			/** @phan-return array{0:CausedByLines} */
+			static function () use ( $exprTaint ): array {
+				return [ $exprTaint->getError() ];
 			}
 		);
 

@@ -81,7 +81,7 @@ function test6() {
 $glob7 = $_GET['foo'];
 function test7() {
 	global $glob7;
-	echoAndEscape( $glob7 ); // Unsafe TODO line 30 should not be in caused-by
+	echoAndEscape( $glob7 ); // Unsafe
 	echo $glob7; // Ideally safe, but we never override taint on globals
 }
 

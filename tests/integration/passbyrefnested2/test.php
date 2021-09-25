@@ -69,7 +69,7 @@ function test6() {
 
 function test7() {
 	$var7 = $_GET['unsafe'];
-	maybeEscapeEchoAndTaint( $var7 ); // Unsafe, TODO: caused by lines 71 and 30
+	maybeEscapeEchoAndTaint( $var7 ); // Unsafe, caused by lines 71 and 30
 	echo $var7; // Unsafe, caused by lines 72, 31 and 7 (TODO: in this order!), and (TODO) NOT line 71
 }
 

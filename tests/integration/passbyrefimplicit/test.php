@@ -17,7 +17,7 @@ function test1() {
 }
 
 function test2() {
-	escape( $arg1 );
+	escape( $arg1 ); // TODO Should the SecurityCheck-FalsePositive here have line 8 in its caused-by?
 	htmlspecialchars( $arg1 );
 }
 

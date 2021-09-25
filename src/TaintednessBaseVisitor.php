@@ -1764,8 +1764,8 @@ trait TaintednessBaseVisitor {
 			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			static function () use ( $params, $rhsTaint, $lhsTaint ): array {
-				return array_merge( $params, [ $rhsTaint->getError()->toStringForIssue( $lhsTaint ) ] );
+			static function () use ( $params, $rhsTaint ): array {
+				return array_merge( $params, [ $rhsTaint->getError() ] );
 			}
 		);
 	}
@@ -1795,7 +1795,8 @@ trait TaintednessBaseVisitor {
 			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) &&
 			$lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT )
 		) {
-			$combinedTaintInt = $rhsTaint->withOnlyObj( $lhsTaint->asExecToYesTaint() )->get();
+			$combinedTaint = $rhsTaint->withOnlyObj( $lhsTaint->asExecToYesTaint() );
+			$combinedTaintInt = $combinedTaint->get();
 		} else {
 			$combinedTaint = Taintedness::intersectForSink( $lhsTaint, $rhsTaint->asYesToExecTaint() );
 			if ( $combinedTaint->isSafe() ) {
@@ -1839,12 +1840,19 @@ trait TaintednessBaseVisitor {
 			$context = $this->overrideContext;
 		}
 
+		$msgParams = $msgArgsGetter();
+		foreach ( $msgParams as $i => $par ) {
+			if ( $par instanceof CausedByLines ) {
+				$msgParams[$i] = $par->toStringForIssue( $combinedTaint );
+			}
+		}
+
 		SecurityCheckPlugin::emitIssue(
 			$this->code_base,
 			$context,
 			$issueType,
 			$msg,
-			$msgArgsGetter(),
+			$msgParams,
 			$severity
 		);
 	}
@@ -1995,15 +2003,14 @@ trait TaintednessBaseVisitor {
 			// TODO PHP 7.4 arrow functions would be very much useful here.
 			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
 			$msgArgsGetter = static function () use (
-				$funcName, $containingMethod, $taintedArg, $funcError, $paramSinkTaint, $i,
-				$isRawParam, $baseArgError
+				$funcName, $containingMethod, $taintedArg, $funcError, $i, $isRawParam, $baseArgError
 			): array {
 				return [
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$funcError->getParamSinkLines( $i )->toStringForIssue( $paramSinkTaint ),
-					$baseArgError->toStringForIssue( $paramSinkTaint ),
+					$funcError->getParamSinkLines( $i ),
+					$baseArgError,
 					$isRawParam ? ' (Param is raw)' : ''
 				];
 			};

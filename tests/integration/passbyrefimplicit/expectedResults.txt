@@ -1,4 +1,4 @@
 integration/passbyrefimplicit/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefimplicit/test.php +4; integration/passbyrefimplicit/test.php +15)
-integration/passbyrefimplicit/test.php:20 SecurityCheck-LikelyFalsePositive Calling method \escape() in \test2 that outputs using tainted argument #1 (`$arg1`). (Caused by: integration/passbyrefimplicit/test.php +8)
+integration/passbyrefimplicit/test.php:20 SecurityCheck-LikelyFalsePositive Calling method \escape() in \test2 that outputs using tainted argument #1 (`$arg1`).
 integration/passbyrefimplicit/test.php:21 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in \test2 that outputs using tainted argument #1 (`$arg1`). (Caused by: integration/passbyrefimplicit/test.php +8; integration/passbyrefimplicit/test.php +20)
 integration/passbyrefimplicit/test.php:26 SecurityCheck-LikelyFalsePositive Echoing expression that was not html escaped
