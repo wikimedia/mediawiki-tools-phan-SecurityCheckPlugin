@@ -107,7 +107,8 @@ trait TaintednessBaseVisitor {
 	 * @param Context|string|null $reason To override the caused-by line
 	 * @param FunctionTaintedness $addedTaint
 	 * @param FunctionTaintedness $allNewTaint
-	 * @param MethodLinks|null $returnLinks
+	 * @param MethodLinks|null $returnLinks NOTE: These are only used for preserved params, since for sink params
+	 * we're already adding a Taintedness with the expected EXEC bits.
 	 */
 	private function maybeAddFuncError(
 		FunctionInterface $func,
@@ -116,10 +117,6 @@ trait TaintednessBaseVisitor {
 		FunctionTaintedness $allNewTaint,
 		MethodLinks $returnLinks = null
 	): void {
-		if ( !$reason && SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) ) {
-			return;
-		}
-
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
 		} else {
@@ -130,46 +127,39 @@ trait TaintednessBaseVisitor {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
 
-		// TODO Should probably also filter links and only keep those for the current param, like setFuncTaintFromReturn
-		// And do we need to add links on sink params?
-		$getActualLinks = static function ( ?MethodLinks $links, int $argFlags ) use ( $reason ): ?MethodLinks {
-			return ( $reason || ( $argFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) ? $links : null;
-		};
+		// TODO Should we also filter links and only keep those for the current param, like setFuncTaintFromReturn?
 
 		$newErr = self::getFuncCausedByRawCloneOrEmpty( $func );
 
 		foreach ( $addedTaint->getSinkParamKeysNoVariadic() as $key ) {
-			$curTaint = $addedTaint->getParamSinkTaint( $key );
-			if ( $curTaint->isExecOrAllTaint() ) {
-				$newErr->addParamSinkLines(
-					$key,
-					$newErrors,
-					$curTaint->asExecToYesTaint(),
-					$getActualLinks( $returnLinks, $allNewTaint->getParamFlags( $key ) )
-				);
+			if ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) {
+				$curTaint = $addedTaint->getParamSinkTaint( $key );
+				if ( $curTaint->isExecOrAllTaint() ) {
+					$newErr->addParamSinkLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
+				}
 			}
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
-			$curTaint = $addedTaint->getParamPreservedTaint( $key )->asTaintednessForCausedBy();
-			if ( $curTaint->isExecOrAllTaint() ) {
-				$newErr->addParamPreservedLines(
-					$key,
-					$newErrors,
-					$curTaint->asExecToYesTaint(),
-					$getActualLinks( $returnLinks, $allNewTaint->getParamFlags( $key ) )
-				);
+			if ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) {
+				$curTaint = $addedTaint->getParamPreservedTaint( $key )->asTaintednessForCausedBy();
+				if ( $curTaint->isExecOrAllTaint() ) {
+					$newErr->addParamPreservedLines(
+						$key,
+						$newErrors,
+						$curTaint->asExecToYesTaint(),
+						$returnLinks
+					);
+				}
 			}
 		}
 		$variadicIndex = $addedTaint->getVariadicParamIndex();
-		if ( $variadicIndex !== null ) {
-			$variadicFlags = $allNewTaint->getVariadicParamFlags();
+		if ( $variadicIndex !== null && ( $reason || $allNewTaint->canOverrideVariadicParam() ) ) {
 			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
 			if ( $sinkVariadic && $sinkVariadic->isExecOrAllTaint() ) {
 				$newErr->addVariadicParamSinkLines(
 					$variadicIndex,
 					$newErrors,
-					$sinkVariadic->asExecToYesTaint(),
-					$getActualLinks( $returnLinks, $variadicFlags )
+					$sinkVariadic->asExecToYesTaint()
 				);
 			}
 			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
@@ -180,17 +170,14 @@ trait TaintednessBaseVisitor {
 						$variadicIndex,
 						$newErrors,
 						$curTaint->asExecToYesTaint(),
-						$getActualLinks( $returnLinks, $variadicFlags )
+						$returnLinks
 					);
 				}
 			}
 		}
 
 		$curTaint = $addedTaint->getOverall();
-		if (
-			$curTaint->isExecOrAllTaint() &&
-			( $reason || ( $allNewTaint->getOverallFlags() & SecurityCheckPlugin::NO_OVERRIDE ) === 0 )
-		) {
+		if ( ( $reason || $allNewTaint->canOverrideOverall() ) && $curTaint->isExecOrAllTaint() ) {
 			// Note, the generic error shouldn't have any link
 			$newErr->addGenericLines( $newErrors, $curTaint );
 		}
@@ -230,14 +217,15 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param FunctionInterface $func
 	 * @param FunctionCausedByLines $newError
+	 * @param FunctionTaintedness $allFuncTaint Used to check NO_OVERRIDE
 	 */
-	protected function mergeFuncError( FunctionInterface $func, FunctionCausedByLines $newError ): void {
-		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() ) ) {
-			return;
-		}
-
+	protected function mergeFuncError(
+		FunctionInterface $func,
+		FunctionCausedByLines $newError,
+		FunctionTaintedness $allFuncTaint
+	): void {
 		$funcError = self::getFuncCausedByRawCloneOrEmpty( $func );
-		$funcError->mergeWith( $newError );
+		$funcError->mergeWith( $newError, $allFuncTaint );
 		self::setFuncCausedByRaw( $func, $funcError );
 	}
 
@@ -249,13 +237,13 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $taintedness
 	 * @param TypedElementInterface $elem Where to put it
 	 * @param MethodLinks|null $links
-	 * @param string|Context|null $reason To override the caused by line
+	 * @param string|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
 		Taintedness $taintedness,
 		TypedElementInterface $elem,
 		MethodLinks $links = null,
-		$reason = null
+		string $reason = null
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
 
@@ -266,11 +254,7 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		if ( !is_string( $reason ) ) {
-			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
-		} else {
-			$newErrors = [ $reason ];
-		}
+		$newErrors = $reason !== null ? [ $reason ] : [ $this->dbgInfo() ];
 		if ( $this->overrideContext && !( $this->isHook ?? false ) ) {
 			// @phan-suppress-previous-line PhanUndeclaredProperty
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
@@ -281,7 +265,7 @@ trait TaintednessBaseVisitor {
 		assert( $elemError instanceof CausedByLines );
 		$newErr = clone $elemError;
 		foreach ( $newErrors as $newError ) {
-			$newErr->addLine( clone $taintedness, $newError, $links );
+			$newErr->addLine( clone $taintedness, $newError, $links ? clone $links : null );
 		}
 		self::setCausedByRaw( $elem, $newErr );
 	}
@@ -1448,8 +1432,10 @@ trait TaintednessBaseVisitor {
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
 				$this->addFuncTaint( $method, $paramTaint );
-				$this->maybeAddFuncError( $method, null, $paramTaint, self::getFuncTaint( $method ) );
-				$this->mergeFuncError( $method, $funcError );
+				$newFuncTaint = self::getFuncTaint( $method );
+				assert( $newFuncTaint !== null );
+				$this->maybeAddFuncError( $method, null, $paramTaint, $newFuncTaint );
+				$this->mergeFuncError( $method, $funcError, $newFuncTaint );
 			}
 		}
 

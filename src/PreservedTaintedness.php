@@ -108,9 +108,7 @@ class PreservedTaintedness {
 		if ( $this->unknownDimsTaint ) {
 			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asTaintednessForArgument( $argTaint ) );
 		}
-		if ( $this->keysTaint & SecurityCheckPlugin::PRESERVE_TAINT ) {
-			$ret->addKeysTaintedness( $argTaint->get() );
-		} elseif ( $this->keysTaint ) {
+		if ( $this->keysTaint ) {
 			$ret->addKeysTaintedness( $argTaint->get() & $this->keysTaint );
 		}
 		return $ret;

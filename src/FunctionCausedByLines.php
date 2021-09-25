@@ -50,15 +50,14 @@ class FunctionCausedByLines {
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @param MethodLinks|null $links
 	 */
-	public function addParamSinkLines( int $param, array $lines, Taintedness $taint, MethodLinks $links = null ): void {
+	public function addParamSinkLines( int $param, array $lines, Taintedness $taint ): void {
 		assert( $param !== $this->variadicParamIndex );
 		if ( !isset( $this->paramSinkLines[$param] ) ) {
 			$this->paramSinkLines[$param] = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->paramSinkLines[$param]->addLine( clone $taint, $line, $links ? clone $links : null );
+			$this->paramSinkLines[$param]->addLine( clone $taint, $line );
 		}
 	}
 
@@ -121,13 +120,11 @@ class FunctionCausedByLines {
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @param MethodLinks|null $links
 	 */
 	public function addVariadicParamSinkLines(
 		int $param,
 		array $lines,
-		Taintedness $taint,
-		MethodLinks $links = null
+		Taintedness $taint
 	): void {
 		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
 		$this->variadicParamIndex = $param;
@@ -135,7 +132,7 @@ class FunctionCausedByLines {
 			$this->variadicParamSinkLines = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->variadicParamSinkLines->addLine( clone $taint, $line, $links ? clone $links : null );
+			$this->variadicParamSinkLines->addLine( clone $taint, $line );
 		}
 	}
 
@@ -197,21 +194,28 @@ class FunctionCausedByLines {
 
 	/**
 	 * @param FunctionCausedByLines $other
+	 * @param FunctionTaintedness $funcTaint To check NO_OVERRIDE
 	 */
-	public function mergeWith( self $other ): void {
-		$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
+	public function mergeWith( self $other, FunctionTaintedness $funcTaint ): void {
+		if ( $funcTaint->canOverrideOverall() ) {
+			$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
+		}
 		foreach ( $other->paramSinkLines as $param => $lines ) {
-			$this->paramSinkLines[$param] = isset( $this->paramSinkLines[$param] )
-				? $this->paramSinkLines[$param]->asMergedWith( $lines )
-				: $lines;
+			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
+				$this->paramSinkLines[$param] = isset( $this->paramSinkLines[$param] )
+					? $this->paramSinkLines[$param]->asMergedWith( $lines )
+					: $lines;
+			}
 		}
 		foreach ( $other->paramPreservedLines as $param => $lines ) {
-			$this->paramPreservedLines[$param] = isset( $this->paramPreservedLines[$param] )
-				? $this->paramPreservedLines[$param]->asMergedWith( $lines )
-				: $lines;
+			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
+				$this->paramPreservedLines[$param] = isset( $this->paramPreservedLines[$param] )
+					? $this->paramPreservedLines[$param]->asMergedWith( $lines )
+					: $lines;
+			}
 		}
 		$variadicIndex = $other->variadicParamIndex;
-		if ( $variadicIndex !== null ) {
+		if ( $variadicIndex !== null && $funcTaint->canOverrideVariadicParam() ) {
 			$this->variadicParamIndex = $variadicIndex;
 			$sinkVariadic = $other->variadicParamSinkLines;
 			if ( $sinkVariadic ) {

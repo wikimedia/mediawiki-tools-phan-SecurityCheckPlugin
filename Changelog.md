@@ -9,6 +9,9 @@
 ### New features
 * Added a new issue type, `SecurityCheckInvalidAnnotation`, emitted for `-taint` annotations that cannot be parsed, use unknown or forbidden values (e.g. EXEC bits in `return-taint`), document non-existing parameters, or have redundant/missing `...`.
 
+### Bug fixes
+* Caused-by lines are now much more accurate for code involving function calls.
+
 ### Internal changes
 * Bumped phan/phan to 5.2.1
 

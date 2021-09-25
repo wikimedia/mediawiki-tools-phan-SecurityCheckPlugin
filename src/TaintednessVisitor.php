@@ -1119,10 +1119,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$funcError->setGenericLines( $retError->getLinesForGenericReturn() );
 		$this->addFuncTaint( $func, $paramTaint );
-		$this->maybeAddFuncError( $func, null, $paramTaint, self::getFuncTaint( $func ), $links );
+		$newFuncTaint = self::getFuncTaint( $func );
+		assert( $newFuncTaint !== null );
+		$this->maybeAddFuncError( $func, null, $paramTaint, $newFuncTaint, $links );
 		// Note: adding the error after setting the taintedness means that the return line comes before
 		// the other lines
-		$this->mergeFuncError( $func, $funcError );
+		$this->mergeFuncError( $func, $funcError, $newFuncTaint );
 	}
 
 	/**

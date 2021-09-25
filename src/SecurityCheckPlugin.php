@@ -348,6 +348,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		static $mapping = [
 			self::UNKNOWN_TAINT => 'UNKNOWN',
 			self::PRESERVE_TAINT => 'PRESERVE',
+			self::ALL_TAINT => 'ALL',
 			self::YES_TAINT => 'YES',
 			self::YES_TAINT &
 			( ~self::HTML_TAINT ) => '~HTML',
@@ -375,6 +376,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			self::MISC_TAINT => 'MISC',
 			self::SQL_NUMKEY_TAINT => 'SQL_NUMKEY',
 			self::ARRAY_OK => 'ARRAY_OK',
+			self::ALL_EXEC_TAINT => '*ALL',
 			self::HTML_EXEC_TAINT => '*HTML',
 			self::SQL_EXEC_TAINT => '*SQL',
 			self::SHELL_EXEC_TAINT => '*SHELL',
@@ -396,13 +398,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$taint &= ~$bitmap;
 			}
 		}
-		// Catch-all flags
-		if ( ( $taint & self::ALL_EXEC_TAINT ) !== 0 ) {
-			$types[] = '*ALL';
-			$taint &= ~self::ALL_EXEC_TAINT;
-		}
-		if ( ( $taint & self::ALL_TAINT ) !== 0 ) {
-			$types[] = 'ALL';
+		if ( $taint !== 0 ) {
+			$types[] = "Unrecognized: $taint";
 		}
 		return implode( ', ', $types );
 	}

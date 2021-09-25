@@ -67,10 +67,10 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * @return int
+	 * @return bool
 	 */
-	public function getOverallFlags(): int {
-		return $this->overallFlags;
+	public function canOverrideOverall(): bool {
+		return ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0;
 	}
 
 	/**
@@ -183,6 +183,14 @@ class FunctionTaintedness {
 	}
 
 	/**
+	 * @param int $param
+	 * @return bool
+	 */
+	public function canOverrideNonVariadicParam( int $param ): bool {
+		return ( ( $this->paramFlags[$param] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0;
+	}
+
+	/**
 	 * @return Taintedness|null
 	 */
 	public function getVariadicParamSinkTaint(): ?Taintedness {
@@ -204,10 +212,10 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * @return int
+	 * @return bool
 	 */
-	public function getVariadicParamFlags(): int {
-		return $this->variadicParamFlags;
+	public function canOverrideVariadicParam(): bool {
+		return ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0;
 	}
 
 	/**
