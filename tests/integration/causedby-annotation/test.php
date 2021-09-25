@@ -4,7 +4,7 @@
  * @return-taint none
  */
 function returnSafe(): string {
-	return $_GET['x'];// TODO: This line must NOT appear in caused-by
+	return $_GET['x'];// This line must NOT appear in caused-by
 }
 
 function testCausedBy() {

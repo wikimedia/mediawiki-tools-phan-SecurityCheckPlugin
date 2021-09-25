@@ -68,7 +68,6 @@ class FunctionTaintedness {
 
 	/**
 	 * @return int
-	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function getOverallFlags(): int {
 		return $this->overallFlags;

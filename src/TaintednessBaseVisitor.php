@@ -198,7 +198,10 @@ trait TaintednessBaseVisitor {
 		}
 
 		$curTaint = $addedTaint->getOverall();
-		if ( $curTaint->isExecOrAllTaint() ) {
+		if (
+			$curTaint->isExecOrAllTaint() &&
+			( $reason || ( $allNewTaint->getOverallFlags() & SecurityCheckPlugin::NO_OVERRIDE ) === 0 )
+		) {
 			// Note, the generic error shouldn't have any link
 			$newErr->addGenericLines( $newErrors, $curTaint );
 		}
