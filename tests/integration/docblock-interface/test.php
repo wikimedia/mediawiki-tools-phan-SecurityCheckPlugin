@@ -40,7 +40,7 @@ echo $foo->invalidTaint();
 // unsafe
 $foo->multiTaint( $foo->getUserInput() );
 $foo->multiTaint( $foo->getSomeSQL() );
-$foo->multiTaint( $foo->escapeHTML( $foo->getSomeSQL() ) );
+$foo->multiTaint( $foo->escapeHTML( $foo->getSomeSQL() ) ); // TODO Ideally caused by IFoo line 6
 $foo->multiTaint( $foo->getUnsafeHTML() );
 $a = 'foo';
 $foo->passByRef( $foo->getUserInput(), $a );

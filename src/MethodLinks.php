@@ -416,6 +416,29 @@ class MethodLinks {
 	}
 
 	/**
+	 * @param FunctionInterface $func
+	 * @param int $param
+	 * @return self
+	 */
+	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
+		$retLinks = new LinksSet();
+		if ( $this->links->contains( $func ) ) {
+			$retLinks->attach( $func, $this->links[$func] );
+		}
+		$ret = new self( $retLinks );
+		foreach ( $this->dimLinks as $dim => $dimLinks ) {
+			$ret->setAtDim( $dim, $dimLinks->asFilteredForFuncAndParam( $func, $param ) );
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret->setAtDim(
+				null,
+				$this->unknownDimLinks->asFilteredForFuncAndParam( $func, $param )
+			);
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param string $indent
 	 * @return string
 	 */

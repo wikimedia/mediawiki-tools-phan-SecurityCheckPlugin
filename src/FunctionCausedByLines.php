@@ -2,6 +2,15 @@
 
 namespace SecurityCheckPlugin;
 
+/**
+ * This class represents caused-by lines for a function-like:
+ * - Lines in genericLines are for taintedness that is added inside the function, regardless of parameters; these
+ *   have a Taintedness object associated, while the associated links are always empty.
+ * - Lines in (variadic)paramSinkLines are those inside a function that EXEC the arguments. These also have a
+ *   Taintedness object associated, and no links.
+ * - Lines in (variadic)paramPreservedLines are responsible for putting a parameter inside the return value. These have
+ *   a safe Taintedness associated, and usually non-empty links.
+ */
 class FunctionCausedByLines {
 	/** @var CausedByLines */
 	private $genericLines;

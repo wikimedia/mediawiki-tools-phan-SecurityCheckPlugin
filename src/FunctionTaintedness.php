@@ -199,6 +199,7 @@ class FunctionTaintedness {
 
 	/**
 	 * @return PreservedTaintedness|null
+	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function getVariadicParamPreservedTaint(): ?PreservedTaintedness {
 		return $this->variadicParamPreserveTaint;

@@ -127,7 +127,8 @@ trait TaintednessBaseVisitor {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
 
-		// TODO Should we also filter links and only keep those for the current param, like setFuncTaintFromReturn?
+		// Future TODO: we might consider using PreservedTaintedness from the funcs instead of MethodLinks, but using
+		// links is more consistent with what we do for non-function causedby lines.
 
 		$newErr = self::getFuncCausedByRawCloneOrEmpty( $func );
 
@@ -140,16 +141,13 @@ trait TaintednessBaseVisitor {
 			}
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
-			if ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) {
-				$curTaint = $addedTaint->getParamPreservedTaint( $key )->asTaintednessForCausedBy();
-				if ( $curTaint->isExecOrAllTaint() ) {
-					$newErr->addParamPreservedLines(
-						$key,
-						$newErrors,
-						$curTaint->asExecToYesTaint(),
-						$returnLinks
-					);
-				}
+			if ( $returnLinks && ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) ) {
+				$newErr->addParamPreservedLines(
+					$key,
+					$newErrors,
+					Taintedness::newSafe(),
+					$returnLinks->asFilteredForFuncAndParam( $func, $key )
+				);
 			}
 		}
 		$variadicIndex = $addedTaint->getVariadicParamIndex();
@@ -162,17 +160,13 @@ trait TaintednessBaseVisitor {
 					$sinkVariadic->asExecToYesTaint()
 				);
 			}
-			$preserveVariadic = $addedTaint->getVariadicParamPreservedTaint();
-			if ( $preserveVariadic ) {
-				$curTaint = $preserveVariadic->asTaintednessForCausedBy();
-				if ( $curTaint->isExecOrAllTaint() ) {
-					$newErr->addVariadicParamPreservedLines(
-						$variadicIndex,
-						$newErrors,
-						$curTaint->asExecToYesTaint(),
-						$returnLinks
-					);
-				}
+			if ( $returnLinks ) {
+				$newErr->addVariadicParamPreservedLines(
+					$variadicIndex,
+					$newErrors,
+					Taintedness::newSafe(),
+					$returnLinks->asFilteredForFuncAndParam( $func, $variadicIndex )
+				);
 			}
 		}
 

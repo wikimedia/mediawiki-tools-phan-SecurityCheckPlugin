@@ -37,20 +37,6 @@ class PreservedTaintedness {
 	}
 
 	/**
-	 * @return Taintedness
-	 */
-	public function asTaintednessForCausedBy(): Taintedness {
-		$ret = new Taintedness( $this->ownOffsets->getFlags() );
-		foreach ( $this->dimTaint as $k => $val ) {
-			$ret->setOffsetTaintedness( $k, $val->asTaintednessForCausedBy() );
-		}
-		if ( $this->unknownDimsTaint ) {
-			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asTaintednessForCausedBy() );
-		}
-		return $ret;
-	}
-
-	/**
 	 * Set the taintedness for $offset to $value, in place
 	 *
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
