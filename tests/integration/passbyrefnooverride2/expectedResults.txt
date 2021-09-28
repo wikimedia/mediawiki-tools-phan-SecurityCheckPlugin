@@ -1,0 +1,6 @@
+integration/passbyrefnooverride2/test.php:32 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnooverride2/test.php +5; integration/passbyrefnooverride2/test.php +31)
+integration/passbyrefnooverride2/test.php:36 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnooverride2/test.php +34; integration/passbyrefnooverride2/test.php +5; integration/passbyrefnooverride2/test.php +35)
+integration/passbyrefnooverride2/test.php:40 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnooverride2/test.php +10; integration/passbyrefnooverride2/test.php +12; integration/passbyrefnooverride2/test.php +39)
+integration/passbyrefnooverride2/test.php:44 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnooverride2/test.php +42; integration/passbyrefnooverride2/test.php +10; integration/passbyrefnooverride2/test.php +12; integration/passbyrefnooverride2/test.php +43)
+integration/passbyrefnooverride2/test.php:48 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnooverride2/test.php +46)
+integration/passbyrefnooverride2/test.php:56 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefnooverride2/test.php +54)

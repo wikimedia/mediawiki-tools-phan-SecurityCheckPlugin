@@ -35,3 +35,22 @@ $extraArg1 = $_GET['unsafe'];
 function safe( &$extraArg2 ) {
 $extraArg2 = 'Foo';
 }
+
+
+$var5 = $_GET['unsafe'];
+unsafe( $var5 );
+echo $var5; // Unsafe TODO: should NOT have line 40 in the caused-by
+
+function maybeReplaceTaint( &$arg ) {
+	if ( rand() ) {
+		if ( rand() ) {
+			$arg = $_GET['x'];
+		} else {
+			$arg = $_GET['z'];
+		}
+	}
+}
+
+$var6 = $_GET['unsafe']; // This MUST be in caused-by
+maybeReplaceTaint( $var6 );
+echo $var6;

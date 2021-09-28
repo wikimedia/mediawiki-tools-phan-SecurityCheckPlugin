@@ -1,0 +1,1 @@
+integration/passbyrefcallfirst/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefcallfirst/test.php +24; integration/passbyrefcallfirst/test.php +13)
