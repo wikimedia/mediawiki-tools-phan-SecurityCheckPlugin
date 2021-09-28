@@ -3,7 +3,6 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Closure;
 use Exception;
 use Generator;
 use Phan\AST\ASTReverter;
@@ -1677,10 +1676,7 @@ trait TaintednessBaseVisitor {
 			$lhsTaint,
 			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
-			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			static function () use ( $params, $rhsTaint ): array {
-				return array_merge( $params, [ $rhsTaint->getError() ] );
-			}
+			array_merge( $params, [ $rhsTaint->getError() ] )
 		);
 	}
 
@@ -1695,15 +1691,14 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $lhsTaint Taint of left hand side (or equivalent)
 	 * @param Taintedness $rhsTaint Taint of right hand side (or equivalent)
 	 * @param string $msg Issue description
-	 * @param Closure $msgArgsGetter Closure that returns arguments passed to emitIssue. Uses a closure
-	 * for lazy-loading, especially for caused-by lines.
-	 * @phan-param Closure():list $msgArgsGetter
+	 * @param array $msgParams Message parameters passed to emitIssue
+	 * @phan-param list $msgParams
 	 */
 	public function maybeEmitIssue(
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
 		string $msg,
-		Closure $msgArgsGetter
+		array $msgParams
 	): void {
 		if (
 			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) &&
@@ -1754,7 +1749,6 @@ trait TaintednessBaseVisitor {
 			$context = $this->overrideContext;
 		}
 
-		$msgParams = $msgArgsGetter();
 		foreach ( $msgParams as $i => $par ) {
 			if ( $par instanceof CausedByLines ) {
 				$msgParams[$i] = $par->toStringForIssue( $combinedTaint );
@@ -1920,26 +1914,19 @@ trait TaintednessBaseVisitor {
 				$taintedArg .= " (`$argStr`)";
 			}
 
-			// TODO PHP 7.4 arrow functions would be very much useful here.
-			/** @phan-return list<string|FullyQualifiedFunctionLikeName> */
-			$msgArgsGetter = static function () use (
-				$funcName, $containingMethod, $taintedArg, $funcError, $i, $isRawParam, $baseArgError
-			): array {
-				return [
+			$this->maybeEmitIssue(
+				$paramSinkTaint,
+				$curArgTaintedness,
+				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
+				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}{DETAILS}",
+				[
 					$funcName,
 					$containingMethod,
 					$taintedArg,
 					$funcError->getParamSinkLines( $i ),
 					$baseArgError,
 					$isRawParam ? ' (Param is raw)' : ''
-				];
-			};
-			$this->maybeEmitIssue(
-				$paramSinkTaint,
-				$curArgTaintedness,
-				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
-				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}{DETAILS}",
-				$msgArgsGetter
+				]
 			);
 
 			if ( $computePreserve ) {

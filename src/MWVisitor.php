@@ -1119,10 +1119,7 @@ class MWVisitor extends TaintednessVisitor {
 				$htmlExecTaint,
 				$optTaint->getTaintedness()->asKeyForForeach(),
 				'HTMLForm option label needs escaping{DETAILS}',
-				/** @phan-return array{0:CausedByLines} */
-				static function () use ( $optTaint ): array {
-					return [ $optTaint->getError() ];
-				}
+				[ $optTaint->getError() ]
 			);
 		}
 	}

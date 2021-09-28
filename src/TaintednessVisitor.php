@@ -590,10 +590,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$sinkTaint,
 			$rhsTaint,
 			"$issueMsg{DETAILS}",
-			/** @phan-return array{0:CausedByLines} */
-			static function () use ( $exprTaint ): array {
-				return [ $exprTaint->getError() ];
-			}
+			[ $exprTaint->getError() ]
 		);
 
 		if ( $expr instanceof Node && !$rhsTaint->has( Taintedness::flagsAsExecToYesTaint( $sinkTaintInt ) ) ) {
