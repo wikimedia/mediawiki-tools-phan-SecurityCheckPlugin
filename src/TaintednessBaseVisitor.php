@@ -2145,18 +2145,18 @@ trait TaintednessBaseVisitor {
 		if ( !$argObj ) {
 			return;
 		}
-
-		$overrideTaint = true;
-		if ( $argObj instanceof PassByReferenceVariable ) {
-			// Watch out for nested references, and do not reset taint in that case, yet
-			$overrideTaint = false;
+		$refTaint = self::getTaintednessRef( $argObj );
+		if ( !$refTaint ) {
+			// If no ref taint was set, it's likely due to a recursive call or another instance where phan is not
+			// reanalyzing the callee with PassByReferenceVariable objects.
+			return;
 		}
+
 		$globalVarObj = $argObj instanceof GlobalVariable ? $argObj->getElement() : null;
 		// Move the ref taintedness to the "actual" taintedness of the object
 		// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
 		// we never override arg taint for reference params in this case.
-		$overrideTaint = $overrideTaint && !( $argObj instanceof Property || $globalVarObj || $isHookHandler );
-		$refTaint = self::getTaintednessRef( $argObj ) ?? Taintedness::newSafe();
+		$overrideTaint = !( $argObj instanceof Property || $globalVarObj || $isHookHandler );
 		// The call itself is only responsible if it adds some taintedness
 		$errTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT );
 		if ( $refTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {

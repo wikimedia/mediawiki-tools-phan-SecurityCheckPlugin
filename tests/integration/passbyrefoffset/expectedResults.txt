@@ -1,0 +1,1 @@
+integration/passbyrefoffset/test.php:25 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefoffset/test.php +23)

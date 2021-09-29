@@ -22,4 +22,4 @@ class Foo {
 
 $foo = $_GET;
 safe( $foo['baz'] );
-echo $foo['baz']; // Safe.
+echo $foo['baz']; // TODO: Ideally safe.
