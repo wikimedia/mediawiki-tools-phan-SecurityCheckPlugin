@@ -271,6 +271,27 @@ class MethodLinks {
 	}
 
 	/**
+	 * @return array[]
+	 * @phan-return array<array{0:FunctionInterface,1:int}>
+	 */
+	public function getMethodAndParamTuples(): array {
+		$ret = [];
+		foreach ( $this->links as $func ) {
+			$info = $this->links[$func];
+			foreach ( $info->getParams() as $i => $_ ) {
+				$ret[] = [ $func, $i ];
+			}
+		}
+		foreach ( $this->dimLinks as $link ) {
+			$ret = array_merge( $ret, $link->getMethodAndParamTuples() );
+		}
+		if ( $this->unknownDimLinks ) {
+			$ret = array_merge( $ret, $this->unknownDimLinks->getMethodAndParamTuples() );
+		}
+		return array_unique( $ret, SORT_REGULAR );
+	}
+
+	/**
 	 * @return bool
 	 */
 	public function isEmpty(): bool {

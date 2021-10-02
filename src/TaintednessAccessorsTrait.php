@@ -91,17 +91,6 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * @param TypedElementInterface $element
-	 */
-	protected static function ensureCausedByRawExists( TypedElementInterface $element ): void {
-		$element->taintedOriginalError = $element->taintedOriginalError ?? new CausedByLines();
-		if ( $element instanceof PassByReferenceVariable ) {
-			$realElement = $element->getElement();
-			$realElement->taintedOriginalError = $realElement->taintedOriginalError ?? new CausedByLines();
-		}
-	}
-
-	/**
 	 * @note This doesn't return a clone
 	 *
 	 * @param TypedElementInterface $element

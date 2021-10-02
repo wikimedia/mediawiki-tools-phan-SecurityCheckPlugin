@@ -193,11 +193,9 @@ trait TaintednessBaseVisitor {
 	protected function mergeTaintError( TypedElementInterface $left, CausedByLines $rightError ): void {
 		assert( !$left instanceof FunctionInterface, 'Should use mergeFuncTaintError' );
 
-		self::ensureCausedByRawExists( $left );
 		$leftError = self::getCausedByRaw( $left );
-		assert( $leftError instanceof CausedByLines );
 
-		if ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) {
+		if ( !$leftError || ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) ) {
 			$newLeftError = $rightError;
 		} elseif ( !$rightError->isEmpty() && !$leftError->isSupersetOf( $rightError ) ) {
 			$newLeftError = $leftError->asMergedWith( $rightError );
@@ -254,10 +252,7 @@ trait TaintednessBaseVisitor {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
 
-		self::ensureCausedByRawExists( $elem );
-		$elemError = self::getCausedByRaw( $elem );
-		assert( $elemError instanceof CausedByLines );
-		$newErr = clone $elemError;
+		$newErr = self::getCausedByRawCloneOrEmpty( $elem );
 		foreach ( $newErrors as $newError ) {
 			$newErr->addLine( clone $taintedness, $newError, $links ? clone $links : null );
 		}
@@ -1333,24 +1328,16 @@ trait TaintednessBaseVisitor {
 		// First we find out all the methods that can set $b
 		// Then we add $a to the list of variables that those methods can set.
 		// Last we add these methods to $a's list of all methods that can set it.
-		$rhsActualLinks = $rhsLinks->getLinks();
-		foreach ( $rhsActualLinks as $method ) {
-			$paramInfo = $rhsActualLinks[$method];
-			foreach ( $paramInfo->getParams() as $index => $_ ) {
+		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable || $lhs instanceof PassByReferenceVariable ) {
+			// Don't attach things like Variable and Parameter. These are local elements, and setting taint
+			// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
+			// Parameter object for each analysis, we will end up with duplicated links that do nothing but
+			// eating memory.
+			foreach ( $rhsLinks->getMethodAndParamTuples() as [ $method, $index ] ) {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof Set );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				if (
-					$lhs instanceof Property ||
-					$lhs instanceof GlobalVariable ||
-					$lhs instanceof PassByReferenceVariable
-				) {
-					// Don't attach things like Variable and Parameter. These are local elements, and setting taint
-					// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
-					// Parameter object for each analysis, we will end up with duplicated links that do nothing but
-					// eating memory.
-					$varLinks->attach( $lhs );
-				}
+				$varLinks->attach( $lhs );
 			}
 		}
 

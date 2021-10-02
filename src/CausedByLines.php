@@ -18,8 +18,9 @@ class CausedByLines {
 	private const LINES_HARD_LIMIT = 30;
 
 	/**
-	 * @var array<array<Taintedness|string|MethodLinks>>
-	 * @phan-var list<array{0:Taintedness,1:string,2:MethodLinks}>
+	 * Note: the links are nullable for performance.
+	 * @var array<array<Taintedness|string|MethodLinks|null>>
+	 * @phan-var list<array{0:Taintedness,1:string,2:?MethodLinks}>
 	 */
 	private $lines = [];
 
@@ -29,7 +30,6 @@ class CausedByLines {
 	 * @param MethodLinks|null $links
 	 */
 	public function addLine( Taintedness $taintedness, string $line, MethodLinks $links = null ): void {
-		$links = $links ?? MethodLinks::newEmpty();
 		if ( !$this->lines ) {
 			$this->lines = [ [ $taintedness, $line, $links ] ];
 			return;
@@ -41,7 +41,11 @@ class CausedByLines {
 		$idx = array_search( $line, array_column( $this->lines, 1 ), true );
 		if ( $idx !== false ) {
 			$this->lines[ $idx ][0] = $this->lines[ $idx ][0]->withObj( $taintedness );
-			$this->lines[ $idx ][2] = $this->lines[ $idx ][2]->asMergedWith( $links );
+			if ( $links && !$this->lines[$idx][2] ) {
+				$this->lines[$idx][2] = $links;
+			} elseif ( $links ) {
+				$this->lines[$idx][2] = $this->lines[$idx][2]->asMergedWith( $links );
+			}
 		} else {
 			$this->lines[] = [ $taintedness, $line, $links ];
 		}
@@ -59,7 +63,7 @@ class CausedByLines {
 		$ret = new self;
 		$curTaint = $taintedness->get();
 		foreach ( $this->lines as [ $_, $eLine, $eLinks ] ) {
-			$preservedFlags = $eLinks->filterPreservedFlags( $curTaint );
+			$preservedFlags = $eLinks ? $eLinks->filterPreservedFlags( $curTaint ) : SecurityCheckPlugin::NO_TAINT;
 			$ret->lines[] = [ new Taintedness( $preservedFlags ), $eLine, clone $links ];
 		}
 		return $ret;
@@ -86,7 +90,7 @@ class CausedByLines {
 	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
 		$ret = new self;
 		foreach ( $this->lines as $line ) {
-			if ( $line[2]->hasDataForFuncAndParam( $func, $param ) ) {
+			if ( $line[2] && $line[2]->hasDataForFuncAndParam( $func, $param ) ) {
 				$ret->lines[] = $line;
 			}
 		}
@@ -101,7 +105,7 @@ class CausedByLines {
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $_ ] ) {
 			if ( !$lineTaint->isSafe() ) {
 				// For generic lines, links don't matter
-				$ret->lines[] = [ $lineTaint, $lineLine, MethodLinks::newEmpty() ];
+				$ret->lines[] = [ $lineTaint, $lineLine, null ];
 			}
 		}
 		return $ret;
@@ -137,12 +141,12 @@ class CausedByLines {
 	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
 	 * even a single taintedness value in $first changes.
 	 *
-	 * @param array<array<Taintedness|string|MethodLinks>> $first
-	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $first
-	 * @param array<array<Taintedness|string|MethodLinks>> $second
-	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $second
-	 * @return array<array<Taintedness|string|MethodLinks>>
-	 * @phan-return list<array{0:Taintedness,1:string,2:MethodLinks}>
+	 * @param array<array<Taintedness|string|MethodLinks|null>> $first
+	 * @phan-param list<array{0:Taintedness,1:string,2:?MethodLinks}> $first
+	 * @param array<array<Taintedness|string|MethodLinks|null>> $second
+	 * @phan-param list<array{0:Taintedness,1:string,2:?MethodLinks}> $second
+	 * @return array<array<Taintedness|string|MethodLinks|null>>
+	 * @phan-return list<array{0:Taintedness,1:string,2:?MethodLinks}>
 	 */
 	private static function mergeRaw( array $first, array $second ): array {
 		if ( !$first ) {
@@ -158,7 +162,12 @@ class CausedByLines {
 		if ( $subsIdx !== false ) {
 			foreach ( $second as $i => $cur ) {
 				$first[ $i + $subsIdx ][0] = $first[ $i + $subsIdx ][0]->withObj( $cur[0] );
-				$first[ $i + $subsIdx ][2] = $first[ $i + $subsIdx ][2]->asMergedWith( $cur[2] );
+				$curLinks = $cur[2];
+				if ( $curLinks && !$first[ $i + $subsIdx ][2] ) {
+					$first[$i + $subsIdx][2] = $curLinks;
+				} elseif ( $curLinks ) {
+					$first[$i + $subsIdx][2] = $first[$i + $subsIdx][2]->asMergedWith( $curLinks );
+				}
 			}
 			return $first;
 		}
@@ -179,7 +188,12 @@ class CausedByLines {
 				$startIdx = $baseLen - $newLen + $expectedIndex;
 				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
 					$first[$j][0] = $first[$j][0]->withObj( $second[$j - $startIdx][0] );
-					$first[$j][2] = $first[$j][2]->asMergedWith( $second[$j - $startIdx][2] );
+					$secondLinks = $second[$j - $startIdx][2];
+					if ( $secondLinks && !$first[$j][2] ) {
+						$first[$j][2] = $secondLinks;
+					} elseif ( $secondLinks ) {
+						$first[$j][2] = $first[$j][2]->asMergedWith( $secondLinks );
+					}
 				}
 				$ret = array_merge( $first, array_slice( $second, $newLen - $expectedIndex ) );
 				break;
@@ -198,9 +212,9 @@ class CausedByLines {
 	 * times, this will just find the first one.
 	 *
 	 * @param array[] $haystack
-	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $haystack
+	 * @phan-param list<array{0:Taintedness,1:string,2:?MethodLinks}> $haystack
 	 * @param array[] $needle
-	 * @phan-param list<array{0:Taintedness,1:string,2:MethodLinks}> $needle
+	 * @phan-param list<array{0:Taintedness,1:string,2:?MethodLinks}> $needle
 	 * @return false|int False if not a subset, the starting index if it is.
 	 * @note Use strict comparisons with the return value!
 	 */
@@ -278,7 +292,10 @@ class CausedByLines {
 		$ret = [];
 		foreach ( $this->lines as [ $lineTaint, $lineText, $lineLinks ] ) {
 			// Don't check for equality, as that would fail with MultiTaint
-			if ( $lineTaint->has( $taintedness ) || $lineLinks->canPreserveTaintFlags( $taintedness ) ) {
+			if (
+				$lineTaint->has( $taintedness ) ||
+				( $lineLinks && $lineLinks->canPreserveTaintFlags( $taintedness ) )
+			) {
 				$ret[] = $lineText;
 			}
 		}
@@ -313,7 +330,8 @@ class CausedByLines {
 	public function toDebugString(): string {
 		$r = [];
 		foreach ( $this->lines as [ $t, $line, $links ] ) {
-			$r[] = "\t[\n\t\tT: " . $t->toShortString() . "\n\t\tL: " . $line . "\n\t\tLinks: " . $links . "\n\t]";
+			$r[] = "\t[\n\t\tT: " . $t->toShortString() . "\n\t\tL: " . $line . "\n\t\tLinks: " .
+				( $links ?: 'none' ) . "\n\t]";
 		}
 		return "[\n" . implode( ",\n", $r ) . "\n]";
 	}
