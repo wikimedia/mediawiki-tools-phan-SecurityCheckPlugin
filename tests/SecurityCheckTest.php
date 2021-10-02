@@ -3,6 +3,7 @@
 use Phan\CLIBuilder;
 use Phan\Output\Printer\PlainTextPrinter;
 use Phan\Phan;
+use Phan\Plugin\ConfigPluginSet;
 use SecurityCheckPlugin\MediaWikiHooksHelper;
 use SecurityCheckPlugin\SecurityCheckPlugin;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -38,7 +39,10 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		],
 		'SecurityCheckPlugin\SecurityCheckPlugin' => [
 			'pluginInstance'
-		]
+		],
+		ConfigPluginSet::class => [
+			'mergeVariableInfoClosure'
+		],
 	];
 
 	private const TESTS_WITH_MINIMUM_PHP_VERSION = [
