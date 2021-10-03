@@ -52,7 +52,7 @@ class PassByRefMultiple {
 		$this->setToUnsafe( $var5 );
 		$this->escapeArg( $var5 );
 		$this->appendUnsafe( $var5 );
-		echo $var5;
+		echo $var5; // Unsafe, not caused by line 53
 	}
 
 	function testSafe4() {

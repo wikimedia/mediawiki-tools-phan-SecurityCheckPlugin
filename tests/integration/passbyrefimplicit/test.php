@@ -23,5 +23,5 @@ function test2() {
 
 function test3() {
 	noop( $arg1 );
-	echo $arg1;// This is a LikelyFalsePositive right now, see comment in handlePassByRef
+	echo $arg1;// Safe: even if the taint of $arg1 is UNKNOWN before the call, passing by reference creates the var as null, hence safe (known)
 }

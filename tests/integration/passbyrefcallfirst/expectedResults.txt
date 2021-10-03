@@ -1,1 +1,2 @@
+integration/passbyrefcallfirst/test.php:7 SecurityCheck-XSS Calling method \echoAndEscape() in \testSafe that outputs using tainted argument #1 (`$unsafe1`). (Caused by: integration/passbyrefcallfirst/test.php +18) (Caused by: integration/passbyrefcallfirst/test.php +6)
 integration/passbyrefcallfirst/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyrefcallfirst/test.php +24; integration/passbyrefcallfirst/test.php +13)

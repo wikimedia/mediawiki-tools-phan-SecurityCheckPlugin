@@ -268,7 +268,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			}
 
 			self::setTaintednessRaw( $variable, $taintedness );
-			$variable->taintedMethodLinks = $methodLinks;
+			self::setMethodLinks( $variable, $methodLinks );
 			self::setCausedByRaw( $variable, $error );
 		};
 	}

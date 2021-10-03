@@ -4,7 +4,7 @@
 
 function testSafe() {
     $unsafe1 = $_GET['x'];
-    echoAndEscape( $unsafe1 ); // TODO: Unsafe
+    echoAndEscape( $unsafe1 ); // Unsafe
     echo $unsafe1; // Safe
 }
 

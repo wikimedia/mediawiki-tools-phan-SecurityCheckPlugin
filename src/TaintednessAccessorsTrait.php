@@ -126,15 +126,26 @@ trait TaintednessAccessorsTrait {
 	 */
 	protected static function setMethodLinks( TypedElementInterface $element, MethodLinks $links ): void {
 		$element->taintedMethodLinks = $links;
+		if ( $element instanceof PassByReferenceVariable ) {
+			$element->getElement()->taintedMethodLinksRef = $links;
+		}
 	}
 
 	/**
 	 * @param TypedElementInterface $element
+	 * @return MethodLinks|null
+	 */
+	protected static function getMethodLinksRef( TypedElementInterface $element ): ?MethodLinks {
+		return $element->taintedMethodLinksRef ?? null;
+	}
+
+	/**
+	 * @param FunctionInterface $func
 	 * @param int $index
 	 * @return Set|null
 	 */
-	protected static function getVarLinks( TypedElementInterface $element, int $index ): ?Set {
-		return $element->taintedVarLinks[$index] ?? null;
+	protected static function getVarLinks( FunctionInterface $func, int $index ): ?Set {
+		return $func->taintedVarLinks[$index] ?? null;
 	}
 
 	/**
@@ -166,8 +177,8 @@ trait TaintednessAccessorsTrait {
 	/**
 	 * @param TypedElementInterface $element
 	 */
-	protected static function clearTaintednessRef( TypedElementInterface $element ): void {
-		unset( $element->taintednessRef );
+	protected static function clearRefData( TypedElementInterface $element ): void {
+		unset( $element->taintednessRef, $element->taintedMethodLinksRef );
 	}
 
 	/**
