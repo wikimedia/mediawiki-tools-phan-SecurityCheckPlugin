@@ -45,11 +45,11 @@ class MethodLinks {
 		if ( isset( $this->dimLinks[$dim] ) ) {
 			$ret = clone $this->dimLinks[$dim];
 			$ret->mergeWith( $this->unknownDimLinks ?? self::newEmpty() );
-			$ret->links = self::mergeSets( $ret->links, $this->links );
+			$ret->links->mergeWith( $this->links );
 			return $ret->withAddedOffset( $dim );
 		}
 		$ret = $this->unknownDimLinks ? clone $this->unknownDimLinks : self::newEmpty();
-		$ret->links = self::mergeSets( $ret->links, $this->links );
+		$ret->links->mergeWith( $this->links );
 		return $ret->withAddedOffset( $dim );
 	}
 
@@ -106,7 +106,7 @@ class MethodLinks {
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
-		$this->links = self::mergeSets( $this->links, $other->links );
+		$this->links->mergeWith( $other->links );
 		foreach ( $other->dimLinks as $key => $links ) {
 			if ( isset( $this->dimLinks[$key] ) ) {
 				$this->dimLinks[$key]->mergeWith( $links );
@@ -262,10 +262,10 @@ class MethodLinks {
 	public function getLinks(): LinksSet {
 		$ret = clone $this->links;
 		foreach ( $this->dimLinks as $link ) {
-			$ret = self::mergeSets( $ret, $link->getLinks() );
+			$ret->mergeWith( $link->getLinks() );
 		}
 		if ( $this->unknownDimLinks ) {
-			$ret = self::mergeSets( $ret, $this->unknownDimLinks->getLinks() );
+			$ret->mergeWith( $this->unknownDimLinks->getLinks() );
 		}
 		return $ret;
 	}
@@ -386,24 +386,6 @@ class MethodLinks {
 		}
 		if ( $this->unknownDimLinks ) {
 			$ret |= $this->unknownDimLinks->getAllPreservedFlags();
-		}
-		return $ret;
-	}
-
-	/**
-	 * @param LinksSet $l1
-	 * @param LinksSet $l2
-	 * @return LinksSet
-	 */
-	private static function mergeSets( LinksSet $l1, LinksSet $l2 ): LinksSet {
-		$ret = new LinksSet();
-		$ret->addAll( $l1 );
-		foreach ( $l2 as $method ) {
-			if ( $ret->contains( $method ) ) {
-				$ret[$method]->mergeWith( $l2[$method] );
-			} else {
-				$ret->attach( $method, $l2[$method] );
-			}
 		}
 		return $ret;
 	}

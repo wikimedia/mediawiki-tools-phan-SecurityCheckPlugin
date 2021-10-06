@@ -34,11 +34,11 @@ class SingleMethodLinks {
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
-		foreach ( $other->params as $i => $_ ) {
+		foreach ( $other->params as $i => $otherPar ) {
 			if ( isset( $this->params[$i] ) ) {
-				$this->params[$i]->mergeWith( $other->params[$i] );
+				$this->params[$i]->mergeWith( $otherPar );
 			} else {
-				$this->params[$i] = $other->params[$i];
+				$this->params[$i] = $otherPar;
 			}
 		}
 	}

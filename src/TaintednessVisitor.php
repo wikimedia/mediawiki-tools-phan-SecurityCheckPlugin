@@ -90,6 +90,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * Cache taintedness data in an AST node. Ideally we'd want this to happen at the end of __invoke, but phan
 	 * calls visit* methods by name, so that doesn't work.
+	 * Caching a node *may* improve the speed, but *will* increase the memory usage, so only do that for nodes
+	 * whose taintedness:
+	 *  - Is not trivial to compute, and
+	 *  - Might be needed from another node (via getTaintednessNode)
 	 * @param Node $node
 	 */
 	private function setCachedData( Node $node ): void {
@@ -127,7 +131,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		# Debug::printNode( $node );
 		$this->debug( __METHOD__, "unhandled case " . Debug::nodeName( $node ) );
 		$this->setCurTaintUnknown();
-		$this->setCachedData( $node );
 	}
 
 	/**
@@ -893,6 +896,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 
+		$this->analyzeCallNode( $node, $funcs );
+	}
+
+	/**
+	 * @param Node $node
+	 * @param iterable<FunctionInterface> $funcs
+	 */
+	protected function analyzeCallNode( Node $node, iterable $funcs ): void {
 		$args = $node->children['args']->children;
 		$this->curTaint = Taintedness::newSafe();
 		foreach ( $funcs as $func ) {

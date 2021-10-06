@@ -231,19 +231,28 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ) {
 			$varName = $variable->getName();
 
-			$methodLinks = new MethodLinks();
-			$prevLinks = null;
-			$error = new CausedByLines();
-			$prevErr = null;
-			$taintedness = new Taintedness( self::NO_TAINT );
-			$prevTaint = null;
-
+			$vars = [];
+			$firstVar = null;
 			foreach ( $scopeList as $scope ) {
 				$localVar = $scope->getVariableByNameOrNull( $varName );
-				if ( !$localVar ) {
-					continue;
+				if ( $localVar ) {
+					if ( !$firstVar ) {
+						$firstVar = $localVar;
+					} else {
+						$vars[] = $localVar;
+					}
 				}
+			}
 
+			if ( !$firstVar ) {
+				return;
+			}
+
+			$taintedness = $prevTaint = $firstVar->taintedness ?? null;
+			$methodLinks = $prevLinks = $firstVar->taintedMethodLinks ?? null;
+			$error = $prevErr = $firstVar->taintedOriginalError ?? null;
+
+			foreach ( $vars as $localVar ) {
 				// Below we only merge data if it's non-null in the current scope and different from the previous
 				// branch. Using arrays to save all previous values and then in_array seems useless on MW core,
 				// since >99% cases of duplication are already covered by these simple checks.
@@ -251,25 +260,43 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				$taintOrNull = $localVar->taintedness ?? null;
 				if ( $taintOrNull && $taintOrNull !== $prevTaint ) {
 					$prevTaint = $taintOrNull;
-					$taintedness->mergeWith( $taintOrNull );
+					if ( $taintedness ) {
+						$taintedness->mergeWith( $taintOrNull );
+					} else {
+						$taintedness = $taintOrNull;
+					}
 				}
 
 				$variableObjLinksOrNull = $localVar->taintedMethodLinks ?? null;
 				if ( $variableObjLinksOrNull && $variableObjLinksOrNull !== $prevLinks ) {
 					$prevLinks = $variableObjLinksOrNull;
-					$methodLinks->mergeWith( $variableObjLinksOrNull );
+					if ( $methodLinks ) {
+						$methodLinks->mergeWith( $variableObjLinksOrNull );
+					} else {
+						$methodLinks = $variableObjLinksOrNull;
+					}
 				}
 
 				$varErrorOrNull = $localVar->taintedOriginalError ?? null;
 				if ( $varErrorOrNull && $varErrorOrNull !== $prevErr ) {
 					$prevErr = $varErrorOrNull;
-					$error->mergeWith( $varErrorOrNull );
+					if ( $error ) {
+						$error->mergeWith( $varErrorOrNull );
+					} else {
+						$error = $varErrorOrNull;
+					}
 				}
 			}
 
-			self::setTaintednessRaw( $variable, $taintedness );
-			self::setMethodLinks( $variable, $methodLinks );
-			self::setCausedByRaw( $variable, $error );
+			if ( $taintedness ) {
+				self::setTaintednessRaw( $variable, $taintedness );
+			}
+			if ( $methodLinks ) {
+				self::setMethodLinks( $variable, $methodLinks );
+			}
+			if ( $error ) {
+				self::setCausedByRaw( $variable, $error );
+			}
 		};
 	}
 

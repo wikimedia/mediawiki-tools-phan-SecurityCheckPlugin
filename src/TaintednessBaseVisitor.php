@@ -2,7 +2,6 @@
 
 namespace SecurityCheckPlugin;
 
-use AssertionError;
 use ast\Node;
 use Closure;
 use Exception;
@@ -194,12 +193,10 @@ trait TaintednessBaseVisitor {
 
 		$leftError = self::getCausedByRaw( $left );
 
-		if ( !$leftError || ( !$leftError->isEmpty() && $rightError->isSupersetOf( $leftError ) ) ) {
+		if ( !$leftError ) {
 			$newLeftError = $rightError;
-		} elseif ( !$rightError->isEmpty() && !$leftError->isSupersetOf( $rightError ) ) {
-			$newLeftError = $leftError->asMergedWith( $rightError );
 		} else {
-			return;
+			$newLeftError = $leftError->asMergedWith( $rightError );
 		}
 
 		self::setCausedByRaw( $left, $newLeftError );
@@ -251,7 +248,7 @@ trait TaintednessBaseVisitor {
 
 		$newErr = self::getCausedByRawCloneOrEmpty( $elem );
 		foreach ( $newErrors as $newError ) {
-			$newErr->addLine( clone $taintedness, $newError, $links ? clone $links : null );
+			$newErr->addLine( $taintedness, $newError, $links );
 		}
 		self::setCausedByRaw( $elem, $newErr );
 	}
@@ -858,9 +855,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get the taintedness of something from the AST tree.
 	 *
-	 * @warning This does not take into account preexisting taint
-	 *  unless you provide it with a Phan object (Not an AST node).
-	 *
 	 * @param mixed $expr An expression from the AST tree.
 	 * @return TaintednessWithError
 	 */
@@ -869,22 +863,12 @@ trait TaintednessBaseVisitor {
 			return $this->getTaintednessNode( $expr );
 		}
 
-		$type = gettype( $expr );
-		switch ( $type ) {
-			case "string":
-			case "boolean":
-			case "integer":
-			case "double":
-			case "NULL":
-				// simple literal
-				return new TaintednessWithError( Taintedness::newSafe(), new CausedByLines(), MethodLinks::newEmpty() );
-			case "object":
-			case "resource":
-			case "unknown type":
-			case "array":
-			default:
-				throw new AssertionError( __METHOD__ . " called with invalid type $type" );
-		}
+		assert( is_scalar( $expr ) || $expr === null );
+		return new TaintednessWithError(
+			new Taintedness( SecurityCheckPlugin::NO_TAINT ),
+			new CausedByLines(),
+			new MethodLinks()
+		);
 	}
 
 	/**
@@ -934,9 +918,7 @@ trait TaintednessBaseVisitor {
 	 * @return Taintedness
 	 */
 	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ): Taintedness {
-		if ( $variableObj instanceof FunctionInterface ) {
-			throw new AssertionError( "This method cannot be used with methods" );
-		}
+		assert( !$variableObj instanceof FunctionInterface, "This method cannot be used with methods" );
 		$taintOrNull = self::getTaintednessRaw( $variableObj );
 		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
@@ -1494,7 +1476,6 @@ trait TaintednessBaseVisitor {
 		Taintedness $taint,
 		CausedByLines $error
 	): void {
-		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 		if ( $method->isPHPInternal() ) {
 			return;
 		}
@@ -1502,6 +1483,8 @@ trait TaintednessBaseVisitor {
 		if ( $varLinks === null ) {
 			return;
 		}
+
+		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 
 		foreach ( $varLinks as $var ) {
 			if ( $var instanceof PassByReferenceVariable ) {

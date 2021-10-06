@@ -28,10 +28,11 @@ class CausedByLines {
 	 * @param Taintedness $taintedness
 	 * @param string $line
 	 * @param MethodLinks|null $links
+	 * @note Taintedness and links are cloned as needed
 	 */
 	public function addLine( Taintedness $taintedness, string $line, MethodLinks $links = null ): void {
 		if ( !$this->lines ) {
-			$this->lines = [ [ $taintedness, $line, $links ] ];
+			$this->lines = [ [ clone $taintedness, $line, $links ? clone $links : null ] ];
 			return;
 		}
 		if ( count( $this->lines ) >= self::LINES_HARD_LIMIT ) {
@@ -42,12 +43,12 @@ class CausedByLines {
 		if ( $idx !== false ) {
 			$this->lines[ $idx ][0] = $this->lines[ $idx ][0]->withObj( $taintedness );
 			if ( $links && !$this->lines[$idx][2] ) {
-				$this->lines[$idx][2] = $links;
-			} elseif ( $links ) {
+				$this->lines[$idx][2] = clone $links;
+			} elseif ( $links && $links !== $this->lines[$idx][2] ) {
 				$this->lines[$idx][2] = $this->lines[$idx][2]->asMergedWith( $links );
 			}
 		} else {
-			$this->lines[] = [ $taintedness, $line, $links ];
+			$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
 		}
 	}
 
@@ -165,7 +166,7 @@ class CausedByLines {
 				$curLinks = $cur[2];
 				if ( $curLinks && !$first[ $i + $subsIdx ][2] ) {
 					$first[$i + $subsIdx][2] = $curLinks;
-				} elseif ( $curLinks ) {
+				} elseif ( $curLinks && $curLinks !== $first[ $i + $subsIdx ][2] ) {
 					$first[$i + $subsIdx][2] = $first[$i + $subsIdx][2]->asMergedWith( $curLinks );
 				}
 			}
@@ -191,7 +192,7 @@ class CausedByLines {
 					$secondLinks = $second[$j - $startIdx][2];
 					if ( $secondLinks && !$first[$j][2] ) {
 						$first[$j][2] = $secondLinks;
-					} elseif ( $secondLinks ) {
+					} elseif ( $secondLinks && $secondLinks !== $first[$j][2] ) {
 						$first[$j][2] = $first[$j][2]->asMergedWith( $secondLinks );
 					}
 				}
@@ -241,18 +242,6 @@ class CausedByLines {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * @param self $other
-	 * @return bool
-	 */
-	public function isSupersetOf( self $other ): bool {
-		return self::getArraySubsetIdx( $this->lines, $other->lines ) !== false;
-	}
-
-	public function isEmpty(): bool {
-		return $this->lines === [];
 	}
 
 	/**

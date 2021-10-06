@@ -45,22 +45,16 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * Try and recognize hook registration
-	 *
-	 * Also handles static calls
-	 * @param Node $node
+	 * @inheritDoc
 	 */
-	public function visitMethodCall( Node $node ): void {
-		parent::visitMethodCall( $node );
+	protected function analyzeCallNode( Node $node, iterable $funcs ): void {
+		parent::analyzeCallNode( $node, $funcs );
 		if ( !isset( $node->children['method'] ) ) {
 			// Called by visitCall
 			return;
 		}
 
-		$funcs = $this->getFuncsFromNode( $node, __METHOD__ );
-		assert( is_array( $funcs ) && count( $funcs ) <= 1 );
-		if ( !$funcs ) {
-			return;
-		}
+		assert( is_array( $funcs ) && count( $funcs ) === 1 );
 		$method = $funcs[0];
 		assert( $method instanceof Method );
 

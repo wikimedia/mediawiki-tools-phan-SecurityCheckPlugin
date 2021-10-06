@@ -202,23 +202,35 @@ trait TaintednessAccessorsTrait {
 	 * @return TypedElementInterface[]|null
 	 */
 	protected static function getRetObjs( FunctionInterface $func ): ?array {
-		return $func->retObjs ?? null;
+		$funcNode = $func->getNode();
+		if ( !$funcNode ) {
+			return null;
+		}
+		return $funcNode->retObjs ?? null;
 	}
 
 	/**
+	 * @note These are saved in the function node so that they can be shared by all implementations, without
+	 * having to check the defining FQSEN of a method and canonicalize $func for lookup.
 	 * @param FunctionInterface $func
 	 * @param TypedElementInterface[] $retObjs
 	 * @suppress PhanUnreferencedProtectedMethod Used in TaintednessVisitor
 	 */
 	protected static function addRetObjs( FunctionInterface $func, array $retObjs ): void {
-		$func->retObjs = array_merge( $func->retObjs ?? [], $retObjs );
+		$funcNode = $func->getNode();
+		if ( $funcNode ) {
+			$funcNode->retObjs = array_merge( $funcNode->retObjs ?? [], $retObjs );
+		}
 	}
 
 	/**
 	 * @param FunctionInterface $func
 	 */
 	protected static function initRetObjs( FunctionInterface $func ): void {
-		$func->retObjs = $func->retObjs ?? [];
+		$funcNode = $func->getNode();
+		if ( $funcNode ) {
+			$funcNode->retObjs = $funcNode->retObjs ?? [];
+		}
 	}
 
 }

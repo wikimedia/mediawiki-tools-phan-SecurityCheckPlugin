@@ -44,7 +44,7 @@ class FunctionCausedByLines {
 	 */
 	public function addGenericLines( array $lines, Taintedness $taint, MethodLinks $links = null ): void {
 		foreach ( $lines as $line ) {
-			$this->genericLines->addLine( clone $taint, $line, $links ? clone $links : null );
+			$this->genericLines->addLine( $taint, $line, $links );
 		}
 	}
 
@@ -66,7 +66,7 @@ class FunctionCausedByLines {
 			$this->paramSinkLines[$param] = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->paramSinkLines[$param]->addLine( clone $taint, $line );
+			$this->paramSinkLines[$param]->addLine( $taint, $line );
 		}
 	}
 
@@ -87,7 +87,7 @@ class FunctionCausedByLines {
 			$this->paramPreservedLines[$param] = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->paramPreservedLines[$param]->addLine( clone $taint, $line, $links ? clone $links : null );
+			$this->paramPreservedLines[$param]->addLine( $taint, $line, $links );
 		}
 	}
 
@@ -141,7 +141,7 @@ class FunctionCausedByLines {
 			$this->variadicParamSinkLines = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->variadicParamSinkLines->addLine( clone $taint, $line );
+			$this->variadicParamSinkLines->addLine( $taint, $line );
 		}
 	}
 
@@ -163,7 +163,7 @@ class FunctionCausedByLines {
 			$this->variadicParamPreservedLines = new CausedByLines();
 		}
 		foreach ( $lines as $line ) {
-			$this->variadicParamPreservedLines->addLine( clone $taint, $line, $links ? clone $links : null );
+			$this->variadicParamPreservedLines->addLine( $taint, $line, $links );
 		}
 	}
 

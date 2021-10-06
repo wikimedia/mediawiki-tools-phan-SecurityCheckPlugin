@@ -16,6 +16,19 @@ use Phan\Library\Set;
  * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class LinksSet extends Set {
+	/**
+	 * @param self $other
+	 */
+	public function mergeWith( self $other ): void {
+		foreach ( $other as $method ) {
+			if ( $this->contains( $method ) ) {
+				$this[$method]->mergeWith( $other[$method] );
+			} else {
+				$this->attach( $method, $other[$method] );
+			}
+		}
+	}
+
 	public function __toString(): string {
 		$children = [];
 		foreach ( $this as $func ) {
