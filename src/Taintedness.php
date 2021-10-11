@@ -251,7 +251,7 @@ class Taintedness {
 		// If the sink has non-zero flags, intersect it with the whole other side. This particularly preserves
 		// the shape of $sink, discarding anything from $value if the sink has a NO_TAINT in that position.
 		if ( $sink->flags ) {
-			$intersect->flags = $sink->flags & $value->get();
+			$intersect->flags = $sink->flags & ( ( $value->get() & SecurityCheckPlugin::ALL_TAINT ) << 1 );
 		}
 		if ( $sink->unknownDimsTaint ) {
 			$intersect->unknownDimsTaint = self::intersectForSink(
@@ -516,23 +516,6 @@ class Taintedness {
 	// Conversion/checks shortcuts
 
 	/**
-	 * Are any of the positive (i.e HTML_TAINT) taint flags set
-	 *
-	 * @return bool If the variable has known (non-execute taint)
-	 */
-	public function isAllTaint(): bool {
-		return $this->has( SecurityCheckPlugin::ALL_TAINT );
-	}
-
-	/**
-	 * Combination of isExecTaint and isAllTaint
-	 * @return bool
-	 */
-	public function isExecOrAllTaint(): bool {
-		return $this->has( SecurityCheckPlugin::ALL_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT );
-	}
-
-	/**
 	 * Check whether this object has no taintedness.
 	 *
 	 * @return bool
@@ -623,6 +606,7 @@ class Taintedness {
 	 * @warning This function is nilpotent: f^2(x) = 0
 	 *
 	 * @return self
+	 * @suppress PhanUnreferencedPublicMethod For consistency
 	 */
 	public function asYesToExecTaint(): self {
 		$ret = new self( ( $this->flags & SecurityCheckPlugin::ALL_TAINT ) << 1 );

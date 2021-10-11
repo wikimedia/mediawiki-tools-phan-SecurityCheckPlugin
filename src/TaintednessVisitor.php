@@ -57,9 +57,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private $curTaintWithError;
 
 	/**
+	 * @param Node $node
 	 * @return TaintednessWithError
 	 */
-	public function getTaintednessWithErrorAfterAnalysis(): TaintednessWithError {
+	public function analyzeNodeAndGetTaintedness( Node $node ): TaintednessWithError {
+		$this->__invoke( $node );
+		$this->setCachedData( $node );
 		return $this->curTaintWithError;
 	}
 
@@ -576,7 +579,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			false
 		);
 		// TODO Links and error?
-		$this->curTaintWithError = new TaintednessWithError( $curTaint, new CausedByLines(), MethodLinks::newEmpty() );
+		$this->curTaintWithError = new TaintednessWithError( $curTaint, new CausedByLines(), new MethodLinks() );
 		$this->setCachedData( $node );
 	}
 

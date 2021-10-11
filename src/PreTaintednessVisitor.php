@@ -113,7 +113,9 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			}
 		}
 
-		$this->getSetKnownTaintOfFunctionWithoutAnalysis( $method );
+		if ( !self::getFuncTaint( $method ) ) {
+			$this->getSetKnownTaintOfFunctionWithoutAnalysis( $method );
+		}
 	}
 
 	/**

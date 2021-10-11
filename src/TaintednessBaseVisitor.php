@@ -133,7 +133,7 @@ trait TaintednessBaseVisitor {
 		foreach ( $addedTaint->getSinkParamKeysNoVariadic() as $key ) {
 			if ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) {
 				$curTaint = $addedTaint->getParamSinkTaint( $key );
-				if ( $curTaint->isExecOrAllTaint() ) {
+				if ( $curTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
 					$newErr->addParamSinkLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
 				}
 			}
@@ -151,7 +151,7 @@ trait TaintednessBaseVisitor {
 		$variadicIndex = $addedTaint->getVariadicParamIndex();
 		if ( $variadicIndex !== null && ( $reason || $allNewTaint->canOverrideVariadicParam() ) ) {
 			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
-			if ( $sinkVariadic && $sinkVariadic->isExecOrAllTaint() ) {
+			if ( $sinkVariadic && $sinkVariadic->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
 				$newErr->addVariadicParamSinkLines(
 					$variadicIndex,
 					$newErrors,
@@ -169,7 +169,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		$curTaint = $addedTaint->getOverall();
-		if ( ( $reason || $allNewTaint->canOverrideOverall() ) && $curTaint->isExecOrAllTaint() ) {
+		if ( ( $reason || $allNewTaint->canOverrideOverall() ) && $curTaint->has( SecurityCheckPlugin::ALL_TAINT ) ) {
 			// Note, the generic error shouldn't have any link
 			$newErr->addGenericLines( $newErrors, $curTaint );
 		}
@@ -235,7 +235,7 @@ trait TaintednessBaseVisitor {
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
 
-		if ( !$taintedness->isExecOrAllTaint() && ( !$links || $links->isEmpty() ) ) {
+		if ( !$taintedness->has( SecurityCheckPlugin::ALL_TAINT ) && ( !$links || $links->isEmpty() ) ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
 		}
@@ -328,8 +328,11 @@ trait TaintednessBaseVisitor {
 	 * @return FunctionInterface|null
 	 */
 	private function getDefiningFuncIfDifferent( FunctionInterface $func ): ?FunctionInterface {
-		if ( $func instanceof Method && $func->hasDefiningFQSEN() && $func->getDefiningFQSEN() !== $func->getFQSEN() ) {
-			return $this->code_base->getMethodByFQSEN( $func->getDefiningFQSEN() );
+		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
+			$definingFQSEN = $func->getDefiningFQSEN();
+			if ( $definingFQSEN !== $func->getFQSEN() ) {
+				return $this->code_base->getMethodByFQSEN( $definingFQSEN );
+			}
 		}
 		return null;
 	}
@@ -444,7 +447,7 @@ trait TaintednessBaseVisitor {
 			}
 
 			$trialFuncName = $trialFunc->getFQSEN();
-			$taint = $this->getBuiltinFuncTaint( $trialFuncName );
+			$taint = SecurityCheckPlugin::$pluginInstance->getBuiltinFuncTaint( $trialFuncName );
 			if ( $taint !== null ) {
 				$taint = clone $taint;
 				self::doSetFuncTaint( $func, $taint );
@@ -479,15 +482,17 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 */
 	public function analyzeFunc( FunctionInterface $func ): void {
-		if ( $this->context->isInFunctionLikeScope() && $func->getFQSEN() === $this->context->getFunctionLikeFQSEN() ) {
-			// Avoid pointless recursion
-			return;
-		}
-		static $depth = 0;
 		$node = $func->getNode();
 		if ( !$node ) {
 			return;
 		}
+
+		if ( $this->context->isInFunctionLikeScope() && $func->getFQSEN() === $this->context->getFunctionLikeFQSEN() ) {
+			// Avoid pointless recursion
+			return;
+		}
+
+		static $depth = 0;
 		// @todo Tune the max depth. Raw benchmarking shows very little difference between e.g.
 		// 5 and 10. However, while with higher values we can detect more issues and avoid more
 		// false positives, it becomes harder to tell where an issue is coming from.
@@ -534,11 +539,6 @@ trait TaintednessBaseVisitor {
 		if ( isset( SecurityCheckPlugin::$docblockCache[ $fqsen ] ) ) {
 			[ $taint, $links ] = SecurityCheckPlugin::$docblockCache[ $fqsen ];
 			return [ clone $taint, clone $links ];
-		}
-		// @phan-suppress-next-line PhanUndeclaredMethod https://github.com/phan/phan/issues/2628
-		if ( !method_exists( $func, 'hasNode' ) || !$func->hasNode() ) {
-			// No docblock available
-			return null;
 		}
 
 		$docBlock = $func->getDocComment();
@@ -673,10 +673,10 @@ trait TaintednessBaseVisitor {
 		$typelist = $types->getUniqueFlattenedTypeSet();
 		if ( !$typelist ) {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
-			return Taintedness::newUnknown();
+			return new Taintedness( SecurityCheckPlugin::UNKNOWN_TAINT );
 		}
 
-		$taint = Taintedness::newSafe();
+		$taint = new Taintedness( SecurityCheckPlugin::NO_TAINT );
 		foreach ( $typelist as $type ) {
 			if ( $type instanceof LiteralTypeInterface ) {
 				// We're going to assume that literals aren't tainted...
@@ -744,7 +744,10 @@ trait TaintednessBaseVisitor {
 						break;
 					}
 					$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
-					$taint->mergeWith( $this->handleMethodCall( $toString, $toStringFQSEN, [] )->getTaintedness() );
+					$toStringTaint = $this->getTaintOfFunction( $toString );
+					$taint->mergeWith( $toStringTaint->getOverall()->without(
+						SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT
+					) );
 			}
 		}
 		return $taint;
@@ -789,12 +792,10 @@ trait TaintednessBaseVisitor {
 	 * @return Taintedness|null Null means all taints, checking for null is faster than ORing
 	 */
 	protected function getTaintMaskForTypedElement( TypedElementInterface $var ): ?Taintedness {
-		if (
-			$var instanceof GlobalVariable ||
-			( $var instanceof Variable && $this->context->isInGlobalScope() )
-		) {
-			// TODO Improve handling of globals? (https://github.com/phan/phan/issues/4370)
-			return null;
+		if ( $var instanceof GlobalVariable ) {
+			// TODO We wouldn't need to do this if phan didn't infer real types for global variables.
+			// See https://github.com/phan/phan/issues/4518
+			$var = $var->getElement();
 		}
 		// Note, we must use the real union type because:
 		// 1 - The non-real type might be wrong
@@ -828,18 +829,6 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ): ?Taintedness {
 		return $this->getTaintMaskForTypedElement( $el );
-	}
-
-	/**
-	 * Get the built in taint of a function/method (doesn't create a clone)
-	 *
-	 * This is used for when people special case if a function is tainted.
-	 *
-	 * @param FullyQualifiedFunctionLikeName $fqsen Function to check
-	 * @return FunctionTaintedness|null Null if no info
-	 */
-	protected function getBuiltinFuncTaint( FullyQualifiedFunctionLikeName $fqsen ): ?FunctionTaintedness {
-		return SecurityCheckPlugin::$pluginInstance->getBuiltinFuncTaint( $fqsen );
 	}
 
 	/**
@@ -897,12 +886,10 @@ trait TaintednessBaseVisitor {
 
 		$visitor = new TaintednessVisitor( $this->code_base, $this->context );
 		try {
-			$visitor( $node );
+			return $visitor->analyzeNodeAndGetTaintedness( $node );
 		} finally {
 			$this->context->setLineNumberStart( $oldLine );
 		}
-		$node->taint = $visitor->getTaintednessWithErrorAfterAnalysis();
-		return $node->taint;
 	}
 
 	/**
@@ -1230,26 +1217,11 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Check whether we can link the $i'th param to $func. This is usually wanted, but not for function
-	 * with hardcoded taint. In this case we assume that any dangerous association was already hardcoded.
-	 * This is also good for performance, because hardcoded function tend to be used a lot (for MW, think
-	 * of methods in Database or in Html).
-	 *
-	 * @param FunctionInterface $func
-	 * @return bool
-	 */
-	protected function canLinkParamsToFunc( FunctionInterface $func ): bool {
-		// TODO We might also want to check this parameter-wise, looking at $func's taintedness
-		// and whether the Taintdness for the i-th param has NO_OVERRIDE. However, that would require
-		// knowing the func taint, which might trigger an analysis of the function, which we can't do now.
-		return !SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() );
-	}
-
-	/**
-	 * Link together a Method and its parameters
-	 *
-	 * The idea being if the method gets called with something evil
-	 * later, we can traceback anything it might affect
+	 * Link together a Method and its parameters,the idea being if the method gets called with something evil
+	 * later, we can traceback anything it might affect.
+	 * Note that we don't do this for functions with hardcoded taint, in which case we assume that any dangerous
+	 * association was already hardcoded. This is also good for performance, because hardcoded function tend to be
+	 * used a lot (for MW, think of methods in Database or in Html).
 	 *
 	 * @param Variable $param The variable object for the parameter. This can also be
 	 *  instance of Parameter (subclass of Variable).
@@ -1259,7 +1231,10 @@ trait TaintednessBaseVisitor {
 	protected function linkParamAndFunc( Variable $param, FunctionInterface $func, int $i ): void {
 		// $this->debug( __METHOD__, "Linking '$param' to '$func' arg $i" );
 
-		if ( !$this->canLinkParamsToFunc( $func ) ) {
+		// TODO Use $func's builtin/annotated taintedness (available in PreTaintednessVisitor) to check this per
+		// parameter (looking at NO_OVERRIDE)
+		$canLinkParam = !SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $func->getFQSEN() );
+		if ( !$canLinkParam ) {
 			return;
 		}
 
@@ -1737,7 +1712,7 @@ trait TaintednessBaseVisitor {
 			$combinedTaint = $rhsTaint->withOnly( Taintedness::flagsAsExecToYesTaint( $lhsTaint->get() ) );
 			$combinedTaintInt = $combinedTaint->get();
 		} else {
-			$combinedTaint = Taintedness::intersectForSink( $lhsTaint, $rhsTaint->asYesToExecTaint() );
+			$combinedTaint = Taintedness::intersectForSink( $lhsTaint, $rhsTaint );
 			if ( $combinedTaint->isSafe() ) {
 				return;
 			}
@@ -1807,11 +1782,12 @@ trait TaintednessBaseVisitor {
 	 * @return bool
 	 */
 	public function isIssueSuppressedOrFalsePositive( Taintedness $lhsTaint ): bool {
-		assert( $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
-		$context = $this->overrideContext ?: $this->context;
-		$combinedTaint = Taintedness::flagsAsExecToYesTaint( $lhsTaint->get() );
+		$lhsTaintInt = $lhsTaint->get();
+		assert( ( $lhsTaintInt & SecurityCheckPlugin::ALL_EXEC_TAINT ) !== SecurityCheckPlugin::NO_TAINT );
+		$combinedTaint = Taintedness::flagsAsExecToYesTaint( $lhsTaintInt );
 		$issueType = $this->taintToIssueAndSeverity( $combinedTaint )[0];
 
+		$context = $this->overrideContext ?: $this->context;
 		if ( $context->hasSuppressIssue( $this->code_base, $issueType ) ) {
 			return true;
 		}
@@ -1915,7 +1891,7 @@ trait TaintednessBaseVisitor {
 
 			// TODO: We also need to handle the case where someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
-			if ( $curArgTaintedness->isAllTaint() ) {
+			if ( $curArgTaintedness->has( SecurityCheckPlugin::ALL_TAINT ) ) {
 				$this->markAllDependentVarsYes( $func, $i, $curArgTaintedness, $baseArgError );
 			}
 
@@ -1989,11 +1965,12 @@ trait TaintednessBaseVisitor {
 				$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
 				$relevantParamError = $funcError->getParamPreservedLines( $i )
 					->asPreservingTaintednessAndLinks( $effectiveArgTaintedness, $curArgLinks );
+				$curArgError->mergeWith( $relevantParamError );
 				// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
 				// than one argument, it will appear once per preserved argument in the overall caused-by of the
 				// call expression. This is probably a good thing, but can increase the length of caused-by lines.
 				// TODO Something like T291379 might help here.
-				$argErrors->mergeWith( $curArgError->asMergedWith( $relevantParamError ) );
+				$argErrors->mergeWith( $curArgError );
 			}
 		}
 

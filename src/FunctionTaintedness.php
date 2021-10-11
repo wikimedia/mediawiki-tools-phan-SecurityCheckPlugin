@@ -255,26 +255,27 @@ class FunctionTaintedness {
 
 	/**
 	 * Merge this object with another. This respects NO_OVERRIDE, since it doesn't touch any element
-	 * where it's set. Any UNKNOWN taintedness is also cleared if we're setting it now.
+	 * where it's set. If the overall taint has UNKNOWN, it's cleared if we're setting it now.
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
-		// TODO: Is removing UNKNOWN necessary here?
-		$unk = SecurityCheckPlugin::UNKNOWN_TAINT;
-
 		foreach ( $other->paramSinkTaints as $index => $baseT ) {
 			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-				$this->paramSinkTaints[$index] = isset( $this->paramSinkTaints[$index] )
-					? $this->paramSinkTaints[$index]->without( $unk )->asMergedWith( $baseT )
-					: $baseT;
+				if ( isset( $this->paramSinkTaints[$index] ) ) {
+					$this->paramSinkTaints[$index]->mergeWith( $baseT );
+				} else {
+					$this->paramSinkTaints[$index] = $baseT;
+				}
 				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
 			}
 		}
 		foreach ( $other->paramPreserveTaints as $index => $baseT ) {
 			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-				$this->paramPreserveTaints[$index] = isset( $this->paramPreserveTaints[$index] )
-					? $this->paramPreserveTaints[$index]->asMergedWith( $baseT )
-					: $baseT;
+				if ( isset( $this->paramPreserveTaints[$index] ) ) {
+					$this->paramPreserveTaints[$index]->mergeWith( $baseT );
+				} else {
+					$this->paramPreserveTaints[$index] = $baseT;
+				}
 				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
 			}
 		}
@@ -285,22 +286,28 @@ class FunctionTaintedness {
 				$this->variadicParamIndex = $variadicIndex;
 				$sinkVariadic = $other->variadicParamSinkTaint;
 				if ( $sinkVariadic ) {
-					$this->variadicParamSinkTaint = $this->variadicParamSinkTaint
-						? $this->variadicParamSinkTaint->without( $unk )->asMergedWith( $sinkVariadic )
-						: $sinkVariadic;
+					if ( $this->variadicParamSinkTaint ) {
+						$this->variadicParamSinkTaint->mergeWith( $sinkVariadic );
+					} else {
+						$this->variadicParamSinkTaint = $sinkVariadic;
+					}
 				}
 				$presVariadic = $other->variadicParamPreserveTaint;
 				if ( $presVariadic ) {
-					$this->variadicParamPreserveTaint = $this->variadicParamPreserveTaint
-						? $this->variadicParamPreserveTaint->asMergedWith( $presVariadic )
-						: $presVariadic;
+					if ( $this->variadicParamPreserveTaint ) {
+						$this->variadicParamPreserveTaint->mergeWith( $presVariadic );
+					} else {
+						$this->variadicParamPreserveTaint = $presVariadic;
+					}
 				}
 				$this->variadicParamFlags |= $other->variadicParamFlags;
 			}
 		}
 
 		if ( ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-			$this->overall = $this->overall->without( $unk )->asMergedWith( $other->overall );
+			// Remove UNKNOWN, which could be added e.g. when building func taint from the return type.
+			$this->overall->remove( SecurityCheckPlugin::UNKNOWN_TAINT );
+			$this->overall->mergeWith( $other->overall );
 			$this->overallFlags |= $other->overallFlags;
 		}
 	}

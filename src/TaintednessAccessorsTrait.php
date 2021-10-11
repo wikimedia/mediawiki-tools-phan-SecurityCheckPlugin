@@ -204,7 +204,9 @@ trait TaintednessAccessorsTrait {
 	protected static function getRetObjs( FunctionInterface $func ): ?array {
 		$funcNode = $func->getNode();
 		if ( !$funcNode ) {
-			return null;
+			// If it has no node, it won't have any returned object, so don't return null, to avoid
+			// potential recursive analysis attempts.
+			return [];
 		}
 		return $funcNode->retObjs ?? null;
 	}

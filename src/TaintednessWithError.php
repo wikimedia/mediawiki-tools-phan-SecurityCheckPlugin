@@ -28,7 +28,7 @@ class TaintednessWithError {
 	}
 
 	public static function newEmpty(): self {
-		return new self( Taintedness::newSafe(), new CausedByLines(), MethodLinks::newEmpty() );
+		return new self( new Taintedness( SecurityCheckPlugin::NO_TAINT ), new CausedByLines(), new MethodLinks() );
 	}
 
 	/**

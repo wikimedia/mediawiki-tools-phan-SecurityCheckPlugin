@@ -207,20 +207,24 @@ class FunctionCausedByLines {
 	 */
 	public function mergeWith( self $other, FunctionTaintedness $funcTaint ): void {
 		if ( $funcTaint->canOverrideOverall() ) {
-			$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
+			$this->genericLines->mergeWith( $other->genericLines );
 		}
 		foreach ( $other->paramSinkLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
-				$this->paramSinkLines[$param] = isset( $this->paramSinkLines[$param] )
-					? $this->paramSinkLines[$param]->asMergedWith( $lines )
-					: $lines;
+				if ( isset( $this->paramSinkLines[$param] ) ) {
+					$this->paramSinkLines[$param]->mergeWith( $lines );
+				} else {
+					$this->paramSinkLines[$param] = $lines;
+				}
 			}
 		}
 		foreach ( $other->paramPreservedLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
-				$this->paramPreservedLines[$param] = isset( $this->paramPreservedLines[$param] )
-					? $this->paramPreservedLines[$param]->asMergedWith( $lines )
-					: $lines;
+				if ( isset( $this->paramPreservedLines[$param] ) ) {
+					$this->paramPreservedLines[$param]->mergeWith( $lines );
+				} else {
+					$this->paramPreservedLines[$param] = $lines;
+				}
 			}
 		}
 		$variadicIndex = $other->variadicParamIndex;
@@ -228,15 +232,19 @@ class FunctionCausedByLines {
 			$this->variadicParamIndex = $variadicIndex;
 			$sinkVariadic = $other->variadicParamSinkLines;
 			if ( $sinkVariadic ) {
-				$this->variadicParamSinkLines = $this->variadicParamSinkLines
-					? $this->variadicParamSinkLines->asMergedWith( $sinkVariadic )
-					: $sinkVariadic;
+				if ( $this->variadicParamSinkLines ) {
+					$this->variadicParamSinkLines->mergeWith( $sinkVariadic );
+				} else {
+					$this->variadicParamSinkLines = $sinkVariadic;
+				}
 			}
 			$preserveVariadic = $other->variadicParamPreservedLines;
 			if ( $preserveVariadic ) {
-				$this->variadicParamPreservedLines = $this->variadicParamPreservedLines
-					? $this->variadicParamPreservedLines->asMergedWith( $preserveVariadic )
-					: $preserveVariadic;
+				if ( $this->variadicParamPreservedLines ) {
+					$this->variadicParamPreservedLines->mergeWith( $preserveVariadic );
+				} else {
+					$this->variadicParamPreservedLines = $preserveVariadic;
+				}
 			}
 		}
 	}

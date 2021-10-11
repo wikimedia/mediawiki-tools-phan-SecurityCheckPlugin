@@ -41,11 +41,11 @@ class CausedByLines {
 
 		$idx = array_search( $line, array_column( $this->lines, 1 ), true );
 		if ( $idx !== false ) {
-			$this->lines[ $idx ][0] = $this->lines[ $idx ][0]->asMergedWith( $taintedness );
+			$this->lines[ $idx ][0]->mergeWith( $taintedness );
 			if ( $links && !$this->lines[$idx][2] ) {
 				$this->lines[$idx][2] = clone $links;
 			} elseif ( $links && $links !== $this->lines[$idx][2] ) {
-				$this->lines[$idx][2] = $this->lines[$idx][2]->asMergedWith( $links );
+				$this->lines[$idx][2]->mergeWith( $links );
 			}
 		} else {
 			$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
@@ -62,9 +62,14 @@ class CausedByLines {
 	 */
 	public function asPreservingTaintednessAndLinks( Taintedness $taintedness, MethodLinks $links ): self {
 		$ret = new self;
+		if ( !$this->lines ) {
+			return $ret;
+		}
 		$curTaint = $taintedness->get();
 		foreach ( $this->lines as [ $_, $eLine, $eLinks ] ) {
-			$preservedFlags = $eLinks ? $eLinks->filterPreservedFlags( $curTaint ) : SecurityCheckPlugin::NO_TAINT;
+			$preservedFlags = $eLinks && ( $curTaint !== SecurityCheckPlugin::NO_TAINT )
+				? $eLinks->filterPreservedFlags( $curTaint )
+				: SecurityCheckPlugin::NO_TAINT;
 			$ret->lines[] = [ new Taintedness( $preservedFlags ), $eLine, clone $links ];
 		}
 		return $ret;
@@ -76,9 +81,15 @@ class CausedByLines {
 	 */
 	public function asIntersectedWithTaintedness( Taintedness $taintedness ): self {
 		$ret = new self;
+		if ( !$this->lines ) {
+			return $ret;
+		}
 		$curTaint = $taintedness->get();
 		foreach ( $this->lines as [ $eTaint, $eLine, $links ] ) {
-			$ret->lines[] = [ $eTaint->withOnly( $curTaint ), $eLine, $links ];
+			$newTaint = $curTaint !== SecurityCheckPlugin::NO_TAINT
+				? $eTaint->withOnly( $curTaint )
+				: new Taintedness( SecurityCheckPlugin::NO_TAINT );
+			$ret->lines[] = [ $newTaint, $eLine, $links ];
 		}
 		return $ret;
 	}
@@ -113,69 +124,47 @@ class CausedByLines {
 	}
 
 	/**
-	 * @param self $other
-	 */
-	public function mergeWith( self $other ): void {
-		$this->lines = self::mergeRaw( $this->lines, $other->lines );
-	}
-
-	/**
-	 * @param self $other
-	 * @return self
-	 */
-	public function asMergedWith( self $other ): self {
-		$ret = clone $this;
-		$ret->mergeWith( $other );
-		return $ret;
-	}
-
-	/**
-	 * Merges two caused-by arrays. Note that this isn't a merge operation like
-	 * array_merge. What this method does is:
-	 * 1 - if $second is a subset of $first, return $first;
-	 * 2 - update taintedness values in $first if the *lines* (not taint values) in $second
-	 *   are a subset of the lines in $first;
-	 * 3 - if an upper set of $first *lines* is also a lower set of $second *lines*, remove that upper
-	 *   set from $first and merge the rest with $second;
+	 * @note this isn't a merge operation like array_merge. What this method does is:
+	 * 1 - if $other is a subset of $this, leave $this as-is;
+	 * 2 - update taintedness values in $this if the *lines* (not taint values) in $other
+	 *   are a subset of the lines in $this;
+	 * 3 - if an upper set of $this *lines* is also a lower set of $other *lines*, remove that upper
+	 *   set from $this and merge the rest with $other;
 	 * 4 - array_merge otherwise;
 	 *
 	 * Step 2 is very important, because otherwise, caused-by lines can grow exponentially if
-	 * even a single taintedness value in $first changes.
+	 * even a single taintedness value in $this changes.
 	 *
-	 * @param array<array<Taintedness|string|MethodLinks|null>> $first
-	 * @phan-param list<array{0:Taintedness,1:string,2:?MethodLinks}> $first
-	 * @param array<array<Taintedness|string|MethodLinks|null>> $second
-	 * @phan-param list<array{0:Taintedness,1:string,2:?MethodLinks}> $second
-	 * @return array<array<Taintedness|string|MethodLinks|null>>
-	 * @phan-return list<array{0:Taintedness,1:string,2:?MethodLinks}>
+	 * @param self $other
 	 */
-	private static function mergeRaw( array $first, array $second ): array {
-		if ( !$first ) {
-			return $second;
+	public function mergeWith( self $other ): void {
+		if ( !$this->lines ) {
+			$this->lines = $other->lines;
+			return;
 		}
-		if ( !$second || self::getArraySubsetIdx( $first, $second ) !== false ) {
-			return $first;
+		if ( !$other->lines || self::getArraySubsetIdx( $this->lines, $other->lines ) !== false ) {
+			return;
 		}
 
-		$baseLines = array_column( $first, 1 );
-		$newLines = array_column( $second, 1 );
+		$baseLines = array_column( $this->lines, 1 );
+		$newLines = array_column( $other->lines, 1 );
 		$subsIdx = self::getArraySubsetIdx( $baseLines, $newLines );
 		if ( $subsIdx !== false ) {
-			foreach ( $second as $i => $cur ) {
-				$first[ $i + $subsIdx ][0] = $first[ $i + $subsIdx ][0]->asMergedWith( $cur[0] );
+			foreach ( $other->lines as $i => $cur ) {
+				$this->lines[ $i + $subsIdx ][0]->mergeWith( $cur[0] );
 				$curLinks = $cur[2];
-				if ( $curLinks && !$first[ $i + $subsIdx ][2] ) {
-					$first[$i + $subsIdx][2] = $curLinks;
-				} elseif ( $curLinks && $curLinks !== $first[ $i + $subsIdx ][2] ) {
-					$first[$i + $subsIdx][2] = $first[$i + $subsIdx][2]->asMergedWith( $curLinks );
+				if ( $curLinks && !$this->lines[ $i + $subsIdx ][2] ) {
+					$this->lines[$i + $subsIdx][2] = $curLinks;
+				} elseif ( $curLinks && $curLinks !== $this->lines[ $i + $subsIdx ][2] ) {
+					$this->lines[$i + $subsIdx][2]->mergeWith( $curLinks );
 				}
 			}
-			return $first;
+			return;
 		}
 
 		$ret = null;
-		$baseLen = count( $first );
-		$newLen = count( $second );
+		$baseLen = count( $this->lines );
+		$newLen = count( $other->lines );
 		// NOTE: array_shift is O(n), and O(n^2) over all iterations, because it reindexes the whole array.
 		// So reverse the arrays, that is O(n) twice, and use array_pop which is O(1) (O(n) for all iterations)
 		$remaining = array_reverse( $baseLines );
@@ -188,23 +177,33 @@ class CausedByLines {
 			if ( $expectedIndex >= 0 && self::getArraySubsetIdx( $newRev, $remaining ) === $expectedIndex ) {
 				$startIdx = $baseLen - $newLen + $expectedIndex;
 				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
-					$first[$j][0] = $first[$j][0]->asMergedWith( $second[$j - $startIdx][0] );
-					$secondLinks = $second[$j - $startIdx][2];
-					if ( $secondLinks && !$first[$j][2] ) {
-						$first[$j][2] = $secondLinks;
-					} elseif ( $secondLinks && $secondLinks !== $first[$j][2] ) {
-						$first[$j][2] = $first[$j][2]->asMergedWith( $secondLinks );
+					$this->lines[$j][0]->mergeWith( $other->lines[$j - $startIdx][0] );
+					$secondLinks = $other->lines[$j - $startIdx][2];
+					if ( $secondLinks && !$this->lines[$j][2] ) {
+						$this->lines[$j][2] = $secondLinks;
+					} elseif ( $secondLinks && $secondLinks !== $this->lines[$j][2] ) {
+						$this->lines[$j][2]->mergeWith( $secondLinks );
 					}
 				}
-				$ret = array_merge( $first, array_slice( $second, $newLen - $expectedIndex ) );
+				$ret = array_merge( $this->lines, array_slice( $other->lines, $newLen - $expectedIndex ) );
 				break;
 			}
 			array_pop( $remaining );
 			$expectedIndex++;
 		} while ( $remaining );
-		$ret = $ret ?? array_merge( $first, $second );
+		$ret = $ret ?? array_merge( $this->lines, $other->lines );
 
-		return array_slice( $ret, 0, self::LINES_HARD_LIMIT );
+		$this->lines = array_slice( $ret, 0, self::LINES_HARD_LIMIT );
+	}
+
+	/**
+	 * @param self $other
+	 * @return self
+	 */
+	public function asMergedWith( self $other ): self {
+		$ret = clone $this;
+		$ret->mergeWith( $other );
+		return $ret;
 	}
 
 	/**

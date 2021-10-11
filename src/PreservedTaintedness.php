@@ -74,6 +74,7 @@ class PreservedTaintedness {
 	/**
 	 * @param self $other
 	 * @return self
+	 * @suppress PhanUnreferencedPublicMethod Kept for consistency
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
