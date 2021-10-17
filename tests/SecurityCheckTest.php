@@ -1,11 +1,14 @@
 <?php
 
+use Phan\AST\Parser;
+use Phan\AST\Visitor\Element;
 use Phan\CLIBuilder;
 use Phan\Output\Printer\PlainTextPrinter;
 use Phan\Phan;
 use Phan\Plugin\ConfigPluginSet;
 use SecurityCheckPlugin\MediaWikiHooksHelper;
 use SecurityCheckPlugin\SecurityCheckPlugin;
+use SecurityCheckPlugin\TaintednessVisitor;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
@@ -53,6 +56,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		'namedargs' => 80000,
 		'nullsafemethod' => 80000,
 		'nullsafeprop' => 80000,
+		'throwexpression' => 80000,
 		'typedprops' => 70400,
 	];
 
@@ -294,6 +298,36 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		foreach ( $constants as $name => $value ) {
 			$firstOcc = array_search( $value, $constants );
 			$this->assertSame( $name, $firstOcc, 'Same taint value is used twice' );
+		}
+	}
+
+	/**
+	 * @dataProvider provideInapplicableNodesWithoutVisitor
+	 */
+	public function testInapplicableNodesWithoutVisitor( int $kind ): void {
+		$methodName = Element::VISIT_LOOKUP_TABLE[$kind];
+		$reflMethod = new ReflectionMethod( TaintednessVisitor::class, $methodName );
+		$this->assertNotEquals( TaintednessVisitor::class, $reflMethod->class );
+	}
+
+	public function provideInapplicableNodesWithoutVisitor(): Generator {
+		foreach ( TaintednessVisitor::INAPPLICABLE_NODES_WITHOUT_VISITOR as $kind => $_ ) {
+			yield Parser::getKindName( $kind ) => [ $kind ];
+		}
+	}
+
+	/**
+	 * @dataProvider provideInapplicableNodesWithVisitor
+	 */
+	public function testInapplicableNodesWithVisitor( int $kind ): void {
+		$methodName = Element::VISIT_LOOKUP_TABLE[$kind];
+		$reflMethod = new ReflectionMethod( TaintednessVisitor::class, $methodName );
+		$this->assertSame( TaintednessVisitor::class, $reflMethod->class );
+	}
+
+	public function provideInapplicableNodesWithVisitor(): Generator {
+		foreach ( TaintednessVisitor::INAPPLICABLE_NODES_WITH_VISITOR as $kind => $_ ) {
+			yield Parser::getKindName( $kind ) => [ $kind ];
 		}
 	}
 }

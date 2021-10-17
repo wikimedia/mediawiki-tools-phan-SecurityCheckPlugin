@@ -60,54 +60,49 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	public const NO_TAINT = 0;
 
-	// For declaration type things. Given a special value for
-	// debugging purposes, but inapplicable taint should not
-	// actually show up anywhere.
-	public const INAPPLICABLE_TAINT = 1 << 0;
-
 	// Flag to denote that we don't know
-	public const UNKNOWN_TAINT = 1 << 1;
+	public const UNKNOWN_TAINT = 1 << 0;
 
 	// Flag for function parameters and the like, where it
 	// preserves whatever taint the function is given.
-	public const PRESERVE_TAINT = 1 << 2;
+	public const PRESERVE_TAINT = 1 << 1;
 
 	// In future might separate out different types of html quoting.
 	// e.g. "<div data-foo='" . htmlspecialchars( $bar ) . "'>";
 	// is unsafe.
-	public const HTML_TAINT = 1 << 3;
-	public const HTML_EXEC_TAINT = 1 << 4;
+	public const HTML_TAINT = 1 << 2;
+	public const HTML_EXEC_TAINT = 1 << 3;
 
-	public const SQL_TAINT = 1 << 5;
-	public const SQL_EXEC_TAINT = 1 << 6;
+	public const SQL_TAINT = 1 << 4;
+	public const SQL_EXEC_TAINT = 1 << 5;
 
-	public const SHELL_TAINT = 1 << 7;
-	public const SHELL_EXEC_TAINT = 1 << 8;
+	public const SHELL_TAINT = 1 << 6;
+	public const SHELL_EXEC_TAINT = 1 << 7;
 
-	public const SERIALIZE_TAINT = 1 << 9;
-	public const SERIALIZE_EXEC_TAINT = 1 << 10;
+	public const SERIALIZE_TAINT = 1 << 8;
+	public const SERIALIZE_EXEC_TAINT = 1 << 9;
 
 	// Tainted paths, as input to include(), require() and some FS functions (path traversal)
-	public const PATH_TAINT = 1 << 11;
-	public const PATH_EXEC_TAINT = 1 << 12;
+	public const PATH_TAINT = 1 << 10;
+	public const PATH_EXEC_TAINT = 1 << 11;
 
 	// User-controlled code, for RCE
-	public const CODE_TAINT = 1 << 13;
-	public const CODE_EXEC_TAINT = 1 << 14;
+	public const CODE_TAINT = 1 << 12;
+	public const CODE_EXEC_TAINT = 1 << 13;
 
 	// User-controlled regular expressions, for ReDoS
-	public const REGEX_TAINT = 1 << 15;
-	public const REGEX_EXEC_TAINT = 1 << 16;
+	public const REGEX_TAINT = 1 << 14;
+	public const REGEX_EXEC_TAINT = 1 << 15;
 
 	// For stuff that doesn't fit another category
-	public const MISC_TAINT = 1 << 17;
-	public const MISC_EXEC_TAINT = 1 << 18;
+	public const MISC_TAINT = 1 << 16;
+	public const MISC_EXEC_TAINT = 1 << 17;
 
 	// To allow people to add other application specific taints.
-	public const CUSTOM1_TAINT = 1 << 19;
-	public const CUSTOM1_EXEC_TAINT = 1 << 20;
-	public const CUSTOM2_TAINT = 1 << 21;
-	public const CUSTOM2_EXEC_TAINT = 1 << 22;
+	public const CUSTOM1_TAINT = 1 << 18;
+	public const CUSTOM1_EXEC_TAINT = 1 << 19;
+	public const CUSTOM2_TAINT = 1 << 20;
+	public const CUSTOM2_EXEC_TAINT = 1 << 21;
 
 	// Special purpose for supporting MediaWiki's IDatabase::select
 	// and friends. Like SQL_TAINT, but only applies to the numeric
@@ -117,12 +112,12 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// The associative keys also have this flag if they are tainted.
 	// It is also assumed anything with this flag will also have
 	// the SQL_TAINT flag set.
-	public const SQL_NUMKEY_TAINT = 1 << 23;
-	public const SQL_NUMKEY_EXEC_TAINT = 1 << 24;
+	public const SQL_NUMKEY_TAINT = 1 << 22;
+	public const SQL_NUMKEY_EXEC_TAINT = 1 << 23;
 
 	// For double escaped variables
-	public const ESCAPED_TAINT = 1 << 25;
-	public const ESCAPED_EXEC_TAINT = 1 << 26;
+	public const ESCAPED_TAINT = 1 << 24;
+	public const ESCAPED_EXEC_TAINT = 1 << 25;
 
 	// Special purpose flags (Starting at 2^28)
 	// TODO Renumber these. Requires changing format of the hardcoded arrays
@@ -169,8 +164,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 	// As the name would suggest, this must include *ALL* possible taint flags.
 	public const ALL_TAINT_FLAGS = self::ALL_YES_EXEC_TAINT | self::FUNCTION_FLAGS |
-		self::INAPPLICABLE_TAINT | self::UNKNOWN_TAINT | self::PRESERVE_TAINT |
-		self::VARIADIC_PARAM;
+		self::UNKNOWN_TAINT | self::PRESERVE_TAINT | self::VARIADIC_PARAM;
 
 	/**
 	 * Used to print taint debug data, see BlockAnalysisVisitor::PHAN_DEBUG_VAR_REGEX

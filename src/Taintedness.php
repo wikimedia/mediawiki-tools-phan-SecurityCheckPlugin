@@ -46,13 +46,6 @@ class Taintedness {
 	/**
 	 * @return self
 	 */
-	public static function newInapplicable(): self {
-		return new self( SecurityCheckPlugin::INAPPLICABLE_TAINT );
-	}
-
-	/**
-	 * @return self
-	 */
 	public static function newUnknown(): self {
 		return new self( SecurityCheckPlugin::UNKNOWN_TAINT );
 	}
