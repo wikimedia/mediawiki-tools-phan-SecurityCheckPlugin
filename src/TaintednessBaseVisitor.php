@@ -2217,6 +2217,13 @@ trait TaintednessBaseVisitor {
 			case 'array_fill_keys':
 				// TODO: We cannot build a shape yet
 				return $paramIdx === 0 ? $curArgTaint->asValueFirstLevel() : $curArgTaint->asCollapsed();
+			case 'array_combine':
+				if ( $paramIdx === 0 ) {
+					$ret = Taintedness::newSafe();
+					$ret->addKeysTaintedness( $curArgTaint->withoutKeys()->get() );
+					return $ret;
+				}
+				return $curArgTaint->withoutKeys();
 			// TODO These would really require knowing the other args
 			case 'unset':
 			case 'array_merge':

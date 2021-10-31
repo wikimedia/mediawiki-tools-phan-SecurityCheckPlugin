@@ -103,3 +103,35 @@ function arrayFill() {
 	$unsafe = array_fill( 0, 5, $_GET['x'] );
 	echo $unsafe; // Unsafe
 }
+
+
+function arrayCombine() {
+	$safeArr = [ 'apple', 'pear', 'peach' ];
+	$unsafeArr = [ $_GET['a'], $_GET['b'] ];
+
+	$safeKeysUnsafeValues = array_combine( $safeArr, $unsafeArr );
+	echo $safeKeysUnsafeValues; // Unsafe
+	foreach ( $safeKeysUnsafeValues as $k => $v ) {
+		echo $k; // Safe
+		echo $v; // Unsafe
+	}
+	$unsafeKeysSafeValues = array_combine( $unsafeArr, $safeArr );
+	echo $unsafeKeysSafeValues; // Unsafe
+	foreach ( $unsafeKeysSafeValues as $k => $v ) {
+		echo $k; // Unsafe
+		echo $v; // Safe
+	}
+
+	$unsafeKeysSafeValues2 = array_combine( $safeKeysUnsafeValues, $unsafeKeysSafeValues );
+	echo $unsafeKeysSafeValues2; // Unsafe
+	foreach ( $unsafeKeysSafeValues2 as $k => $v ) {
+		echo $k; // Unsafe
+		echo $v; // Safe
+	}
+	$safeKeysUnsafeValues2 = array_combine( $unsafeKeysSafeValues, $safeKeysUnsafeValues );
+	echo $safeKeysUnsafeValues2; // Unsafe
+	foreach ( $safeKeysUnsafeValues2 as $k => $v ) {
+		echo $k; // Safe
+		echo $v; // Unsafe
+	}
+}
