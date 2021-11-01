@@ -663,6 +663,8 @@ class Taintedness {
 				$ret->unknownDimsTaint = $newVal;
 			}
 		}
+		$ret->keysTaint |= ( $this->flags | $this->keysTaint ) &
+			( ( $offsets->getKeysFlags() & SecurityCheckPlugin::ALL_TAINT ) << 1 );
 		return $ret;
 	}
 
@@ -708,6 +710,7 @@ class Taintedness {
 	 *
 	 * @param string $indent
 	 * @return string
+	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function toString( $indent = '' ): string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
@@ -778,6 +781,6 @@ EOT;
 	 * @return string
 	 */
 	public function __toString(): string {
-		return $this->toString();
+		return $this->toShortString();
 	}
 }

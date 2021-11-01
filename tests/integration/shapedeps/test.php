@@ -6,7 +6,7 @@ function buildForm( $f ) {
 	}
 }
 $x = [ 'foo' => htmlspecialchars( 'x' ) ];
-buildForm( $x ); // TODO: Safe, it's the key that gets escaped (improve merging deps in foreach loops)
+buildForm( $x ); // Safe, it's the key that gets escaped
 
 
 function safe1() {

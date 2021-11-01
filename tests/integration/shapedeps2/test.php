@@ -52,8 +52,8 @@ function doEvilStuff() {
 	new TestUnknownUnknown( $_GET['x'] ); // Unsafe
 	new TestUnknownKeys( $_GET['x'] ); // TODO Safe
 	new TestKeysWhole( $_GET['x'] ); // Unsafe
-	new TestKeysSafe( $_GET['x'] ); // TODO Safe
-	new TestKeysUnsafe( $_GET['x'] ); // TODO Safe
+	new TestKeysSafe( $_GET['x'] ); // Safe
+	new TestKeysUnsafe( $_GET['x'] ); // Safe
 	new TestKeysUnknown( $_GET['x'] ); // TODO Safe
 	new TestKeysKeys( $_GET['x'] ); // Unsafe
 }
@@ -154,7 +154,7 @@ class TestSafeKeys {
 	public $propSafeKeys;
 
 	public function testKeys() {
-		echoKeys( $this->propSafeKeys ); // TODO Safe
+		echoKeys( $this->propSafeKeys ); // Safe
 	}
 
 	public function __construct( $arg ) {
@@ -206,7 +206,7 @@ class TestUnsafeKeys {
 	public $propUnsafeKeys;
 
 	public function testKeys() {
-		echoKeys( $this->propUnsafeKeys ); // TODO Safe
+		echoKeys( $this->propUnsafeKeys ); // Safe
 	}
 
 	public function __construct( $arg ) {
@@ -258,7 +258,7 @@ class TestUnknownKeys {
 	public $propUnknownKeys;
 
 	public function testKeys() {
-		echoKeys( $this->propUnknownKeys ); // TODO Safe
+		echoKeys( $this->propUnknownKeys ); // Safe
 	}
 
 	public function __construct( $arg ) {
@@ -280,7 +280,7 @@ class TestKeysSafe {
 	public $propKeysSafe;
 
 	public function testSafe() {
-		echoSafe( $this->propKeysSafe ); // TODO Safe
+		echoSafe( $this->propKeysSafe ); // Safe
 	}
 	public function __construct( $arg ) {
 		$this->propKeysSafe = [ $arg => 'safe' ];
@@ -290,7 +290,7 @@ class TestKeysUnsafe {
 	public $propKeysUnsafe;
 
 	public function testUnsafe() {
-		echoUnsafe( $this->propKeysUnsafe ); // TODO Safe
+		echoUnsafe( $this->propKeysUnsafe ); // Safe
 	}
 	public function __construct( $arg ) {
 		$this->propKeysUnsafe = [ $arg => 'safe' ];
@@ -300,7 +300,7 @@ class TestKeysUnknown {
 	public $propKeysUnknown;
 
 	public function testUnknown() {
-		echoUnknown( $this->propKeysUnknown ); // TODO Safe
+		echoUnknown( $this->propKeysUnknown ); // Safe
 	}
 	public function __construct( $arg ) {
 		$this->propKeysUnknown = [ $arg => 'safe' ];

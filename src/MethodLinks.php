@@ -19,6 +19,9 @@ class MethodLinks {
 	/** @var self|null */
 	private $unknownDimLinks;
 
+	/** @var LinksSet|null */
+	private $keysLinks;
+
 	/**
 	 * @param LinksSet|null $links
 	 */
@@ -66,6 +69,18 @@ class MethodLinks {
 	}
 
 	/**
+	 * @return self
+	 */
+	public function asKeyForForeach(): self {
+		if ( $this->keysLinks ) {
+			$links = $this->keysLinks->asMergedWith( $this->links );
+		} else {
+			$links = $this->links;
+		}
+		return new self( $links->asAllMovedToKeys() );
+	}
+
+	/**
 	 * @param mixed $dim
 	 * @param MethodLinks $links
 	 */
@@ -75,6 +90,17 @@ class MethodLinks {
 		} else {
 			$this->unknownDimLinks ??= self::newEmpty();
 			$this->unknownDimLinks->mergeWith( $links );
+		}
+	}
+
+	/**
+	 * @param LinksSet $links
+	 */
+	public function addKeysLinks( LinksSet $links ): void {
+		if ( !$this->keysLinks ) {
+			$this->keysLinks = $links;
+		} else {
+			$this->keysLinks->mergeWith( $links );
 		}
 	}
 
@@ -118,6 +144,11 @@ class MethodLinks {
 			$this->unknownDimLinks = $other->unknownDimLinks;
 		} elseif ( $other->unknownDimLinks ) {
 			$this->unknownDimLinks->mergeWith( $other->unknownDimLinks );
+		}
+		if ( $other->keysLinks && !$this->keysLinks ) {
+			$this->keysLinks = $other->keysLinks;
+		} elseif ( $other->keysLinks ) {
+			$this->keysLinks->mergeWith( $other->keysLinks );
 		}
 	}
 
@@ -244,6 +275,9 @@ class MethodLinks {
 		if ( $this->unknownDimLinks ) {
 			$this->unknownDimLinks = clone $this->unknownDimLinks;
 		}
+		if ( $this->keysLinks ) {
+			$this->keysLinks = clone $this->keysLinks;
+		}
 	}
 
 	/**
@@ -258,6 +292,9 @@ class MethodLinks {
 		}
 		if ( $this->unknownDimLinks ) {
 			$ret->mergeWith( $this->unknownDimLinks->getLinks() );
+		}
+		if ( $this->keysLinks ) {
+			$ret->mergeWith( $this->keysLinks );
 		}
 		return $ret;
 	}
@@ -280,6 +317,12 @@ class MethodLinks {
 		if ( $this->unknownDimLinks ) {
 			$ret = array_merge( $ret, $this->unknownDimLinks->getMethodAndParamTuples() );
 		}
+		foreach ( $this->keysLinks ?? [] as $func ) {
+			$info = $this->keysLinks[$func];
+			foreach ( $info->getParams() as $i => $_ ) {
+				$ret[] = [ $func, $i ];
+			}
+		}
 		return array_unique( $ret, SORT_REGULAR );
 	}
 
@@ -296,6 +339,9 @@ class MethodLinks {
 			}
 		}
 		if ( $this->unknownDimLinks && !$this->unknownDimLinks->isEmpty() ) {
+			return false;
+		}
+		if ( $this->keysLinks && count( $this->keysLinks ) ) {
 			return false;
 		}
 		return true;
@@ -316,6 +362,9 @@ class MethodLinks {
 			}
 		}
 		if ( $this->unknownDimLinks && $this->unknownDimLinks->hasDataForFuncAndParam( $func, $i ) ) {
+			return true;
+		}
+		if ( $this->keysLinks && $this->keysLinks->contains( $func ) && $this->keysLinks[$func]->hasParam( $i ) ) {
 			return true;
 		}
 		return false;
@@ -353,6 +402,11 @@ class MethodLinks {
 		if ( $this->unknownDimLinks && $this->unknownDimLinks->canPreserveTaintFlags( $taint ) ) {
 			return true;
 		}
+		foreach ( $this->keysLinks ?? [] as $func ) {
+			if ( $this->keysLinks[$func]->canPreserveTaintFlags( $taint ) ) {
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -378,6 +432,9 @@ class MethodLinks {
 		}
 		if ( $this->unknownDimLinks ) {
 			$ret |= $this->unknownDimLinks->getAllPreservedFlags();
+		}
+		foreach ( $this->keysLinks ?? [] as $func ) {
+			$ret |= $this->keysLinks[$func]->getAllPreservedFlags();
 		}
 		return $ret;
 	}
@@ -407,6 +464,12 @@ class MethodLinks {
 				$this->unknownDimLinks->asPreservedTaintednessForFuncParam( $func, $param )
 			);
 		}
+		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
+			$keyInfo = $this->keysLinks[$func];
+			if ( $keyInfo->hasParam( $param ) ) {
+				$ret->setKeysOffsets( $keyInfo->getParamOffsets( $param ) );
+			}
+		}
 		return $ret;
 	}
 
@@ -430,6 +493,10 @@ class MethodLinks {
 				$this->unknownDimLinks->asFilteredForFuncAndParam( $func, $param )
 			);
 		}
+		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
+			$ret->keysLinks = new LinksSet();
+			$ret->keysLinks->attach( $func, $this->keysLinks[$func] );
+		}
 		return $ret;
 	}
 
@@ -437,9 +504,12 @@ class MethodLinks {
 	 * @param string $indent
 	 * @return string
 	 */
-	public function toString( $indent = '' ): string {
+	public function toString( string $indent = '' ): string {
 		$elementsIndent = $indent . "\t";
 		$ret = "{\n$elementsIndent" . 'OWN: ' . $this->links->__toString() . ',';
+		if ( $this->keysLinks ) {
+			$ret .= "\n{$elementsIndent}KEYS: " . $this->keysLinks->__toString() . ',';
+		}
 		if ( $this->dimLinks || $this->unknownDimLinks ) {
 			$ret .= "\n{$elementsIndent}CHILDREN: {";
 			$childrenIndent = $elementsIndent . "\t";

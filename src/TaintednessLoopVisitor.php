@@ -21,6 +21,7 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 		$expr = $node->children['expr'];
 		$lhsTaintednessWithError = $this->getTaintedness( $expr );
 		$lhsTaintedness = $lhsTaintednessWithError->getTaintedness();
+		$lhsLinks = $lhsTaintednessWithError->getMethodLinks();
 
 		$value = $node->children['value'];
 		if ( $value->kind === \ast\AST_REF ) {
@@ -38,9 +39,9 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			$this->context,
 			$lhsTaintedness->asValueFirstLevel(),
 			$lhsTaintednessWithError->getError(),
-			$lhsTaintednessWithError->getMethodLinks(),
+			$lhsLinks->asValueFirstLevel(),
 			$lhsTaintedness->asValueFirstLevel(),
-			$lhsTaintednessWithError->getMethodLinks(),
+			$lhsLinks,
 			$rhsIsArray
 		);
 		$valueVisitor( $value );
@@ -52,9 +53,9 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 				$this->context,
 				$lhsTaintedness->asKeyForForeach(),
 				$lhsTaintednessWithError->getError(),
-				$lhsTaintednessWithError->getMethodLinks(),
+				$lhsLinks->asKeyForForeach(),
 				$lhsTaintedness->asKeyForForeach(),
-				$lhsTaintednessWithError->getMethodLinks(),
+				$lhsLinks,
 				$rhsIsArray
 			);
 			$keyVisitor( $key );

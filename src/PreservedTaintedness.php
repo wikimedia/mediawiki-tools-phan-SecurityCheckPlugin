@@ -14,8 +14,8 @@ class PreservedTaintedness {
 	/** @var self[] Taintedness for each possible array element */
 	private $dimTaint = [];
 
-	/** @var int Taintedness of the array keys */
-	private $keysTaint = SecurityCheckPlugin::NO_TAINT;
+	/** @var ParamLinksOffsets|null */
+	private $keysOffsets;
 
 	/**
 	 * @var self|null Taintedness for array elements that we couldn't attribute to any key
@@ -52,11 +52,23 @@ class PreservedTaintedness {
 	}
 
 	/**
+	 * @param ParamLinksOffsets $offsets
+	 */
+	public function setKeysOffsets( ParamLinksOffsets $offsets ): void {
+		$this->keysOffsets = $offsets;
+	}
+
+	/**
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
 		$this->ownOffsets->mergeWith( $other->ownOffsets );
-		$this->keysTaint |= $other->keysTaint;
+		if ( $other->keysOffsets && !$this->keysOffsets ) {
+			$this->keysOffsets = $other->keysOffsets;
+		} elseif ( $other->keysOffsets ) {
+			$this->keysOffsets->mergeWith( $other->keysOffsets );
+		}
+
 		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
 			$this->unknownDimsTaint = $other->unknownDimsTaint;
 		} elseif ( $other->unknownDimsTaint ) {
@@ -95,8 +107,8 @@ class PreservedTaintedness {
 		if ( $this->unknownDimsTaint ) {
 			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asTaintednessForArgument( $argTaint ) );
 		}
-		if ( $this->keysTaint ) {
-			$ret->addKeysTaintedness( $argTaint->get() & $this->keysTaint );
+		if ( $this->keysOffsets ) {
+			$ret->addKeysTaintedness( $this->keysOffsets->appliedToTaintedness( $argTaint )->get() );
 		}
 		return $ret;
 	}
@@ -108,8 +120,8 @@ class PreservedTaintedness {
 	 */
 	public function toShortString(): string {
 		$ret = "{Own: " . $this->ownOffsets->__toString();
-		if ( $this->keysTaint ) {
-			$ret .= '; Keys: ' . SecurityCheckPlugin::taintToString( $this->keysTaint );
+		if ( $this->keysOffsets ) {
+			$ret .= '; Keys: ' . $this->keysOffsets->__toString();
 		}
 		$keyParts = [];
 		if ( $this->dimTaint ) {

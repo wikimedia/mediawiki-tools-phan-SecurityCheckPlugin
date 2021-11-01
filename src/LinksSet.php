@@ -29,6 +29,27 @@ class LinksSet extends Set {
 		}
 	}
 
+	/**
+	 * @param LinksSet $other
+	 * @return self
+	 */
+	public function asMergedWith( self $other ): self {
+		$ret = clone $this;
+		$ret->mergeWith( $other );
+		return $ret;
+	}
+
+	/**
+	 * @return self
+	 */
+	public function asAllMovedToKeys(): self {
+		$ret = new self;
+		foreach ( $this as $func ) {
+			$ret[$func] = $this[$func]->asAllParamsMovedToKeys();
+		}
+		return $ret;
+	}
+
 	public function __toString(): string {
 		$children = [];
 		foreach ( $this as $func ) {

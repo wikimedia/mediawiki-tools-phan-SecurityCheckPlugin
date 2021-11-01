@@ -17,6 +17,9 @@ class ParamLinksOffsets {
 	/** @var self|null */
 	private $unknown;
 
+	/** @var int */
+	private $keysFlags = SecurityCheckPlugin::NO_TAINT;
+
 	/**
 	 * @param int $flags
 	 */
@@ -63,6 +66,7 @@ class ParamLinksOffsets {
 				$this->dims[$key]->mergeWith( $val );
 			}
 		}
+		$this->keysFlags |= $other->keysFlags;
 	}
 
 	/**
@@ -86,11 +90,23 @@ class ParamLinksOffsets {
 	}
 
 	/**
+	 * @return self
+	 */
+	public function asMovedToKeys(): self {
+		$ret = new self( SecurityCheckPlugin::NO_TAINT );
+		$ret->keysFlags = $this->ownFlags;
+		return $ret;
+	}
+
+	/**
 	 * @param int $taint
 	 * @return bool
 	 */
 	public function hasTaintRecursively( int $taint ): bool {
 		if ( $this->ownFlags & $taint ) {
+			return true;
+		}
+		if ( $this->keysFlags & $taint ) {
 			return true;
 		}
 		foreach ( $this->dims as $dimOffsets ) {
@@ -116,6 +132,7 @@ class ParamLinksOffsets {
 		if ( $this->unknown ) {
 			$ret |= $this->unknown->getFlagsRecursively();
 		}
+		$ret |= $this->keysFlags;
 		return $ret;
 	}
 
@@ -137,11 +154,19 @@ class ParamLinksOffsets {
 	}
 
 	/**
-	 * Should only be used in Taintedness::asMovedAtRelevantOffsets
+	 * Should only be used in Taintedness::asMovedAtRelevantOffsetsForBackprop
 	 * @return ParamLinksOffsets|null
 	 */
 	public function getUnknown(): ?ParamLinksOffsets {
 		return $this->unknown;
+	}
+
+	/**
+	 * Should only be used in Taintedness::asMovedAtRelevantOffsetsForBackprop
+	 * @return int
+	 */
+	public function getKeysFlags(): int {
+		return $this->keysFlags;
 	}
 
 	/**
@@ -162,6 +187,7 @@ class ParamLinksOffsets {
 				$this->unknown->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( null ) )
 			);
 		}
+		// XXX Should we do something to the keys here?
 		return $ret;
 	}
 
@@ -170,6 +196,10 @@ class ParamLinksOffsets {
 	 */
 	public function __toString(): string {
 		$ret = '(own): ' . SecurityCheckPlugin::taintToString( $this->ownFlags );
+
+		if ( $this->keysFlags ) {
+			$ret .= ', keys: ' . SecurityCheckPlugin::taintToString( $this->keysFlags );
+		}
 
 		if ( $this->dims || $this->unknown ) {
 			$ret .= ', dims: [';

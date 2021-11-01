@@ -53,6 +53,17 @@ class SingleMethodLinks {
 	}
 
 	/**
+	 * @return self
+	 */
+	public function asAllParamsMovedToKeys(): self {
+		$ret = new self;
+		foreach ( $this->params as $i => $offsets ) {
+			$ret->params[$i] = $offsets->asMovedToKeys();
+		}
+		return $ret;
+	}
+
+	/**
 	 * @todo Try to avoid this method
 	 * @return ParamLinksOffsets[]
 	 */

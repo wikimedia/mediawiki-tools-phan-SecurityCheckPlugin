@@ -1020,7 +1020,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$curTaint->addKeysTaintedness( $keyTaint->get() );
 			$curError->mergeWith( $keyTaintAll->getError() );
 			$curError->mergeWith( $valTaintAll->getError() );
-			$links->mergeWith( $keyTaintAll->getMethodLinks()->asCollapsed() );
+			$links->addKeysLinks( $keyTaintAll->getMethodLinks()->getLinks() );
 			$links->setAtDim( $offset, $valTaintAll->getMethodLinks() );
 		}
 		$this->curTaintWithError = new TaintednessWithError( $curTaint, $curError, $links );
