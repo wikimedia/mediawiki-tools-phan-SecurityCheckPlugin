@@ -420,19 +420,20 @@ class MethodLinks {
 	 * @return string
 	 */
 	public function toString( $indent = '' ): string {
-		$ret = 'OWN: ' . $this->links->__toString() . ';';
-		if ( !$this->dimLinks ) {
-			return $ret;
+		$elementsIndent = $indent . "\t";
+		$ret = "{\n$elementsIndent" . 'OWN: ' . $this->links->__toString() . ',';
+		if ( $this->dimLinks || $this->unknownDimLinks ) {
+			$ret .= "\n{$elementsIndent}CHILDREN: {";
+			$childrenIndent = $elementsIndent . "\t";
+			foreach ( $this->dimLinks as $key => $links ) {
+				$ret .= "\n$childrenIndent$key: " . $links->toString( $childrenIndent ) . ',';
+			}
+			if ( $this->unknownDimLinks ) {
+				$ret .= "\n$childrenIndent(UNKNOWN): " . $this->unknownDimLinks->toString( $childrenIndent );
+			}
+			$ret .= "\n$elementsIndent}";
 		}
-		$ret .= ' CHILDREN: ';
-		$childrenIndent = $indent . "\t";
-		foreach ( $this->dimLinks as $key => $links ) {
-			$ret .= "\n$childrenIndent$key: " . $links->toString( $childrenIndent );
-		}
-		if ( $this->unknownDimLinks ) {
-			$ret .= "\n\t(UNKNOWN): " . $this->unknownDimLinks->toString( $childrenIndent );
-		}
-		return $ret;
+		return $ret . "\n$indent}";
 	}
 
 	/**

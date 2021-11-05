@@ -21,7 +21,7 @@ class LinksSet extends Set {
 		foreach ( $this as $func ) {
 			$children[] = $func->getFQSEN()->__toString() . ': ' . $this[$func]->__toString();
 		}
-		return '[' . implode( ',', $children ) . ']';
+		return '{ ' . implode( ',', $children ) . ' }';
 	}
 
 	public function __clone() {
