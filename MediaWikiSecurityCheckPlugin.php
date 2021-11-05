@@ -485,6 +485,36 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\MediaWiki\Linker\LinkRenderer::makeKnownLink' => $linkRendererMethods,
 			'\MediaWiki\Linker\LinkRenderer::makePreloadedLink' => $linkRendererMethods,
 			'\MediaWiki\Linker\LinkRenderer::makeBrokenLink' => $linkRendererMethods,
+			// The value of a status object can be pretty much anything, with any degree of taintedness
+			// and escaping. Since it's a widely used class, it will accumulate a lot of links and taintedness
+			// offset, resulting in huge objects (the short string representation of those Taintedness objects
+			// can reach lengths in the order of tens of millions).
+			// Since the plugin cannot keep track the taintedness of a property per-instance (as it assumes that
+			// every property will be used with the same escaping level), we just annotate the methods as safe.
+			'\StatusValue::newGood' => [
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\Status::newGood' => [
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\StatusValue::getValue' => [
+				'overall' => self::NO_TAINT
+			],
+			'\Status::getValue' => [
+				'overall' => self::NO_TAINT
+			],
+			'\StatusValue::setResult' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\Status::setResult' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
 		];
 	}
 
