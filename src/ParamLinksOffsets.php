@@ -8,8 +8,6 @@ use ast\Node;
  * Tree-like object of possible offset combinations for partial links to a parameter
  */
 class ParamLinksOffsets {
-	/** @var bool */
-	private $own;
 	/** @var int What taint flags are preserved for this offset */
 	private $ownFlags;
 
@@ -20,11 +18,9 @@ class ParamLinksOffsets {
 	private $unknown;
 
 	/**
-	 * @param bool $own
 	 * @param int $flags
 	 */
-	public function __construct( bool $own, int $flags ) {
-		$this->own = $own;
+	public function __construct( int $flags ) {
 		$this->ownFlags = $flags;
 	}
 
@@ -32,14 +28,14 @@ class ParamLinksOffsets {
 	 * @return self
 	 */
 	public static function newAll(): self {
-		return new self( true, SecurityCheckPlugin::ALL_TAINT );
+		return new self( SecurityCheckPlugin::ALL_TAINT );
 	}
 
 	/**
 	 * @return self
 	 */
 	public static function newEmpty(): self {
-		return new self( false, SecurityCheckPlugin::NO_TAINT );
+		return new self( SecurityCheckPlugin::NO_TAINT );
 	}
 
 	/**
@@ -54,10 +50,7 @@ class ParamLinksOffsets {
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
-		$this->own = $this->own || $other->own;
-		if ( $other->own ) {
-			$this->ownFlags |= $other->ownFlags;
-		}
+		$this->ownFlags |= $other->ownFlags;
 		if ( $other->unknown && !$this->unknown ) {
 			$this->unknown = $other->unknown;
 		} elseif ( $other->unknown ) {
@@ -83,13 +76,12 @@ class ParamLinksOffsets {
 		if ( $this->unknown ) {
 			$this->unknown->pushOffset( $offset );
 		}
-		if ( $this->own ) {
-			$this->own = false;
-			if ( is_scalar( $offset ) && !isset( $this->dims[$offset] ) ) {
-				$this->dims[$offset] = new self( true, $this->ownFlags );
-			} elseif ( !is_scalar( $offset ) && !$this->unknown ) {
-				$this->unknown = new self( true, $this->ownFlags );
-			}
+		$ownFlags = $this->ownFlags;
+		$this->ownFlags = SecurityCheckPlugin::NO_TAINT;
+		if ( is_scalar( $offset ) && !isset( $this->dims[$offset] ) ) {
+			$this->dims[$offset] = new self( $ownFlags );
+		} elseif ( !is_scalar( $offset ) && !$this->unknown ) {
+			$this->unknown = new self( $ownFlags );
 		}
 	}
 
@@ -98,7 +90,7 @@ class ParamLinksOffsets {
 	 * @return bool
 	 */
 	public function hasTaintRecursively( int $taint ): bool {
-		if ( $this->own && ( $this->ownFlags & $taint ) ) {
+		if ( $this->ownFlags & $taint ) {
 			return true;
 		}
 		foreach ( $this->dims as $dimOffsets ) {
@@ -117,7 +109,7 @@ class ParamLinksOffsets {
 	 * @return int
 	 */
 	public function getFlagsRecursively(): int {
-		$ret = $this->own ? $this->ownFlags : SecurityCheckPlugin::NO_TAINT;
+		$ret = $this->ownFlags;
 		foreach ( $this->dims as $dimOffsets ) {
 			$ret |= $dimOffsets->getFlagsRecursively();
 		}
@@ -134,14 +126,6 @@ class ParamLinksOffsets {
 		if ( $this->unknown ) {
 			$this->unknown = clone $this->unknown;
 		}
-	}
-
-	/**
-	 * Should only be used in Taintedness::asMovedAtRelevantOffsets
-	 * @return bool
-	 */
-	public function getOwn(): bool {
-		return $this->own;
 	}
 
 	/**
@@ -165,7 +149,7 @@ class ParamLinksOffsets {
 	 * @return Taintedness
 	 */
 	public function appliedToTaintedness( Taintedness $taintedness ): Taintedness {
-		if ( $this->own ) {
+		if ( $this->ownFlags ) {
 			$ret = $taintedness->withOnly( $this->ownFlags );
 		} else {
 			$ret = new Taintedness( SecurityCheckPlugin::NO_TAINT );
@@ -185,11 +169,7 @@ class ParamLinksOffsets {
 	 * @return string
 	 */
 	public function __toString(): string {
-		if ( $this->own ) {
-			$ret = '(own): Y: ' . SecurityCheckPlugin::taintToString( $this->ownFlags );
-		} else {
-			$ret = '(own): N';
-		}
+		$ret = '(own): ' . SecurityCheckPlugin::taintToString( $this->ownFlags );
 
 		if ( $this->dims || $this->unknown ) {
 			$ret .= ', dims: [';
