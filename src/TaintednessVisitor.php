@@ -972,14 +972,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			case '_POST':
 			case 'argc':
 			case 'argv':
-			case 'GLOBALS':
 			case 'http_response_header':
-			// TODO Improve these
-			case '_SERVER':
 			case '_COOKIE':
-			case '_SESSION':
 			case '_REQUEST':
+			// It's not entirely clear what $_ENV and $_SESSION should be considered
 			case '_ENV':
+			case '_SESSION':
+			// Hopefully we don't need to specify all keys for $_SERVER...
+			case '_SERVER':
 				return Taintedness::newTainted();
 			case '_FILES':
 				$ret = Taintedness::newSafe();
@@ -994,6 +994,23 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				// Use 'null' as fake offset to set unknownDims
 				$ret->setOffsetTaintedness( null, $elTaint );
 				return $ret;
+			case 'GLOBALS':
+				// Ideally this would recurse properly, but hopefully nobody is using $GLOBALS in complex ways
+				// that wouldn't be covered by this approximation.
+
+				$filesTaintedness = $this->getHardcodedTaintednessForVar( '_FILES' );
+				assert( $filesTaintedness !== null );
+				return Taintedness::newFromArray( [
+					'_GET' => Taintedness::newTainted(),
+					'_POST' => Taintedness::newTainted(),
+					'_SERVER' => Taintedness::newTainted(),
+					'_COOKIE' => Taintedness::newTainted(),
+					'_SESSION' => Taintedness::newTainted(),
+					'_REQUEST' => Taintedness::newTainted(),
+					'_ENV' => Taintedness::newTainted(),
+					'_FILES' => $filesTaintedness,
+					'GLOBALS' => Taintedness::newTainted()
+				] );
 			default:
 				return null;
 		}

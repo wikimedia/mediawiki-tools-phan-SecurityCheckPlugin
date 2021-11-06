@@ -57,6 +57,14 @@ echo $_FILES['foo']['tmp_name']; // Safe
 echo $_FILES['foo']['error']; // Safe
 echo $_FILES['foo']['size']; // Safe
 
+echo $GLOBALS;// Unsafe
+echo $GLOBALS['foo'];// Safe
+echo $GLOBALS['_GET']; // Unsafe
+echo $GLOBALS['_GET']['foo']; // Unsafe
+echo $GLOBALS['GLOBALS']; // Unsafe
+echo $GLOBALS['GLOBALS']['_GET']; // Unsafe
+echo $GLOBALS['GLOBALS']['foo']; // Ideally safe
+
 
 // Simpler tests, these should be all tainted
 echo $_COOKIE;// Unsafe
@@ -67,6 +75,4 @@ echo $_REQUEST;// Unsafe
 echo $_REQUEST['a'];// Unsafe
 echo $_ENV;// Unsafe
 echo $_ENV['a'];// Unsafe
-echo $GLOBALS;// Unsafe
-echo $GLOBALS['foo'];// Unsafe
 echo $http_response_header;// Unsafe

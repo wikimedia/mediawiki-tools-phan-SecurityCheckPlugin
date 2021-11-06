@@ -8,7 +8,7 @@ $array = [
 			'good' => [
 				'foo' => 'safe'
 			],
-			$GLOBALS['unknown'] => [
+			$_GET['unsafe unknown'] => [
 				'foo' => $_GET['unsafe']
 			]
 		],
@@ -53,7 +53,7 @@ echo $fill1['a']['unsafe']; // Unsafe
 foreach ( $fill1 as $k1 => $_ ) {
 	echo $k1; // TODO: Ideally Safe
 }
-$unsafeKeys = [ $GLOBALS['a'], $GLOBALS['b'] ];
+$unsafeKeys = [ $_GET['a'], $_GET['b'] ];
 $fill2 = array_fill_keys( $unsafeKeys, $value );
 echo $fill2['a']; // Unsafe
 echo $fill2['a']['safe']; // TODO: Ideally Safe

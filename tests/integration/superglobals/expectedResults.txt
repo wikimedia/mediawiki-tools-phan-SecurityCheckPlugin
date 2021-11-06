@@ -22,14 +22,18 @@ integration/superglobals/test.php:51 SecurityCheck-XSS Echoing expression that w
 integration/superglobals/test.php:52 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/superglobals/test.php +50)
 integration/superglobals/test.php:54 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:55 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:60 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:62 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:63 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:64 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:65 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:66 SecurityCheck-XSS Echoing expression that was not html escaped
-integration/superglobals/test.php:67 SecurityCheck-XSS Echoing expression that was not html escaped
-integration/superglobals/test.php:68 SecurityCheck-XSS Echoing expression that was not html escaped
-integration/superglobals/test.php:69 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:70 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:71 SecurityCheck-XSS Echoing expression that was not html escaped
 integration/superglobals/test.php:72 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:73 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:74 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:75 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:76 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:77 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/superglobals/test.php:78 SecurityCheck-XSS Echoing expression that was not html escaped

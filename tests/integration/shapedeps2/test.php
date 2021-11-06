@@ -221,7 +221,7 @@ class TestUnknownWhole {
 		echoWhole( $this->propUnknownWhole ); // Unsafe
 	}
 	public function __construct( $arg ) {
-		$this->propUnknownWhole = [ getUnknown() => $arg ];
+		$this->propUnknownWhole = [ $GLOBALS['unknown safe'] => $arg ];
 	}
 }
 class TestUnknownSafe {
@@ -231,7 +231,7 @@ class TestUnknownSafe {
 		echoSafe( $this->propUnknownSafe ); // Unsafe
 	}
 	public function __construct( $arg ) {
-		$this->propUnknownSafe = [ getUnknown() => $arg ];
+		$this->propUnknownSafe = [ $GLOBALS['unknown safe'] => $arg ];
 	}
 }
 class TestUnknownUnsafe {
@@ -241,7 +241,7 @@ class TestUnknownUnsafe {
 		echoUnsafe( $this->propUnknownUnsafe ); // Unsafe
 	}
 	public function __construct( $arg ) {
-		$this->propUnknownUnsafe = [ getUnknown() => $arg ];
+		$this->propUnknownUnsafe = [ $GLOBALS['unknown safe'] => $arg ];
 	}
 }
 class TestUnknownUnknown {
@@ -251,7 +251,7 @@ class TestUnknownUnknown {
 		echoUnknown( $this->propUnknownUnknown ); // Unsafe
 	}
 	public function __construct( $arg ) {
-		$this->propUnknownUnknown = [ getUnknown() => $arg ];
+		$this->propUnknownUnknown = [ $GLOBALS['unknown safe'] => $arg ];
 	}
 }
 class TestUnknownKeys {
@@ -262,7 +262,7 @@ class TestUnknownKeys {
 	}
 
 	public function __construct( $arg ) {
-		$this->propUnknownKeys = [ getUnknown() => $arg ];
+		$this->propUnknownKeys = [ $GLOBALS['unknown safe'] => $arg ];
 	}
 }
 
@@ -333,19 +333,11 @@ function echoUnsafe( $arg ) {
 }
 
 function echoUnknown( $arg ) {
-	echo $arg[getUnknown()];
+	echo $arg[$GLOBALS['unknown safe']];
 }
 
 function echoKeys( $arg ) {
 	foreach ( $arg as $k => $_ ) {
 		echo $k;
 	}
-}
-
-/**
- * Helper to get an unknown type but without taint
- * @return-taint none
- */
-function getUnknown() {
-	return $GLOBALS['unknown'];
 }

@@ -47,7 +47,7 @@ $arr3 = [
 	'unsafe' => $_GET['x']
 ];
 
-$arr3 = $arr3 + [ $GLOBALS['unknown'] => $_GET['baz'] ];
+$arr3 = $arr3 + [ $_GET['unsafe'] => $_GET['baz'] ];
 foreach ( $arr3 as $k => $_ ) {
 	echo $k; // Unsafe
 }
