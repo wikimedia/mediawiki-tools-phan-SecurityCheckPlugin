@@ -15,21 +15,15 @@ function nonArrayAdditionRemovesTaint() {
 	$u1 += $u2;
 	echo $u1; // TODO: Ideally safe because `array` is ruled out above, but phan doesn't infer a real type here.
 
-	$u3 = $GLOBALS['u3'];
-	$u4 = $GLOBALS['u4'];
-	assert( !is_array( $u3 ) && !is_array( $u4 ) );
+	$u3 = $_GET['u3'];
+	$u4 = $_GET['u4'];
 	$u3 += $u4;
-	echo $u3; // Unsafe due to mixed type
-
-	$u5 = $_GET['u5'];
-	$u6 = $_GET['u6'];
-	$u5 += $u6;
-	echo $u5; // Unsafe
+	echo $u3; // Unsafe
 }
 
 function unknownAdditionPreservesTaint() {
 	$unsafe = $_GET['x'];
-	$unsafe += $GLOBALS['unknown'];
+	$unsafe += $_GET['y'];
 	echo $unsafe; // Unsafe, could be an array
 
 	$unsafe = $_GET['x'];
@@ -80,15 +74,15 @@ function appendPreservesTaint() {
 
 function bitwisePreservesTaint() {
 	$unsafe = $_GET['x'];
-	$unsafe |= $GLOBALS['unknown'];
+	$unsafe |= $_GET['y'];
 	echo $unsafe; // Unsafe
 
 	$unsafe = $_GET['x'];
-	$unsafe &= $GLOBALS['unknown'];
+	$unsafe &= $_GET['y'];
 	echo $unsafe; // Unsafe
 
 	$unsafe = $_GET['x'];
-	$unsafe ^= $GLOBALS['unknown'];
+	$unsafe ^= $_GET['y'];
 	echo $unsafe; // Unsafe
 }
 

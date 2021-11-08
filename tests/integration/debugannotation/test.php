@@ -32,7 +32,7 @@ function withArrays() {
 	'@phan-debug-var-taintedness $arr1';
 	$arr2 = [
 		'new' => $_GET['a'],
-		$GLOBALS['unkkey'] => $arr1
+		$_GET['unkkey'] => $arr1
 	];
 	'@phan-debug-var-taintedness $arr2';
 }

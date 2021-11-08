@@ -102,7 +102,7 @@ class TestUnknown {
 	}
 
 	public function __construct( $arg ) {
-		$this->unknownProp = [ getUnknown() => $arg ];
+		$this->unknownProp = [ $GLOBALS['unknown safe'] => $arg ];
 	}
 }
 
@@ -125,12 +125,4 @@ function allSink( $arg ) {
 	foreach ( $arg as $k => $v ) {
 		unserialize( $k );
 	}
-}
-
-/**
- * Helper to get an unknown type but without taint
- * @return-taint none
- */
-function getUnknown() {
-	return $GLOBALS['unknown'];
 }

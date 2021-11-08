@@ -143,17 +143,7 @@ function withoff2( $arg ) {
 withoff( [ 'x' => [ 'x' => 'safe', 'y' => $_GET['unsafe'] ] ] );// Unsafe
 
 function withoff3( $arg ) {
-	$arg[getUnknown()] = $arg[getUnknown()];// Ensure the offset at the LHS is merged correctly
+	$arg[$GLOBALS['unknown safe']] = $arg[$GLOBALS['unknown safe 2']];// Ensure the offset at the LHS is merged correctly
 	echo $arg;
 }
 withoff( [ 'x' => [ 'x' => 'safe', 'y' => $_GET['unsafe'] ] ] );// Unsafe
-
-
-
-/**
- * Helper to get an unknown type but without taint
- * @return-taint none
- */
-function getUnknown() {
-	return $GLOBALS['unknown'];
-}
