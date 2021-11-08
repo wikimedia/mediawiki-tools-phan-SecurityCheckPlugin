@@ -73,7 +73,7 @@ class ParamLinksOffsets {
 	}
 
 	/**
-	 * Pushes $offsets to all leafs.
+	 * Pushes $offsets to all leaves.
 	 * @param Node|string|int|null $offset
 	 */
 	public function pushOffset( $offset ): void {
