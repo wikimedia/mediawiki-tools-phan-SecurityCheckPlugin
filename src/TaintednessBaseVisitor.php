@@ -965,7 +965,7 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Shortcut to resolve array offsets, with a sanity check
+	 * Shortcut to resolve array offsets, with an assertion check
 	 *
 	 * @param Node|mixed $rawOffset
 	 * @return Node|mixed
