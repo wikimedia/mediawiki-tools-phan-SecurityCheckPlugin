@@ -937,9 +937,13 @@ trait TaintednessBaseVisitor {
 	 * @return Node|mixed An equivalent scalar PHP value, or $value if it cannot be resolved
 	 */
 	protected function resolveValue( $value ) {
-		return $value instanceof Node
-			? $this->getCtxN( $value )->getEquivalentPHPScalarValue()
-			: $value;
+		if ( !$value instanceof Node ) {
+			return $value;
+		}
+		$resolved = $this->getCtxN( $value )->getEquivalentPHPScalarValue();
+		// We don't want resources here (https://github.com/phan/phan/issues/4659)
+		// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.is_resource
+		return is_resource( $resolved ) ? $value : $resolved;
 	}
 
 	/**

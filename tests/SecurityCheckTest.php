@@ -83,6 +83,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		if ( !$usePolyfill && !extension_loaded( 'ast' ) ) {
 			$this->markTestSkipped( 'This test requires PHP extension \'ast\' loaded' );
 		}
+		// FIXME: Just disable xdebug for the CI test job! (T269489)
+		putenv( 'PHAN_ALLOW_XDEBUG=1' );
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
 		// Useful when debugging weird test failures
 		// putenv( 'SECCHECK_DEBUG=-' );

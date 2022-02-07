@@ -13,7 +13,7 @@
 * Caused-by lines are now much more accurate for code involving function calls.
 
 ### Internal changes
-* Bumped phan/phan to 5.2.1
+* Bumped phan/phan to 5.3.2
 
 ## v3.3.2
 ### Bug fixes

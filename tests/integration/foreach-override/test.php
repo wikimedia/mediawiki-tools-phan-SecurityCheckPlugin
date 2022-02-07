@@ -34,7 +34,7 @@ function testOverrideInBodySafe() {
 	foreach ( $array as $x ) {
 		$val = 'safe';
 	}
-	echo $val; // TODO Safe
+	echo $val; // Safe
 }
 
 function testOverrideInValueSafe() {
@@ -43,7 +43,7 @@ function testOverrideInValueSafe() {
 	$val = $_GET['a'];
 	foreach ( $array as $val ) {
 	}
-	echo $val; // TODO Safe
+	echo $val; // Safe
 }
 
 function testOverrideInKeySafe() {
@@ -52,7 +52,7 @@ function testOverrideInKeySafe() {
 	$val = $_GET['a'];
 	foreach ( $array as $val => $_ ) {
 	}
-	echo $val; // TODO Safe
+	echo $val; // Safe
 }
 
 class TestWithProps {
