@@ -4,7 +4,6 @@ namespace SecurityCheckPlugin;
 
 use ast\Node;
 use Phan\Language\Element\Parameter;
-use Phan\Language\Element\PassByReferenceVariable;
 use Phan\PluginV3\PluginAwarePreAnalysisVisitor;
 
 /**
@@ -101,7 +100,7 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			// No point in adding a caused-by line here.
 			self::setTaintednessRaw( $varObj, $startTaint );
 
-			if ( !$varObj instanceof PassByReferenceVariable && !$paramTypeTaint->isSafe() ) {
+			if ( !$paramTypeTaint->isSafe() ) {
 				// If the param is not an integer or something, link it to the func
 				$this->linkParamAndFunc( $varObj, $method, $i );
 			}

@@ -45,7 +45,7 @@ echo $unsafe2; // Unsafe TODO: Should NOT have line 42 in the caused-by
 
 $unsafe3 = $_GET['foo'];
 maybeEscape( $unsafe3 );
-echo $unsafe3; // Unsafe
+echo $unsafe3; // Unsafe, not caused by line 47
 
 $unsafe4 = $_GET['foo'];
 alwaysEscape( $unsafe4 );

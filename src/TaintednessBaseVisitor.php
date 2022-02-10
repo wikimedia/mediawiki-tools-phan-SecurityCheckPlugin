@@ -23,7 +23,6 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\GlobalVariable;
 use Phan\Language\Element\Method;
-use Phan\Language\Element\Parameter;
 use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
 use Phan\Language\Element\TypedElementInterface;
@@ -1513,7 +1512,8 @@ trait TaintednessBaseVisitor {
 
 		foreach ( $varLinks as $var ) {
 			if ( $var instanceof PassByReferenceVariable ) {
-				// TODO This check is probably misplaced.
+				// TODO This should become unnecessary once the TODO in handleMethodCall about postponing
+				// handlePassByRef is resolved.
 				$var = $var->getElement();
 			}
 			assert( $var instanceof TypedElementInterface );
@@ -1942,13 +1942,6 @@ trait TaintednessBaseVisitor {
 				$this->code_base
 			);
 
-			$param = $func->getParameterForCaller( $i );
-			// @todo Internal funcs that pass by reference. Should we assume that their variables are tainted? Most
-			// common example is probably preg_match, which may very well be tainted much of the time.
-			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
-				$this->handlePassByRef( $func, $param, $argument, $i, $isHookHandler );
-			}
-
 			// TODO: We also need to handle the case where someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
 			if ( $curArgTaintedness->isAllTaint() ) {
@@ -1960,6 +1953,18 @@ trait TaintednessBaseVisitor {
 			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
 				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError->getParamSinkLines( $i ) );
 			}
+
+			$param = $func->getParameterForCaller( $i );
+			// @todo Internal funcs that pass by reference. Should we assume that their variables are tainted? Most
+			// common example is probably preg_match, which may very well be tainted much of the time.
+			// TODO: Ideally this should happen after all args have been processed, so it would account for any
+			// last-minute modification of the dependent elements (e.g. markAllDependentVarsYes) and would see the
+			// "final" value for refTaint. Right now this is not possible because links tracked by
+			// markAllDependentVarsYes are imprecise and would introduce false positives.
+			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
+				$this->handlePassByRef( $func, $argument, $i, $isHookHandler );
+			}
+
 			// Always include the ordinal (it helps for repeated arguments)
 			$taintedArg = $argName;
 			$argStr = ASTReverter::toShortString( $argument );
@@ -2095,22 +2100,19 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Handle pass-by-ref params when examining a function call. Phan handles passbyref by reanalyzing
 	 * the method with PassByReferenceVariable objects instead of Parameters. These objects contain
-	 * the info about the param, but proxy all calls to the underlying argument object. Our approach
-	 * to passbyrefs takes advantage of that, and is described below.
-	 *
-	 * Whenever we find a PassByReferenceVariable, we first extract the argument from it.
-	 * This means that we can set taintedness, links, caused-by, etc. all on the argument object,
-	 * and without having to use dedicated code paths.
-	 * However, methods are usually analyzed *before* the call, hence, if we modify the
-	 * taintedness of the argument immediately, the effect of the method call will be reproduced
-	 * twice. This would lead to weird bugs where a method escapes its (ref) parameter, and calling
-	 * such a method with a non-tainted argument would result in a DoubleEscaped warning.
-	 * To avoid that, we save taint data for passbyrefs inside another property (on the
-	 * argument object), taintednessRef. Then, when the method call is found, the "ref" taintedness
-	 * becomes actual, which is what this very method takes care of.
+	 * the info about the param, but proxy all calls to the underlying argument object.
+	 * We cannot 100% copy that behaviour: inside the function body, the local variable for the pbr param
+	 * would have the same taintedness as the argument, and things like `echo $pbr` would emit an issue
+	 * inside the function, which is unwanted for now. Additionally, it's unclear how we'd add a caused-by
+	 * entry for the line of the function call.
+	 * Hence, instead of adding taintedness to the underlying argument, we put it in a separate prop, which is only
+	 * written but never read inside the function body. Then after the call was analyzed, this method moves
+	 * the taintedness from the "special" prop onto the normal taintedness prop. We do the same thing for links,
+	 * so as to infer which taintedness from the argument is preserved by the function.
+	 * TODO In the future we might want to really copy phan's approach, as that would allow us to delete some hacks,
+	 *   and handle conditionals inside the function body more accurately.
 	 *
 	 * @param FunctionInterface $func
-	 * @param Parameter $param
 	 * @param Node $argument
 	 * @param int $i Position of the param
 	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
@@ -2119,15 +2121,10 @@ trait TaintednessBaseVisitor {
 	 */
 	private function handlePassByRef(
 		FunctionInterface $func,
-		Parameter $param,
 		Node $argument,
 		int $i,
 		bool $isHookHandler
 	): void {
-		if ( !$func->getInternalScope()->hasVariableWithName( $param->getName() ) ) {
-			$this->debug( __METHOD__, "Missing variable in scope for arg $i \$" . $param->getName() );
-			return;
-		}
 		$argObj = $this->getPassByRefObjFromNode( $argument );
 		if ( !$argObj ) {
 			return;
@@ -2138,19 +2135,20 @@ trait TaintednessBaseVisitor {
 			// reanalyzing the callee with PassByReferenceVariable objects.
 			return;
 		}
+		$refTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
 
 		$globalVarObj = $argObj instanceof GlobalVariable ? $argObj->getElement() : null;
 		// Move the ref taintedness to the "actual" taintedness of the object
 		// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
 		// we never override arg taint for reference params in this case.
 		$overrideTaint = !( $argObj instanceof Property || $globalVarObj || $isHookHandler );
-		// The call itself is only responsible if it adds some taintedness
-		$errTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT );
-		if ( $refTaint->has( SecurityCheckPlugin::PRESERVE_TAINT ) ) {
-			// TODO: Is it OK to keep UNKNOWN from $argObj here? Uninitialized vars passed by ref are common,
-			// but this is only relevant if the by-ref method also doesn't use the arg. See test passbyrefimplicit
-			$refTaint = $refTaint->without( SecurityCheckPlugin::PRESERVE_TAINT )
-				->asMergedWith( $this->getTaintednessPhanObj( $argObj ) );
+		// Note, the call itself is only responsible if it adds some taintedness
+		$errTaint = clone $refTaint;
+		$refLinks = self::getMethodLinksRef( $argObj );
+		if ( $refLinks && $refLinks->hasDataForFuncAndParam( $func, $i ) ) {
+			$addedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $i )
+				->asTaintednessForArgument( $this->getTaintednessPhanObj( $argObj ) );
+			$refTaint->mergeWith( $addedTaint );
 		}
 
 		$this->setTaintedness( $argObj, $refTaint, $overrideTaint );
@@ -2159,9 +2157,10 @@ trait TaintednessBaseVisitor {
 			$this->setTaintedness( $globalVarObj, $refTaint, false );
 			$this->addTaintError( $errTaint, $globalVarObj );
 		}
-		if ( $overrideTaint ) {
-			self::clearTaintednessRef( $argObj );
-		}
+		// We clear method links since the by-ref call might have modified them, and precise tracking is not
+		// trivial to implement, and most probably not worth the effort.
+		self::setMethodLinks( $argObj, MethodLinks::newEmpty() );
+		self::clearRefData( $argObj );
 	}
 
 	/**
@@ -2188,9 +2187,7 @@ trait TaintednessBaseVisitor {
 					return null;
 				}
 			case \ast\AST_DIM:
-				if ( $node->children['expr'] instanceof Node ) {
-					return $this->getPassByRefObjFromNode( $node->children['expr'] );
-				}
+				// Phan doesn't handle this case with PassByReferenceVariable objects, so nothing we can do anyway.
 				return null;
 			default:
 				$this->debug( __METHOD__, 'Unhandled pass-by-ref case: ' . Debug::nodeName( $node ) );

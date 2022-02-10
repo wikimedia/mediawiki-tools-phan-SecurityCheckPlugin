@@ -57,7 +57,7 @@ function test4() {
 
 function test5() {
 	$var5 = $_GET['unsafe']; // TODO This must not be in caused-by
-	escapeEchoAndTaint( $var5 ); // TODO Safe
+	escapeEchoAndTaint( $var5 ); // Safe
 	echo $var5; // Unsafe, caused by lines 60, 24 and 7 (TODO: in this order!)
 }
 

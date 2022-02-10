@@ -29,6 +29,6 @@ class PassByRef {
 		$this->passByRefSafe( $this->myProp1 );
 	}
 	function testUnsafe2() {
-		echo $this->myProp1;
+		echo $this->myProp1; // Unsafe, not caused by line 29
 	}
 }
