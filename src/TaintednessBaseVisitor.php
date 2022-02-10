@@ -238,8 +238,6 @@ trait TaintednessBaseVisitor {
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
 
-		$taintedness = $taintedness->without( SecurityCheckPlugin::PRESERVE_TAINT );
-
 		if ( !$taintedness->isExecOrAllTaint() && ( !$links || $links->isEmpty() ) ) {
 			// Don't add book-keeping if no actual taint was added.
 			return;
@@ -309,11 +307,6 @@ trait TaintednessBaseVisitor {
 			$newTaint = $taintedness;
 		} else {
 			$newTaint = $curTaint->asMergedWith( $taintedness );
-		}
-		if ( $variableObj instanceof Property || $variableObj instanceof GlobalVariable ) {
-			// See test "preservebug". Don't let PRESERVE exit from the current function.
-			// TODO Improve this
-			$newTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
 		}
 		self::setTaintednessRaw( $variableObj, $newTaint );
 	}
@@ -2032,8 +2025,7 @@ trait TaintednessBaseVisitor {
 		'@phan-var Taintedness $overallArgTaint';
 		'@phan-var CausedByLines $argErrors';
 
-		$overallTaint = $taint->getOverall();
-		$overallTaint = $overallTaint->without(
+		$overallTaint = $taint->getOverall()->without(
 			SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT
 		);
 		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
@@ -2135,7 +2127,6 @@ trait TaintednessBaseVisitor {
 			// reanalyzing the callee with PassByReferenceVariable objects.
 			return;
 		}
-		$refTaint->remove( SecurityCheckPlugin::PRESERVE_TAINT );
 
 		$globalVarObj = $argObj instanceof GlobalVariable ? $argObj->getElement() : null;
 		// Move the ref taintedness to the "actual" taintedness of the object

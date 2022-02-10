@@ -1088,7 +1088,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 
-		$overallFuncTaint = $retTaintedness->without( SecurityCheckPlugin::PRESERVE_TAINT );
+		$overallFuncTaint = $retTaintedness;
 		// Note, it's important that we only use the real type here (e.g. from typehints) and NOT
 		// the PHPDoc type, as it may be wrong.
 		$retTaintMask = $this->getTaintMaskForType( $func->getRealReturnType() );

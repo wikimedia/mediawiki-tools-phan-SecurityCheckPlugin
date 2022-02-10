@@ -94,9 +94,8 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			$varObj = $scope->getVariableByName( $paramName );
 
 			$paramTypeTaint = $this->getTaintByType( $varObj->getUnionType() );
-			// Initially, the variable starts off with no taint, but we set the PRESERVE flag so we can check
-			// whether the argument is passed through, at least in simple cases.
-			$startTaint = new Taintedness( SecurityCheckPlugin::PRESERVE_TAINT );
+			// Initially, the variable starts off with no taint.
+			$startTaint = new Taintedness( SecurityCheckPlugin::NO_TAINT );
 			// No point in adding a caused-by line here.
 			self::setTaintednessRaw( $varObj, $startTaint );
 

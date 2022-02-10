@@ -1,4 +1,4 @@
-integration/getqueryinfo2/test.php:9 SecurityCheckDebugTaintedness Variable $retval has taintedness: {Own: NONE; Elements: {tables => {Own: NONE}; fields => {Own: NONE}; conds => {Own: NONE; Elements: {namespace => {Own: PRESERVE}}}}}
+integration/getqueryinfo2/test.php:9 SecurityCheckDebugTaintedness Variable $retval has taintedness: {Own: NONE; Elements: {tables => {Own: NONE}; fields => {Own: NONE}; conds => {Own: NONE; Elements: {namespace => {Own: NONE}}}}}
 integration/getqueryinfo2/test.php:15 SecurityCheckDebugTaintedness Variable $qi has taintedness: {Own: NONE; Elements: {tables => {Own: NONE}; fields => {Own: NONE}; conds => {Own: NONE; Elements: {namespace => {Own: YES}}}}}
 integration/getqueryinfo2/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/getqueryinfo2/test.php +15; integration/getqueryinfo2/test.php +11; integration/getqueryinfo2/test.php +9)
 integration/getqueryinfo2/test.php:20 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/getqueryinfo2/test.php +15; integration/getqueryinfo2/test.php +11; integration/getqueryinfo2/test.php +9)
