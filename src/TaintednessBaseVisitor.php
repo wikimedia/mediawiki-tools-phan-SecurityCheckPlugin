@@ -124,6 +124,8 @@ trait TaintednessBaseVisitor {
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
 
+		$hasReturnLinks = $returnLinks && !$returnLinks->isEmpty();
+
 		// Future TODO: we might consider using PreservedTaintedness from the funcs instead of MethodLinks, but using
 		// links is more consistent with what we do for non-function causedby lines.
 
@@ -138,7 +140,7 @@ trait TaintednessBaseVisitor {
 			}
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
-			if ( $returnLinks && ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) ) {
+			if ( $hasReturnLinks && ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) ) {
 				$newErr->addParamPreservedLines(
 					$key,
 					$newErrors,
@@ -157,7 +159,7 @@ trait TaintednessBaseVisitor {
 					$sinkVariadic->asExecToYesTaint()
 				);
 			}
-			if ( $returnLinks ) {
+			if ( $hasReturnLinks ) {
 				$newErr->addVariadicParamPreservedLines(
 					$variadicIndex,
 					$newErrors,
