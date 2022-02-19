@@ -13,9 +13,9 @@ use Phan\Language\Element\FunctionInterface;
  * @todo Keep per-offset caused-by lines
  */
 class CausedByLines {
-	private const MAX_LINES_PER_ISSUE = 15;
+	private const MAX_LINES_PER_ISSUE = 80;
 	// XXX Hack: Enforce a hard limit, or things may explode
-	private const LINES_HARD_LIMIT = 30;
+	private const LINES_HARD_LIMIT = 100;
 
 	/**
 	 * Note: the links are nullable for performance.
