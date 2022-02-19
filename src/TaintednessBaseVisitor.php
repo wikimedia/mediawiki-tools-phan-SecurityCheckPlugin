@@ -1127,6 +1127,10 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_STATIC_CALL:
 			case \ast\AST_METHOD_CALL:
 			case \ast\AST_NULLSAFE_METHOD_CALL:
+				if ( $definitelyNumkey ) {
+					// This case is too hard for now.
+					return [];
+				}
 				$ctxNode = $this->getCtxN( $node );
 				// @todo Future todo might be to still return arguments when catching an exception.
 				if ( $node->kind === \ast\AST_CALL ) {
