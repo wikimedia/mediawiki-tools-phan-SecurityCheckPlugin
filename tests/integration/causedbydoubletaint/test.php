@@ -41,3 +41,9 @@ function testDifferentArgumentTaint() {
 }
 
 
+function differentTaintsForDifferentParams( $x, $y ) {
+	$y .= getHTML();
+	return $x . $y;
+}
+$a1 = getHTML();
+echo differentTaintsForDifferentParams( $a1, 's' ); // XSS caused by 46, 45, 6, 48, 6, 46
