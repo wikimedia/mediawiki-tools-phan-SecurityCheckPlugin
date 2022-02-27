@@ -25,30 +25,34 @@ class CausedByLines {
 	private $lines = [];
 
 	/**
+	 * @param string[] $lines
 	 * @param Taintedness $taintedness
-	 * @param string $line
 	 * @param MethodLinks|null $links
 	 * @note Taintedness and links are cloned as needed
 	 */
-	public function addLine( Taintedness $taintedness, string $line, MethodLinks $links = null ): void {
+	public function addLines( array $lines, Taintedness $taintedness, MethodLinks $links = null ): void {
 		if ( !$this->lines ) {
-			$this->lines = [ [ clone $taintedness, $line, $links ? clone $links : null ] ];
-			return;
-		}
-		if ( count( $this->lines ) >= self::LINES_HARD_LIMIT ) {
+			foreach ( $lines as $line ) {
+				$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+			}
 			return;
 		}
 
-		$idx = array_search( $line, array_column( $this->lines, 1 ), true );
-		if ( $idx !== false ) {
-			$this->lines[ $idx ][0]->mergeWith( $taintedness );
-			if ( $links && !$this->lines[$idx][2] ) {
-				$this->lines[$idx][2] = clone $links;
-			} elseif ( $links && $links !== $this->lines[$idx][2] ) {
-				$this->lines[$idx][2]->mergeWith( $links );
+		foreach ( $lines as $line ) {
+			if ( count( $this->lines ) >= self::LINES_HARD_LIMIT ) {
+				break;
 			}
-		} else {
-			$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+			$idx = array_search( $line, array_column( $this->lines, 1 ), true );
+			if ( $idx !== false ) {
+				$this->lines[ $idx ][0]->mergeWith( $taintedness );
+				if ( $links && !$this->lines[$idx][2] ) {
+					$this->lines[$idx][2] = clone $links;
+				} elseif ( $links && $links !== $this->lines[$idx][2] ) {
+					$this->lines[$idx][2]->mergeWith( $links );
+				}
+			} else {
+				$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+			}
 		}
 	}
 

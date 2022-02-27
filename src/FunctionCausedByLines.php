@@ -43,9 +43,7 @@ class FunctionCausedByLines {
 	 * @param MethodLinks|null $links
 	 */
 	public function addGenericLines( array $lines, Taintedness $taint, MethodLinks $links = null ): void {
-		foreach ( $lines as $line ) {
-			$this->genericLines->addLine( $taint, $line, $links );
-		}
+		$this->genericLines->addLines( $lines, $taint, $links );
 	}
 
 	/**
@@ -65,9 +63,7 @@ class FunctionCausedByLines {
 		if ( !isset( $this->paramSinkLines[$param] ) ) {
 			$this->paramSinkLines[$param] = new CausedByLines();
 		}
-		foreach ( $lines as $line ) {
-			$this->paramSinkLines[$param]->addLine( $taint, $line );
-		}
+		$this->paramSinkLines[$param]->addLines( $lines, $taint );
 	}
 
 	/**
@@ -86,9 +82,7 @@ class FunctionCausedByLines {
 		if ( !isset( $this->paramPreservedLines[$param] ) ) {
 			$this->paramPreservedLines[$param] = new CausedByLines();
 		}
-		foreach ( $lines as $line ) {
-			$this->paramPreservedLines[$param]->addLine( $taint, $line, $links );
-		}
+		$this->paramPreservedLines[$param]->addLines( $lines, $taint, $links );
 	}
 
 	/**
@@ -140,9 +134,7 @@ class FunctionCausedByLines {
 		if ( !$this->variadicParamSinkLines ) {
 			$this->variadicParamSinkLines = new CausedByLines();
 		}
-		foreach ( $lines as $line ) {
-			$this->variadicParamSinkLines->addLine( $taint, $line );
-		}
+		$this->variadicParamSinkLines->addLines( $lines, $taint );
 	}
 
 	/**
@@ -162,9 +154,7 @@ class FunctionCausedByLines {
 		if ( !$this->variadicParamPreservedLines ) {
 			$this->variadicParamPreservedLines = new CausedByLines();
 		}
-		foreach ( $lines as $line ) {
-			$this->variadicParamPreservedLines->addLine( $taint, $line, $links );
-		}
+		$this->variadicParamPreservedLines->addLines( $lines, $taint, $links );
 	}
 
 	/**

@@ -179,28 +179,23 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Merge the info on original cause of taint to left variable
+	 * Add the given caused-by lines to $element.
 	 *
-	 * If you have something like $left = $right, merge any information
-	 * about what tainted $right into $left as $right's taint may now
-	 * have tainted $left (Or may not if the assignment is in a branch
-	 * or its not a local variable).
-	 *
-	 * @param TypedElementInterface $left (LHS-ish variable)
+	 * @param TypedElementInterface $element
 	 * @param CausedByLines $rightError
 	 */
-	protected function mergeTaintError( TypedElementInterface $left, CausedByLines $rightError ): void {
-		assert( !$left instanceof FunctionInterface, 'Should use mergeFuncTaintError' );
+	protected function mergeTaintError( TypedElementInterface $element, CausedByLines $rightError ): void {
+		assert( !$element instanceof FunctionInterface, 'Should use mergeFuncTaintError' );
 
-		$leftError = self::getCausedByRaw( $left );
+		$curError = self::getCausedByRaw( $element );
 
-		if ( !$leftError ) {
+		if ( !$curError ) {
 			$newLeftError = $rightError;
 		} else {
-			$newLeftError = $leftError->asMergedWith( $rightError );
+			$newLeftError = $curError->asMergedWith( $rightError );
 		}
 
-		self::setCausedByRaw( $left, $newLeftError );
+		self::setCausedByRaw( $element, $newLeftError );
 	}
 
 	/**
@@ -223,15 +218,15 @@ trait TaintednessBaseVisitor {
 	 *
 	 * This allows us to show users what line caused an issue.
 	 *
-	 * @param Taintedness $taintedness
 	 * @param TypedElementInterface $elem Where to put it
+	 * @param Taintedness $taintedness
 	 * @param MethodLinks|null $links
 	 * @param string|null $reason To override the caused by line
 	 */
 	protected function addTaintError(
-		Taintedness $taintedness,
 		TypedElementInterface $elem,
-		MethodLinks $links = null,
+		Taintedness $taintedness,
+		?MethodLinks $links,
 		string $reason = null
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
@@ -248,9 +243,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		$newErr = self::getCausedByRawCloneOrEmpty( $elem );
-		foreach ( $newErrors as $newError ) {
-			$newErr->addLine( $taintedness, $newError, $links );
-		}
+		$newErr->addLines( $newErrors, $taintedness, $links );
 		self::setCausedByRaw( $elem, $newErr );
 	}
 
@@ -1415,11 +1408,11 @@ trait TaintednessBaseVisitor {
 			assert( $var instanceof TypedElementInterface );
 
 			$this->setTaintedness( $var, $taintAdjusted, false );
-			$this->addTaintError( $taintAdjusted, $var );
+			$this->addTaintError( $var, $taintAdjusted, null );
 			if ( $var instanceof GlobalVariable ) {
 				$globalVar = $var->getElement();
 				$this->setTaintedness( $globalVar, $taintAdjusted, false );
-				$this->addTaintError( $taintAdjusted, $globalVar );
+				$this->addTaintError( $globalVar, $taintAdjusted, null );
 			}
 			$this->mergeTaintError( $var, $error );
 		}
@@ -2031,10 +2024,10 @@ trait TaintednessBaseVisitor {
 		}
 
 		$this->setTaintedness( $argObj, $refTaint, $overrideTaint );
-		$this->addTaintError( $errTaint, $argObj );
+		$this->addTaintError( $argObj, $errTaint, null );
 		if ( $globalVarObj ) {
 			$this->setTaintedness( $globalVarObj, $refTaint, false );
-			$this->addTaintError( $errTaint, $globalVarObj );
+			$this->addTaintError( $globalVarObj, $errTaint, null );
 		}
 		// We clear method links since the by-ref call might have modified them, and precise tracking is not
 		// trivial to implement, and most probably not worth the effort.
