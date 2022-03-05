@@ -109,3 +109,12 @@ function testInnerMixed2() {
 	$var = [ [ $_GET['a'] ], $_GET['b'] ];
 	'@phan-debug-var-taintedness $var';
 }
+
+function testSimpleNumericString() {
+	$var = [ '1' => $_GET['a'] ];
+	'@phan-debug-var-taintedness $var';
+}
+function testSimpleUnknown() {
+	$var = [ getUnknown() => $_GET['a'] ];
+	'@phan-debug-var-taintedness $var';
+}

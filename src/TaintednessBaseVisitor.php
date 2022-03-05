@@ -934,52 +934,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * If we're assigning an SQL tainted value as an array key
-	 * or as the value of a numeric key, then set NUMKEY taint.
-	 *
-	 * @note This method modifies $rhsTaintedness and $allRHSTaint in-place
-	 * @todo Can this be moved elsewhere, now that we resolve LHS offsets
-	 *
-	 * @param Node $lhs
-	 * @param Node|mixed $rhs
-	 * @param Taintedness $errorTaint
-	 * @param Taintedness $rhsTaint
-	 */
-	private function maybeAddNumkeyOnAssignmentLHS(
-		Node $lhs,
-		$rhs,
-		Taintedness $errorTaint,
-		Taintedness $rhsTaint
-	): void {
-		$dim = $lhs->children['dim'];
-		if ( $rhsTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
-			// Things like 'foo' => ['taint', 'taint']
-			// are ok.
-			$rhsTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-		} elseif ( $rhsTaint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
-			// Checking the case:
-			// $foo[1] = $sqlTainted;
-			// $foo[] = $sqlTainted;
-			// But ensuring we don't catch:
-			// $foo['bar'][] = $sqlTainted;
-			// $foo[] = [ $sqlTainted ];
-			// $foo[2] = [ $sqlTainted ];
-			if (
-				( $dim === null || $this->nodeIsInt( $dim ) )
-				&& !$this->nodeIsArray( $rhs )
-				&& !( $lhs->children['expr'] instanceof Node && $lhs->children['expr']->kind === \ast\AST_DIM )
-			) {
-				$rhsTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-				$errorTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			}
-		}
-		if ( $this->getTaintedness( $dim )->getTaintedness()->has( SecurityCheckPlugin::SQL_TAINT ) ) {
-			$rhsTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			$errorTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-		}
-	}
-
-	/**
 	 * Get a property by name in the current scope, failing hard if it cannot be found.
 	 * @param string $propName
 	 * @return Property
@@ -1052,7 +1006,7 @@ trait TaintednessBaseVisitor {
 
 					if (
 						$node->kind === \ast\AST_ARRAY &&
-						$child->children['key'] !== null && !$this->nodeCanBeInt( $child->children['key'] )
+						$child->children['key'] !== null && !$this->nodeCanBeIntKey( $child->children['key'] )
 					) {
 						continue;
 					}
@@ -1697,12 +1651,10 @@ trait TaintednessBaseVisitor {
 		string $msg,
 		array $msgParams
 	): void {
-		if (
-			$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT ) &&
-			$lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT )
-		) {
-			$combinedTaint = $rhsTaint->withOnly( Taintedness::flagsAsExecToYesTaint( $lhsTaint->get() ) );
-			$combinedTaintInt = $combinedTaint->get();
+		$rhsIsUnknown = $rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT );
+		if ( $rhsIsUnknown && $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
+			$combinedTaint = Taintedness::newSafe();
+			$combinedTaintInt = SecurityCheckPlugin::NO_TAINT;
 		} else {
 			$combinedTaint = Taintedness::intersectForSink( $lhsTaint, $rhsTaint );
 			if ( $combinedTaint->isSafe() ) {
@@ -1712,10 +1664,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		if (
-			(
-				$combinedTaintInt === SecurityCheckPlugin::NO_TAINT &&
-				$rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT )
-			) ||
+			( $combinedTaintInt === SecurityCheckPlugin::NO_TAINT && $rhsIsUnknown ) ||
 			SecurityCheckPlugin::$pluginInstance->isFalsePositive(
 				$combinedTaintInt,
 				$msg,
@@ -1858,7 +1807,7 @@ trait TaintednessBaseVisitor {
 			if (
 				$paramSinkTaint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT )
 				&& $curArgTaintedness->has( SecurityCheckPlugin::SQL_TAINT )
-				&& $this->nodeIsString( $argument )
+				&& $this->nodeCanBeString( $argument )
 			) {
 				// Special case to make NUMKEY work right for non-array values.
 				// TODO Should consider if this is really best approach.
@@ -2380,7 +2329,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it a string?
 	 */
-	protected function nodeIsString( $node ): bool {
+	protected function nodeCanBeString( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return is_string( $node );
@@ -2388,23 +2337,6 @@ trait TaintednessBaseVisitor {
 		$type = $this->getNodeType( $node );
 		// @todo Should having mixed type result in returning false here?
 		return $type && $type->hasStringType();
-	}
-
-	/**
-	 * Given a Node, is it definitely an int (and nothing else)
-	 *
-	 * Floats are not considered ints here.
-	 *
-	 * @param Node|mixed $node A node object or simple value from AST tree
-	 * @return bool Is it an int?
-	 */
-	protected function nodeIsInt( $node ): bool {
-		if ( !( $node instanceof Node ) ) {
-			// simple literal
-			return is_int( $node );
-		}
-		$type = $this->getNodeType( $node );
-		return $type && $type->hasIntType() && $type->typeCount() === 1;
 	}
 
 	/**
@@ -2430,23 +2362,31 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given a Node, can it be an int?
+	 * Given a Node that is used as array key, can the key be integer?
 	 * Floats are not considered ints here.
+	 * Note: this method cannot be 100% accurate. First, we don't use the real type, so we may have a false positive
+	 * if e.g. a parameter is annotated as string but the argument is an int. Second, even if something has a real type
+	 * and is not an integer, it could be a string that gets autocast to an integer.
 	 *
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it an int?
 	 * @fixme A lot of duplication with other similar methods...
 	 */
-	protected function nodeCanBeInt( $node ): bool {
+	protected function nodeCanBeIntKey( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
-			return is_int( $node );
+			if ( is_int( $node ) ) {
+				return true;
+			}
+			// Strings that are canonical representation of numbers are coerced to int keys.
+			$testArr = [ $node => 'foo' ];
+			$key = key( $testArr );
+			return is_int( $key );
 		}
 		$type = $this->getNodeType( $node );
 		if ( !$type ) {
 			return true;
 		}
-		$type = $type->getRealUnionType();
 		return $type->hasIntType() || $type->hasMixedOrNonEmptyMixedType() || $type->isEmpty();
 	}
 

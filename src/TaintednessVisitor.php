@@ -397,18 +397,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		Taintedness $errorTaint,
 		MethodLinks $errorLinks
 	): Taintedness {
-		if ( $lhs->kind === \ast\AST_DIM ) {
-			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $errorTaint, $rhsTaint );
-		}
-
 		$vis = new TaintednessAssignVisitor(
 			$this->code_base,
 			$this->context,
-			$rhsTaint,
+			clone $rhsTaint,
 			$rhsError,
 			$rhsLinks,
 			$errorTaint,
-			$errorLinks
+			$errorLinks,
+			function () use ( $rhs ): bool {
+				return $this->nodeIsArray( $rhs );
+			}
 		);
 		$vis( $lhs );
 		return $rhsTaint;
@@ -957,14 +956,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$valTaint = $valTaintAll->getTaintedness();
 			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
 
-			if ( $valTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
-				$curTaint->remove( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			}
 			if (
-				( $keyTaint->has( $sqlTaint ) ) ||
-				( ( $key === null || $this->nodeIsInt( $key ) )
-					&& ( $valTaint->has( $sqlTaint ) )
-					&& $this->nodeIsString( $value ) )
+				( $keyTaint->has( $sqlTaint ) ) || (
+					( $key === null || $this->nodeCanBeIntKey( $key ) )
+					&& $valTaint->has( $sqlTaint )
+					&& $this->nodeCanBeString( $value )
+				)
 			) {
 				$curTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
@@ -972,8 +969,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			//  explicitly (at least).
 			$offset = $key ?? $curNumKey++;
 			$offset = $this->resolveOffset( $offset );
-			// Note that we remove numkey taint because that's only for the outer array
-			$curTaint->setOffsetTaintedness( $offset, $valTaint->without( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) );
+			$curTaint->setOffsetTaintedness( $offset, $valTaint );
 			$curTaint->addKeysTaintedness( $keyTaint->get() );
 			$curError->mergeWith( $keyTaintAll->getError() );
 			$curError->mergeWith( $valTaintAll->getError() );

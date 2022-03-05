@@ -1,17 +1,17 @@
-integration/assignresult/test.php:14 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {foo => {Own: YES}}}
 integration/assignresult/test.php:19 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {foo => {Own: YES}}}
-integration/assignresult/test.php:25 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {foo => {Own: SHELL}}}
-integration/assignresult/test.php:31 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SHELL}
-integration/assignresult/test.php:37 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SHELL}
-integration/assignresult/test.php:43 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {bar => {Own: HTML}; baz => {Own: SHELL}}}
-integration/assignresult/test.php:48 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
-integration/assignresult/test.php:54 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
-integration/assignresult/test.php:60 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
-integration/assignresult/test.php:69 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}
-integration/assignresult/test.php:74 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: YES, SQL_NUMKEY}
-integration/assignresult/test.php:80 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {1 => {Own: SHELL}}}
-integration/assignresult/test.php:86 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SHELL}
-integration/assignresult/test.php:92 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SHELL}
-integration/assignresult/test.php:98 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {1 => {Own: HTML}; 2 => {Own: SHELL}}}
-integration/assignresult/test.php:104 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
-integration/assignresult/test.php:110 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
+integration/assignresult/test.php:24 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {foo => {Own: YES}}}
+integration/assignresult/test.php:30 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {foo => {Own: SHELL}}}
+integration/assignresult/test.php:36 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SHELL}
+integration/assignresult/test.php:42 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SHELL}
+integration/assignresult/test.php:48 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {bar => {Own: HTML}; baz => {Own: SHELL}}}
+integration/assignresult/test.php:53 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
+integration/assignresult/test.php:59 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
+integration/assignresult/test.php:65 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: NONE; Elements: {0 => {Own: HTML}; 1 => {Own: SHELL}}}
+integration/assignresult/test.php:74 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}
+integration/assignresult/test.php:79 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: YES}
+integration/assignresult/test.php:85 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL_NUMKEY; Elements: {1 => {Own: SQL}}}
+integration/assignresult/test.php:91 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL}
+integration/assignresult/test.php:97 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL}
+integration/assignresult/test.php:103 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL_NUMKEY; Elements: {1 => {Own: HTML}; 2 => {Own: SQL}}}
+integration/assignresult/test.php:109 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: HTML}; 1 => {Own: SQL}}}
+integration/assignresult/test.php:115 SecurityCheckDebugTaintedness Variable $res has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: HTML}; 1 => {Own: SQL}}}

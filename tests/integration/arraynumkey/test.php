@@ -46,7 +46,7 @@ $db->select( 't', 'f', $where3 );
 
 $where4 = [];
 $where4[$_GET['d']] = 'foo';
-// unsafe
+// unsafe because keys are not escaped
 $db->select( 't', 'f', $where4 );
 
 // unsafe
@@ -115,3 +115,10 @@ $db->select( 'foo', '*', $unsafe ); // SQLi
 $newSafe = [ 'safe' => 'safe' ];
 $alsoSafe = array_values( $newSafe );
 $db->select( 'foo', '*', $alsoSafe ); // Safe
+
+
+$safe2 = [
+	'f1' => $thisVariableIsNotSet,
+	'f2' => [ $_GET['a'] ],
+];
+$db->select( 't', '*', $safe2 ); // Safe (actually a LikelyFalsePositive)

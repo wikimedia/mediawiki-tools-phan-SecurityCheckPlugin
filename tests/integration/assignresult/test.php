@@ -10,6 +10,11 @@ function getShell() {
 	return $_GET['shell'];
 }
 
+/** @return-taint sql */
+function getSQL() {
+	return $_GET['sql'];
+}
+
 function testSimpleAssignment() {
 	$res = $a = [ 'foo' => $_GET['a'] ];
 	'@phan-debug-var-taintedness $res';
@@ -77,36 +82,36 @@ function testOffsetAssignmentNumkey() {
 
 function testSimpleAssignmentReplaceNumkey() {
 	$a = [ 0 => getHTML() ];
-	$res = $a = [ 1 => getShell() ];
+	$res = $a = [ 1 => getSQL() ];
 	'@phan-debug-var-taintedness $res';
 }
 
 function testOffsetAssignmentMergeNumkey() {
 	$a = [ 0 => getHTML() ];
-	$res = $a[1] = getShell();
+	$res = $a[1] = getSQL();
 	'@phan-debug-var-taintedness $res';
 }
 
 function testOffsetAssignmentReplaceNumkey() {
 	$a = [ 0 => getHTML() ];
-	$res = $a[0] = getShell();
+	$res = $a[0] = getSQL();
 	'@phan-debug-var-taintedness $res';
 }
 
 function testOffsetAssignmentAddNumkey() {
 	$a = [ 0 => [ 1 => getHTML() ] ];
-	$res = $a[0] += [ 2 => getShell() ];
+	$res = $a[0] += [ 2 => getSQL() ];
 	'@phan-debug-var-taintedness $res';
 }
 
 function testArrayAssignmentOffsetMergeNumkey() {
 	$a = [ 0 => getShell() ];
-	$res = [ $a[1], $b ] = [ getHTML(), getShell() ];
+	$res = [ $a[1], $b ] = [ getHTML(), getSQL() ];
 	'@phan-debug-var-taintedness $res';
 }
 
 function testArrayAssignmentOffsetReplaceNumkey() {
 	$a = [ 0 => getShell() ];
-	$res = [ $a[0], $b ] = [ getHTML(), getShell() ];
+	$res = [ $a[0], $b ] = [ getHTML(), getSQL() ];
 	'@phan-debug-var-taintedness $res';
 }

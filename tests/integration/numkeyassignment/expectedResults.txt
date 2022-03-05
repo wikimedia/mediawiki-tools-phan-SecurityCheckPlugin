@@ -1,21 +1,23 @@
 integration/numkeyassignment/test.php:9 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}
-integration/numkeyassignment/test.php:13 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {0 => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:18 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: YES, SQL_NUMKEY}}}
+integration/numkeyassignment/test.php:13 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {0 => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:18 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {1 => {Own: YES}}}
 integration/numkeyassignment/test.php:23 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: YES}}}
-integration/numkeyassignment/test.php:28 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: YES}}}
-integration/numkeyassignment/test.php:33 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES, SQL_NUMKEY}}}
-integration/numkeyassignment/test.php:38 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
-integration/numkeyassignment/test.php:43 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}}}
-integration/numkeyassignment/test.php:48 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}}}
-integration/numkeyassignment/test.php:53 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}}}
-integration/numkeyassignment/test.php:59 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: NONE; Elements: {1 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:28 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {1 => {Own: YES}}}
+integration/numkeyassignment/test.php:33 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {UNKNOWN => {Own: YES}}}
+integration/numkeyassignment/test.php:38 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {UNKNOWN => {Own: YES}}}
+integration/numkeyassignment/test.php:43 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: SQL_NUMKEY; Elements: {UNKNOWN => {Own: YES}}}}}
+integration/numkeyassignment/test.php:48 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: SQL_NUMKEY; Elements: {UNKNOWN => {Own: YES}}}}}
+integration/numkeyassignment/test.php:53 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: SQL_NUMKEY; Elements: {UNKNOWN => {Own: YES}}}}}
+integration/numkeyassignment/test.php:59 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: SQL_NUMKEY; Elements: {1 => {Own: YES}}}}}
 integration/numkeyassignment/test.php:64 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: NONE; Elements: {bar => {Own: YES}}}}}
-integration/numkeyassignment/test.php:69 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: NONE; Elements: {1 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:74 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: NONE; Elements: {foo => {Own: YES}}}}}
-integration/numkeyassignment/test.php:80 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:85 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:90 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:95 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:100 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:105 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {0 => {Own: YES}; 1 => {Own: NONE; Elements: {0 => {Own: YES}}}}}
-integration/numkeyassignment/test.php:109 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: NONE; Elements: {0 => {Own: YES}}}; 1 => {Own: YES}}}
+integration/numkeyassignment/test.php:69 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: SQL_NUMKEY; Elements: {1 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:74 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {1 => {Own: NONE; Elements: {foo => {Own: YES}}}}}
+integration/numkeyassignment/test.php:80 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:85 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {foo => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:90 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {1 => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:95 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:100 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:105 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}; 1 => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}}}
+integration/numkeyassignment/test.php:109 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}}}; 1 => {Own: YES}}}
+integration/numkeyassignment/test.php:114 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {1 => {Own: YES}}}
+integration/numkeyassignment/test.php:118 SecurityCheckDebugTaintedness Variable $var has taintedness: {Own: SQL_NUMKEY; Elements: {UNKNOWN => {Own: YES}}}

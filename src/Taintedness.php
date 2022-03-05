@@ -243,7 +243,20 @@ class Taintedness {
 		$intersect = new self( SecurityCheckPlugin::NO_TAINT );
 		// If the sink has non-zero flags, intersect it with the whole other side. This particularly preserves
 		// the shape of $sink, discarding anything from $value if the sink has a NO_TAINT in that position.
-		if ( $sink->flags ) {
+		if ( $sink->flags & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) {
+			// Special case: NUMKEY is only for the outer array
+			$rightFlags = $value->flags | $value->keysTaint;
+			if ( $value->keysTaint & SecurityCheckPlugin::SQL_TAINT ) {
+				// FIXME HACK: If keys are tainted, add numkey. This assumes that numkey is really only used for
+				// Database methods, where keys are never escaped.
+				$rightFlags |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+			}
+			$rightFlags |= ( $value->getAllKeysTaint() & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			if ( $value->unknownDimsTaint ) {
+				$rightFlags |= $value->unknownDimsTaint->get() & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+			}
+			$intersect->flags = $sink->flags & ( ( $rightFlags & SecurityCheckPlugin::ALL_TAINT ) << 1 );
+		} elseif ( $sink->flags ) {
 			$intersect->flags = $sink->flags & ( ( $value->get() & SecurityCheckPlugin::ALL_TAINT ) << 1 );
 		}
 		if ( $sink->unknownDimsTaint ) {
@@ -433,7 +446,7 @@ class Taintedness {
 	 * @return $this
 	 */
 	public function asValueFirstLevel(): self {
-		$ret = new self( $this->flags );
+		$ret = new self( $this->flags & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 		if ( $this->unknownDimsTaint ) {
 			$ret->mergeWith( $this->unknownDimsTaint );
 		}
@@ -467,7 +480,7 @@ class Taintedness {
 	 * @return $this
 	 */
 	public function asKeyForForeach(): self {
-		return new self( $this->keysTaint | $this->flags );
+		return new self( ( $this->keysTaint | $this->flags ) & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 	}
 
 	// Conversion/checks shortcuts
