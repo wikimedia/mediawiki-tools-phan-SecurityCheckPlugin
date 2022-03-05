@@ -34,9 +34,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/** @var MethodLinks */
 	private $rightLinks;
 
-	/** @var bool */
-	private $isAssignOp;
-
 	/**
 	 * List of resolved LHS offsets. NOTE: This list goes from outer to inner (i.e. with $x[1][2], the
 	 * list would be [ 2, 1 ]).
@@ -51,7 +48,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @param CausedByLines $rightLines
 	 * @param MethodLinks $rightLinks
 	 * @param Taintedness $errorTaint
-	 * @param bool $isAssignOp Whether it's an assign op like .= (and not normal =)
 	 * @param MethodLinks $errorLinks
 	 * @param array $resolvedOffsets
 	 * @phan-param list<Node|mixed|null> $resolvedOffsets
@@ -63,7 +59,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		CausedByLines $rightLines,
 		MethodLinks $rightLinks,
 		Taintedness $errorTaint,
-		bool $isAssignOp,
 		MethodLinks $errorLinks,
 		array $resolvedOffsets = []
 	) {
@@ -72,7 +67,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightError = $rightLines;
 		$this->rightLinks = $rightLinks;
 		$this->errorTaint = $errorTaint;
-		$this->isAssignOp = $isAssignOp;
 		$this->errorLinks = $errorLinks;
 		$this->resolvedOffsets = $resolvedOffsets;
 	}
@@ -104,7 +98,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				$this->rightError,
 				$this->rightLinks,
 				$this->errorTaint->getTaintednessForOffsetOrWhole( $key ),
-				$this->isAssignOp,
 				$this->errorLinks,
 				$this->resolvedOffsets
 			);
@@ -218,7 +211,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$overrideLinks = true;
 		} else {
 			$newLinks = $this->rightLinks;
-			$overrideLinks = $override && !$this->isAssignOp;
+			$overrideLinks = $override;
 		}
 		$this->mergeTaintDependencies( $variableObj, $newLinks, $overrideLinks );
 		if ( $globalVarObj ) {
@@ -241,7 +234,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$overrideError = true;
 		} else {
 			$newError = $this->rightError;
-			$overrideError = $override && !$this->isAssignOp;
+			$overrideError = $override;
 		}
 		if ( $overrideError ) {
 			self::clearTaintError( $variableObj );

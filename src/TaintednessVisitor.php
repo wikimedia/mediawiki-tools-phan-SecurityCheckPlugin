@@ -314,17 +314,17 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$node->flags,
 			$mask
 		);
+		$allError = $lhsTaintedness->getError()->asMergedWith( $rhsTaintedness->getError() );
+		$allLinks = $lhsTaintedness->getMethodLinks()->asMergedWith( $rhsTaintedness->getMethodLinks() );
 
 		$curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
 			$allRHSTaint,
-			$rhsTaintedness->getError(),
-			$rhsTaintedness->getMethodLinks(),
+			$allError,
+			$allLinks,
 			$rhsTaintedness->getTaintedness(),
-			$rhsTaintedness->getMethodLinks(),
-			// TODO Merge things from the LHS now instead?
-			true
+			$rhsTaintedness->getMethodLinks()
 		);
 		// TODO Links and error?
 		$this->curTaintWithError = new TaintednessWithError( $curTaint, new CausedByLines(), MethodLinks::newEmpty() );
@@ -371,8 +371,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsTaintedness->getError(),
 			$rhsTaintedness->getMethodLinks(),
 			$rhsTaintedness->getTaintedness(),
-			$rhsTaintedness->getMethodLinks(),
-			false
+			$rhsTaintedness->getMethodLinks()
 		);
 		// TODO Links and error?
 		$this->curTaintWithError = new TaintednessWithError( $curTaint, new CausedByLines(), new MethodLinks() );
@@ -387,7 +386,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param MethodLinks $rhsLinks
 	 * @param Taintedness $errorTaint
 	 * @param MethodLinks $errorLinks
-	 * @param bool $isAssignOp
 	 * @return Taintedness
 	 */
 	private function doVisitAssign(
@@ -397,8 +395,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		CausedByLines $rhsError,
 		MethodLinks $rhsLinks,
 		Taintedness $errorTaint,
-		MethodLinks $errorLinks,
-		bool $isAssignOp
+		MethodLinks $errorLinks
 	): Taintedness {
 		if ( $lhs->kind === \ast\AST_DIM ) {
 			$this->maybeAddNumkeyOnAssignmentLHS( $lhs, $rhs, $errorTaint, $rhsTaint );
@@ -411,7 +408,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$rhsError,
 			$rhsLinks,
 			$errorTaint,
-			$isAssignOp,
 			$errorLinks
 		);
 		$vis( $lhs );
