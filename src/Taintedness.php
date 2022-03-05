@@ -324,67 +324,28 @@ class Taintedness {
 	}
 
 	/**
-	 * Set the taintedness of $val after the list of offsets given by $offsets, with or without override.
-	 *
-	 * @param array $offsets This is an integer-keyed, ordered list of offsets. E.g. the list
-	 *  [ 'a', 'b', 'c' ] means assigning to $var['a']['b']['c']. This must NOT be empty.
-	 * @phan-param non-empty-list<mixed> $offsets
-	 * @param Taintedness[] $offsetsTaint Taintedness for each offset in $offsets
-	 * @param Taintedness $val
-	 * @param bool $override
+	 * @param self $other
+	 * @param int $depth
+	 * @return self
 	 */
-	public function setTaintednessAtOffsetList(
-		array $offsets,
-		array $offsetsTaint,
-		self $val,
-		bool $override
-	): void {
-		assert( (bool)$offsets, 'Should not be empty' );
-		$base = $this;
-		// Just in case keys are not consecutive
-		$offsets = array_values( $offsets );
-		$lastIdx = count( $offsets ) - 1;
-		foreach ( $offsets as $i => $offset ) {
-			$isLast = $i === $lastIdx;
-			if ( !is_scalar( $offset ) ) {
-				// Note, if the offset is scalar its taint is NO_TAINT
-				$base->keysTaint |= $offsetsTaint[$i]->get();
-
-				// NOTE: This is intendedly done for Nodes AND null. We assume that null here means
-				// "implicit" dim (`$a[] = 'b'`), aka unknown dim.
-
-				if ( $isLast ) {
-					if ( !$base->unknownDimsTaint ) {
-						$base->unknownDimsTaint = $val;
-					} else {
-						$base->unknownDimsTaint->mergeWith( $val );
-					}
-					return;
-				}
-
-				if ( !$base->unknownDimsTaint ) {
-					$base->unknownDimsTaint = self::newSafe();
-				}
-				$base = $base->unknownDimsTaint;
-				continue;
-			}
-
-			if ( $isLast ) {
-				// Mission accomplished!
-				if ( !isset( $base->dimTaint[$offset] ) || $override ) {
-					$base->dimTaint[$offset] = $val;
-				} else {
-					$base->dimTaint[$offset]->mergeWith( $val );
-				}
-				return;
-			}
-
-			if ( !isset( $base->dimTaint[$offset] ) ) {
-				// Create the element as safe and move on
-				$base->dimTaint[$offset] = self::newSafe();
-			}
-			$base = $base->dimTaint[$offset];
+	public function asMergedForAssignment( self $other, int $depth ): self {
+		if ( $depth === 0 ) {
+			return $other;
 		}
+		$ret = clone $this;
+		$ret->flags |= $other->flags;
+		$ret->keysTaint |= $other->keysTaint;
+		if ( !$ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $other->unknownDimsTaint;
+		} elseif ( $other->unknownDimsTaint ) {
+			$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+		}
+		foreach ( $other->dimTaint as $k => $v ) {
+			$ret->dimTaint[$k] = isset( $ret->dimTaint[$k] )
+				? $ret->dimTaint[$k]->asMergedForAssignment( $v, $depth - 1 )
+				: $v;
+		}
+		return $ret;
 	}
 
 	/**
@@ -448,16 +409,19 @@ class Taintedness {
 	 * Create a new object with $this at the given $offset (if scalar) or as unknown object.
 	 *
 	 * @param Node|string|int|bool|float|null $offset
+	 * @param int|null $offsetTaint If available, will be used as key taint
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset ): self {
+	public function asMaybeMovedAtOffset( $offset, int $offsetTaint = null ): self {
 		$ret = self::newSafe();
+		if ( $offsetTaint !== null ) {
+			$ret->keysTaint = $offsetTaint;
+		}
 		if ( $offset instanceof Node || $offset === null ) {
 			$ret->unknownDimsTaint = clone $this;
-			$ret->flags = $this->flags;
-			return $ret;
+		} else {
+			$ret->dimTaint[$offset] = clone $this;
 		}
-		$ret->dimTaint[$offset] = clone $this;
 		return $ret;
 	}
 
