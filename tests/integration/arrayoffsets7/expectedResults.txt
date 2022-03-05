@@ -18,6 +18,6 @@ integration/arrayoffsets7/test.php:78 SecurityCheck-XSS Echoing expression that 
 integration/arrayoffsets7/test.php:91 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +80)
 integration/arrayoffsets7/test.php:92 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +80)
 integration/arrayoffsets7/test.php:94 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +80)
-integration/arrayoffsets7/test.php:97 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +80; integration/arrayoffsets7/test.php +96)
-integration/arrayoffsets7/test.php:99 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +80; integration/arrayoffsets7/test.php +96)
+integration/arrayoffsets7/test.php:97 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +96; integration/arrayoffsets7/test.php +80)
+integration/arrayoffsets7/test.php:99 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets7/test.php +96; integration/arrayoffsets7/test.php +80)
 integration/arrayoffsets7/test.php:100 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$arr[15]['unsafe']`). (Caused by: integration/arrayoffsets7/test.php +98)

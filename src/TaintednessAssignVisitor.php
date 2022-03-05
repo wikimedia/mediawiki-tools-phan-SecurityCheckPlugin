@@ -234,16 +234,23 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->mergeTaintDependencies( $globalVarObj, $newGlobalLinks, $overrideGlobalLinks );
 		}
 
-		$overrideError = $override && !$this->isAssignOp && !$lhsOffsets;
-
+		if ( $lhsOffsets ) {
+			$curError = self::getCausedByRaw( $variableObj );
+			$newError = $curError ? clone $curError : new CausedByLines();
+			$newError->mergeWith( $this->rightError );
+			$overrideError = true;
+		} else {
+			$newError = $this->rightError;
+			$overrideError = $override && !$this->isAssignOp;
+		}
 		if ( $overrideError ) {
 			self::clearTaintError( $variableObj );
 		}
 		$this->addTaintError( $this->errorTaint, $variableObj, $this->errorLinks );
-		$this->mergeTaintError( $variableObj, $this->rightError );
+		$this->mergeTaintError( $variableObj, $newError );
 		if ( $globalVarObj ) {
 			$this->addTaintError( $this->errorTaint, $globalVarObj, $this->errorLinks );
-			$this->mergeTaintError( $globalVarObj, $this->rightError );
+			$this->mergeTaintError( $globalVarObj, $newError );
 		}
 	}
 }
