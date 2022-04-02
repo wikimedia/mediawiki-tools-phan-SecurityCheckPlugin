@@ -173,7 +173,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		'/@phan-debug-var-taintedness\s+\$(' . Builder::WORD_REGEX . '(,\s*\$' . Builder::WORD_REGEX . ')*)/';
 	// @phan-suppress-previous-line PhanAccessClassConstantInternal It's just perfect for use here
 
-	public const PARAM_ANNOTATION_REGEX = '/@param-taint &?(?P<variadic>\.\.\.)?\$(?P<paramname>\S+)\s+(?P<taint>.*)$/';
+	public const PARAM_ANNOTATION_REGEX =
+		'/@param-taint\s+&?(?P<variadic>\.\.\.)?\$(?P<paramname>\S+)\s+(?P<taint>.*)$/';
 
 	/**
 	 * @var self Passed to the visitor for context
