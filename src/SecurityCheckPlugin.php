@@ -525,7 +525,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *
 	 *   For example: [ self::YES_TAINT, 'overall' => self::NO_TAINT ]
 	 *   means that the taint of the return value is the same as the taint
-	 *   of the the first arg, and all other args are ignored.
+	 *   of the first arg, and all other args are ignored.
 	 *   [ self::HTML_EXEC_TAINT, 'overall' => self::NO_TAINT ]
 	 *   Means that the first arg is output in an html context (e.g. like echo)
 	 *   [ self::YES_TAINT & ~self::HTML_TAINT, 'overall' => self::NO_TAINT ]
