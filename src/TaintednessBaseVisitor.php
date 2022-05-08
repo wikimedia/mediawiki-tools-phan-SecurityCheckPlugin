@@ -897,16 +897,26 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Shortcut to resolve array offsets, with an assertion check
+	 * Shortcut to resolve array offsets, which includes:
+	 *  - Ensuring that the value is not null: null is used for implicit dims like in `$a[] = $b`; we can't say
+	 *    for sure what the offset will be, and this method would return null (interpreted as offset 0), which is
+	 *    most likely wrong.
+	 *  - Casting floats to integers, since using a float as array key raises a warning (and crashes taint-check)
+	 *    in PHP 8.1 (T307504)
+	 *  - Letting nodes that represent resources (e.g. `STDIN`) pass through, since they're not scalar and certainly
+	 *    not valid offsets (see https://github.com/phan/phan/issues/4659).
 	 *
 	 * @param Node|mixed $rawOffset
 	 * @return Node|mixed
 	 */
 	protected function resolveOffset( $rawOffset ) {
-		// Null usually means an "implicit" dim like in `$a[] = $b`. Trying to resolve
-		// it will likely create errors (anything added to implicit indexes is stored together).
 		assert( $rawOffset !== null );
-		return $this->resolveValue( $rawOffset );
+		$resolved = $this->resolveValue( $rawOffset );
+		// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.is_resource
+		if ( is_resource( $resolved ) ) {
+			return $rawOffset;
+		}
+		return is_float( $resolved ) ? (int)$resolved : $resolved;
 	}
 
 	/**
@@ -920,10 +930,7 @@ trait TaintednessBaseVisitor {
 		if ( !$value instanceof Node ) {
 			return $value;
 		}
-		$resolved = $this->getCtxN( $value )->getEquivalentPHPScalarValue();
-		// We don't want resources here (https://github.com/phan/phan/issues/4659)
-		// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.is_resource
-		return is_resource( $resolved ) ? $value : $resolved;
+		return $this->getCtxN( $value )->getEquivalentPHPScalarValue();
 	}
 
 	/**
@@ -2367,8 +2374,8 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function nodeCanBeIntKey( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
-			// simple literal
-			if ( is_int( $node ) ) {
+			// simple number; make sure to include float here for PHP 8.1 compat: T307504
+			if ( is_int( $node ) || is_float( $node ) ) {
 				return true;
 			}
 			// Strings that are canonical representation of numbers are coerced to int keys.

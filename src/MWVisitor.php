@@ -969,7 +969,11 @@ class MWVisitor extends TaintednessVisitor {
 				return;
 			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-			$key = $this->resolveValue( $child->children['key'] );
+			if ( $child->children['key'] === null ) {
+				// Implicit offset, hence most certainly not an HTMLForm.
+				return;
+			}
+			$key = $this->resolveOffset( $child->children['key'] );
 			if ( !is_string( $key ) ) {
 				// Either not resolvable (so nothing we can say) or a non-string literal, skip.
 				return;
