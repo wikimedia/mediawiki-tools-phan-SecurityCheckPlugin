@@ -120,7 +120,14 @@ class MediaWikiHooksHelper {
 		}
 
 		foreach ( $json['Hooks'] as $hookName => $cbList ) {
-			foreach ( (array)$cbList as $cb ) {
+			if ( isset( $cbList["handler"] ) ) {
+				$cbList = $cbList["handler"];
+			}
+			if ( is_string( $cbList ) ) {
+				$cbList = [ $cbList ];
+			}
+
+			foreach ( $cbList as $cb ) {
 				if ( isset( $namedHandlers[$cb] ) ) {
 					// TODO ObjectFactory not fully handled here. Would deserve some code in a general-purpose
 					// MediaWiki plugin, see T275742.

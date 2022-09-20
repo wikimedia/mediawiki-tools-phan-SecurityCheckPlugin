@@ -3,12 +3,21 @@
 	"author": [
 		"Brian Wolff"
 	],
+	"HookHandlers": {
+		"my_handler": {
+			"class": "SomeClass"
+		}
+	},
 	"Hooks": {
 		"ParserFirstCallInit": [
 			"wfRegister"
 		],
 		"MediaWikiPerformAction": [
 			"SomeClass::onMediaWikiPerformAction"
-		]
+		],
+		"ThisHookIsDeprecated": {
+			"handler": "my_handler",
+			"deprecated": true
+		}
 	}
 }
