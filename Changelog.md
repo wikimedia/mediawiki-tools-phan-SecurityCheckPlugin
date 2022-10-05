@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v4.0.0
 ### Breaking changes
 * Global variables and property no longer have EXEC flags if they're later output. Previously, it was supposed to report assigning a tainted value to an object
   that is later output, but didn't work due to a bug. The relevant logic was complicating maintenance. Running phan with `--analyze-twice` will catch this kind of issues.
@@ -13,7 +13,7 @@
 * Caused-by lines are now much more accurate for code involving function calls.
 
 ### Internal changes
-* Bumped phan/phan to 5.3.2
+* Bumped phan/phan to 5.4.1
 
 ## v3.3.2
 ### Bug fixes
