@@ -46,10 +46,13 @@ sed -r -i "s/'\/src/'\/vendor\/phan\/phan\/src/" $TESTDIR/Phan/Language/UnionTyp
 # Enable verbose output, e.g. to know what tests were skipped
 sed -i 's/verbose="false"/verbose="true"/' phpunit.xml
 # Remove tests we don't care about
-EXCLUDE_PHPUNIT_TESTS="(ForkPoolTest|SoapTest)"
-sed -r -i "s/<file>.+$EXCLUDE_PHPUNIT_TESTS.*<\/file>//" phpunit.xml
+EXCLUDED_TESTS_ROOT=(ForkPoolTest.php SoapTest.php CLITest.php PluginV3Test.php Internal LanguageServer)
+EXCLUDED_TESTS_ROOT_REGEX=$(IFS="|"; echo "${EXCLUDED_TESTS_ROOT[*]}")
+sed -r -i "s/<(file|directory)>.+($EXCLUDED_TESTS_ROOT_REGEX)<\/(file|directory)>//" phpunit.xml
+for EXCLUDED_FILE in "${EXCLUDED_TESTS_ROOT[@]}"; do
+    rm -rf "$TESTDIR/Phan/$EXCLUDED_FILE"
+done
 rm -r $TESTDIR/Phan/Language/Internal
-rm -rf $TESTDIR/Phan/{CLITest.php,PluginV3Test.php,ForkPoolTest.php,SoapTest.php,Internal,LanguageServer}
 # Tests that rely on paths
 rm $TESTDIR/files/src/0545_require_testing.php $TESTDIR/Phan/Language/FileRefTest.php
 # Taint-check analyses the Group class earlier, thus avoiding a false positive issue from phan alone
@@ -57,6 +60,10 @@ sed -r -i ':a;N;$!ba;s/src\/\S+41 PhanPluginNonBoolInLogicalArith[^\n]+\n//' $TE
 # Taint-check analyses debug_trace_nonpure() earlier, and knows it returns a string
 sed -r -i 's/(src\/\S+:(30|37)) PhanPartialTypeMismatchReturn.+/&\n\1 PhanTypeInvalidLeftOperandOfNumericOp Invalid operator: left operand of * is string (expected number)/' $TESTDIR/plugin_test/expected/152_phan_pure_annotation.php.expected
 
+# We use PHPUnit 9, but phan is still on PHPUnit 8
+sed -r -i 's/backupStaticAttributesBlacklist/backupStaticAttributesExcludeList/' $TESTDIR/Phan/BaseTest.php
+grep -rl assertRegExp $TESTDIR | xargs sed -r -i "s/>assertRegExp\(/>assertMatchesRegularExpression\(/"
+grep -rl assertNotRegExp $TESTDIR | xargs sed -r -i "s/>assertNotRegExp\(/>assertDoesNotMatchRegularExpression\(/"
 
 # Phan uses autoload-dev for test classes
 sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\"/" composer.json

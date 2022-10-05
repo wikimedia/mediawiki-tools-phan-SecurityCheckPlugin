@@ -1,18 +1,20 @@
+<?xml version="1.0"?>
 <phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
 	convertErrorsToExceptions="true"
 	convertNoticesToExceptions="true"
 	convertWarningsToExceptions="true"
 	backupStaticAttributes="true"
-	bootstrap="./tests/bootstrap.php"
->
+	bootstrap="./tests/bootstrap.php">
 	<testsuites>
 		<testsuite name="SecurityCheckPlugin Tests">
 			<directory>./tests</directory>
 		</testsuite>
 	</testsuites>
-	<filter>
-		<whitelist>
+	<coverage>
+		<include>
 			<directory suffix=".php">src/</directory>
-		</whitelist>
-	</filter>
+		</include>
+	</coverage>
 </phpunit>
