@@ -14,3 +14,7 @@ foreach ( $taintCheckFiles as $file ) {
 		class_exists( "\\SecurityCheckPlugin\\$class" );
 	}
 }
+
+// Initialize phan. In particular, this lets phan set its own error handler, which
+// suppresses certain deprecation warnings.
+require_once __DIR__ . '/../vendor/phan/phan/src/Phan/Bootstrap.php';
