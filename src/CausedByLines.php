@@ -254,11 +254,11 @@ class CausedByLines {
 	 *   doing so would make phan emit a new issue for the same line whenever new caused-by
 	 *   lines are added to the array.
 	 *
-	 * @param Taintedness|null $taintedness
+	 * @param int $taintType Must only have normal flags, and no EXEC flags.
 	 * @return string
 	 */
-	public function toStringForIssue( ?Taintedness $taintedness ): string {
-		$filteredLines = $this->getRelevantLinesForTaintedness( $taintedness );
+	public function toStringForIssue( int $taintType ): string {
+		$filteredLines = $this->getRelevantLinesForTaintedness( $taintType );
 		if ( !$filteredLines ) {
 			return '';
 		}
@@ -272,18 +272,12 @@ class CausedByLines {
 	}
 
 	/**
-	 * @param Taintedness|null $taintedness
+	 * @param int $taintedness With only normal flags, and no EXEC flags.
 	 * @return string[]
 	 */
-	private function getRelevantLinesForTaintedness( ?Taintedness $taintedness ): array {
-		if ( $taintedness === null ) {
-			return array_column( $this->lines, 1 );
-		}
-
-		$taintedness = $this->normalizeTaintForCausedBy( $taintedness )->get();
+	private function getRelevantLinesForTaintedness( int $taintedness ): array {
 		$ret = [];
 		foreach ( $this->lines as [ $lineTaint, $lineText, $lineLinks ] ) {
-			// FIXME: If we pass one bit at a time, we can use equality here
 			if (
 				$lineTaint->has( $taintedness ) ||
 				( $lineLinks && $lineLinks->canPreserveTaintFlags( $taintedness ) )
@@ -292,19 +286,6 @@ class CausedByLines {
 			}
 		}
 		return $ret;
-	}
-
-	/**
-	 * Normalize a taintedness value for caused-by lookup
-	 *
-	 * @param Taintedness $taintedness
-	 * @return Taintedness
-	 */
-	private function normalizeTaintForCausedBy( Taintedness $taintedness ): Taintedness {
-		$taintedness = $taintedness->withExecToYesTaint();
-		// Special case: we assume the bad case, preferring false positives over false negatives
-		$taintedness->addSqlToNumkey();
-		return $taintedness;
 	}
 
 	/**

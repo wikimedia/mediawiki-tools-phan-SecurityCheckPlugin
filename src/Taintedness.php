@@ -615,44 +615,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Similar to asExecToYesTaint, but preserves existing YES flags
-	 *
-	 * @return self
-	 */
-	public function withExecToYesTaint(): self {
-		$flags = ( $this->flags & SecurityCheckPlugin::ALL_TAINT ) |
-			( ( $this->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
-		$ret = new self( $flags );
-		if ( $this->unknownDimsTaint ) {
-			$ret->unknownDimsTaint = $this->unknownDimsTaint->withExecToYesTaint();
-		}
-		$ret->keysTaint = ( $this->keysTaint & SecurityCheckPlugin::ALL_TAINT ) |
-			( ( $this->keysTaint & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
-		foreach ( $this->dimTaint as $k => $val ) {
-			$ret->dimTaint[$k] = $val->withExecToYesTaint();
-		}
-		return $ret;
-	}
-
-	/**
-	 * Add SQL_TAINT wherever SQL_NUMKEY_TAINT is set
-	 */
-	public function addSqlToNumkey(): void {
-		if ( $this->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
-			$this->flags |= SecurityCheckPlugin::SQL_TAINT;
-		}
-		if ( $this->keysTaint & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) {
-			$this->keysTaint |= SecurityCheckPlugin::SQL_TAINT;
-		}
-		if ( $this->unknownDimsTaint ) {
-			$this->unknownDimsTaint->addSqlToNumkey();
-		}
-		foreach ( $this->dimTaint as $val ) {
-			$val->addSqlToNumkey();
-		}
-	}
-
-	/**
 	 * Convert the yes taint bits to corresponding exec taint bits recursively.
 	 * Any UNKNOWN_TAINT or INAPPLICABLE_TAINT is discarded. Note that this returns a copy of the
 	 * original object. The shape is preserved.
