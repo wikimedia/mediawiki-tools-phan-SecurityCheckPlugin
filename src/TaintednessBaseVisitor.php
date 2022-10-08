@@ -1572,9 +1572,11 @@ trait TaintednessBaseVisitor {
 				break;
 			case SecurityCheckPlugin::PATH_TAINT:
 				$issueType = 'SecurityCheck-PathTraversal';
+				$severity = Issue::SEVERITY_CRITICAL;
 				break;
 			case SecurityCheckPlugin::CODE_TAINT:
 				$issueType = 'SecurityCheck-RCE';
+				$severity = Issue::SEVERITY_CRITICAL;
 				break;
 			case SecurityCheckPlugin::REGEX_TAINT:
 				$issueType = 'SecurityCheck-ReDoS';

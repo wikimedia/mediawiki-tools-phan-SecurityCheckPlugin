@@ -9,6 +9,9 @@
 * Added support for the effects of `unset( $var['k'] )` on the shape of `$var`.
 * The plugin now infers the effect of some array_* functions on the resulting taintedness more accurately.
 
+### Changed
+* The `SecurityCheck-RCE` and `SecurityCheck-PathTraversal` issue types now have critical severity.
+
 ## v4.0.0
 ### Breaking changes
 * Global variables and property no longer have EXEC flags if they're later output. Previously, it was supposed to report assigning a tainted value to an object
