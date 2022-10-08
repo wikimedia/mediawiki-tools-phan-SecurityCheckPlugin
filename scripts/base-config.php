@@ -60,7 +60,6 @@ return [
 	 * will be emitted by Phan.
 	 */
 	'whitelist_issue_types' => [
-		'SecurityCheckMulti',
 		'SecurityCheck-XSS',
 		'SecurityCheck-SQLInjection',
 		'SecurityCheck-ShellInjection',

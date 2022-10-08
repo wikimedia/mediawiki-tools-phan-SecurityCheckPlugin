@@ -1537,64 +1537,48 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get the issue name and severity given a taint
+	 * Get the issue names and severities given a taint
 	 *
 	 * @param int $combinedTaint The taint to warn for. I.e. The exec flags
 	 *   from LHS shifted to non-exec bitwise AND'd with the rhs taint.
-	 * @return array Issue type and severity
-	 * @phan-return array{0:string,1:int}
+	 * @return array[] List of issue type and severity
+	 * @phan-return non-empty-list<array{0:string,1:int}>
 	 */
-	public function taintToIssueAndSeverity( int $combinedTaint ): array {
-		$severity = Issue::SEVERITY_NORMAL;
-
-		switch ( $combinedTaint ) {
-			case SecurityCheckPlugin::HTML_TAINT:
-				$issueType = 'SecurityCheck-XSS';
-				break;
-			case SecurityCheckPlugin::SQL_TAINT:
-			case SecurityCheckPlugin::SQL_NUMKEY_TAINT:
-			case SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT:
-				$issueType = 'SecurityCheck-SQLInjection';
-				$severity = Issue::SEVERITY_CRITICAL;
-				break;
-			case SecurityCheckPlugin::SHELL_TAINT:
-				$issueType = 'SecurityCheck-ShellInjection';
-				$severity = Issue::SEVERITY_CRITICAL;
-				break;
-			case SecurityCheckPlugin::SERIALIZE_TAINT:
-				$issueType = 'SecurityCheck-PHPSerializeInjection';
-				// For now this is low because it seems to have a lot
-				// of false positives.
-				// $severity = 4;
-				break;
-			case SecurityCheckPlugin::ESCAPED_TAINT:
-				$issueType = 'SecurityCheck-DoubleEscaped';
-				break;
-			case SecurityCheckPlugin::PATH_TAINT:
-				$issueType = 'SecurityCheck-PathTraversal';
-				$severity = Issue::SEVERITY_CRITICAL;
-				break;
-			case SecurityCheckPlugin::CODE_TAINT:
-				$issueType = 'SecurityCheck-RCE';
-				$severity = Issue::SEVERITY_CRITICAL;
-				break;
-			case SecurityCheckPlugin::REGEX_TAINT:
-				$issueType = 'SecurityCheck-ReDoS';
-				break;
-			case SecurityCheckPlugin::CUSTOM1_TAINT:
-				$issueType = 'SecurityCheck-CUSTOM1';
-				break;
-			case SecurityCheckPlugin::CUSTOM2_TAINT:
-				$issueType = 'SecurityCheck-CUSTOM2';
-				break;
-			default:
-				$issueType = 'SecurityCheckMulti';
-				if ( $combinedTaint & ( SecurityCheckPlugin::SHELL_TAINT | SecurityCheckPlugin::SQL_TAINT ) ) {
-					$severity = Issue::SEVERITY_CRITICAL;
-				}
+	public function taintToIssuesAndSeverities( int $combinedTaint ): array {
+		$issues = [];
+		if ( $combinedTaint & SecurityCheckPlugin::HTML_TAINT ) {
+			$issues[] = [ 'SecurityCheck-XSS', Issue::SEVERITY_NORMAL ];
+		}
+		if ( $combinedTaint & ( SecurityCheckPlugin::SQL_TAINT | SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {
+			$issues[] = [ 'SecurityCheck-SQLInjection', Issue::SEVERITY_CRITICAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::SHELL_TAINT ) {
+			$issues[] = [ 'SecurityCheck-ShellInjection', Issue::SEVERITY_CRITICAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::SERIALIZE_TAINT ) {
+			// For now this is low because it seems to have a lot of false positives.
+			$issues[] = [ 'SecurityCheck-PHPSerializeInjection', Issue::SEVERITY_NORMAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::ESCAPED_TAINT ) {
+			$issues[] = [ 'SecurityCheck-DoubleEscaped', Issue::SEVERITY_NORMAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::PATH_TAINT ) {
+			$issues[] = [ 'SecurityCheck-PathTraversal', Issue::SEVERITY_CRITICAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::CODE_TAINT ) {
+			$issues[] = [ 'SecurityCheck-RCE', Issue::SEVERITY_CRITICAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::REGEX_TAINT ) {
+			$issues[] = [ 'SecurityCheck-ReDoS', Issue::SEVERITY_NORMAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::CUSTOM1_TAINT ) {
+			$issues[] = [ 'SecurityCheck-CUSTOM1', Issue::SEVERITY_NORMAL ];
+		}
+		if ( $combinedTaint & SecurityCheckPlugin::CUSTOM2_TAINT ) {
+			$issues[] = [ 'SecurityCheck-CUSTOM2', Issue::SEVERITY_NORMAL ];
 		}
 
-		return [ $issueType, $severity ];
+		return $issues;
 	}
 
 	/**
@@ -1672,18 +1656,11 @@ trait TaintednessBaseVisitor {
 				$this->code_base
 			)
 		) {
-			$issueType = 'SecurityCheck-LikelyFalsePositive';
-			$severity = Issue::SEVERITY_LOW;
+			$issues = [
+				[ 'SecurityCheck-LikelyFalsePositive', Issue::SEVERITY_LOW ]
+			];
 		} else {
-			list( $issueType, $severity ) = $this->taintToIssueAndSeverity(
-				$combinedTaintInt
-			);
-		}
-
-		// If we have multiple, include what types.
-		if ( $issueType === 'SecurityCheckMulti' ) {
-			$msg .= ' (' . SecurityCheckPlugin::taintToString( $lhsTaint->get() ) .
-				' <- ' . SecurityCheckPlugin::taintToString( $rhsTaint->get() ) . ')';
+			$issues = $this->taintToIssuesAndSeverities( $combinedTaintInt );
 		}
 
 		$context = $this->context;
@@ -1700,14 +1677,16 @@ trait TaintednessBaseVisitor {
 			}
 		}
 
-		SecurityCheckPlugin::emitIssue(
-			$this->code_base,
-			$context,
-			$issueType,
-			$msg,
-			$msgParams,
-			$severity
-		);
+		foreach ( $issues as [ $issueType, $severity ] ) {
+			SecurityCheckPlugin::emitIssue(
+				$this->code_base,
+				$context,
+				$issueType,
+				$msg,
+				$msgParams,
+				$severity
+			);
+		}
 	}
 
 	/**
@@ -1724,11 +1703,13 @@ trait TaintednessBaseVisitor {
 		$lhsTaintInt = $lhsTaint->get();
 		assert( ( $lhsTaintInt & SecurityCheckPlugin::ALL_EXEC_TAINT ) !== SecurityCheckPlugin::NO_TAINT );
 		$combinedTaint = Taintedness::flagsAsExecToYesTaint( $lhsTaintInt );
-		$issueType = $this->taintToIssueAndSeverity( $combinedTaint )[0];
 
+		$issues = $this->taintToIssuesAndSeverities( $combinedTaint );
 		$context = $this->overrideContext ?: $this->context;
-		if ( $context->hasSuppressIssue( $this->code_base, $issueType ) ) {
-			return true;
+		foreach ( $issues as [ $issueType ] ) {
+			if ( $context->hasSuppressIssue( $this->code_base, $issueType ) ) {
+				return true;
+			}
 		}
 
 		$msg = "[dummy msg for false positive check]";

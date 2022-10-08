@@ -283,7 +283,7 @@ class CausedByLines {
 		$taintedness = $this->normalizeTaintForCausedBy( $taintedness )->get();
 		$ret = [];
 		foreach ( $this->lines as [ $lineTaint, $lineText, $lineLinks ] ) {
-			// Don't check for equality, as that would fail with MultiTaint
+			// FIXME: If we pass one bit at a time, we can use equality here
 			if (
 				$lineTaint->has( $taintedness ) ||
 				( $lineLinks && $lineLinks->canPreserveTaintFlags( $taintedness ) )

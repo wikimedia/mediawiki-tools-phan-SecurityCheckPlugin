@@ -71,8 +71,6 @@ Plugin output
 The plugin will output various issue types depending on what it
 detects. The issue types it outputs are:
 
-* `SecurityCheckMulti` - For when there are multiple types of security issues
-  involved
 * `SecurityCheck-XSS`
 * `SecurityCheck-SQLInjection`
 * `SecurityCheck-ShellInjection`

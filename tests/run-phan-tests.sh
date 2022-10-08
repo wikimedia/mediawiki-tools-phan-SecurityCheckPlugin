@@ -64,8 +64,7 @@ composer dump-autoload
 
 SECCHECK_ISSUES="'SecurityCheck-DoubleEscaped', 'SecurityCheck-SQLInjection', 'SecurityCheck-XSS', "
 SECCHECK_ISSUES+="'SecurityCheck-ShellInjection', 'SecurityCheck-PHPSerializeInjection', 'SecurityCheck-CUSTOM1', 'SecurityCheck-CUSTOM2', ";
-SECCHECK_ISSUES+="'SecurityCheck-PathTraversal', 'SecurityCheck-RCE', 'SecurityCheck-ReDoS', ";
-SECCHECK_ISSUES+="'SecurityCheckMulti', 'SecurityCheck-LikelyFalsePositive',";
+SECCHECK_ISSUES+="'SecurityCheck-PathTraversal', 'SecurityCheck-RCE', 'SecurityCheck-ReDoS', 'SecurityCheck-LikelyFalsePositive',";
 INNER_TEST_DIRS="misc/rewriting_test misc/fallback_test misc/config_override_test misc/empty_methods_plugin_test plugin_test real_types_test infer_missing_types_test"
 for DIR in $INNER_TEST_DIRS ; do
     CFG_PATH="$TESTDIR/$DIR/.phan/config.php"
