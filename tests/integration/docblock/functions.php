@@ -65,7 +65,7 @@ function invalidTaint() {
 }
 
 /**
- * @param-taint $t exec_sql,exec_misc,exec_custom1,exec_htmlnoent Testing text after annotation
+ * @param-taint $t exec_sql,exec_shell,exec_custom1,exec_htmlnoent Testing text after annotation
  */
 function multiTaint( $t ) {
 	return null;

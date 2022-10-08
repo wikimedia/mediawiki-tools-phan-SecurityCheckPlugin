@@ -47,7 +47,7 @@ interface IFoo {
 	public function invalidTaint();
 
 	/**
-	 * @param-taint $t exec_sql,exec_misc,exec_custom1,exec_htmlnoent
+	 * @param-taint $t exec_sql,exec_shell,exec_custom1,exec_htmlnoent
 	 */
 	public function multiTaint( $t );
 

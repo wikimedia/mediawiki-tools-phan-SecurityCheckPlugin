@@ -15,7 +15,7 @@ function getPureNumkey() {
 /**
  * @param-taint $arg exec_sql_numkey,exec_html
  */
-function execMisc( $arg ) {
+function execNumkeyAndHTML( $arg ) {
 	return 'placeholder';
 }
 
@@ -71,17 +71,17 @@ function unsafe7( $unsafe ) {
 unsafe7( [ $_GET['x'] ] );
 
 function unsafe8( $unsafe ) {
-	execMisc( $unsafe );
+	execNumkeyAndHTML( $unsafe );
 }
 unsafe8( $_GET['x'] );
 
 function unsafe9( $unsafe ) {
-	execMisc( [ $unsafe ] );
+	execNumkeyAndHTML( [ $unsafe ] );
 }
 unsafe9( $_GET['x'] );
 
 function unsafe10( $unsafe ) {
-	execMisc( $unsafe );
+	execNumkeyAndHTML( $unsafe );
 }
 unsafe10( htmlspecialchars( $_GET['x'] ) );
 
@@ -221,7 +221,7 @@ function safe5( $unsafe ) {
 safe5( $_GET['x'] );
 
 function safe6( $unsafe ) {
-	execMisc( [ 'safe' => $unsafe ] );
+	execNumkeyAndHTML( [ 'safe' => $unsafe ] );
 }
 safe6( $_GET['x'] ); // Not totally safe, there's still an XSS, but no SQLi.
 

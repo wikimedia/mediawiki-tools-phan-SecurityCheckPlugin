@@ -62,7 +62,7 @@ sed -r -i 's/(src\/\S+:(30|37)) PhanPartialTypeMismatchReturn.+/&\n\1 PhanTypeIn
 sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\"/" composer.json
 composer dump-autoload
 
-SECCHECK_ISSUES="'SecurityCheck-DoubleEscaped', 'SecurityCheck-OTHER', 'SecurityCheck-SQLInjection', 'SecurityCheck-XSS', "
+SECCHECK_ISSUES="'SecurityCheck-DoubleEscaped', 'SecurityCheck-SQLInjection', 'SecurityCheck-XSS', "
 SECCHECK_ISSUES+="'SecurityCheck-ShellInjection', 'SecurityCheck-PHPSerializeInjection', 'SecurityCheck-CUSTOM1', 'SecurityCheck-CUSTOM2', ";
 SECCHECK_ISSUES+="'SecurityCheck-PathTraversal', 'SecurityCheck-RCE', 'SecurityCheck-ReDoS', ";
 SECCHECK_ISSUES+="'SecurityCheckMulti', 'SecurityCheck-LikelyFalsePositive',";

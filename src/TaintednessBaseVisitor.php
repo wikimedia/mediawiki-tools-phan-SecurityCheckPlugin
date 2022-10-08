@@ -1585,9 +1585,6 @@ trait TaintednessBaseVisitor {
 			case SecurityCheckPlugin::CUSTOM2_TAINT:
 				$issueType = 'SecurityCheck-CUSTOM2';
 				break;
-			case SecurityCheckPlugin::MISC_TAINT:
-				$issueType = 'SecurityCheck-OTHER';
-				break;
 			default:
 				$issueType = 'SecurityCheckMulti';
 				if ( $combinedTaint & ( SecurityCheckPlugin::SHELL_TAINT | SecurityCheckPlugin::SQL_TAINT ) ) {

@@ -3,6 +3,7 @@
 ## UNRELEASED
 ### Breaking changes
 * The raw_param taint flag was removed; error reporting is now sufficiently good that this is no longer needed, and can be treated as normal exec.
+* The taint type "misc" was removed. Use the appropriate category instead. This type was originally used for "rce" and "path", so the appropriate replacement could be one of those.
 
 ### New features
 * Added support for the effects of `unset( $var['k'] )` on the shape of `$var`.
