@@ -1766,17 +1766,13 @@ trait TaintednessBaseVisitor {
 		FullyQualifiedFunctionLikeName $funcName,
 		array $args,
 		bool $computePreserve = true,
-		$isHookHandler = false
+		bool $isHookHandler = false
 	): ?TaintednessWithError {
 		$taint = $this->getTaintOfFunction( $func );
 		$containingMethod = $this->getCurrentMethod();
 		$funcError = $this->getCausedByLinesForFunc( $func );
 
-		if ( $computePreserve ) {
-			$overallArgTaint = Taintedness::newSafe();
-			$argErrors = new CausedByLines();
-		}
-
+		$preserveArgumentsData = [];
 		foreach ( $args as $i => $argument ) {
 			if ( !( $argument instanceof Node ) ) {
 				// Literal value
@@ -1875,43 +1871,43 @@ trait TaintednessBaseVisitor {
 				]
 			);
 
-			if ( $computePreserve ) {
-				$preserveOrUnknown = SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT;
-				if ( $taint->hasParamPreserve( $i ) ) {
-					$parTaint = $taint->getParamPreservedTaint( $i );
-					$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
-					$curArgLinks = MethodLinks::newEmpty();
-				} elseif ( $taint->getOverall()->has( $preserveOrUnknown ) ) {
-					// No info for this specific parameter, but the overall function either preserves taint
-					// when unspecified or is unknown. So just pass the taint through.
-					$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
-					$curArgLinks = MethodLinks::newEmpty();
-				} else {
-					// This parameter has no taint info. And overall this function doesn't depend on param
-					// for taint and isn't unknown. So we consider this argument untainted.
-					continue;
-				}
-
-				'@phan-var Taintedness $overallArgTaint';
-				'@phan-var CausedByLines $argErrors';
-				$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-				$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
-				$relevantParamError = $funcError->getParamPreservedLines( $i )
-					->asPreservingTaintednessAndLinks( $effectiveArgTaintedness, $curArgLinks );
-				$curArgError->mergeWith( $relevantParamError );
-				// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
-				// than one argument, it will appear once per preserved argument in the overall caused-by of the
-				// call expression. This is probably a good thing, but can increase the length of caused-by lines.
-				// TODO Something like T291379 might help here.
-				$argErrors->mergeWith( $curArgError );
-			}
+			$preserveArgumentsData[$i] = [ $curArgTaintedness, $baseArgError ];
 		}
 
 		if ( !$computePreserve ) {
 			return null;
 		}
-		'@phan-var Taintedness $overallArgTaint';
-		'@phan-var CausedByLines $argErrors';
+
+		$overallArgTaint = Taintedness::newSafe();
+		$argErrors = new CausedByLines();
+		foreach ( $preserveArgumentsData as $i => [ $curArgTaintedness, $baseArgError ] ) {
+			$preserveOrUnknown = SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT;
+			if ( $taint->hasParamPreserve( $i ) ) {
+				$parTaint = $taint->getParamPreservedTaint( $i );
+				$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
+				$curArgLinks = MethodLinks::newEmpty();
+			} elseif ( $taint->getOverall()->has( $preserveOrUnknown ) ) {
+				// No info for this specific parameter, but the overall function either preserves taint
+				// when unspecified or is unknown. So just pass the taint through.
+				$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
+				$curArgLinks = MethodLinks::newEmpty();
+			} else {
+				// This parameter has no taint info. And overall this function doesn't depend on param
+				// for taint and isn't unknown. So we consider this argument untainted.
+				continue;
+			}
+
+			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
+			$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
+			$relevantParamError = $funcError->getParamPreservedLines( $i )
+				->asPreservingTaintednessAndLinks( $effectiveArgTaintedness, $curArgLinks );
+			$curArgError->mergeWith( $relevantParamError );
+			// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
+			// than one argument, it will appear once per preserved argument in the overall caused-by of the
+			// call expression. This is probably a good thing, but can increase the length of caused-by lines.
+			// TODO Something like T291379 might help here.
+			$argErrors->mergeWith( $curArgError );
+		}
 
 		$overallTaint = $taint->getOverall()->without(
 			SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT
@@ -1997,7 +1993,6 @@ trait TaintednessBaseVisitor {
 	 * @param int $i Position of the param
 	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
 	 *   FIXME This is MW-specific
-	 * @throws Exception
 	 */
 	private function handlePassByRef(
 		FunctionInterface $func,
