@@ -46,3 +46,33 @@ $db->select( 'table', '*', [ $foo => $_GET['a'] ], __METHOD__ ); // Safe
 
 $num = 42;
 $db->select( 'table', '*', [ $num => $_GET['a'] ], __METHOD__ ); // Unsafe
+
+
+// Test array_merge
+$ref = [ 'sf_actor' => [ $_GET['x'] ] ];
+'@phan-debug-var-taintedness $ref';
+$merged = array_merge( [], [ 'sf_actor' => [ $_GET['x'] ] ] );
+'@phan-debug-var-taintedness $merged'; // Should be the same as $ref
+$db->select( 'foo', 'x', $ref ); // Safe
+$db->select( 'foo', 'x', $merged ); // Safe
+
+function testNumkeyArrayMergeBranching() {
+	if ( rand() ) {
+		$where = [ 'foo' => 42 ];
+	} else {
+		$where = [ 'bar' => 100 ];
+	}
+
+	$db = new MysqlDatabase;
+	$search = [];
+	foreach ( $_GET as $val ) {
+		$search[] = $val;
+	}
+	if ( $search ) {
+		$conds = array_merge(
+			$where,
+			[ 'something' => $search ]
+		);
+		$db->select( 't2', 'f2', $conds ); // Safe
+	}
+}
