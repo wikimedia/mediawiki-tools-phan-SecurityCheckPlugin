@@ -344,7 +344,7 @@ class Taintedness {
 		if ( is_scalar( $offset ) ) {
 			$this->dimTaint[$offset] = $value;
 		} else {
-			$this->unknownDimsTaint = $this->unknownDimsTaint ?? self::newSafe();
+			$this->unknownDimsTaint ??= self::newSafe();
 			$this->unknownDimsTaint->mergeWith( $value );
 		}
 	}
@@ -507,7 +507,7 @@ class Taintedness {
 		if ( !$ret->dimTaint ) {
 			return $ret;
 		}
-		$ret->unknownDimsTaint = $ret->unknownDimsTaint ?? self::newSafe();
+		$ret->unknownDimsTaint ??= self::newSafe();
 		foreach ( $ret->dimTaint as $dim => $taint ) {
 			$ret->unknownDimsTaint->mergeWith( $taint );
 			unset( $ret->dimTaint[$dim] );
@@ -554,7 +554,7 @@ class Taintedness {
 		// Then merge general flags, key flags, and any unknown keys
 		$this->flags |= $other->flags;
 		$this->keysTaint |= $other->keysTaint;
-		$this->unknownDimsTaint = $this->unknownDimsTaint ?? new self( SecurityCheckPlugin::NO_TAINT );
+		$this->unknownDimsTaint ??= new self( SecurityCheckPlugin::NO_TAINT );
 		if ( $other->unknownDimsTaint ) {
 			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
 		}

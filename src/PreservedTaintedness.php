@@ -46,7 +46,7 @@ class PreservedTaintedness {
 		if ( is_scalar( $offset ) ) {
 			$this->dimTaint[$offset] = $value;
 		} else {
-			$this->unknownDimsTaint = $this->unknownDimsTaint ?? self::newEmpty();
+			$this->unknownDimsTaint ??= self::newEmpty();
 			$this->unknownDimsTaint->mergeWith( $value );
 		}
 	}
