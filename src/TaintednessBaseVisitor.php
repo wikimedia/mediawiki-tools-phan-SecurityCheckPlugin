@@ -1796,6 +1796,7 @@ trait TaintednessBaseVisitor {
 			}
 
 			$paramSinkTaint = $taint->getParamSinkTaint( $i );
+			$paramSinkError = $funcError->getParamSinkLines( $i );
 
 			$argTaintWithError = $this->getTaintednessNode( $argument );
 			$curArgTaintedness = $argTaintWithError->getTaintedness();
@@ -1810,8 +1811,6 @@ trait TaintednessBaseVisitor {
 				$curArgTaintedness->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 
-			$isRawParam = ( $curParFlags & SecurityCheckPlugin::RAW_PARAM ) !== 0;
-
 			// Add a hook in order to special case for codebases. This is primarily used as a hack so that in mediawiki
 			// the Message class doesn't have double escape taint if method takes Message|string.
 			// TODO This is quite hacky.
@@ -1825,6 +1824,7 @@ trait TaintednessBaseVisitor {
 				$this->code_base
 			);
 
+			$isRawParam = ( $curParFlags & SecurityCheckPlugin::RAW_PARAM ) !== 0;
 			// TODO: We also need to handle the case where someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
 			if ( $curArgTaintedness->has( SecurityCheckPlugin::ALL_TAINT ) ) {
@@ -1834,7 +1834,7 @@ trait TaintednessBaseVisitor {
 			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
 			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
-				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $funcError->getParamSinkLines( $i ) );
+				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $paramSinkError );
 			}
 
 			$param = $func->getParameterForCaller( $i );
@@ -1865,7 +1865,7 @@ trait TaintednessBaseVisitor {
 					$funcName,
 					$containingMethod,
 					$taintedArg,
-					$funcError->getParamSinkLines( $i ),
+					$paramSinkError,
 					$baseArgError,
 					$isRawParam ? ' (Param is raw)' : ''
 				]
@@ -1878,18 +1878,24 @@ trait TaintednessBaseVisitor {
 			return null;
 		}
 
-		$overallArgTaint = Taintedness::newSafe();
-		$argErrors = new CausedByLines();
+		$overallTaint = $taint->getOverall();
+		$combinedArgTaint = Taintedness::newSafe();
+		$combinedArgErrors = new CausedByLines();
 		foreach ( $preserveArgumentsData as $i => [ $curArgTaintedness, $baseArgError ] ) {
-			$preserveOrUnknown = SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT;
 			if ( $taint->hasParamPreserve( $i ) ) {
 				$parTaint = $taint->getParamPreservedTaint( $i );
-				$effectiveArgTaintedness = $parTaint->asTaintednessForArgument( $curArgTaintedness );
+				$preservedArgTaint = $parTaint->asTaintednessForArgument( $curArgTaintedness );
 				$curArgLinks = MethodLinks::newEmpty();
-			} elseif ( $taint->getOverall()->has( $preserveOrUnknown ) ) {
-				// No info for this specific parameter, but the overall function either preserves taint
-				// when unspecified or is unknown. So just pass the taint through.
-				$effectiveArgTaintedness = $this->getNewPreservedTaintForParam( $func, $curArgTaintedness, $i );
+			} elseif (
+				$overallTaint->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
+			) {
+				// Check to see if it's special-cased
+				$preservedArgTaint = $this->getHardcodedParamPreservedTaint( $func, $curArgTaintedness, $i );
+				if ( !$preservedArgTaint ) {
+					// No info for this specific parameter, but the overall function either preserves taint
+					// when unspecified or is unknown. So just pass the taint through.
+					$preservedArgTaint = $curArgTaintedness->asCollapsed();
+				}
 				$curArgLinks = MethodLinks::newEmpty();
 			} else {
 				// This parameter has no taint info. And overall this function doesn't depend on param
@@ -1897,24 +1903,24 @@ trait TaintednessBaseVisitor {
 				continue;
 			}
 
-			$overallArgTaint->mergeWith( $effectiveArgTaintedness );
-			$curArgError = $baseArgError->asIntersectedWithTaintedness( $effectiveArgTaintedness );
+			$combinedArgTaint->mergeWith( $preservedArgTaint );
+			$curArgError = $baseArgError->asIntersectedWithTaintedness( $preservedArgTaint );
 			$relevantParamError = $funcError->getParamPreservedLines( $i )
-				->asPreservingTaintednessAndLinks( $effectiveArgTaintedness, $curArgLinks );
+				->asPreservingTaintednessAndLinks( $preservedArgTaint, $curArgLinks );
 			$curArgError->mergeWith( $relevantParamError );
 			// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
 			// than one argument, it will appear once per preserved argument in the overall caused-by of the
 			// call expression. This is probably a good thing, but can increase the length of caused-by lines.
 			// TODO Something like T291379 might help here.
-			$argErrors->mergeWith( $curArgError );
+			$combinedArgErrors->mergeWith( $curArgError );
 		}
 
-		$overallTaint = $taint->getOverall()->without(
+		$callTaintedness = $overallTaint->without(
 			SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::ALL_EXEC_TAINT
 		);
-		$overallArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
-		$callTaintedness = $overallTaint->asMergedWith( $overallArgTaint );
-		$callError = $funcError->getGenericLines()->asMergedWith( $argErrors );
+		$combinedArgTaint->remove( SecurityCheckPlugin::ALL_EXEC_TAINT );
+		$callTaintedness->mergeWith( $combinedArgTaint );
+		$callError = $funcError->getGenericLines()->asMergedWith( $combinedArgErrors );
 		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::newEmpty() );
 	}
 
@@ -2070,23 +2076,20 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get the effect of $func on the shape of $curArgTaint (which is argument to param $paramIdx).
-	 * Note, this is for the return value, and not e.g. for passbyref effects.
+	 * Get the effect of $func (a special-cased internal PHP function) on the shape of $curArgTaint (which is argument
+	 * to param $paramIdx). Note, this is for the return value, and not e.g. for passbyref effects. If the function is
+	 * not special-cased, returns null.
 	 *
 	 * @param FunctionInterface $func
 	 * @param Taintedness $curArgTaint
 	 * @param int $paramIdx
-	 * @return Taintedness
+	 * @return Taintedness|null
 	 */
-	protected function getNewPreservedTaintForParam(
+	protected function getHardcodedParamPreservedTaint(
 		FunctionInterface $func,
 		Taintedness $curArgTaint,
 		int $paramIdx
-	): Taintedness {
-		if ( !$func->isPHPInternal() ) {
-			return $curArgTaint->asCollapsed();
-		}
-
+	): ?Taintedness {
 		switch ( ltrim( $func->getName(), '\\' ) ) {
 			// These return one or more elements (first param; no other params should be provided, but who knows)
 			case 'array_pop':
@@ -2173,8 +2176,9 @@ trait TaintednessBaseVisitor {
 			case 'array_reduce':
 			// We can't tell what gets removed
 			case 'array_unique':
-			default:
 				return $curArgTaint->asCollapsed();
+			default:
+				return null;
 		}
 	}
 
