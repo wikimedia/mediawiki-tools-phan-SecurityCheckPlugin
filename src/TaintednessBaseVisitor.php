@@ -1878,6 +1878,10 @@ trait TaintednessBaseVisitor {
 			return null;
 		}
 
+		$hardcodedPreservedTaint = $this->getHardcodedPreservedTaintForFunc( $func, $preserveArgumentsData );
+		if ( $hardcodedPreservedTaint ) {
+			return $hardcodedPreservedTaint;
+		}
 		$overallTaint = $taint->getOverall();
 		$combinedArgTaint = Taintedness::newSafe();
 		$combinedArgErrors = new CausedByLines();
@@ -1889,13 +1893,9 @@ trait TaintednessBaseVisitor {
 			} elseif (
 				$overallTaint->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
 			) {
-				// Check to see if it's special-cased
-				$preservedArgTaint = $this->getHardcodedParamPreservedTaint( $func, $curArgTaintedness, $i );
-				if ( !$preservedArgTaint ) {
-					// No info for this specific parameter, but the overall function either preserves taint
-					// when unspecified or is unknown. So just pass the taint through.
-					$preservedArgTaint = $curArgTaintedness->asCollapsed();
-				}
+				// No info for this specific parameter, but the overall function either preserves taint
+				// when unspecified or is unknown. So just pass the taint through, destroying the shape.
+				$preservedArgTaint = $curArgTaintedness->asCollapsed();
 				$curArgLinks = MethodLinks::newEmpty();
 			} else {
 				// This parameter has no taint info. And overall this function doesn't depend on param
@@ -2076,22 +2076,21 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Get the effect of $func (a special-cased internal PHP function) on the shape of $curArgTaint (which is argument
-	 * to param $paramIdx). Note, this is for the return value, and not e.g. for passbyref effects. If the function is
-	 * not special-cased, returns null.
+	 * Get the taintedness of the return value of $func (a special-cased internal PHP function) given the taintedness
+	 * of its arguments. Note that this doesn't handle passbyref parameters. If the function is not special-cased,
+	 * returns null.
 	 *
 	 * @param FunctionInterface $func
-	 * @param Taintedness $curArgTaint
-	 * @param int $paramIdx
-	 * @return Taintedness|null
+	 * @param array<int,array{0:Taintedness,1:CausedByLines}> $preserveArgumentsData Actual taintedness and caused-by
+	 * lines of each argument. Literal arguments aren't be included here.
+	 * @return TaintednessWithError|null
 	 */
-	protected function getHardcodedParamPreservedTaint(
+	private function getHardcodedPreservedTaintForFunc(
 		FunctionInterface $func,
-		Taintedness $curArgTaint,
-		int $paramIdx
-	): ?Taintedness {
+		array $preserveArgumentsData
+	): ?TaintednessWithError {
 		switch ( ltrim( $func->getName(), '\\' ) ) {
-			// These return one or more elements (first param; no other params should be provided, but who knows)
+			// Functions that return one element of the array (first and only parameter)
 			case 'array_pop':
 			case 'array_shift':
 			case 'current':
@@ -2100,24 +2099,133 @@ trait TaintednessBaseVisitor {
 			case 'pos':
 			case 'prev':
 			case 'reset':
-				return $paramIdx === 0 ? $curArgTaint->asValueFirstLevel() : $curArgTaint->asCollapsed();
-			case 'array_values':
-				if ( $paramIdx === 0 ) {
-					$ret = $curArgTaint->withoutKeys();
-					return $ret->has( SecurityCheckPlugin::SQL_TAINT )
-						? $ret->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT )
-						: $ret;
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
 				}
-				return $curArgTaint->asCollapsed();
-			// These return one or more keys
+				$taint = $preserveArgumentsData[0][0]->asValueFirstLevel();
+				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_values':
+				// Same taintedness as the original array (first and only param), but with safe keys and numkey.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$taint = $preserveArgumentsData[0][0]->withoutKeys();
+				if ( $taint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
+					$taint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				}
+				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			// Functions that return a key from the array (first and only parameter)
 			case 'key':
 			case 'array_key_first':
 			case 'array_key_last':
+			// array_keys returns all keys from the array (first param), and can also take two more parameters
+			// that don't contribute to the resulting taintedness.
 			case 'array_keys':
-				return $paramIdx === 0 ? $curArgTaint->asKeyForForeach() : $curArgTaint->asCollapsed();
-			// No effect on the shape, and second param is safe
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$taint = $preserveArgumentsData[0][0]->asKeyForForeach();
+				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
 			case 'array_change_key_case':
-				return $paramIdx === 0 ? clone $curArgTaint : Taintedness::newSafe();
+				// The overall shape remains the same, but the keys of the outermost array (first param) have different
+				// case. Second param (lower vs upper) is safe.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				// TODO: actually handle case changes!
+				$taint = clone $preserveArgumentsData[0][0];
+				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_flip':
+				// Swaps keys and values of the array (first and only param)
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$taint = $preserveArgumentsData[0][0]->asKeyForForeach();
+				$taint->addKeysTaintedness( $preserveArgumentsData[0][0]->asValueFirstLevel()->get() );
+				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'implode':
+			case 'join':
+				// This function can be called in three different ways:
+				// - implode( $string, $array ) -> joins elements in $array using $string
+				// - implode( $array ) -> joins elements in $array using the empty string
+				// - implode( $array, $string ) -> same as the first one but inverted params, deprecated in PHP 7.4,
+				//   removed in PHP 8
+				// TODO: Right now we don't support the deprecated syntax; should we?
+				if ( isset( $preserveArgumentsData[0] ) ) {
+					$joinerTaint = $preserveArgumentsData[0][0]->asCollapsed();
+					$joinerError = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $joinerTaint );
+				}
+				$combinedTaint = $joinerTaint ?? Taintedness::newSafe();
+				$combinedError = $joinerError ?? new CausedByLines();
+				if ( isset( $preserveArgumentsData[1] ) ) {
+					$arrayTaint = $preserveArgumentsData[1][0]->withoutKeys()->asCollapsed();
+					$combinedTaint->mergeWith( $arrayTaint );
+					$combinedError->mergeWith(
+						$preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $arrayTaint )
+					);
+				}
+				return new TaintednessWithError( $combinedTaint, $combinedError, MethodLinks::newEmpty() );
+			case 'array_fill':
+				// array_fill( $start, $count, $value ) creates an array with $count copies of $value, starting
+				// at key $start. The first two params are integers, and thus safe.
+				if ( !isset( $preserveArgumentsData[2] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$preservedArgTaint = clone $preserveArgumentsData[2][0];
+				$taint = Taintedness::newSafe();
+				// TODO: We may actually be able to infer the actual keys, instead of setting as unknown
+				$taint->setOffsetTaintedness( null, $preservedArgTaint );
+				// TODO: We should also add numkey if the argument has sql.
+				$error = $preserveArgumentsData[2][1]->asIntersectedWithTaintedness( $preservedArgTaint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_fill_keys':
+				// array_fill_keys( $keys, $value ) creates an array whose keys are the element in $keys, and whose
+				// values are all equal to $value.
+				$taint = Taintedness::newSafe();
+				$error = new CausedByLines();
+				if ( isset( $preserveArgumentsData[0] ) ) {
+					$keysTaintedness = $preserveArgumentsData[0][0]->asValueFirstLevel();
+					$taint->addKeysTaintedness( $keysTaintedness->get() );
+					$error->mergeWith( $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint ) );
+				}
+				if ( isset( $preserveArgumentsData[1] ) ) {
+					$preservedValueTaint = $preserveArgumentsData[1][0];
+					$taint->setOffsetTaintedness( null, clone $preservedValueTaint );
+					$error->mergeWith(
+						$preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $preservedValueTaint )
+					);
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_combine':
+				// array_fill_keys( $keys, $values ) creates an array whose keys are the element in $keys, and whose
+				// values the elements in $values.
+				$taint = Taintedness::newSafe();
+				$error = new CausedByLines();
+				if ( isset( $preserveArgumentsData[0] ) ) {
+					$keysTaintedness = $preserveArgumentsData[0][0]->asValueFirstLevel();
+					$taint->addKeysTaintedness( $keysTaintedness->get() );
+					$error->mergeWith( $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint ) );
+				}
+				if ( isset( $preserveArgumentsData[1] ) ) {
+					$valueTaint = $preserveArgumentsData[1][0]->withoutKeys();
+					$taint->mergeWith( $valueTaint );
+					$error->mergeWith( $preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $valueTaint ) );
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_unique':
+				// Removes duplicate from an array (first param). We can't tell what gets removed, and what's the effect
+				// of this function on array keys. Second param is safe.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$taint = $preserveArgumentsData[0][0]->asCollapsed();
+				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
 			// TODO For now, we assume that all functions in this case preserve the shape
 			// TODO Handling these ones should be easywith diff() and intersect() methods in Taintedness.
 			case 'array_diff':
@@ -2139,29 +2247,14 @@ trait TaintednessBaseVisitor {
 			// TODO Last two params of these are callbacks, so twice as hard
 			case 'array_udiff_uassoc':
 			case 'array_uintersect_uassoc':
-				return clone $curArgTaint;
-			case 'array_flip':
-				$ret = $curArgTaint->asKeyForForeach();
-				$ret->addKeysTaintedness( $curArgTaint->asValueFirstLevel()->get() );
-				return $ret;
-			case 'join':
-				return $curArgTaint->withoutKeys()->asCollapsed();
-			case 'implode':
-				// Arg 0 shouldn't be shaped, but who knows...
-				return $paramIdx === 0 ? $curArgTaint->asCollapsed() : $curArgTaint->withoutKeys()->asCollapsed();
-			case 'array_fill':
-				// TODO: We cannot build a shape yet
-				return $paramIdx === 2 ? $curArgTaint->asCollapsed() : Taintedness::newSafe();
-			case 'array_fill_keys':
-				// TODO: We cannot build a shape yet
-				return $paramIdx === 0 ? $curArgTaint->asValueFirstLevel() : $curArgTaint->asCollapsed();
-			case 'array_combine':
-				if ( $paramIdx === 0 ) {
-					$ret = Taintedness::newSafe();
-					$ret->addKeysTaintedness( $curArgTaint->withoutKeys()->get() );
-					return $ret;
+				$taint = Taintedness::newSafe();
+				$error = new CausedByLines();
+				foreach ( $preserveArgumentsData as [ $curArgTaintedness, $baseArgError ] ) {
+					$preservedArgTaint = clone $curArgTaintedness;
+					$taint->mergeWith( $preservedArgTaint );
+					$error->mergeWith( $baseArgError->asIntersectedWithTaintedness( $preservedArgTaint ) );
 				}
-				return $curArgTaint->withoutKeys();
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
 			// TODO These would really require knowing the other args
 			case 'unset':
 			case 'array_merge':
@@ -2174,9 +2267,14 @@ trait TaintednessBaseVisitor {
 			case 'array_map':
 			case 'array_filter':
 			case 'array_reduce':
-			// We can't tell what gets removed
-			case 'array_unique':
-				return $curArgTaint->asCollapsed();
+				$taint = Taintedness::newSafe();
+				$error = new CausedByLines();
+				foreach ( $preserveArgumentsData as [ $curArgTaintedness, $baseArgError ] ) {
+					$preservedArgTaint = $curArgTaintedness->asCollapsed();
+					$taint->mergeWith( $preservedArgTaint );
+					$error->mergeWith( $baseArgError->asIntersectedWithTaintedness( $preservedArgTaint ) );
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
 			default:
 				return null;
 		}

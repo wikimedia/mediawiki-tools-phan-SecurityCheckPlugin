@@ -48,15 +48,15 @@ $value = [ 'safe' => 'safe', 'unsafe' => $_GET['a'] ];
 $safeKeys = [ 'a', 'b', 'c' ];
 $fill1 = array_fill_keys( $safeKeys, $value );
 echo $fill1['a']; // Unsafe
-echo $fill1['a']['safe']; // TODO: Ideally Safe
+echo $fill1['a']['safe']; // Safe
 echo $fill1['a']['unsafe']; // Unsafe
 foreach ( $fill1 as $k1 => $_ ) {
-	echo $k1; // TODO: Ideally Safe
+	echo $k1; // Safe
 }
 $unsafeKeys = [ $_GET['a'], $_GET['b'] ];
 $fill2 = array_fill_keys( $unsafeKeys, $value );
 echo $fill2['a']; // Unsafe
-echo $fill2['a']['safe']; // TODO: Ideally Safe
+echo $fill2['a']['safe']; // Safe
 echo $fill2['a']['unsafe']; // Unsafe
 foreach ( $fill2 as $k2 => $_ ) {
 	echo $k2; // Unsafe
@@ -134,4 +134,43 @@ function arrayCombine() {
 		echo $k; // Safe
 		echo $v; // Unsafe
 	}
+}
+
+function testArrayChangeKeyCase() {
+	$arr = [ 'x' => 'safe', 'X' => $_GET['a'], 'y' => $_GET['b'], 'z' => $_GET['c'], 'Z' => 'safe' ];
+	$lowerImplicit = array_change_key_case( $arr );
+	$lowerExplicit = array_change_key_case( $arr, CASE_LOWER );
+	$upper = array_change_key_case( $arr, CASE_UPPER );
+
+	echo $lowerImplicit['x']; // TODO Unsafe, element exists
+	echo $lowerImplicit['X']; // TODO Safe, element does not exist
+	echo $lowerImplicit['y']; // Unsafe, element exists
+	echo $lowerImplicit['Y']; // Safe, element does not exist
+	echo $lowerImplicit['z']; // TODO Safe, element exists
+	echo $lowerImplicit['Z']; // Safe, element does not exist
+
+	echo $lowerExplicit['x']; // TODO Unsafe, element exists
+	echo $lowerExplicit['X']; // TODO Safe, element does not exist
+	echo $lowerExplicit['y']; // Unsafe, element exists
+	echo $lowerExplicit['Y']; // Safe, element does not exist
+	echo $lowerExplicit['z']; // TODO Safe, element exists
+	echo $lowerExplicit['Z']; // Safe, element does not exist
+
+	echo $upper['x']; // Safe, element does not exist
+	echo $upper['X']; // Unsafe, element exists
+	echo $upper['y']; // TODO Safe, element does not exist
+	echo $upper['Y']; // TODO Unsafe, element exists
+	echo $upper['z']; // TODO Safe, element does not exist
+	echo $upper['Z']; // Safe, element exists
+}
+
+/**
+ * Test to ensure there are no crashes with literal arguments
+ * @suppress SecurityCheck-XSS
+ */
+function testLiteralArguments() {
+	echo array_values( [ 1, 2, 3 ] );
+	echo array_keys( [ 1, 2, 3 ] );
+	echo array_diff( [], $_GET );
+	echo array_merge( [], $_GET, [] );
 }
