@@ -73,19 +73,6 @@ function flipUnknown() {
 	echo array_flip( $arr );
 }
 
-function diffAndIntersect() {
-	$arr1 = [ 'a' => 'safe', 'b' => $_GET['unsafe'] ];
-	$arr2 = [ 'b' => 'safe', 'c' => $_GET['unsafe'] ];
-	$arr3 = [ 'c' => 'safe' ];
-	echo array_diff( $arr1, $arr2 ); // TODO Ideally safe
-	echo array_diff( $arr2, $arr1 ); // Unsafe
-	echo array_diff( $arr2, $arr3 ); // TODO Ideally safe
-	echo array_diff( $arr3, $arr2 ); // TODO Ideally safe
-	echo array_intersect( $arr1, $arr2 ); // Unsafe
-	echo array_intersect( $arr2, $arr3 ); // Unsafe
-	echo array_intersect( $arr3, $arr2 ); // TODO Ideally safe
-}
-
 function arrayImplode() {
 	$safeKeysSafeValues = [ 'a' => 'safe', 'b' => 'safe' ];
 	echo implode( ',', $safeKeysSafeValues ); // Safe

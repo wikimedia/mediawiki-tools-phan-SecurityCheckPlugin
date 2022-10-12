@@ -2230,6 +2230,7 @@ trait TaintednessBaseVisitor {
 			// TODO Handling these ones should be easywith diff() and intersect() methods in Taintedness.
 			case 'array_diff':
 			case 'array_diff_assoc':
+			case 'array_diff_key':
 			case 'array_intersect':
 			case 'array_intersect_assoc':
 			case 'array_intersect_key':
