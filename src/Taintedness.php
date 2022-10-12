@@ -276,6 +276,18 @@ class Taintedness {
 	}
 
 	/**
+	 * Removes offset data from $this for all known offsets of $other, in place.
+	 *
+	 * @param Taintedness $other
+	 * @return void
+	 */
+	public function removeKnownKeysFrom( self $other ): void {
+		foreach ( $other->dimTaint as $key => $_ ) {
+			unset( $this->dimTaint[$key] );
+		}
+	}
+
+	/**
 	 * Merge this object with $other, recursively and without creating a copy.
 	 * @see Taintedness::asMergedWith() if you need a copy
 	 *

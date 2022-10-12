@@ -2226,17 +2226,77 @@ trait TaintednessBaseVisitor {
 				$taint = $preserveArgumentsData[0][0]->asCollapsed();
 				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
-			// TODO For now, we assume that all functions in this case preserve the shape
-			// TODO Handling these ones should be easywith diff() and intersect() methods in Taintedness.
 			case 'array_diff':
 			case 'array_diff_assoc':
+				// - array_diff( $arr, $x_1, ..., $x_n ) returns elements in $arr that are NOT in any of the $x_i.
+				//   The equality of two elements is determined by looking at their values.
+				//   Only the first argument contributes to the preserved taintedness.
+				// - array_diff_assoc does the same, but two elements are considered equal if they have the same value
+				//   AND the same key.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				// We can't infer shape mutations because Taintedness doesn't keep track of the values, so just
+				// return the taintedness of the first argument.
+				return new TaintednessWithError(
+					$preserveArgumentsData[0][0],
+					$preserveArgumentsData[0][1],
+					MethodLinks::newEmpty()
+				);
 			case 'array_diff_key':
+				// array_diff_key( $arr, $x_1, ..., $x_n ) is similar to array_diff, but here two elements are
+				// considered equal if they have the same key (irregardless of the value).
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				/** @var Taintedness $taint */
+				[ $taint, $error ] = array_shift( $preserveArgumentsData );
+				$taint = clone $taint;
+				foreach ( $preserveArgumentsData as $argData ) {
+					$taint->removeKnownKeysFrom( $argData[0] );
+					// No argument besides the first one can contribute to caused-by lines, although
+					// ideally we would remove the current error from $error.
+				}
+				// The shape is destroyed to avoid pretending that we know anything about the final shape of the array.
+				return new TaintednessWithError( $taint->asCollapsed(), $error, MethodLinks::newEmpty() );
 			case 'array_intersect':
 			case 'array_intersect_assoc':
+				// - array_intersect( $arr_1, ..., $arr_n ) returns an array of elements that are in ALL of the $x_i.
+				//   The equality of two elements is determined by looking at their values.
+				//   Only values from the first array are used for the return value.
+				// - array_intersect_assoc does the same, but two elements are considered equal if they have the same
+				//   value AND the same key.
+				if ( !$preserveArgumentsData ) {
+					return TaintednessWithError::newEmpty();
+				}
+				// Note: we can't do an actual intersect on the values because Taintedness does not store them, but
+				// intersecting the taintedness flags, although not perfect, is correct and approximates that.
+				// The shape is destroyed to avoid pretending that we know anything about the final shape of the array.
+				/** @var Taintedness $taint */
+				[ $taint, $error ] = array_shift( $preserveArgumentsData );
+				$taint = $taint->asCollapsed();
+				foreach ( $preserveArgumentsData as $argData ) {
+					$taint->keepOnly( $argData[0]->get() );
+					// No argument besides the first one can contribute to caused-by lines, although
+					// ideally we would intersect $error with the current error.
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
 			case 'array_intersect_key':
-			// TODO Last parameter of these is a callback, so probably hard to handle. They're also variadic,
-			// so we'd need to know the arg type to determine whether we have a callback. Note that we're
-			// currently cloning the taint for cb params.
+				// array_intersect_key( $arr, $x_1, ..., $x_n ) is similar to array_intersect, but here two elements are
+				// considered equal if they have the same key (irregardless of the value).
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				// We can't infer shape mutations because there might be unknown keys in either argument, so just
+				// return the taintedness of the first argument.
+				return new TaintednessWithError(
+					$preserveArgumentsData[0][0],
+					$preserveArgumentsData[0][1],
+					MethodLinks::newEmpty()
+				);
+			// TODO For now, we assume that all functions in this case preserve the shape. Their last parameter is a
+			// callback, so probably hard to handle. They're also variadic, so we'd need to know the arg type to
+			// determine whether we have a callback. Note that we're currently cloning the taint for cb params.
 			case 'array_diff_uassoc':
 			case 'array_diff_ukey':
 			case 'array_intersect_uassoc':
