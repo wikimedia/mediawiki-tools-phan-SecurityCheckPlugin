@@ -2238,9 +2238,10 @@ trait TaintednessBaseVisitor {
 				}
 				// We can't infer shape mutations because Taintedness doesn't keep track of the values, so just
 				// return the taintedness of the first argument.
+				$preservedArgTaint = clone $preserveArgumentsData[0][0];
 				return new TaintednessWithError(
-					$preserveArgumentsData[0][0],
-					$preserveArgumentsData[0][1],
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::newEmpty()
 				);
 			case 'array_diff_key':
@@ -2289,14 +2290,14 @@ trait TaintednessBaseVisitor {
 				}
 				// We can't infer shape mutations because there might be unknown keys in either argument, so just
 				// return the taintedness of the first argument.
+				$preservedArgTaint = clone $preserveArgumentsData[0][0];
 				return new TaintednessWithError(
-					$preserveArgumentsData[0][0],
-					$preserveArgumentsData[0][1],
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::newEmpty()
 				);
-			// TODO For now, we assume that all functions in this case preserve the shape. Their last parameter is a
-			// callback, so probably hard to handle. They're also variadic, so we'd need to know the arg type to
-			// determine whether we have a callback. Note that we're currently cloning the taint for cb params.
+			// TODO The last parameter of these functions is a callback, so probably hard to handle. They're also
+			// variadic, so we'd need to know the arg type to analyze the callback.
 			case 'array_diff_uassoc':
 			case 'array_diff_ukey':
 			case 'array_intersect_uassoc':
@@ -2305,28 +2306,105 @@ trait TaintednessBaseVisitor {
 			case 'array_udiff_assoc':
 			case 'array_uintersect':
 			case 'array_uintersect_assoc':
-			// TODO Last two params of these are callbacks, so twice as hard
+			// The last two params of these are callbacks, so twice as hard
 			case 'array_udiff_uassoc':
 			case 'array_uintersect_uassoc':
+				// Only the taintedness from first argument is preserved.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$preservedArgTaint = clone $preserveArgumentsData[0][0];
+				return new TaintednessWithError(
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					MethodLinks::newEmpty()
+				);
+			case 'array_map':
+				// array_map( $cb, $arr, $arr_1, ..., $arr_n ) returns the result of applying $cb to all the array
+				// arguments, element by element.
+				// TODO: Analyze the callback. For now we only preserve taintedness of array arguments.
+				unset( $preserveArgumentsData[0] );
 				$taint = Taintedness::newSafe();
 				$error = new CausedByLines();
-				foreach ( $preserveArgumentsData as [ $curArgTaintedness, $baseArgError ] ) {
-					$preservedArgTaint = clone $curArgTaintedness;
+				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
+					$preservedArgTaint = $argTaint->asCollapsed();
 					$taint->mergeWith( $preservedArgTaint );
-					$error->mergeWith( $baseArgError->asIntersectedWithTaintedness( $preservedArgTaint ) );
+					$error->mergeWith( $argError->asIntersectedWithTaintedness( $preservedArgTaint ) );
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_filter':
+				// array_filter( $arr, $cb, $mode ) filters the $arr by using $cb.
+				// TODO: Analyze the callback. For now we preserve the whole taintedness of the array.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$preservedArgTaint = $preserveArgumentsData[0][0]->asCollapsed();
+				return new TaintednessWithError(
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					MethodLinks::newEmpty()
+				);
+			case 'array_reduce':
+				// array_reduce( $arr, $cb, $initial ) applies $cb to $arr to obtain a single value.
+				// TODO: Analyze the callback. For now we preserve the whole taintedness of the array.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$preservedArgTaint = $preserveArgumentsData[0][0]->asCollapsed();
+				return new TaintednessWithError(
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					MethodLinks::newEmpty()
+				);
+			case 'array_reverse':
+				// array_reverse( $arr, $preserveKeys ) reverses the order of an array. String keys are always
+				// preserved, the second param controls whether int keys are also preserved.
+				// TODO: By knowing the value of the second arg, we could improve this by:
+				// - Removing only int keys if false
+				// - Preserving the whole shape if true
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$preservedArgTaint = $preserveArgumentsData[0][0]->asCollapsed();
+				return new TaintednessWithError(
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					MethodLinks::newEmpty()
+				);
+			case 'array_pad':
+				// array_pad( $arr, $length, $val ) returns a copy of $arr padded to the size specified by $length
+				// by adding copies of $val.
+				if ( isset( $preserveArgumentsData[0] ) ) {
+					$taint = clone $preserveArgumentsData[0][0];
+					$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				} else {
+					$taint = Taintedness::newSafe();
+					$error = new CausedByLines();
+				}
+				if ( isset( $preserveArgumentsData[2] ) ) {
+					$valArgTaint = $preserveArgumentsData[2][0]->asCollapsed();
+					$taint->mergeWith( $valArgTaint );
+					$error->mergeWith( $preserveArgumentsData[2][1]->asIntersectedWithTaintedness( $valArgTaint ) );
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_slice':
+				// array_slice( $arr, $offset, $len, $preserveKeys ) returns the segment of $arr starting at $offset
+				// and of size $len. String keys are always preserved, $preserveKeys controls whether int keys
+				// are also preserved.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$preservedArgTaint = $preserveArgumentsData[0][0]->asCollapsed();
+				return new TaintednessWithError(
+					$preservedArgTaint,
+					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					MethodLinks::newEmpty()
+				);
 			// TODO These would really require knowing the other args
 			case 'array_merge':
 			case 'array_merge_recursive':
 			case 'array_replace':
 			case 'array_replace_recursive':
-			case 'array_pad':
-			case 'array_reverse':
-			case 'array_slice':
-			case 'array_map':
-			case 'array_filter':
-			case 'array_reduce':
 				$taint = Taintedness::newSafe();
 				$error = new CausedByLines();
 				foreach ( $preserveArgumentsData as [ $curArgTaintedness, $baseArgError ] ) {
