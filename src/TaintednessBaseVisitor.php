@@ -2400,10 +2400,39 @@ trait TaintednessBaseVisitor {
 					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::newEmpty()
 				);
-			// TODO These would really require knowing the other args
-			case 'array_merge':
-			case 'array_merge_recursive':
 			case 'array_replace':
+				// array_replace( $arr, $rep_1, ..., $rep_n ) returns a copy of $arr where each element is replaced
+				// with the element having the same key in the rightmost argument.
+				if ( !isset( $preserveArgumentsData[0] ) ) {
+					return TaintednessWithError::newEmpty();
+				}
+				$firstArgData = array_shift( $preserveArgumentsData );
+				/** @var Taintedness $taint */
+				$taint = clone $firstArgData[0];
+				$error = $firstArgData[1]->asIntersectedWithTaintedness( $taint );
+				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
+					$taint->arrayReplace( $argTaint );
+					// Note: we may be adding too many caused-by lines here
+					$error->mergeWith( $argError->asIntersectedWithTaintedness( $argTaint ) );
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			case 'array_merge':
+				// array_merge( $arr_1, ... $arr_n ) merges the given array arguments. If any two (or more) input arrays
+				// have the same string key, the value from the rightmost argument with that key will be used. Integer
+				// keys are always appended, and never replaced. Additionally, integer keys in the resulting array
+				// will be renumbered incrementally starting from 0.
+				if ( !$preserveArgumentsData ) {
+					return TaintednessWithError::newEmpty();
+				}
+				/** @var Taintedness $taint */
+				[ $taint, $error ] = array_shift( $preserveArgumentsData );
+				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
+					$taint->arrayMerge( $argTaint );
+					$error->mergeWith( $argError->asIntersectedWithTaintedness( $argTaint ) );
+				}
+				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
+			// TODO Handle these with recursion.
+			case 'array_merge_recursive':
 			case 'array_replace_recursive':
 				$taint = Taintedness::newSafe();
 				$error = new CausedByLines();

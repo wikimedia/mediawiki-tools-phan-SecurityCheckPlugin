@@ -3,6 +3,7 @@
 ## UNRELEASED
 ### New features
 * Added support for the effects of `unset( $var['k'] )` on the shape of `$var`.
+* The plugin now infers the effect of some array_* functions on the resulting taintedness more accurately.
 
 ## v4.0.0
 ### Breaking changes

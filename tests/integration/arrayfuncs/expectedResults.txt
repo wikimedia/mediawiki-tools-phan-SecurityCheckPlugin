@@ -33,3 +33,24 @@ integration/arrayfuncs/test.php:143 SecurityCheck-XSS Echoing expression that wa
 integration/arrayfuncs/test.php:147 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +130; integration/arrayfuncs/test.php +127)
 integration/arrayfuncs/test.php:148 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +130; integration/arrayfuncs/test.php +127)
 integration/arrayfuncs/test.php:150 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +130; integration/arrayfuncs/test.php +127)
+integration/arrayfuncs/test.php:159 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +156)
+integration/arrayfuncs/test.php:161 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +158)
+integration/arrayfuncs/test.php:163 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +156; integration/arrayfuncs/test.php +157)
+integration/arrayfuncs/test.php:164 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +156; integration/arrayfuncs/test.php +158)
+integration/arrayfuncs/test.php:166 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +165)
+integration/arrayfuncs/test.php:167 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +165; integration/arrayfuncs/test.php +157)
+integration/arrayfuncs/test.php:168 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrayfuncs/test.php:169 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrayfuncs/test.php:177 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +174)
+integration/arrayfuncs/test.php:178 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +175)
+integration/arrayfuncs/test.php:179 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +176)
+integration/arrayfuncs/test.php:181 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +174; integration/arrayfuncs/test.php +175)
+integration/arrayfuncs/test.php:182 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +174; integration/arrayfuncs/test.php +176)
+integration/arrayfuncs/test.php:184 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +183)
+integration/arrayfuncs/test.php:185 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +183; integration/arrayfuncs/test.php +175)
+integration/arrayfuncs/test.php:186 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrayfuncs/test.php:187 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/arrayfuncs/test.php:191 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +190; integration/arrayfuncs/test.php +188; integration/arrayfuncs/test.php +189)
+integration/arrayfuncs/test.php:191 SecurityCheckDebugTaintedness Variable $mixedKeysMerge12 has taintedness: {Own: SQL_NUMKEY; Elements: {foo => {Own: YES}; baz => {Own: NONE}; UNKNOWN => {Own: YES}}}
+integration/arrayfuncs/test.php:194 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs/test.php +193; integration/arrayfuncs/test.php +189; integration/arrayfuncs/test.php +188)
+integration/arrayfuncs/test.php:194 SecurityCheckDebugTaintedness Variable $mixedKeysMerge21 has taintedness: {Own: SQL_NUMKEY; Elements: {baz => {Own: NONE}; foo => {Own: YES}; UNKNOWN => {Own: YES}}}

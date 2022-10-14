@@ -524,6 +524,49 @@ class Taintedness {
 		return new self( ( $this->keysTaint | $this->flags ) & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 	}
 
+	/**
+	 * Applies an array_replace operations to $this, in place.
+	 *
+	 * @param Taintedness $other
+	 * @return void
+	 */
+	public function arrayReplace( self $other ): void {
+		$this->flags |= $other->flags;
+		$this->dimTaint = array_replace( $this->dimTaint, $other->dimTaint );
+		if ( $other->unknownDimsTaint ) {
+			if ( $this->unknownDimsTaint ) {
+				$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+			} else {
+				$this->unknownDimsTaint = $other->unknownDimsTaint;
+			}
+		}
+	}
+
+	/**
+	 * Applies an array_merge operations to $this, in place.
+	 *
+	 * @param Taintedness $other
+	 * @return void
+	 */
+	public function arrayMerge( self $other ): void {
+		// First merge the known elements
+		$this->dimTaint = array_merge( $this->dimTaint, $other->dimTaint );
+		// Then merge general flags, key flags, and any unknown keys
+		$this->flags |= $other->flags;
+		$this->keysTaint |= $other->keysTaint;
+		$this->unknownDimsTaint = $this->unknownDimsTaint ?? new self( SecurityCheckPlugin::NO_TAINT );
+		if ( $other->unknownDimsTaint ) {
+			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+		}
+		// Finally, move taintedness from int keys to unknown
+		foreach ( $this->dimTaint as $k => $val ) {
+			if ( is_int( $k ) ) {
+				$this->unknownDimsTaint->mergeWith( $val );
+				unset( $this->dimTaint[$k] );
+			}
+		}
+	}
+
 	// Conversion/checks shortcuts
 
 	/**

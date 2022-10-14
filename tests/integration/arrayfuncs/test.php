@@ -151,6 +151,50 @@ function testArrayChangeKeyCase() {
 	echo $upper['Z']; // Safe, element exists
 }
 
+function testArrayReplace() {
+	$safeArr = [ 'foo' => 'safe', 'bar' => 'safe2' ];
+	$unsafeArr = [ 'foo' => $_GET['a'] ];
+	$unknownKeySafeArr = [ $_GET['unknown'] => 'safe' ];
+	$unknownKeyUnsafeArr = [ $_GET['unknown'] => $_GET['unsafe'] ];
+	echo array_replace( $safeArr, $unsafeArr ); // Unsafe
+	echo array_replace( $safeArr, $unknownKeySafeArr ); // Safe
+	echo array_replace( $safeArr, $unknownKeyUnsafeArr ); // Unsafe
+	echo array_replace( $unsafeArr, $safeArr ); // Safe
+	echo array_replace( $unsafeArr, $unknownKeySafeArr ); // Unsafe
+	echo array_replace( $unsafeArr, $unknownKeyUnsafeArr ); // Unsafe
+	$unsafeArrWithDifferentKey = [ 'different-key' => $_GET['x'] ];
+	echo array_replace( $safeArr, $unsafeArrWithDifferentKey ); // Unsafe
+	echo array_replace( $unsafeArrWithDifferentKey, $unknownKeySafeArr ); // Unsafe
+	echo array_replace( $safeArr, $_GET ); // Unsafe
+	echo array_replace( $_GET, $safeArr ); // Unsafe
+}
+
+function testArrayMerge() {
+	$safeArr = [ 'foo' => 'safe', 'bar' => 'safe2' ];
+	$unsafeArr = [ 'foo' => $_GET['a'] ];
+	$unknownKeySafeArr = [ $_GET['unknown'] => 'safe' ];
+	$unknownKeyUnsafeArr = [ $_GET['unknown'] => $_GET['unsafe'] ];
+	echo array_merge( $safeArr, $unsafeArr ); // Unsafe
+	echo array_merge( $safeArr, $unknownKeySafeArr ); // Unsafe
+	echo array_merge( $safeArr, $unknownKeyUnsafeArr ); // Unsafe
+	echo array_merge( $unsafeArr, $safeArr ); // Safe
+	echo array_merge( $unsafeArr, $unknownKeySafeArr ); // Unsafe
+	echo array_merge( $unsafeArr, $unknownKeyUnsafeArr ); // Unsafe
+	$unsafeArrWithDifferentKey = [ 'different-key' => $_GET['x'] ];
+	echo array_merge( $safeArr, $unsafeArrWithDifferentKey ); // Unsafe
+	echo array_merge( $unsafeArrWithDifferentKey, $unknownKeySafeArr ); // Unsafe
+	echo array_merge( $safeArr, $_GET ); // Unsafe
+	echo array_merge( $_GET, $safeArr ); // Unsafe
+	$mixedTypeKeys1 = [ 1 => 'safe', 3 => $_GET['a'], 'foo' => $_GET['x'] ];
+	$mixedTypeKeys2 = [ 0 => $_GET['a'], 3 => 'safe', 'baz' => 'safe' ];
+	$mixedKeysMerge12 = array_merge( $mixedTypeKeys1, $mixedTypeKeys2 );
+	echo $mixedKeysMerge12; // Unsafe
+	'@phan-debug-var-taintedness $mixedKeysMerge12';
+	$mixedKeysMerge21 = array_merge( $mixedTypeKeys2, $mixedTypeKeys1 );
+	echo $mixedKeysMerge21; // Unsafe
+	'@phan-debug-var-taintedness $mixedKeysMerge21';
+}
+
 /**
  * Test to ensure there are no crashes with literal arguments
  * @suppress SecurityCheck-XSS
