@@ -285,6 +285,15 @@ class Taintedness {
 		foreach ( $other->dimTaint as $key => $_ ) {
 			unset( $this->dimTaint[$key] );
 		}
+		if (
+			( $this->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) &&
+			!$this->has( SecurityCheckPlugin::SQL_TAINT )
+		) {
+			// Note that this adjustment is not guaranteed to happen immediately after the removal of the last
+			// integer key. For instance, in [ 0 => unsafe, 'foo' => unsafe ], if only the element 0 is removed,
+			// this branch will not run because 'foo' still contributes sql taint.
+			$this->flags &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+		}
 	}
 
 	/**
@@ -464,6 +473,26 @@ class Taintedness {
 		}
 		foreach ( $this->dimTaint as $val ) {
 			$ret->mergeWith( $val );
+		}
+		return $ret;
+	}
+
+	/**
+	 * Creates a copy of this object without the given key
+	 * @param string|int|bool|float $key
+	 * @return $this
+	 */
+	public function withoutKey( $key ): self {
+		$ret = clone $this;
+		unset( $ret->dimTaint[$key] );
+		if (
+			( $ret->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) &&
+			!$ret->has( SecurityCheckPlugin::SQL_TAINT )
+		) {
+			// Note that this adjustment is not guaranteed to happen immediately after the removal of the last
+			// integer key. For instance, in [ 0 => unsafe, 'foo' => unsafe ], if the element 0 is removed,
+			// this branch will not run because 'foo' still contributes sql taint.
+			$ret->flags &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 		}
 		return $ret;
 	}

@@ -1,16 +1,16 @@
 integration/unset/test.php:4 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}; foo => {Own: YES}; baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
 integration/unset/test.php:10 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}; foo => {Own: YES}; baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
-integration/unset/test.php:12 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}; foo => {Own: YES}; baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
-integration/unset/test.php:14 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}; foo => {Own: YES}; baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
-integration/unset/test.php:16 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {0 => {Own: YES}; foo => {Own: YES}; baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
+integration/unset/test.php:12 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {foo => {Own: YES}; baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
+integration/unset/test.php:14 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Elements: {baz => {Own: NONE; Elements: {inner => {Own: YES}}}}}
+integration/unset/test.php:16 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE}
 integration/unset/test.php:21 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Keys: YES; Elements: {foo => {Own: NONE}; UNKNOWN => {Own: YES}}}
 integration/unset/test.php:26 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Keys: YES; Elements: {foo => {Own: NONE}; UNKNOWN => {Own: YES}}}
-integration/unset/test.php:28 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Keys: YES; Elements: {foo => {Own: NONE}; UNKNOWN => {Own: YES}}}
+integration/unset/test.php:28 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: SQL_NUMKEY; Keys: YES; Elements: {UNKNOWN => {Own: YES}}}
 integration/unset/test.php:33 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {inner => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}; inner2 => {Own: NONE; Elements: {safe2 => {Own: NONE}; unsafe2 => {Own: YES}}}}}}}
 integration/unset/test.php:44 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {inner => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}; inner2 => {Own: NONE; Elements: {safe2 => {Own: NONE}; unsafe2 => {Own: YES}}}}}}}
 integration/unset/test.php:46 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {inner => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}; inner2 => {Own: NONE; Elements: {safe2 => {Own: NONE}; unsafe2 => {Own: YES}}}}}}}
 integration/unset/test.php:48 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {inner => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}; inner2 => {Own: NONE; Elements: {safe2 => {Own: NONE}; unsafe2 => {Own: YES}}}}}}}
-integration/unset/test.php:50 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE; Elements: {inner => {Own: NONE; Elements: {safe => {Own: NONE}; unsafe => {Own: YES}; inner2 => {Own: NONE; Elements: {safe2 => {Own: NONE}; unsafe2 => {Own: YES}}}}}}}
+integration/unset/test.php:50 SecurityCheckDebugTaintedness Variable $arr has taintedness: {Own: NONE}
 integration/unset/test.php:61 SecurityCheck-LikelyFalsePositive Echoing expression that was not html escaped
 integration/unset/test.php:65 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/unset/test.php +64)
 integration/unset/test.php:67 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/unset/test.php +64)

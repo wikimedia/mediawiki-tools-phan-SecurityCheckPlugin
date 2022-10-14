@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### New features
+* Added support for the effects of `unset( $var['k'] )` on the shape of `$var`.
+
 ## v4.0.0
 ### Breaking changes
 * Global variables and property no longer have EXEC flags if they're later output. Previously, it was supposed to report assigning a tainted value to an object

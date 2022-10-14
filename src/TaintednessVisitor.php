@@ -272,7 +272,54 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitUnset( Node $node ): void {
+		$varNode = $node->children['var'];
+		if ( $varNode instanceof Node && $varNode->kind === \ast\AST_DIM ) {
+			$this->handleUnsetDim( $varNode );
+		}
 		$this->setCurTaintSafe();
+	}
+
+	/**
+	 * Analyzes expressions like unset( $arr['foo'] ) to infer shape mutations.
+	 * @param Node $node
+	 * @return void
+	 */
+	private function handleUnsetDim( Node $node ): void {
+		$expr = $node->children['expr'];
+		if ( !$expr instanceof Node ) {
+			// Syntax error.
+			return;
+		}
+		if ( $expr->kind !== \ast\AST_VAR ) {
+			// For now, we only handle a single offset.
+			// TODO actually recurse.
+			return;
+		}
+
+		$keyNode = $node->children['dim'];
+		$key = $keyNode !== null ? $this->resolveOffset( $keyNode ) : null;
+		if ( $key instanceof Node ) {
+			// We can't tell what gets removed.
+			return;
+		}
+
+		try {
+			$var = $this->getCtxN( $expr )->getVariable();
+		} catch ( NodeException | IssueException $_ ) {
+			return;
+		}
+
+		if ( $var instanceof GlobalVariable ) {
+			// Don't handle for now.
+			return;
+		}
+
+		$curTaint = self::getTaintednessRaw( $var );
+		if ( !$curTaint ) {
+			// Is this even possible? Don't do anything, just in case.
+			return;
+		}
+		self::setTaintednessRaw( $var, $curTaint->withoutKey( $key ) );
 	}
 
 	/**

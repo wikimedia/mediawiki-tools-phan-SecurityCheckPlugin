@@ -2317,7 +2317,6 @@ trait TaintednessBaseVisitor {
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::newEmpty() );
 			// TODO These would really require knowing the other args
-			case 'unset':
 			case 'array_merge':
 			case 'array_merge_recursive':
 			case 'array_replace':
