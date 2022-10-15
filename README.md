@@ -187,13 +187,12 @@ The type of directives include:
 * `array_ok` - special purpose flag to say ignore tainted arguments if they are in an array.
 * `allow_override` - Special purpose flag to specify that that taint annotation should be overridden by phan-taint-check if it can detect a specific taint.
 
-The value for `$TYPE` can be one of `htmlnoent`, `html`, `sql`, `shell`, `serialize`, `custom1`, `custom2`, `code`, `path`, `regex`, `misc`, `sql_numkey`, `escaped`, `none`, `tainted`, `raw_param`. Most of these are taint categories, except:
+The value for `$TYPE` can be one of `htmlnoent`, `html`, `sql`, `shell`, `serialize`, `custom1`, `custom2`, `code`, `path`, `regex`, `misc`, `sql_numkey`, `escaped`, `none`, `tainted`. Most of these are taint categories, except:
 * `htmlnoent` - like `html` but disable double escaping detection that gets used with `html`. When `escapes_html` is specified, escaped automatically gets added to `@return`, and `exec_escaped` is added to `@param`. Similarly `onlysafefor_html` is equivalent to `onlysafefor_htmlnoent,escaped`.
 * `none` - Means no taint
 * `tainted` - Means all taint categories except special categories (equivalent to `SecurityCheckPlugin::YES_TAINT`)
 * `escaped` - Is used to mean the value is already escaped (To track double escaping)
 * `sql_numkey` - Is fairly special purpose for MediaWiki. It ignores taint in arrays if they are for associative keys.
-* `raw_param` - To be used in conjunction with exec taint types. Means that the parameter's value is considered raw, hence all escaping should have already taken place, because it's not meant to happen afterwards. It behaves the same as normal exec, but it isn't backpropagated.
 
 The default value for `@param-taint` is `tainted` if it's a string (or other dangerous type), and `none` if it's something like an integer. The default value for `@return-taint` is `allow_override` (Which is equivalent to `none` unless something better can be autodetected).
 

@@ -1,1 +1,1 @@
-integration/htmlarmor/test.php:11 SecurityCheck-XSS Calling method \HtmlArmor::__construct() in [no method] that outputs using tainted argument #1 (`$_GET['unsafe']`). (Caused by: Builtin-\HtmlArmor::__construct) (Param is raw)
+integration/htmlarmor/test.php:11 SecurityCheck-XSS Calling method \HtmlArmor::__construct() in [no method] that outputs using tainted argument #1 (`$_GET['unsafe']`). (Caused by: Builtin-\HtmlArmor::__construct)

@@ -35,25 +35,11 @@ $h = new HtmlArmor( $_GET['baz'] );
 echo $h;
 echo htmlspecialchars( $h );
 
-class Foo {
-	/**
-	 * @param-taint $string raw_param,exec_tainted
-	 */
-	public static function allTaint( $string ) {
-	}
-	/**
-	 * @param-taint $string raw_param,exec_html
-	 */
-	public static function htmlTaint( $string ) {
-	}
-	/**
-	 * @param-taint $string raw_param
-	 */
-	public static function noRealTaint( $string ) {
-		// raw_param alone does nothing
-	}
+
+function callsRawParams( $par ) {
+	$m = new Message;
+	$m->rawParams( $par );
 }
 
-Foo::allTaint( $_GET['bar'] );
-Foo::htmlTaint( $_GET['foo'] );
-Foo::noRealTaint( $_GET['foo'] );
+callsRawParams( 'safe' ); // Safe
+callsRawParams( $_GET['unsafe'] ); // Unsafe

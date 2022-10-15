@@ -129,17 +129,11 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	// as normal taint flags.
 	public const NO_OVERRIDE = 1 << 29;
 
-	// Represents a parameter expecting a raw value, for which escaping should have already
-	// taken place. E.g. in MW this happens for Message::rawParams. In practice, this avoids
-	// backpropagation of EXEC flags.
-	// TODO Do we still need this?
-	public const RAW_PARAM = 1 << 30;
-
-	public const VARIADIC_PARAM = 1 << 31;
+	public const VARIADIC_PARAM = 1 << 30;
 
 	// *All* function flags
 	//TODO Add a structure test for this
-	public const FUNCTION_FLAGS = self::ARRAY_OK | self::NO_OVERRIDE | self::RAW_PARAM;
+	public const FUNCTION_FLAGS = self::ARRAY_OK | self::NO_OVERRIDE;
 
 	// Combination flags.
 
@@ -603,7 +597,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|misc|code|path|regex|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
-		$taintExpr = "(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override|raw_param)";
+		$taintExpr = "(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override)";
 
 		$filteredLine = preg_replace( "/((?:$taintExpr,? *)+)(?: .*)?$/", '$1', $line );
 		$taints = explode( ',', strtolower( $filteredLine ) );
@@ -624,10 +618,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			}
 			if ( $taintParts['taint'] === 'allow_override' ) {
 				$overallFlags &= ~self::NO_OVERRIDE;
-				continue;
-			}
-			if ( $taintParts['taint'] === 'raw_param' ) {
-				$overallFlags |= self::RAW_PARAM;
 				continue;
 			}
 			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );

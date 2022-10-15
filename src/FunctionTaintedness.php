@@ -383,9 +383,6 @@ class FunctionTaintedness {
 		if ( $flags & SecurityCheckPlugin::NO_OVERRIDE ) {
 			$bits[] = 'no override';
 		}
-		if ( $flags & SecurityCheckPlugin::RAW_PARAM ) {
-			$bits[] = 'raw param';
-		}
 		if ( $flags & SecurityCheckPlugin::ARRAY_OK ) {
 			$bits[] = 'array ok';
 		}

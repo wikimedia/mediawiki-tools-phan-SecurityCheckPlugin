@@ -1,6 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
 ## UNRELEASED
+### Breaking changes
+* The raw_param taint flag was removed; error reporting is now sufficiently good that this is no longer needed, and can be treated as normal exec.
+
 ### New features
 * Added support for the effects of `unset( $var['k'] )` on the shape of `$var`.
 * The plugin now infers the effect of some array_* functions on the resulting taintedness more accurately.

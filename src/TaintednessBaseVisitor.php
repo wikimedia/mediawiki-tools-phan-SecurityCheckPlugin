@@ -1824,7 +1824,6 @@ trait TaintednessBaseVisitor {
 				$this->code_base
 			);
 
-			$isRawParam = ( $curParFlags & SecurityCheckPlugin::RAW_PARAM ) !== 0;
 			// TODO: We also need to handle the case where someFunc( $execArg ) for pass by reference where
 			// the parameter is later executed outside the func.
 			if ( $curArgTaintedness->has( SecurityCheckPlugin::ALL_TAINT ) ) {
@@ -1833,7 +1832,7 @@ trait TaintednessBaseVisitor {
 
 			// We are doing something like evilMethod( $arg ); where $arg is a parameter to the current function.
 			// So backpropagate that assigning to $arg can cause evilness.
-			if ( !$isRawParam && !$paramSinkTaint->isSafe() ) {
+			if ( !$paramSinkTaint->isSafe() ) {
 				$this->backpropagateArgTaint( $argument, $paramSinkTaint, $paramSinkError );
 			}
 
@@ -1860,14 +1859,13 @@ trait TaintednessBaseVisitor {
 				$paramSinkTaint,
 				$curArgTaintedness,
 				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
-				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}{DETAILS}",
+				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}",
 				[
 					$funcName,
 					$containingMethod,
 					$taintedArg,
 					$paramSinkError,
 					$baseArgError,
-					$isRawParam ? ' (Param is raw)' : ''
 				]
 			);
 
