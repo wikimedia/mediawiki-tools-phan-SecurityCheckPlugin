@@ -38,7 +38,7 @@ class TestEcho {
 	public $echoProp;
 
 	public function doTest() {
-		allSink( $this->echoProp ); // HTML
+		allSink( $this->echoProp ); // TODO: HTML
 	}
 
 	public function __construct( $arg ) {
@@ -50,7 +50,7 @@ class TestShell {
 	public $shellProp;
 
 	public function doTest() {
-		allSink( $this->shellProp ); // SHELL
+		allSink( $this->shellProp ); // TODO: SHELL
 	}
 
 	public function __construct( $arg ) {
@@ -62,7 +62,7 @@ class TestRequireWhole {
 	public $requireWholeProp;
 
 	public function doTest() {
-		allSink( $this->requireWholeProp ); // PATH
+		allSink( $this->requireWholeProp ); // TODO: PATH
 	}
 
 	public function __construct( $arg ) {
@@ -74,7 +74,7 @@ class TestRequireSafe {
 	public $requireSafeProp;
 
 	public function doTest() {
-		allSink( $this->requireSafeProp ); // Safe
+		allSink( $this->requireSafeProp ); // TODO Safe
 	}
 
 	public function __construct( $arg ) {
@@ -86,7 +86,7 @@ class TestRequireUnsafe {
 	public $requireUnsafeProp;
 
 	public function doTest() {
-		allSink( $this->requireUnsafeProp );  // PATH
+		allSink( $this->requireUnsafeProp );  // TODO: PATH
 	}
 
 	public function __construct( $arg ) {

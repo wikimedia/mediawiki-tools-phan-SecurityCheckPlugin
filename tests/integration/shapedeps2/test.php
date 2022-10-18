@@ -176,7 +176,7 @@ class TestUnsafeSafe {
 	public $propUnsafeSafe;
 
 	public function testSafe() {
-		echoSafe( $this->propUnsafeSafe ); // TODO Safe
+		echoSafe( $this->propUnsafeSafe ); // Safe
 	}
 	public function __construct( $arg ) {
 		$this->propUnsafeSafe = [ 'unsafe' => $arg, 'safe' => 'safe' ];

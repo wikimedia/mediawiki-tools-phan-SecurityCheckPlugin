@@ -32,7 +32,6 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
-use Phan\Library\Set;
 
 /**
  * Trait for the Tainedness visitor subclasses. Mostly contains
@@ -1225,18 +1224,6 @@ trait TaintednessBaseVisitor {
 		// First we find out all the methods that can set $b
 		// Then we add $a to the list of variables that those methods can set.
 		// Last we add these methods to $a's list of all methods that can set it.
-		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable || $lhs instanceof PassByReferenceVariable ) {
-			// Don't attach things like Variable and Parameter. These are local elements, and setting taint
-			// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
-			// Parameter object for each analysis, we will end up with duplicated links that do nothing but
-			// eating memory.
-			foreach ( $rhsLinks->getMethodAndParamTuples() as [ $method, $index ] ) {
-				$varLinks = self::getVarLinks( $method, $index );
-				assert( $varLinks instanceof Set );
-				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				$varLinks->attach( $lhs );
-			}
-		}
 
 		$curLinks = self::getMethodLinks( $lhs );
 		if ( $override || !$curLinks ) {
@@ -1244,6 +1231,20 @@ trait TaintednessBaseVisitor {
 		} else {
 			$newLinks = $curLinks->asMergedWith( $rhsLinks );
 		}
+
+		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable || $lhs instanceof PassByReferenceVariable ) {
+			// Don't attach things like Variable and Parameter. These are local elements, and setting taint
+			// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
+			// Parameter object for each analysis, we will end up with duplicated links that do nothing but
+			// eating memory.
+			foreach ( $newLinks->getMethodAndParamTuples() as [ $method, $index ] ) {
+				$varLinks = self::getVarLinks( $method, $index );
+				assert( $varLinks instanceof VarLinksSet );
+				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
+				$varLinks->attach( $lhs, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
+			}
+		}
+
 		self::setMethodLinks( $lhs, $newLinks );
 	}
 
@@ -1410,6 +1411,7 @@ trait TaintednessBaseVisitor {
 		$taintAdjusted = $taint->withOnly( SecurityCheckPlugin::ALL_TAINT );
 
 		foreach ( $varLinks as $var ) {
+			$presTaint = $varLinks[$var];
 			if ( $var instanceof PassByReferenceVariable ) {
 				// TODO This should become unnecessary once the TODO in handleMethodCall about postponing
 				// handlePassByRef is resolved.
@@ -1417,7 +1419,7 @@ trait TaintednessBaseVisitor {
 			}
 			assert( $var instanceof TypedElementInterface );
 
-			$this->setTaintedness( $var, $taintAdjusted, false );
+			$this->setTaintedness( $var, $presTaint->asTaintednessForArgument( $taintAdjusted ), false );
 			$this->addTaintError( $var, $taintAdjusted, null );
 			if ( $var instanceof GlobalVariable ) {
 				$globalVar = $var->getElement();
