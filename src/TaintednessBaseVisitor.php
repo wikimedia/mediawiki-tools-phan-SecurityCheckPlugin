@@ -290,14 +290,17 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
-		// objects of which $variableObj is a clone!
-		$curTaint = self::getTaintednessRaw( $variableObj );
-
-		if ( $override || !$curTaint ) {
+		if ( $override ) {
 			$newTaint = $taintedness;
 		} else {
-			$newTaint = $curTaint->asMergedWith( $taintedness );
+			$curTaint = self::getTaintednessRaw( $variableObj );
+			if ( !$curTaint ) {
+				$newTaint = $taintedness;
+			} else {
+				// NOTE: Do NOT merge in place here, as that would change the taintedness for all variable
+				// objects of which $variableObj is a clone!
+				$newTaint = $curTaint->asMergedWith( $taintedness );
+			}
 		}
 		self::setTaintednessRaw( $variableObj, $newTaint );
 	}
