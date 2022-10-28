@@ -20,7 +20,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * Taken from phan's BaseTest class
 	 * @inheritDoc
 	 */
-	protected $backupStaticAttributesBlacklist = [
+	protected $backupStaticAttributesExcludeList = [
 		'Phan\Language\Type' => [
 			'canonical_object_map',
 			'internal_fn_cache',
