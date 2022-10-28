@@ -195,7 +195,7 @@ class CausedByLines {
 			array_pop( $remaining );
 			$expectedIndex++;
 		} while ( $remaining );
-		$ret = $ret ?? array_merge( $this->lines, $other->lines );
+		$ret ??= array_merge( $this->lines, $other->lines );
 
 		$this->lines = array_slice( $ret, 0, self::LINES_HARD_LIMIT );
 	}

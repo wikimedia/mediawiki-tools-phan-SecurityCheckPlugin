@@ -141,8 +141,8 @@ trait TaintednessAccessorsTrait {
 	 * @param int $arg
 	 */
 	protected static function ensureVarLinksForArgExist( TypedElementInterface $element, int $arg ): void {
-		$element->taintedVarLinks = $element->taintedVarLinks ?? [];
-		$element->taintedVarLinks[$arg] = $element->taintedVarLinks[$arg] ?? new VarLinksSet;
+		$element->taintedVarLinks ??= [];
+		$element->taintedVarLinks[$arg] ??= new VarLinksSet;
 	}
 
 	/**
@@ -230,7 +230,7 @@ trait TaintednessAccessorsTrait {
 	protected static function initRetObjs( FunctionInterface $func ): void {
 		$funcNode = $func->getNode();
 		if ( $funcNode ) {
-			$funcNode->retObjs = $funcNode->retObjs ?? [];
+			$funcNode->retObjs ??= [];
 		}
 	}
 

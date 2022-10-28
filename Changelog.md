@@ -5,6 +5,7 @@
 * The raw_param taint flag was removed; error reporting is now sufficiently good that this is no longer needed, and can be treated as normal exec.
 * The taint type "misc" was removed. Use the appropriate category instead. This type was originally used for "rce" and "path", so the appropriate replacement could be one of those.
 * The `SecurityCheckMulti` issue type was removed. Now, the plugin emits one issue per taint type.
+* Dropped support for PHP 7.2 and 7.3.
 
 ### New features
 * Added support for the effects of `unset( $var['k'] )` on the shape of `$var`.

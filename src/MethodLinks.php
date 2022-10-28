@@ -73,7 +73,7 @@ class MethodLinks {
 		if ( is_scalar( $dim ) ) {
 			$this->dimLinks[$dim] = $links;
 		} else {
-			$this->unknownDimLinks = $this->unknownDimLinks ?? self::newEmpty();
+			$this->unknownDimLinks ??= self::newEmpty();
 			$this->unknownDimLinks->mergeWith( $links );
 		}
 	}
