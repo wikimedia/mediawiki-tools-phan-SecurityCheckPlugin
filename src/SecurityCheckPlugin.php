@@ -590,7 +590,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$types = '(?P<type>htmlnoent|html|sql|shell|serialize|custom1|'
 			. 'custom2|code|path|regex|sql_numkey|escaped|none|tainted)';
 		$prefixes = '(?P<prefix>escapes|onlysafefor|exec)';
-		$taintExpr = "(?P<taint>(?:${prefixes}_)?$types|array_ok|allow_override)";
+		$taintExpr = "(?P<taint>(?:{$prefixes}_)?$types|array_ok|allow_override)";
 
 		$filteredLine = preg_replace( "/((?:$taintExpr,? *)+)(?: .*)?$/", '$1', $line );
 		$taints = explode( ',', strtolower( $filteredLine ) );
