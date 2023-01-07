@@ -46,11 +46,11 @@
 	"scripts": {
 		"test": [
 			"parallel-lint . --exclude vendor --exclude tests/integration",
-			"composer phpcs",
-			"composer minus-x",
-			"composer phan-for-plugin",
+			"@phpcs",
+			"@minus-x",
+			"@phan-for-plugin",
 			"phpunit",
-			"composer phan-tests"
+			"@phan-tests"
 		],
 		"phpcs": "phpcs -p -s",
 		"minus-x": "minus-x check .",
