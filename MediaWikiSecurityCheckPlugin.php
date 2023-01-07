@@ -73,11 +73,15 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		];
 
 		$linkRendererMethods = [
-			self::NO_TAINT, /* target */
-			self::ESCAPES_HTML, /* text (using HtmlArmor) */
+			/* target */
+			self::NO_TAINT,
+			/* text (using HtmlArmor) */
+			self::ESCAPES_HTML,
 			// The array keys for this aren't escaped (!)
-			self::NO_TAINT, /* attribs */
-			self::NO_TAINT, /* query */
+			/* attribs */
+			self::NO_TAINT,
+			/* query */
+			self::NO_TAINT,
 			'overall' => self::ESCAPED_TAINT
 		];
 
@@ -168,71 +172,95 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::insert' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				// FIXME This doesn't correctly work
 				// when inserting multiple things at once.
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::SQL_EXEC_TAINT, // options. They are not escaped
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are not escaped
+				self::SQL_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IMaintainableDatabase::insert' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				// FIXME This doesn't correctly work
 				// when inserting multiple things at once.
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::SQL_EXEC_TAINT, // options. They are not escaped
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are not escaped
+				self::SQL_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\Database::insert' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				// Insert values. The keys names are unsafe.
 				// Unclear how well this works for the multi case.
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::SQL_EXEC_TAINT, // options. They are not escaped
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are not escaped
+				self::SQL_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DBConnRef::insert' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				// Insert values. The keys names are unsafe.
 				// Unclear how well this works for the multi case.
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::SQL_EXEC_TAINT, // options. They are not escaped
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are not escaped
+				self::SQL_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IDatabase::update' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::NO_TAINT, // options. They are validated
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are validated
+				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\IMaintainableDatabase::update' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::NO_TAINT, // options. They are validated
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are validated
+				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\Database::update' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::NO_TAINT, // options. They are validated
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are validated
+				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DBConnRef::update' => [
-				self::SQL_EXEC_TAINT, // table name
+				// table name
+				self::SQL_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
 				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT, // method name
-				self::NO_TAINT, // options. They are validated
+				// method name
+				self::SQL_EXEC_TAINT,
+				// options. They are validated
+				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			// This is subpar, as addIdentifierQuotes isn't always
@@ -317,9 +345,12 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			// AddItem should also take care of addGeneral and friends.
 			'\StripState::addItem' => [
-				self::NO_TAINT, // type
-				self::NO_TAINT, // marker
-				self::HTML_EXEC_TAINT, // contents
+				// type
+				self::NO_TAINT,
+				// marker
+				self::NO_TAINT,
+				// contents
+				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			// FIXME Doesn't handle array args right.
@@ -382,13 +413,16 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			],
 			'\Xml::encodeJsVar' => [
 				self::ESCAPES_HTML,
-				self::NO_TAINT, /* pretty */
+				/* pretty */
+				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\Xml::encodeJsCall' => [
-				self::YES_TAINT, /* func name. unescaped */
+				/* func name. unescaped */
+				self::YES_TAINT,
 				self::ESCAPES_HTML,
-				self::NO_TAINT, /* pretty */
+				/* pretty */
+				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
 			'\OutputPage::addHeadItem' => [
@@ -466,12 +500,17 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			// It seems that it has issue with
 			// the url query parameters.
 			'\Linker::linkKnown' => [
-				self::NO_TAINT, /* target */
-				self::HTML_EXEC_TAINT, /* raw html text, should be already escaped */
+				/* target */
+				self::NO_TAINT,
+				/* raw html text, should be already escaped */
+				self::HTML_EXEC_TAINT,
 				// The array keys for this aren't escaped (!)
-				self::NO_TAINT, /* customAttribs */
-				self::NO_TAINT, /* query */
-				self::NO_TAINT, /* options. All are safe */
+				/* customAttribs */
+				self::NO_TAINT,
+				/* query */
+				self::NO_TAINT,
+				/* options. All are safe */
+				self::NO_TAINT,
 				'overall' => self::ESCAPED_TAINT
 			],
 			'\MediaWiki\Linker\LinkRenderer::buildAElement' => $linkRendererMethods,

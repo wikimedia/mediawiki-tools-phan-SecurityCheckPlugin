@@ -962,7 +962,8 @@ class MWVisitor extends TaintednessVisitor {
 		$default = null;
 		$options = null;
 		$isInfo = false;
-		$isOptionsSafe = true; // options key is really messed up with escaping.
+		// options key is really messed up with escaping.
+		$isOptionsSafe = true;
 		foreach ( $node->children as $child ) {
 			if ( $child === null || $child->kind === \ast\AST_UNPACK ) {
 				// If we have list( , $x ) = foo(), or an in-place unpack, chances are this is not an HTMLForm.

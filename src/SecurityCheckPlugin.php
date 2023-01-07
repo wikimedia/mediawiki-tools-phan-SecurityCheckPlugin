@@ -481,7 +481,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	}
 
 	/**
-	 * Assert that a taintednes array is well formed, and fail hard if it isn't.
+	 * Assert that a taintedness array is well-formed, and fail hard if it isn't.
 	 *
 	 * @param int[] $taint
 	 */
@@ -719,14 +719,16 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$pregMatchTaint = [
 			self::REGEX_EXEC_TAINT,
 			self::YES_TAINT,
-			self::NO_TAINT, // TODO Possibly unsafe pass-by-ref,
+			// TODO: Possibly unsafe pass-by-ref
+			self::NO_TAINT,
 			self::NO_TAINT,
 			self::NO_TAINT,
 			'overall' => self::NO_TAINT,
 		];
 		$pregReplaceTaint = [
 			self::REGEX_EXEC_TAINT,
-			self::YES_TAINT, // TODO This is used for strings (in preg_replace) and callbacks (in preg_replace_callback)
+			// TODO: This is used for strings (in preg_replace) and callbacks (in preg_replace_callback)
+			self::YES_TAINT,
 			self::YES_TAINT,
 			self::NO_TAINT,
 			self::NO_TAINT,
@@ -745,7 +747,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				~self::SHELL_TAINT & self::YES_TAINT,
 				'overall' => self::NO_TAINT
 			],
-			// TODO Perhaps we should distinguish arguments escape vs command escape
+			// TODO: Perhaps we should distinguish arguments escape vs command escape
 			'\escapeshellcmd' => [
 				~self::SHELL_TAINT & self::YES_TAINT,
 				'overall' => self::NO_TAINT
@@ -761,7 +763,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			],
 			'\exec' => [
 				self::SHELL_EXEC_TAINT,
-				self::NO_TAINT, // TODO: This is an unsafe passbyref
+				// TODO: This is an unsafe passbyref
+				self::NO_TAINT,
 				self::NO_TAINT,
 				'overall' => self::YES_TAINT
 			],
@@ -773,16 +776,19 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			'\proc_open' => [
 				self::SHELL_EXEC_TAINT,
 				self::NO_TAINT,
-				self::NO_TAINT, // TODO Unsafe passbyref
+				// TODO: Unsafe passbyref
 				self::NO_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT  // TODO Perhaps not so safe
+				self::NO_TAINT,
+				// TODO: Perhaps not so safe
+				'overall' => self::NO_TAINT
 			],
 			'\popen' => [
 				self::SHELL_EXEC_TAINT,
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT  // TODO Perhaps not so safe
+				// TODO: Perhaps not so safe
+				'overall' => self::NO_TAINT
 			],
 			// Or any time the serialized data comes from a trusted source.
 			'\serialize' => [
@@ -879,18 +885,20 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
-			// TODO What about file_get_contents() and file() ?
+			// TODO: What about file_get_contents() and file() ?
 			'\fopen' => [
 				self::PATH_EXEC_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT // TODO Perhaps not so safe
+				// TODO: Perhaps not so safe
+				'overall' => self::NO_TAINT
 			],
 			'\opendir' => [
 				self::PATH_EXEC_TAINT,
 				self::NO_TAINT,
-				'overall' => self::NO_TAINT // TODO Perhaps not so safe
+				// TODO: Perhaps not so safe
+				'overall' => self::NO_TAINT
 			],
 			'\rawurlencode' => [
 				self::YES_TAINT & ~self::PATH_TAINT,
