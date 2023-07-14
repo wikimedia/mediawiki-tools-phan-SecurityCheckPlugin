@@ -14,6 +14,9 @@
 ### Changed
 * The `SecurityCheck-RCE` and `SecurityCheck-PathTraversal` issue types now have critical severity.
 
+### Internal changes
+* Bumped phan/phan to 5.4.2
+
 ## v4.0.0
 ### Breaking changes
 * Global variables and property no longer have EXEC flags if they're later output. Previously, it was supposed to report assigning a tainted value to an object
