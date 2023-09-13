@@ -273,6 +273,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\Wikimedia\Rdbms\DatabaseMySQL::addIdentifierQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			'\Wikimedia\Rdbms\DatabaseMssql::addIdentifierQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
@@ -294,6 +298,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\Wikimedia\Rdbms\DatabaseMysqlBase::addQuotes' => [
+				self::YES_TAINT & ~self::SQL_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\Rdbms\DatabaseMySQL::addQuotes' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				'overall' => self::NO_TAINT
 			],
