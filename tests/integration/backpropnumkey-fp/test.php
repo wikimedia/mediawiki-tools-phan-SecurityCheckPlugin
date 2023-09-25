@@ -31,7 +31,7 @@ class UploadStash {
 		$this->fileMetadata['foo'] = [
 			'us_path' => $stashPath,
 		];
-		$dbw->insert( 'uploadstash', $this->fileMetadata['foo'] ); // NOT an SQLi, and it should NOT backpropagate numkey on fileMetadata
+		$dbw->select( 'uploadstash', '*', $this->fileMetadata['foo'] ); // NOT an SQLi, and it should NOT backpropagate numkey on fileMetadata
 	}
 
 }

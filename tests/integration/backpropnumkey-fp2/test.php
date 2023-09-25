@@ -17,7 +17,7 @@ class RecentChange {
 
 	public function save() {
 		$dbw = new \Wikimedia\Rdbms\Database();
-		$dbw->insert( 'recentchanges', $this->mAttribs );// Should not backpropagate NUMKEY
+		$dbw->select( 'recentchanges', '*', $this->mAttribs );// Should not backpropagate NUMKEY
 	}
 
 	public function __construct( $logComment ) {

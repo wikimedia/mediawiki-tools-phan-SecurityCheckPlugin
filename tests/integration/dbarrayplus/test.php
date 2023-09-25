@@ -18,24 +18,14 @@ $unsafe = [
 	"fourth = fourth+" . $_GET['increment']
 ];
 
-$db->insert(
-	'foo',
-	$rows + $rows2,
-	__METHOD__
-);
+$db->insert( 'foo', $rows + $rows2, __METHOD__ ); // Safe
+$db->select( 'foo', '*', $rows + $rows2 ); // Safe
 
-$db->insert(
-	'foo',
-	$unsafe,
-	__METHOD__
-);
+$db->select( 'foo', '*', $unsafe ); // Unsafe
 
-$db->insert(
-	'foo',
-	$rows + $rows2 + $unsafe,
-	__METHOD__
-);
+$db->select( 'foo', '*', $rows + $rows2 + $unsafe ); // Unsafe
 
+// Safe
 $db->insert(
 	'foo',
 	[
@@ -51,10 +41,10 @@ $items[] = [ 'first' => $_GET['a'] ];
 $items[] = [ 'first' => $_GET['a'] ];
 $items[] = [ 'first' => $_GET['a'] ];
 
-$db->insert( 'foo', $items, __METHOD__ );
+$db->insert( 'foo', $items, __METHOD__ ); // Safe
 
 $insertBatch = [];
 $insertRow = [ 'first' => $_GET['evil'] ];
 $insertBatch[] = $insertRow;
 $insertBatch[] = [ 'first' => $_GET['evil2'] ];
-$db->insert( 'foo', $insertBatch, __METHOD__, [ 'IGNORE' ] );
+$db->insert( 'foo', $insertBatch, __METHOD__, [ 'IGNORE' ] ); // Safe
