@@ -62,57 +62,29 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'overall' => self::YES_TAINT
 		];
 
+		$insertTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		// table name
+		$insertTaint->setParamSinkTaint( 0, new Taintedness( self::SQL_EXEC_TAINT ) );
+		$insertTaint->addParamFlags( 0, self::NO_OVERRIDE );
+		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
+		// FIXME This doesn't correctly work when inserting multiple things at once.
+		$insertRowsTaint = new Taintedness( self::SQL_NUMKEY_EXEC_TAINT );
+		$insertTaint->setParamSinkTaint( 1, $insertRowsTaint );
+		$insertTaint->addParamFlags( 1, self::NO_OVERRIDE );
+		// method name
+		$insertTaint->setParamSinkTaint( 2, new Taintedness( self::SQL_EXEC_TAINT ) );
+		$insertTaint->addParamFlags( 2, self::NO_OVERRIDE );
+		// options. They are not escaped
+		$insertTaint->setParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) );
+		$insertTaint->addParamFlags( 3, self::NO_OVERRIDE );
+
 		return [
 			// Note, at the moment, this checks where the function
 			// is implemented, so you can't use IDatabase.
-			'\Wikimedia\Rdbms\IDatabase::insert' => [
-				// table name
-				self::SQL_EXEC_TAINT,
-				// FIXME This doesn't correctly work
-				// when inserting multiple things at once.
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// method name
-				self::SQL_EXEC_TAINT,
-				// options. They are not escaped
-				self::SQL_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
-			'\Wikimedia\Rdbms\IMaintainableDatabase::insert' => [
-				// table name
-				self::SQL_EXEC_TAINT,
-				// FIXME This doesn't correctly work
-				// when inserting multiple things at once.
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// method name
-				self::SQL_EXEC_TAINT,
-				// options. They are not escaped
-				self::SQL_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
-			'\Wikimedia\Rdbms\Database::insert' => [
-				// table name
-				self::SQL_EXEC_TAINT,
-				// Insert values. The keys names are unsafe.
-				// Unclear how well this works for the multi case.
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// method name
-				self::SQL_EXEC_TAINT,
-				// options. They are not escaped
-				self::SQL_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
-			'\Wikimedia\Rdbms\DBConnRef::insert' => [
-				// table name
-				self::SQL_EXEC_TAINT,
-				// Insert values. The keys names are unsafe.
-				// Unclear how well this works for the multi case.
-				self::SQL_NUMKEY_EXEC_TAINT,
-				// method name
-				self::SQL_EXEC_TAINT,
-				// options. They are not escaped
-				self::SQL_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
+			'\Wikimedia\Rdbms\IDatabase::insert' => $insertTaint,
+			'\Wikimedia\Rdbms\IMaintainableDatabase::insert' => $insertTaint,
+			'\Wikimedia\Rdbms\Database::insert' => $insertTaint,
+			'\Wikimedia\Rdbms\DBConnRef::insert' => $insertTaint,
 			// FIXME Doesn't handle array args right.
 			'\wfShellExec' => [
 				self::SHELL_EXEC_TAINT | self::ARRAY_OK,

@@ -5,6 +5,9 @@
 * (MW) Most of the taintedness values hardcoded in MediaWikiSecurityCheckPlugin::getCustomFuncTaints() have been removed, and annotations have been
   added to the relevant methods in MediaWiki itself. Therefore, this version of phan-taint-check-plugin is only compatible with MediaWiki 1.41+.
 
+### New features
+* getCustomFuncTaints implementations can now return FunctionTaintedness objects directly, in addition to arrays.
+
 ## v5.0.0
 ### Breaking changes
 * The raw_param taint flag was removed; error reporting is now sufficiently good that this is no longer needed, and can be treated as normal exec.

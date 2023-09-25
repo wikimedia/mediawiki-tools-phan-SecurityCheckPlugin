@@ -445,36 +445,40 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		}
 
 		if ( isset( $funcTaints[$name] ) ) {
-			$intTaint = $funcTaints[$name];
-			self::assertFunctionTaintArrayWellFormed( $intTaint );
-			// Note: for backcompat, we set NO_OVERRIDE everywhere.
-			$overallFlags = ( $intTaint['overall'] & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
-			$res = new FunctionTaintedness( new Taintedness( $intTaint['overall'] & ~$overallFlags ) );
-			$res->addOverallFlags( $overallFlags );
-			unset( $intTaint['overall'] );
-			foreach ( $intTaint as $i => $val ) {
-				assert( ( $val & self::UNKNOWN_TAINT ) === 0, 'Cannot set UNKNOWN' );
-				$paramFlags = ( $val & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
-				// TODO Split sink and preserve in the hardcoded arrays
-				if ( $val & self::VARIADIC_PARAM ) {
-					$pTaint = new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) );
-					$res->setVariadicParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
-					$res->setVariadicParamPreservedTaint(
-						$i,
-						$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
-					);
-					$res->addVariadicParamFlags( $paramFlags );
-				} else {
-					$pTaint = new Taintedness( $val & ~$paramFlags );
-					$res->setParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
-					$res->setParamPreservedTaint(
-						$i,
-						$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
-					);
-					$res->addParamFlags( $i, $paramFlags );
+			$rawFuncTaint = $funcTaints[$name];
+			if ( $rawFuncTaint instanceof FunctionTaintedness ) {
+				$funcTaint = $rawFuncTaint;
+			} else {
+				self::assertFunctionTaintArrayWellFormed( $rawFuncTaint );
+				// Note: for backcompat, we set NO_OVERRIDE everywhere.
+				$overallFlags = ( $rawFuncTaint['overall'] & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
+				$funcTaint = new FunctionTaintedness( new Taintedness( $rawFuncTaint['overall'] & ~$overallFlags ) );
+				$funcTaint->addOverallFlags( $overallFlags );
+				unset( $rawFuncTaint['overall'] );
+				foreach ( $rawFuncTaint as $i => $val ) {
+					assert( ( $val & self::UNKNOWN_TAINT ) === 0, 'Cannot set UNKNOWN' );
+					$paramFlags = ( $val & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
+					// TODO Split sink and preserve in the hardcoded arrays
+					if ( $val & self::VARIADIC_PARAM ) {
+						$pTaint = new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) );
+						$funcTaint->setVariadicParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
+						$funcTaint->setVariadicParamPreservedTaint(
+							$i,
+							$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
+						);
+						$funcTaint->addVariadicParamFlags( $paramFlags );
+					} else {
+						$pTaint = new Taintedness( $val & ~$paramFlags );
+						$funcTaint->setParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
+						$funcTaint->setParamPreservedTaint(
+							$i,
+							$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
+						);
+						$funcTaint->addParamFlags( $i, $paramFlags );
+					}
 				}
 			}
-			self::$builtinFuncTaintCache[$name] = $res;
+			self::$builtinFuncTaintCache[$name] = $funcTaint;
 			return self::$builtinFuncTaintCache[$name];
 		}
 		return null;
@@ -506,9 +510,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	/**
 	 * Get an array of function taints custom for the application
 	 *
-	 * @return int[][] Array of function taints with 'overall' string key and numeric
-	 *   keys for parameters. This is the same format
-	 *   as FunctionTaintedness objects, except in array form.
+	 * @return array<string,int[]|FunctionTaintedness> Array of function taints. The keys are FQSENs. The values can be
+	 *   either FunctionTaintedness objects, or arrays with 'overall' string key and numeric keys for parameters.
 	 *
 	 *   For example: [ self::YES_TAINT, 'overall' => self::NO_TAINT ]
 	 *   means that the taint of the return value is the same as the taint
@@ -520,7 +523,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *   [ 'overall' => self::YES_TAINT ]
 	 *   Means that it returns a tainted value (e.g. return $_POST['foo']; )
 	 * @see FunctionTaintedness for more details
-	 * @phan-return array<string,int[]>
 	 */
 	abstract protected function getCustomFuncTaints(): array;
 
@@ -715,7 +717,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @return int[][] List of func taints (See getBuiltinFuncTaint())
 	 * @phan-return array<string,int[]>
 	 */
-	protected function getPHPFuncTaints(): array {
+	private function getPHPFuncTaints(): array {
 		$pregMatchTaint = [
 			self::REGEX_EXEC_TAINT,
 			self::YES_TAINT,

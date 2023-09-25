@@ -1,5 +1,8 @@
 <?php
 
+use SecurityCheckPlugin\FunctionTaintedness;
+use SecurityCheckPlugin\Taintedness;
+
 require_once __DIR__ . '/../MediaWikiSecurityCheckPlugin.php';
 
 /**
@@ -19,6 +22,22 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 			'overall' => self::YES_TAINT
 		];
 
+		$insertTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		// table name
+		$insertTaint->setParamSinkTaint( 0, new Taintedness( self::SQL_EXEC_TAINT ) );
+		$insertTaint->addParamFlags( 0, self::NO_OVERRIDE );
+		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
+		// FIXME This doesn't correctly work when inserting multiple things at once.
+		$insertRowsTaint = new Taintedness( self::SQL_NUMKEY_EXEC_TAINT );
+		$insertTaint->setParamSinkTaint( 1, $insertRowsTaint );
+		$insertTaint->addParamFlags( 1, self::NO_OVERRIDE );
+		// method name
+		$insertTaint->setParamSinkTaint( 2, new Taintedness( self::SQL_EXEC_TAINT ) );
+		$insertTaint->addParamFlags( 2, self::NO_OVERRIDE );
+		// options. They are not escaped
+		$insertTaint->setParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) );
+		$insertTaint->addParamFlags( 3, self::NO_OVERRIDE );
+
 		return [
 			'\Wikimedia\Rdbms\Database::query' => [
 				self::SQL_EXEC_TAINT,
@@ -30,13 +49,7 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 					'overall' => self::YES_TAINT & ~self::SQL_TAINT
 				] + $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectRow' => $selectWrapper,
-			'\Wikimedia\Rdbms\Database::insert' => [
-				self::SQL_EXEC_TAINT,
-				self::SQL_NUMKEY_EXEC_TAINT,
-				self::SQL_EXEC_TAINT,
-				self::SQL_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
+			'\Wikimedia\Rdbms\Database::insert' => $insertTaint,
 			'\Wikimedia\Rdbms\IDatabase::makeList' => [
 				self::YES_TAINT & ~self::SQL_TAINT,
 				self::NO_TAINT,
