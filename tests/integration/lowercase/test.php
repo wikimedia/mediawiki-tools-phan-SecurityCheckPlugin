@@ -1,6 +1,15 @@
 <?php
 
-$out = new OutputPage;
+class OutputHandler {
+	/**
+	 * @param-taint $html exec_html
+	 */
+	public function addHTML( $html ) {
+
+	}
+}
+
+$out = new OutputHandler;
 
 $out->addHTML( $_GET['evil'] );
 $out->addHtml( $_GET['evil'] );

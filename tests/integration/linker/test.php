@@ -1,21 +1,22 @@
 <?php
 
-class Linker {
-	public static function linkKnown(
-		$target, $html = null, $customAttribs = [],
-		$query = [], $options = [ 'known' ]
-	) {
+class MyLinker {
+	/**
+	 * @param-taint $target none
+	 * @param-taint $html exec_html
+	 */
+	public static function doLink( $target, $html ) {
 		// placeholder
 	}
 }
 
-$safe = Linker::linkKnown( $_GET['dontcare'], 'safeString' );
+$safe = MyLinker::doLink( $_GET['dontcare'], 'safeString' );
 echo $safe;
-$unsafe = Linker::linkKnown( 'xx', $_GET['baz'] );
+$unsafe = MyLinker::doLink( 'xx', $_GET['baz'] );
 echo $unsafe; // Safe
 
 $unsafeContent = $_GET['foo'] . 'safestring';
-echo Linker::linkKnown( 'xx', $unsafeContent ); // Unsafe call, safe echo
+echo MyLinker::doLink( 'xx', $unsafeContent ); // Unsafe call, safe echo
 
 $safeContent = 'safe';
-echo Linker::linkKnown( $_GET['bar'], htmlspecialchars( $safeContent ) ); // Safe
+echo MyLinker::doLink( $_GET['bar'], htmlspecialchars( $safeContent ) ); // Safe

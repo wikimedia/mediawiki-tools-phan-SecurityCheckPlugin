@@ -269,6 +269,6 @@ return [
 
 	// A list of plugin files to execute
 	'plugins' => [
-		Config::projectPath( '../MediaWikiSecurityCheckPlugin.php' )
+		Config::projectPath( 'TestMediaWikiSecurityCheckPlugin.php' )
 	],
 ];

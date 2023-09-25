@@ -1,1 +1,1 @@
-integration/viafuncbad/test.php:6 SecurityCheck-XSS Calling method \OutputPage::addHTML() in [no method] that outputs using tainted argument #1 (`$html`). (Caused by: Builtin-\OutputPage::addHTML) (Caused by: integration/viafuncbad/test.php +4; integration/viafuncbad/test.php +3)
+integration/viafuncbad/test.php:6 SecurityCheck-XSS Calling method \OutputClass::addHTML() in [no method] that outputs using tainted argument #1 (`$html`). (Caused by: integration/viafuncbad/OutputClass.php +7) (Caused by: integration/viafuncbad/test.php +4; integration/viafuncbad/test.php +3)

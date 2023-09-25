@@ -1,8 +1,6 @@
 <?php
 
-use \Wikimedia\Rdbms\Database;
-
-class Foo {
+class DifferentTaints {
 	public $prop;
 
 	public function htmlsafe() {
@@ -17,22 +15,34 @@ class Foo {
 
 	public function sqlsafe() {
 		$evil = $_GET['baz'];
-		$db = new Database;
-		$this->prop = $db->addIdentifierQuotes( $evil );
+		$this->prop = sqlEscaper( $evil );
 	}
 }
 
-$f = new Foo;
-$db = new Database();
+$f = new DifferentTaints();
 
 $f->htmlsafe();
 `$f->prop`;
-$db->query( $f->prop );
+sqlSink( $f->prop );
 
 $f->shellsafe();
 echo $f->prop;
-$db->query( $f->prop );
+sqlSink( $f->prop );
 
 $f->sqlsafe();
 `$f->prop`;
 echo $f->prop;
+
+/**
+ * @param-taint $x escapes_sql
+ */
+function sqlEscaper( $x ) {
+
+}
+
+/**
+ * @param-taint $x exec_sql
+ */
+function sqlSink( $x ) {
+
+}
