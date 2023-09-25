@@ -265,7 +265,8 @@ class Taintedness {
 				$value->asValueFirstLevel()
 			);
 		}
-		$intersect->keysTaint = $sink->keysTaint & $value->keysTaint;
+		$valueKeysAsExec = ( ( $value->keysTaint | $value->flags ) & SecurityCheckPlugin::ALL_TAINT ) << 1;
+		$intersect->keysTaint = $sink->keysTaint & $valueKeysAsExec;
 		foreach ( $sink->dimTaint as $key => $dTaint ) {
 			$intersect->dimTaint[$key] = self::intersectForSink(
 				$dTaint,

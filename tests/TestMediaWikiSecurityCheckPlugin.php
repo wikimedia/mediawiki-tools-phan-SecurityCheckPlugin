@@ -38,6 +38,12 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertTaint->setParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) );
 		$insertTaint->addParamFlags( 3, self::NO_OVERRIDE );
 
+		$sinkKeysTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$htmlExecKeysTaint = Taintedness::newSafe();
+		$htmlExecKeysTaint->addKeysTaintedness( self::HTML_EXEC_TAINT );
+		$sinkKeysTaint->setParamSinkTaint( 0, $htmlExecKeysTaint );
+		$sinkKeysTaint->addParamFlags( 0, self::NO_OVERRIDE );
+
 		return [
 			'\Wikimedia\Rdbms\Database::query' => [
 				self::SQL_EXEC_TAINT,
@@ -91,6 +97,13 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				self::SHELL_EXEC_TAINT | self::ARRAY_OK,
 				'overall' => self::YES_TAINT
 			],
+
+			// Misc testing stuff
+			'\TestSinkShape::sinkKeys' => $sinkKeysTaint,
+			'\TestSinkShape::sinkAll' => [
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			]
 		];
 	}
 }
