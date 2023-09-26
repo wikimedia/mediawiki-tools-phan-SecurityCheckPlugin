@@ -1329,17 +1329,34 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $taintedness
 	 * @return array[]
 	 * @phan-return array<array{0:MethodLinks,1:Taintedness}>
+	 * @todo Rewrite this without accessing too many internals of Taintedness and MethodLinks
 	 */
 	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ): array {
-		if ( $taintedness->hasSomethingOutOfKnownDims() || $allLinks->hasSomethingOutOfKnownDims() ) {
-			// TODO Improve this case (e.g. unknown offsets).
+		if ( $taintedness->hasOverallFlags() || $allLinks->hasOverallLinks() ) {
 			return [ [ $allLinks, $taintedness ] ];
 		}
+
 		$pairs = [ [ $allLinks->asKeyForForeach(), $taintedness->asKeyForForeach() ] ];
+
 		foreach ( $taintedness->getDimTaint() as $k => $dimTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				self::getRelevantLinksForTaintedness( $allLinks->getForDim( $k ), $dimTaint )
+				self::getRelevantLinksForTaintedness( $allLinks->getForDimRaw( $k ), $dimTaint )
+			);
+		}
+
+		$unknownDimsTaint = $taintedness->getUnknownDimsTaint();
+		if ( $unknownDimsTaint ) {
+			$pairs = array_merge(
+				$pairs,
+				self::getRelevantLinksForTaintedness( $allLinks->asValueFirstLevel(), $unknownDimsTaint )
+			);
+		}
+		$unknownDimLinks = $allLinks->getUnknownDimLinks();
+		if ( $unknownDimLinks ) {
+			$pairs = array_merge(
+				$pairs,
+				self::getRelevantLinksForTaintedness( $unknownDimLinks, $taintedness->asValueFirstLevel() )
 			);
 		}
 		return $pairs;

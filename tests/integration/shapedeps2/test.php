@@ -50,11 +50,11 @@ function doEvilStuff() {
 	new TestUnknownSafe( $_GET['x'] ); // Unsafe
 	new TestUnknownUnsafe( $_GET['x'] ); // Unsafe
 	new TestUnknownUnknown( $_GET['x'] ); // Unsafe
-	new TestUnknownKeys( $_GET['x'] ); // TODO Safe
+	new TestUnknownKeys( $_GET['x'] ); // Safe
 	new TestKeysWhole( $_GET['x'] ); // Unsafe
 	new TestKeysSafe( $_GET['x'] ); // Safe
 	new TestKeysUnsafe( $_GET['x'] ); // Safe
-	new TestKeysUnknown( $_GET['x'] ); // TODO Safe
+	new TestKeysUnknown( $_GET['x'] ); // Safe
 	new TestKeysKeys( $_GET['x'] ); // Unsafe
 }
 

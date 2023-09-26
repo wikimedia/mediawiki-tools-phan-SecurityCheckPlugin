@@ -38,11 +38,18 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertTaint->setParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) );
 		$insertTaint->addParamFlags( 3, self::NO_OVERRIDE );
 
-		$sinkKeysTaint = new FunctionTaintedness( Taintedness::newSafe() );
 		$htmlExecKeysTaint = Taintedness::newSafe();
 		$htmlExecKeysTaint->addKeysTaintedness( self::HTML_EXEC_TAINT );
+
+		$sinkKeysTaint = new FunctionTaintedness( Taintedness::newSafe() );
 		$sinkKeysTaint->setParamSinkTaint( 0, $htmlExecKeysTaint );
 		$sinkKeysTaint->addParamFlags( 0, self::NO_OVERRIDE );
+
+		$sinkKeysOfUnknownDimTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$htmlExecKeysOfUnknownTaint = Taintedness::newSafe();
+		$htmlExecKeysOfUnknownTaint->setOffsetTaintedness( null, clone $htmlExecKeysTaint );
+		$sinkKeysOfUnknownDimTaint->setParamSinkTaint( 0, $htmlExecKeysOfUnknownTaint );
+		$sinkKeysOfUnknownDimTaint->addParamFlags( 0, self::NO_OVERRIDE );
 
 		return [
 			'\Wikimedia\Rdbms\Database::query' => [
@@ -103,7 +110,8 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 			'\TestSinkShape::sinkAll' => [
 				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT
-			]
+			],
+			'\TestSinkShape::sinkKeysOfUnknown' => $sinkKeysOfUnknownDimTaint,
 		];
 	}
 }

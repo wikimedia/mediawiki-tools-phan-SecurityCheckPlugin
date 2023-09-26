@@ -23,7 +23,6 @@ class Taintedness {
 
 	/**
 	 * @var self|null Taintedness for array elements that we couldn't attribute to any key
-	 * @todo Can we store this under a bogus key in self::$dimTaint ?
 	 */
 	private $unknownDimsTaint;
 
@@ -94,8 +93,8 @@ class Taintedness {
 	 * Temporary method, should only be used in getRelevantLinksForTaintedness
 	 * @return bool
 	 */
-	public function hasSomethingOutOfKnownDims(): bool {
-		return $this->flags > 0 || ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isSafe() );
+	public function hasOverallFlags(): bool {
+		return $this->flags > 0;
 	}
 
 	/**
@@ -104,6 +103,14 @@ class Taintedness {
 	 */
 	public function getDimTaint(): array {
 		return $this->dimTaint;
+	}
+
+	/**
+	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
+	 * @return self|null
+	 */
+	public function getUnknownDimsTaint(): ?self {
+		return $this->unknownDimsTaint;
 	}
 
 	/**
