@@ -343,18 +343,40 @@ trait TaintednessBaseVisitor {
 				$this->debug( __METHOD__, "Class not found for func $func: " . $this->getDebugInfo( $e ) );
 				return;
 			}
-			$nonParents = $class->getNonParentAncestorFQSENList();
 
-			foreach ( $nonParents as $nonParentFQSEN ) {
-				if ( $this->code_base->hasClassWithFQSEN( $nonParentFQSEN ) ) {
-					$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
-					// TODO Assuming this is a direct invocation, but it doesn't always make sense
-					$directInvocation = true;
-					if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName(), $directInvocation ) ) {
-						yield $nonParent->getMethodByName( $this->code_base, $func->getName() );
+			// Iterate through the whole hierarchy to see if the method was defined in an interface or trait. A few
+			// notes on this:
+			// - getNonParentAncestorFQSENList (and similar methods in Class and Method) only go one level up, and
+			//   would not give us e.g. the interfaces implemented by the parent class.
+			// - asExpandedTypes would work, but it has a non-zero overhead, and most importantly, we would cause phan
+			//   to emit issues like RedefinedClass in places where phan wouldn't normally emit them.
+			// - It's unclear whether this code should also look for method definitions in classes (and not just
+			//   interfaces/traits). And more generally, what would the expectations for *-taint annotations be.
+			$curClass = $class;
+			// Use a safeguard in case this goes out of control (e.g., broken code with circular inheritance).
+			$depth = 0;
+			do {
+				$depth++;
+				$nonParents = $curClass->getNonParentAncestorFQSENList();
+
+				foreach ( $nonParents as $nonParentFQSEN ) {
+					if ( $this->code_base->hasClassWithFQSEN( $nonParentFQSEN ) ) {
+						$nonParent = $this->code_base->getClassByFQSEN( $nonParentFQSEN );
+						// TODO Assuming this is a direct invocation, but it doesn't always make sense
+						$directInvocation = true;
+						if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName(), $directInvocation ) ) {
+							yield $nonParent->getMethodByName( $this->code_base, $func->getName() );
+						}
 					}
 				}
-			}
+				if (
+					!$curClass->hasParentType() ||
+					!$this->code_base->hasClassWithFQSEN( $curClass->getParentClassFQSEN() )
+				) {
+					break;
+				}
+				$curClass = $curClass->getParentClass( $this->code_base );
+			} while ( $depth < 20 );
 		}
 	}
 
