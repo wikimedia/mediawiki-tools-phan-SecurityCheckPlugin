@@ -95,8 +95,7 @@ class Taintedness {
 	 * @return bool
 	 */
 	public function hasSomethingOutOfKnownDims(): bool {
-		return $this->flags > 0 || $this->keysTaint > 0
-			|| ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isSafe() );
+		return $this->flags > 0 || ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isSafe() );
 	}
 
 	/**

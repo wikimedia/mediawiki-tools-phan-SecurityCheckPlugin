@@ -60,7 +60,7 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asValueFirstLevel(): self {
-		$ret = new self( $this->links );
+		$ret = new self( clone $this->links );
 		$ret->mergeWith( $this->unknownDimLinks ?? self::newEmpty() );
 		foreach ( $this->dimLinks as $links ) {
 			$ret->mergeWith( $links );

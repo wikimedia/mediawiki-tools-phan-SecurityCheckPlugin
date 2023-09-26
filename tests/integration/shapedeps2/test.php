@@ -40,12 +40,12 @@ function doEvilStuff() {
 	new TestSafeSafe( $_GET['x'] ); // Unsafe
 	new TestSafeUnsafe( $_GET['x'] ); // Safe (although echoing the props is unsafe)
 	new TestSafeUnknown( $_GET['x'] ); // Unsafe
-	new TestSafeKeys( $_GET['x'] ); // TODO Safe
+	new TestSafeKeys( $_GET['x'] ); // Safe
 	new TestUnsafeWhole( $_GET['x'] ); // Unsafe
 	new TestUnsafeSafe( $_GET['x'] ); // Safe
 	new TestUnsafeUnsafe( $_GET['x'] ); // Unsafe
 	new TestUnsafeUnknown( $_GET['x'] ); // Unsafe
-	new TestUnsafeKeys( $_GET['x'] ); // TODO Safe
+	new TestUnsafeKeys( $_GET['x'] ); // Safe
 	new TestUnknownWhole( $_GET['x'] ); // Unsafe
 	new TestUnknownSafe( $_GET['x'] ); // Unsafe
 	new TestUnknownUnsafe( $_GET['x'] ); // Unsafe

@@ -1288,7 +1288,6 @@ trait TaintednessBaseVisitor {
 
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
-
 		foreach ( self::getRelevantLinksForTaintedness( $varLinks, $taint ) as [ $curLinks, $curTaint ] ) {
 			/** @var MethodLinks $curLinks */
 			/** @var Taintedness $curTaint */
@@ -1336,7 +1335,7 @@ trait TaintednessBaseVisitor {
 			// TODO Improve this case (e.g. unknown offsets).
 			return [ [ $allLinks, $taintedness ] ];
 		}
-		$pairs = [];
+		$pairs = [ [ $allLinks->asKeyForForeach(), $taintedness->asKeyForForeach() ] ];
 		foreach ( $taintedness->getDimTaint() as $k => $dimTaint ) {
 			$pairs = array_merge(
 				$pairs,
