@@ -174,6 +174,8 @@ function escapeHtml( $html ) {
 }
 ```
 
+Methods also inherit these directives from abstract definitions in ancestor interfaces, but not from concrete implementations in ancestor classes.
+
 Taint directives are prefixed with either `@param-taint $parametername` or `@return-taint`. If there are multiple directives they can be separated by a comma. `@param-taint` is used for either marking how taint is transmitted from the parameter to the methods return value, or when used with `exec_` directives, to mark places where parameters are outputted/executed. `@return-taint` is used to adjust the return value's taint regardless of the input parameters.
 
 The type of directives include:
