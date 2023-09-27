@@ -81,6 +81,16 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		$insertTaint->setParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) );
 		$insertTaint->addParamFlags( 3, self::NO_OVERRIDE );
 
+		$insertQBRowTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$insertQBRowTaint->setParamSinkTaint( 0, clone $sqlExecKeysTaint );
+		$insertQBRowTaint->addParamFlags( 0, self::NO_OVERRIDE );
+
+		$insertQBRowsTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$multiRowsTaint = Taintedness::newSafe();
+		$multiRowsTaint->setOffsetTaintedness( null, clone $sqlExecKeysTaint );
+		$insertQBRowsTaint->setParamSinkTaint( 0, $multiRowsTaint );
+		$insertQBRowsTaint->addParamFlags( 0, self::NO_OVERRIDE );
+
 		return [
 			// Note, at the moment, this checks where the function
 			// is implemented, so you can't use IDatabase.
@@ -88,6 +98,8 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Wikimedia\Rdbms\IMaintainableDatabase::insert' => $insertTaint,
 			'\Wikimedia\Rdbms\Database::insert' => $insertTaint,
 			'\Wikimedia\Rdbms\DBConnRef::insert' => $insertTaint,
+			'\Wikimedia\Rdbms\InsertQueryBuilder::row' => $insertQBRowTaint,
+			'\Wikimedia\Rdbms\InsertQueryBuilder::rows' => $insertQBRowsTaint,
 			// FIXME Doesn't handle array args right.
 			'\wfShellExec' => [
 				self::SHELL_EXEC_TAINT | self::ARRAY_OK,

@@ -39,6 +39,16 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertTaint->setParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) );
 		$insertTaint->addParamFlags( 3, self::NO_OVERRIDE );
 
+		$insertQBRowTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$insertQBRowTaint->setParamSinkTaint( 0, clone $sqlExecKeysTaint );
+		$insertQBRowTaint->addParamFlags( 0, self::NO_OVERRIDE );
+
+		$insertQBRowsTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$multiRowsTaint = Taintedness::newSafe();
+		$multiRowsTaint->setOffsetTaintedness( null, clone $sqlExecKeysTaint );
+		$insertQBRowsTaint->setParamSinkTaint( 0, $multiRowsTaint );
+		$insertQBRowsTaint->addParamFlags( 0, self::NO_OVERRIDE );
+
 		$htmlExecKeysTaint = Taintedness::newSafe();
 		$htmlExecKeysTaint->addKeysTaintedness( self::HTML_EXEC_TAINT );
 
@@ -69,6 +79,8 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\Wikimedia\Rdbms\InsertQueryBuilder::row' => $insertQBRowTaint,
+			'\Wikimedia\Rdbms\InsertQueryBuilder::rows' => $insertQBRowsTaint,
 			'\Html::rawElement' => [
 				self::YES_TAINT,
 				self::ESCAPES_HTML,
