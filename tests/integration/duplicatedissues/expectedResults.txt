@@ -1,1 +1,1 @@
-integration/duplicatedissues/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/duplicatedissues/test.php +12; integration/duplicatedissues/test.php +4)
+integration/duplicatedissues/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/duplicatedissues/test.php +12; annotations in \getHTML)

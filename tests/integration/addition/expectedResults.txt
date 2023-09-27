@@ -2,4 +2,4 @@ integration/addition/test.php:9 SecurityCheck-XSS Echoing expression that was no
 integration/addition/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/addition/test.php +12; integration/addition/test.php +11)
 integration/addition/test.php:19 SecurityCheck-XSS Calling method \foo() in [no method] that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: integration/addition/test.php +17; integration/addition/test.php +16)
 integration/addition/test.php:34 PhanDebugAnnotation @phan-debug-var requested for variable $unknownType - it has union type (empty union type)
-integration/addition/test.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/addition/test.php +36; integration/addition/test.php +34; integration/addition/test.php +29)
+integration/addition/test.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/addition/test.php +36; integration/addition/test.php +34; annotations in \A::foo)

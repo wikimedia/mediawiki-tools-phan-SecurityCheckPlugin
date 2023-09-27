@@ -1,5 +1,5 @@
 integration/wrongparamannotations/test.php:6 SecurityCheckInvalidAnnotation Variadic parameter $par should be annotated as `...$par`
-integration/wrongparamannotations/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/wrongparamannotations/test.php +10; integration/wrongparamannotations/test.php +6)
+integration/wrongparamannotations/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/wrongparamannotations/test.php +10; annotations in \variadicAnnotatedAsNormal)
 integration/wrongparamannotations/test.php:16 SecurityCheckInvalidAnnotation Non-variadic parameter $par should be annotated as `$par`
-integration/wrongparamannotations/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/wrongparamannotations/test.php +20; integration/wrongparamannotations/test.php +16)
+integration/wrongparamannotations/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/wrongparamannotations/test.php +20; annotations in \normalAnnotatedAsVariadic)
 integration/wrongparamannotations/test.php:26 SecurityCheckInvalidAnnotation Annotated parameter $doesntexist not found in the signature

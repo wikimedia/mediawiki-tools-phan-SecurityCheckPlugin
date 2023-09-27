@@ -446,7 +446,9 @@ trait TaintednessBaseVisitor {
 				if ( $taintData !== null ) {
 					[ $taint, $methodLinks ] = $taintData;
 					self::doSetFuncTaint( $func, $taint );
-					$this->maybeAddFuncError( $func, $trialFunc->getContext(), $taint, $taint, $methodLinks );
+					// TODO Make this more granular if possible
+					$errorDesc = 'annotations in ' . $trialFunc->getFQSEN()->__toString();
+					$this->maybeAddFuncError( $func, $errorDesc, $taint, $taint, $methodLinks );
 					return $taint;
 				}
 			}

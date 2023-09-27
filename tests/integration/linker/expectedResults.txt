@@ -1,2 +1,2 @@
-integration/linker/test.php:15 SecurityCheck-XSS Calling method \MyLinker::doLink() in [no method] that outputs using tainted argument #2 (`$_GET['baz']`). (Caused by: integration/linker/test.php +8)
-integration/linker/test.php:19 SecurityCheck-XSS Calling method \MyLinker::doLink() in [no method] that outputs using tainted argument #2 (`$unsafeContent`). (Caused by: integration/linker/test.php +8) (Caused by: integration/linker/test.php +18)
+integration/linker/test.php:15 SecurityCheck-XSS Calling method \MyLinker::doLink() in [no method] that outputs using tainted argument #2 (`$_GET['baz']`). (Caused by: annotations in \MyLinker::doLink)
+integration/linker/test.php:19 SecurityCheck-XSS Calling method \MyLinker::doLink() in [no method] that outputs using tainted argument #2 (`$unsafeContent`). (Caused by: annotations in \MyLinker::doLink) (Caused by: integration/linker/test.php +18)
