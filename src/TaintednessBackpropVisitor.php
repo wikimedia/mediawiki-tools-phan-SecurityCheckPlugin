@@ -104,10 +104,10 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 */
 	public function visitArrayElem( Node $node ): void {
 		if ( is_object( $node->children['key'] ) ) {
-			$this->recurse( $node->children['key'] );
+			$this->recurse( $node->children['key'], $this->taintedness->asKeyForForeach() );
 		}
 		if ( is_object( $node->children['value'] ) ) {
-			$this->recurse( $node->children['value'] );
+			$this->recurse( $node->children['value'], $this->taintedness->asValueFirstLevel() );
 		}
 	}
 
