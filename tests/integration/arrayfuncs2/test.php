@@ -104,7 +104,7 @@ function testDiffAndIntersectUnknownKeys() {
 	echo array_diff_key( $arr1, $arr2 ); // Unsafe
 	echo array_diff_key( $arr2, $arr1 ); // Unsafe
 	echo array_intersect( $arr1, $arr2 ); // Unsafe
-	echo array_values( array_intersect( $arr1, $arr2 ) ); // TODO Ideally Safe
+	echo array_values( array_intersect( $arr1, $arr2 ) ); // Safe
 	echo array_intersect( $arr2, $arr1 ); // Unsafe
 	echo array_values( array_intersect( $arr2, $arr1 ) ); // Unsafe
 	echo array_intersect_assoc( $arr1, $arr2 ); // Unsafe

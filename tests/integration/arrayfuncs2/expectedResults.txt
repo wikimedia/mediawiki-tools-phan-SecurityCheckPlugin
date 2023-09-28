@@ -44,7 +44,6 @@ integration/arrayfuncs2/test.php:103 SecurityCheck-XSS Echoing expression that w
 integration/arrayfuncs2/test.php:104 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +98)
 integration/arrayfuncs2/test.php:105 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +99)
 integration/arrayfuncs2/test.php:106 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +98)
-integration/arrayfuncs2/test.php:107 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +98)
 integration/arrayfuncs2/test.php:108 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +99)
 integration/arrayfuncs2/test.php:109 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +99)
 integration/arrayfuncs2/test.php:110 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayfuncs2/test.php +98)

@@ -90,6 +90,24 @@ class Taintedness {
 	}
 
 	/**
+	 * Returns a copy of this object where the taintedness of every known key has been reassigned
+	 * to unknown keys.
+	 * @return self
+	 */
+	public function asKnownKeysMadeUnknown(): self {
+		$ret = new self( $this->flags );
+		$ret->keysTaint = $this->keysTaint;
+		$ret->unknownDimsTaint = $this->unknownDimsTaint;
+		if ( $this->dimTaint ) {
+			$ret->unknownDimsTaint ??= self::newSafe();
+			foreach ( $this->dimTaint as $keyTaint ) {
+				$ret->unknownDimsTaint->mergeWith( $keyTaint );
+			}
+		}
+		return $ret;
+	}
+
+	/**
 	 * Temporary method, should only be used in getRelevantLinksForTaintedness
 	 * @return bool
 	 */
