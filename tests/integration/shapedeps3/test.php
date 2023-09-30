@@ -122,7 +122,7 @@ function allSink( $arg ) {
 	echo $arg['echo'];
 	shell_exec( $arg['shell'] );
 	require $arg['require']['file'];
-	foreach ( $arg as $k => $v ) {
+	foreach ( $arg as $k => $v ) { // This should be in the caused-by lines for SERIALIZE only.
 		unserialize( $k );
 	}
 }

@@ -96,19 +96,6 @@ class SingleMethodLinks {
 	}
 
 	/**
-	 * @param int $taint
-	 * @return bool
-	 */
-	public function canPreserveTaintFlags( int $taint ): bool {
-		foreach ( $this->params as $offsets ) {
-			if ( $offsets->hasTaintRecursively( $taint ) ) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * @note This should only be used by MethodLinks::getAllPreservedFlags
 	 * @return int
 	 */

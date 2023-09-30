@@ -1324,12 +1324,14 @@ trait TaintednessBaseVisitor {
 				$funcError = new FunctionCausedByLines();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
+					$curBackpropError = $backpropError
+						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint->setVariadicParamSinkTaint( $i, $curParTaint );
-						$funcError->setVariadicParamSinkLines( $i, $backpropError );
+						$funcError->setVariadicParamSinkLines( $i, $curBackpropError );
 					} else {
 						$paramTaint->setParamSinkTaint( $i, $curParTaint );
-						$funcError->setParamSinkLines( $i, $backpropError );
+						$funcError->setParamSinkLines( $i, $curBackpropError );
 					}
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
@@ -1459,12 +1461,20 @@ trait TaintednessBaseVisitor {
 			}
 			assert( $var instanceof TypedElementInterface );
 
-			$this->setTaintedness( $var, $presTaint->asTaintednessForArgument( $taintAdjusted ), false );
-			$this->addTaintError( $var, $taintAdjusted, null );
+			$taintToPropagate = $presTaint->asTaintednessForArgument( $taintAdjusted );
+
+			$adjustedCausedBy = self::getCausedByRawCloneOrEmpty( $var )
+				->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i );
+			self::setCausedByRaw( $var, $adjustedCausedBy );
+			$this->setTaintedness( $var, $taintToPropagate, false );
+			$this->addTaintError( $var, $taintToPropagate, null );
 			if ( $var instanceof GlobalVariable ) {
 				$globalVar = $var->getElement();
-				$this->setTaintedness( $globalVar, $taintAdjusted, false );
-				$this->addTaintError( $globalVar, $taintAdjusted, null );
+				$adjustedGlobalCausedBy = self::getCausedByRawCloneOrEmpty( $globalVar )
+					->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i );
+				self::setCausedByRaw( $globalVar, $adjustedGlobalCausedBy );
+				$this->setTaintedness( $globalVar, $taintToPropagate, false );
+				$this->addTaintError( $globalVar, $taintToPropagate, null );
 			}
 			$this->mergeTaintError( $var, $error );
 		}

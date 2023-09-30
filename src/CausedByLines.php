@@ -128,6 +128,28 @@ class CausedByLines {
 	}
 
 	/**
+	 * For every line in this object, check if the line has links for $func, and if so, add $taintedness to the
+	 * line taintedness.
+	 *
+	 * @param Taintedness $taintedness
+	 * @param FunctionInterface $func
+	 * @param int $i Parameter index
+	 * @return self
+	 */
+	public function withTaintAddedToMethodArgLinks( Taintedness $taintedness, FunctionInterface $func, int $i ): self {
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$newLinks = $lineLinks ? clone $lineLinks : null;
+			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $i ) ) {
+				$ret->lines[] = [ $lineTaint->asMergedWith( $taintedness ), $lineLine, $newLinks ];
+			} else {
+				$ret->lines[] = [ clone $lineTaint, $lineLine, $newLinks ];
+			}
+		}
+		return $ret;
+	}
+
+	/**
 	 * @note this isn't a merge operation like array_merge. What this method does is:
 	 * 1 - if $other is a subset of $this, leave $this as-is;
 	 * 2 - update taintedness values in $this if the *lines* (not taint values) in $other
@@ -277,11 +299,8 @@ class CausedByLines {
 	 */
 	private function getRelevantLinesForTaintedness( int $taintedness ): array {
 		$ret = [];
-		foreach ( $this->lines as [ $lineTaint, $lineText, $lineLinks ] ) {
-			if (
-				$lineTaint->has( $taintedness ) ||
-				( $lineLinks && $lineLinks->canPreserveTaintFlags( $taintedness ) )
-			) {
+		foreach ( $this->lines as [ $lineTaint, $lineText ] ) {
+			if ( $lineTaint->has( $taintedness ) ) {
 				$ret[] = $lineText;
 			}
 		}

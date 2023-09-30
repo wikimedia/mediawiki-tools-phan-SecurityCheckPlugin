@@ -403,34 +403,6 @@ class MethodLinks {
 	}
 
 	/**
-	 * Can the given taintedness flags be preserved by anything stored in this object?
-	 *
-	 * @param int $taint
-	 * @return bool
-	 */
-	public function canPreserveTaintFlags( int $taint ): bool {
-		foreach ( $this->links as $func ) {
-			if ( $this->links[$func]->canPreserveTaintFlags( $taint ) ) {
-				return true;
-			}
-		}
-		foreach ( $this->dimLinks as $dimLinks ) {
-			if ( $dimLinks->canPreserveTaintFlags( $taint ) ) {
-				return true;
-			}
-		}
-		if ( $this->unknownDimLinks && $this->unknownDimLinks->canPreserveTaintFlags( $taint ) ) {
-			return true;
-		}
-		foreach ( $this->keysLinks ?? [] as $func ) {
-			if ( $this->keysLinks[$func]->canPreserveTaintFlags( $taint ) ) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Given some taint flags, return their intersection with the flags that can be preserved by this object
 	 * @param int $taint
 	 * @return int

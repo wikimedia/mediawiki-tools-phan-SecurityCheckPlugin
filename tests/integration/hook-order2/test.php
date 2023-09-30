@@ -18,6 +18,6 @@ class SecondClass {
 		$arg2 = htmlspecialchars( '' );
 	}
 	public static function hook2( $arg1, &$arg2 ) {
-		$arg2 = $arg1;//TODO: This shouldn't be in the caused-by for line 14
+		$arg2 = $arg1;// This must not be in the caused-by for line 14
 	}
 }

@@ -99,28 +99,6 @@ class ParamLinksOffsets {
 	}
 
 	/**
-	 * @param int $taint
-	 * @return bool
-	 */
-	public function hasTaintRecursively( int $taint ): bool {
-		if ( $this->ownFlags & $taint ) {
-			return true;
-		}
-		if ( $this->keysFlags & $taint ) {
-			return true;
-		}
-		foreach ( $this->dims as $dimOffsets ) {
-			if ( $dimOffsets->hasTaintRecursively( $taint ) ) {
-				return true;
-			}
-		}
-		if ( $this->unknown && $this->unknown->hasTaintRecursively( $taint ) ) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
 	 * @note This should only be used by SingleMethodLinks::getAllPreservedFlags
 	 * @return int
 	 */
