@@ -1309,7 +1309,8 @@ trait TaintednessBaseVisitor {
 		if ( $varLinks === null || $varLinks->isEmpty() ) {
 			return;
 		}
-		$backpropError = self::getCausedByRaw( $var ) ?? CausedByLines::emptySingleton();
+		$varError = self::getCausedByRaw( $var );
+		$backpropError = $varError ? $varError->withOnlyLinks() : CausedByLines::emptySingleton();
 		if ( $additionalError ) {
 			$backpropError = $backpropError->asMergedWith( $additionalError );
 		}

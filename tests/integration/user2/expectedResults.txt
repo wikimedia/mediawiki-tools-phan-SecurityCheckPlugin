@@ -1,1 +1,1 @@
-integration/user2/test.php:11 SecurityCheck-XSS Calling method \User::newFromName() in \Foo::execute that outputs using tainted argument #1 (`$_GET['baz']`). (Caused by: integration/user2/test.php +10; integration/user2/User.php +7; integration/user2/test.php +9; integration/user2/test.php +5)
+integration/user2/test.php:11 SecurityCheck-XSS Calling method \User::newFromName() in \Foo::execute that outputs using tainted argument #1 (`$_GET['baz']`). (Caused by: integration/user2/test.php +10; integration/user2/User.php +7; integration/user2/test.php +5)

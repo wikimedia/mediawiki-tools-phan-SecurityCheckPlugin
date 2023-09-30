@@ -322,6 +322,20 @@ class CausedByLines {
 		return $ret;
 	}
 
+	public function withOnlyLinks(): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		$safeTaint = Taintedness::safeSingleton();
+		foreach ( $this->lines as [ $_, $lineLine, $lineLinks ] ) {
+			if ( $lineLinks && !$lineLinks->isEmpty() ) {
+				$ret->lines[] = [ $safeTaint, $lineLine, $lineLinks ];
+			}
+		}
+		return $ret;
+	}
+
 	/**
 	 * @note this isn't a merge operation like array_merge. What this method does is:
 	 * 1 - if $other is a subset of $this, leave $this as-is;
