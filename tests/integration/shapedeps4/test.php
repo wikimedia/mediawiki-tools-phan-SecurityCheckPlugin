@@ -42,7 +42,7 @@ echoFooKey_ParamInFooKey( $_GET['a'] ); // Unsafe
 function echoFooKey_ParamInBarKey( $par ) {
 	echoFooKey( [ 'bar' => $par ] );
 }
-echoFooKey_ParamInBarKey( $_GET['a'] ); // TODO Safe
+echoFooKey_ParamInBarKey( $_GET['a'] ); // Safe
 
 function echoFooKey_ParamInUnknownKey( $par ) {
 	echoFooKey( [ rand() => $par ] );
@@ -231,7 +231,7 @@ echoFooKeyAndKeys_ParamInFooKey( $_GET['a'] ); // Unsafe
 function echoFooKeyAndKeys_ParamInBarKey( $par ) {
 	echoFooKeyAndKeys( [ 'bar' => $par ] );
 }
-echoFooKeyAndKeys_ParamInBarKey( $_GET['a'] ); // TODO Safe
+echoFooKeyAndKeys_ParamInBarKey( $_GET['a'] ); // Safe
 
 function echoFooKeyAndKeys_ParamInUnknownKey( $par ) {
 	echoFooKeyAndKeys( [ rand() => $par ] );
