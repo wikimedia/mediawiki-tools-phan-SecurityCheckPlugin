@@ -1358,12 +1358,12 @@ trait TaintednessBaseVisitor {
 	 * @todo Rewrite this without accessing too many internals of Taintedness and MethodLinks
 	 */
 	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ): array {
+		$pairs = [];
 		$overallTaintFlags = $taintedness->getOverallFlags();
 		if ( $overallTaintFlags !== SecurityCheckPlugin::NO_TAINT ) {
-			return [ [ $allLinks, $taintedness ] ];
+			$pairs[] = [ $allLinks, new Taintedness( $overallTaintFlags ) ];
 		}
 
-		$pairs = [];
 		if ( $taintedness->hasKeyFlags() ) {
 			$pairs[] = [ $allLinks->asKeyForForeach(), $taintedness->asKeyForForeach() ];
 		}

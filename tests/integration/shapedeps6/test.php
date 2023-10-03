@@ -90,15 +90,15 @@ function firstParamFooSecondFoo_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'foo' => $first . $second ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamFooSecondFoo_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2
-firstParamFooSecondFoo_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamFooSecondFoo_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1
-firstParamFooSecondFoo_echoAllPathKeys( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
+firstParamFooSecondFoo_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2
+firstParamFooSecondFoo_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamFooSecondFoo_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1
+firstParamFooSecondFoo_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2
 firstParamFooSecondFoo_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
-firstParamFooSecondFoo_echoAllPathKeys( getHTML(), getPath() ); // TODO HTML 1
-firstParamFooSecondFoo_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2
-firstParamFooSecondFoo_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamFooSecondFoo_echoAllPathKeys( getPath(), getPath() ); // TODO Safe
+firstParamFooSecondFoo_echoAllPathKeys( getHTML(), getPath() ); // HTML 1
+firstParamFooSecondFoo_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2
+firstParamFooSecondFoo_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamFooSecondFoo_echoAllPathKeys( getPath(), getPath() ); // Safe
 
 // First param foo, second bar
 
@@ -106,15 +106,15 @@ function firstParamFooSecondBar_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'foo' => $first, 'bar' => $second ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamFooSecondBar_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2
-firstParamFooSecondBar_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamFooSecondBar_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1
-firstParamFooSecondBar_echoAllPathKeys( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
+firstParamFooSecondBar_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2
+firstParamFooSecondBar_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamFooSecondBar_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1
+firstParamFooSecondBar_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2
 firstParamFooSecondBar_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
-firstParamFooSecondBar_echoAllPathKeys( getHTML(), getPath() ); // TODO HTML 1
-firstParamFooSecondBar_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2
-firstParamFooSecondBar_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamFooSecondBar_echoAllPathKeys( getPath(), getPath() ); // TODO Safe
+firstParamFooSecondBar_echoAllPathKeys( getHTML(), getPath() ); // HTML 1
+firstParamFooSecondBar_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2
+firstParamFooSecondBar_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamFooSecondBar_echoAllPathKeys( getPath(), getPath() ); // Safe
 
 // First param foo, second unknown
 
@@ -122,15 +122,15 @@ function firstParamFooSecondUnknown_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'foo' => $first, rand() => $second ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamFooSecondUnknown_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2
-firstParamFooSecondUnknown_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamFooSecondUnknown_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1
-firstParamFooSecondUnknown_echoAllPathKeys( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
+firstParamFooSecondUnknown_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2
+firstParamFooSecondUnknown_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamFooSecondUnknown_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1
+firstParamFooSecondUnknown_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2
 firstParamFooSecondUnknown_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
-firstParamFooSecondUnknown_echoAllPathKeys( getHTML(), getPath() ); // TODO HTML 1
-firstParamFooSecondUnknown_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2
-firstParamFooSecondUnknown_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamFooSecondUnknown_echoAllPathKeys( getPath(), getPath() ); // TODO Safe
+firstParamFooSecondUnknown_echoAllPathKeys( getHTML(), getPath() ); // HTML 1
+firstParamFooSecondUnknown_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2
+firstParamFooSecondUnknown_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamFooSecondUnknown_echoAllPathKeys( getPath(), getPath() ); // Safe
 
 // First param foo, second key
 
@@ -138,15 +138,15 @@ function firstParamFooSecondKey_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'foo' => $first, $second => 'safe' ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamFooSecondKey_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 2
-firstParamFooSecondKey_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamFooSecondKey_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1, PATH 2
+firstParamFooSecondKey_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 2
+firstParamFooSecondKey_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamFooSecondKey_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1, PATH 2
 firstParamFooSecondKey_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2, PATH 2
 firstParamFooSecondKey_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
 firstParamFooSecondKey_echoAllPathKeys( getHTML(), getPath() ); // HTML 1, PATH 2
-firstParamFooSecondKey_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 2
-firstParamFooSecondKey_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamFooSecondKey_echoAllPathKeys( getPath(), getPath() ); // TODO PATH 2
+firstParamFooSecondKey_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2, PATH 2
+firstParamFooSecondKey_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamFooSecondKey_echoAllPathKeys( getPath(), getPath() ); // PATH 2
 
 // First and second param bar
 
@@ -154,15 +154,15 @@ function firstParamBarSecondBar_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'bar' => $first . $second ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamBarSecondBar_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2
-firstParamBarSecondBar_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamBarSecondBar_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1
-firstParamBarSecondBar_echoAllPathKeys( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
+firstParamBarSecondBar_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2
+firstParamBarSecondBar_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamBarSecondBar_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1
+firstParamBarSecondBar_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2
 firstParamBarSecondBar_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
-firstParamBarSecondBar_echoAllPathKeys( getHTML(), getPath() ); // TODO HTML 1
-firstParamBarSecondBar_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2
-firstParamBarSecondBar_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamBarSecondBar_echoAllPathKeys( getPath(), getPath() ); // TODO Safe
+firstParamBarSecondBar_echoAllPathKeys( getHTML(), getPath() ); // HTML 1
+firstParamBarSecondBar_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2
+firstParamBarSecondBar_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamBarSecondBar_echoAllPathKeys( getPath(), getPath() ); // Safe
 
 // First param bar, second unknown
 
@@ -170,15 +170,15 @@ function firstParamBarSecondUnknown_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'bar' => $first, rand() => $second ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamBarSecondUnknown_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2
-firstParamBarSecondUnknown_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamBarSecondUnknown_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1
-firstParamBarSecondUnknown_echoAllPathKeys( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
+firstParamBarSecondUnknown_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2
+firstParamBarSecondUnknown_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamBarSecondUnknown_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1
+firstParamBarSecondUnknown_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2
 firstParamBarSecondUnknown_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
-firstParamBarSecondUnknown_echoAllPathKeys( getHTML(), getPath() ); // TODO HTML 1
-firstParamBarSecondUnknown_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2
-firstParamBarSecondUnknown_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamBarSecondUnknown_echoAllPathKeys( getPath(), getPath() ); // TODO Safe
+firstParamBarSecondUnknown_echoAllPathKeys( getHTML(), getPath() ); // HTML 1
+firstParamBarSecondUnknown_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2
+firstParamBarSecondUnknown_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamBarSecondUnknown_echoAllPathKeys( getPath(), getPath() ); // Safe
 
 // First param bar, second key
 
@@ -186,15 +186,15 @@ function firstParamBarSecondKey_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ 'bar' => $first, $second => 'safe' ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamBarSecondKey_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 2
-firstParamBarSecondKey_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamBarSecondKey_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1, PATH 2
+firstParamBarSecondKey_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 2
+firstParamBarSecondKey_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamBarSecondKey_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1, PATH 2
 firstParamBarSecondKey_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2, PATH 2
 firstParamBarSecondKey_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
 firstParamBarSecondKey_echoAllPathKeys( getHTML(), getPath() ); // HTML 1, PATH 2
-firstParamBarSecondKey_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 2
-firstParamBarSecondKey_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamBarSecondKey_echoAllPathKeys( getPath(), getPath() ); // TODO PATH 2
+firstParamBarSecondKey_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2, PATH 2
+firstParamBarSecondKey_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamBarSecondKey_echoAllPathKeys( getPath(), getPath() ); // PATH 2
 
 // First and second param unknown
 
@@ -202,15 +202,15 @@ function firstParamUnknownSecondUnknown_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ rand() => $first, rand() => $second ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamUnknownSecondUnknown_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2
-firstParamUnknownSecondUnknown_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamUnknownSecondUnknown_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1
-firstParamUnknownSecondUnknown_echoAllPathKeys( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
+firstParamUnknownSecondUnknown_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2
+firstParamUnknownSecondUnknown_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamUnknownSecondUnknown_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1
+firstParamUnknownSecondUnknown_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2
 firstParamUnknownSecondUnknown_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
-firstParamUnknownSecondUnknown_echoAllPathKeys( getHTML(), getPath() ); // TODO HTML 1
-firstParamUnknownSecondUnknown_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2
-firstParamUnknownSecondUnknown_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamUnknownSecondUnknown_echoAllPathKeys( getPath(), getPath() ); // TODO Safe
+firstParamUnknownSecondUnknown_echoAllPathKeys( getHTML(), getPath() ); // HTML 1
+firstParamUnknownSecondUnknown_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2
+firstParamUnknownSecondUnknown_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamUnknownSecondUnknown_echoAllPathKeys( getPath(), getPath() ); // Safe
 
 // First param unknown, second key
 
@@ -218,15 +218,15 @@ function firstParamUnknownSecondKey_echoAllPathKeys( $first, $second ) {
 	$sinkArg = [ rand() => $first, $second => 'safe' ];
 	echoAllPathKeys( $sinkArg );
 }
-firstParamUnknownSecondKey_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 2
-firstParamUnknownSecondKey_echoAllPathKeys( $_GET['a'], getHTML() ); // TODO HTML 1 & 2
-firstParamUnknownSecondKey_echoAllPathKeys( $_GET['a'], getPath() ); // TODO HTML 1, PATH 2
+firstParamUnknownSecondKey_echoAllPathKeys( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 2
+firstParamUnknownSecondKey_echoAllPathKeys( $_GET['a'], getHTML() ); // HTML 1 & 2
+firstParamUnknownSecondKey_echoAllPathKeys( $_GET['a'], getPath() ); // HTML 1, PATH 2
 firstParamUnknownSecondKey_echoAllPathKeys( getHTML(), $_GET['b'] ); // HTML 1 & 2, PATH 2
 firstParamUnknownSecondKey_echoAllPathKeys( getHTML(), getHTML() ); // HTML 1 & 2
 firstParamUnknownSecondKey_echoAllPathKeys( getHTML(), getPath() ); // HTML 1, PATH 2
-firstParamUnknownSecondKey_echoAllPathKeys( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 2
-firstParamUnknownSecondKey_echoAllPathKeys( getPath(), getHTML() ); // TODO HTML 2
-firstParamUnknownSecondKey_echoAllPathKeys( getPath(), getPath() ); // TODO PATH 2
+firstParamUnknownSecondKey_echoAllPathKeys( getPath(), $_GET['b'] ); // HTML 2, PATH 2
+firstParamUnknownSecondKey_echoAllPathKeys( getPath(), getHTML() ); // HTML 2
+firstParamUnknownSecondKey_echoAllPathKeys( getPath(), getPath() ); // PATH 2
 
 // First and second param key
 
