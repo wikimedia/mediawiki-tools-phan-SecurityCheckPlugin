@@ -172,15 +172,17 @@ class MethodLinks {
 	 * Create a new object with $this at the given $offset (if scalar) or as unknown object.
 	 *
 	 * @param Node|string|int|bool|float|null $offset
+	 * @param LinksSet|null $keyLinks
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset ): self {
+	public function asMaybeMovedAtOffset( $offset, LinksSet $keyLinks = null ): self {
 		$ret = new self;
 		if ( $offset instanceof Node || $offset === null ) {
 			$ret->unknownDimLinks = clone $this;
 		} else {
 			$ret->dimLinks[$offset] = clone $this;
 		}
+		$ret->keysLinks = $keyLinks;
 		return $ret;
 	}
 
@@ -195,6 +197,11 @@ class MethodLinks {
 		}
 		$ret = clone $this;
 		$ret->links->mergeWith( $other->links );
+		if ( !$ret->keysLinks ) {
+			$ret->keysLinks = $other->keysLinks;
+		} elseif ( $other->keysLinks ) {
+			$ret->keysLinks->mergeWith( $other->keysLinks );
+		}
 		if ( !$ret->unknownDimLinks ) {
 			$ret->unknownDimLinks = $other->unknownDimLinks;
 		} elseif ( $other->unknownDimLinks ) {

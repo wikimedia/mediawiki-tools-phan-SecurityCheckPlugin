@@ -75,8 +75,8 @@ class SinkKeysIndirect {
 	}
 
 	function trigger() {
-		TestSinkShape::sinkKeys( $this->propForKeys ); // TODO: Unsafe
-		TestSinkShape::sinkAll( $this->propForKeys ); // TODO: Unsafe
+		TestSinkShape::sinkKeys( $this->propForKeys ); // Unsafe
+		TestSinkShape::sinkAll( $this->propForKeys ); // Unsafe
 		TestSinkShape::sinkKeysOfUnknown( $this->propForKeys ); // Safe
 
 		TestSinkShape::sinkKeys( $this->propForValues ); // Safe

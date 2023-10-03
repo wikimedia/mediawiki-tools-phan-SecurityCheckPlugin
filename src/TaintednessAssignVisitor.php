@@ -198,9 +198,11 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$curOff = $this->resolveOffset( $dimNode );
 		}
 		$this->dimDepth++;
-		$dimTaintInt = $this->getTaintedness( $dimNode )->getTaintedness()->get();
+		$dimTaintWithErr = $this->getTaintedness( $dimNode );
+		$dimTaintInt = $dimTaintWithErr->getTaintedness()->get();
 		$this->rightTaint = $this->rightTaint->asMaybeMovedAtOffset( $curOff, $dimTaintInt );
-		$this->rightLinks = $this->rightLinks->asMaybeMovedAtOffset( $curOff );
+		$dimLinks = $dimTaintWithErr->getMethodLinks()->getLinks();
+		$this->rightLinks = $this->rightLinks->asMaybeMovedAtOffset( $curOff, $dimLinks );
 		$this->errorTaint->addKeysTaintedness( $dimTaintInt );
 		$this->maybeAddNumkeyOnAssignmentLHS( $node );
 		$this( $node->children['expr'] );

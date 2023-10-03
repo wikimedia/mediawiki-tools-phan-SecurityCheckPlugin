@@ -46,7 +46,7 @@ new WrapPartialInArrayAtOffsetUnsafe( [ 'safe' => 'safe', 'foo' => $_GET['a'] ] 
 new PartialOnlyAtOffsetSafe( [ 'safe' => 'safe', 'foo' => $_GET['a'] ] ); // Safe
 new PartialOnlyAtOffsetUnsafe( [ 'safe' => 'safe', 'foo' => $_GET['a'] ] ); // XSS
 new PartialOnlyAtOffsetUnknown( [ 'safe' => 'safe', 'foo' => $_GET['a'] ] ); // XSS
-new SetAsKey( $_GET['a'] ); // TODO XSS
+new SetAsKey( $_GET['a'] ); // XSS
 new WrapEscaped( $_GET['a'] ); // Safe
 
 class WrapInArray {
@@ -204,7 +204,7 @@ class SetAsKey {
 	private $myProp13;
 
 	public function doSink() {
-		echoAll( $this->myProp13 ); // TODO XSS
+		echoAll( $this->myProp13 ); // XSS
 	}
 
 	public function __construct( $arg ) {

@@ -74,14 +74,14 @@ function firstParamWholeSecondKey_echoAllPathUnknown( $first, $second ) {
 	$sinkArg[$second] = 'foo';
 	echoAllPathUnknown( $sinkArg );
 }
-firstParamWholeSecondKey_echoAllPathUnknown( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 1
-firstParamWholeSecondKey_echoAllPathUnknown( $_GET['a'], getHTML() ); // TODO HTML 1 & 2, PATH 1
+firstParamWholeSecondKey_echoAllPathUnknown( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 1
+firstParamWholeSecondKey_echoAllPathUnknown( $_GET['a'], getHTML() ); // HTML 1 & 2, PATH 1
 firstParamWholeSecondKey_echoAllPathUnknown( $_GET['a'], getPath() ); // HTML 1, PATH 1
-firstParamWholeSecondKey_echoAllPathUnknown( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
-firstParamWholeSecondKey_echoAllPathUnknown( getHTML(), getHTML() ); // TODO HTML 1 & 2
+firstParamWholeSecondKey_echoAllPathUnknown( getHTML(), $_GET['b'] ); // HTML 1 & 2
+firstParamWholeSecondKey_echoAllPathUnknown( getHTML(), getHTML() ); // HTML 1 & 2
 firstParamWholeSecondKey_echoAllPathUnknown( getHTML(), getPath() ); // HTML 1
-firstParamWholeSecondKey_echoAllPathUnknown( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 1
-firstParamWholeSecondKey_echoAllPathUnknown( getPath(), getHTML() ); // TODO HTML 2, PATH 1
+firstParamWholeSecondKey_echoAllPathUnknown( getPath(), $_GET['b'] ); // HTML 2, PATH 1
+firstParamWholeSecondKey_echoAllPathUnknown( getPath(), getHTML() ); // HTML 2, PATH 1
 firstParamWholeSecondKey_echoAllPathUnknown( getPath(), getPath() ); // PATH 1
 
 // First and second param foo
