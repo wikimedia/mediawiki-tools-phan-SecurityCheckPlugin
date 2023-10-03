@@ -280,17 +280,18 @@ class MethodLinks {
 	}
 
 	/**
-	 * Temporary method until proper handlers are created.
+	 * Returns all the links stored in this object as a single LinkSet object, destroying the shape. This should only
+	 * be used when the shape is not relevant.
 	 *
 	 * @return LinksSet
 	 */
-	public function getLinks(): LinksSet {
+	public function getLinksCollapsing(): LinksSet {
 		$ret = clone $this->links;
 		foreach ( $this->dimLinks as $link ) {
-			$ret->mergeWith( $link->getLinks() );
+			$ret->mergeWith( $link->getLinksCollapsing() );
 		}
 		if ( $this->unknownDimLinks ) {
-			$ret->mergeWith( $this->unknownDimLinks->getLinks() );
+			$ret->mergeWith( $this->unknownDimLinks->getLinksCollapsing() );
 		}
 		if ( $this->keysLinks ) {
 			$ret->mergeWith( $this->keysLinks );

@@ -1313,11 +1313,10 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
 		foreach ( self::getRelevantLinksForTaintedness( $varLinks, $taint ) as [ $curLinks, $curTaint ] ) {
-			/** @var MethodLinks $curLinks */
+			/** @var LinksSet $curLinks */
 			/** @var Taintedness $curTaint */
-			$curLinksAll = $curLinks->getLinks();
-			foreach ( $curLinksAll as $method ) {
-				$paramInfo = $curLinksAll[$method];
+			foreach ( $curLinks as $method ) {
+				$paramInfo = $curLinks[$method];
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
 				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
@@ -1353,19 +1352,19 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param MethodLinks $allLinks
 	 * @param Taintedness $taintedness
-	 * @return array[]
-	 * @phan-return array<array{0:MethodLinks,1:Taintedness}>
+	 * @return array<array<LinksSet|Taintedness>>
+	 * @phan-return array<array{0:LinksSet,1:Taintedness}>
 	 * @todo Rewrite this without accessing too many internals of Taintedness and MethodLinks
 	 */
 	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ): array {
 		$pairs = [];
 		$overallTaintFlags = $taintedness->getOverallFlags();
 		if ( $overallTaintFlags !== SecurityCheckPlugin::NO_TAINT ) {
-			$pairs[] = [ $allLinks, new Taintedness( $overallTaintFlags ) ];
+			$pairs[] = [ $allLinks->getLinksCollapsing(), new Taintedness( $overallTaintFlags ) ];
 		}
 
 		if ( $taintedness->hasKeyFlags() ) {
-			$pairs[] = [ $allLinks->asKeyForForeach(), $taintedness->asKeyForForeach() ];
+			$pairs[] = [ $allLinks->asKeyForForeach()->getLinksCollapsing(), $taintedness->asKeyForForeach() ];
 		}
 
 		foreach ( $taintedness->getDimTaint() as $k => $dimTaint ) {
