@@ -958,6 +958,7 @@ class MWVisitor extends TaintednessVisitor {
 		$raw = null;
 		$class = null;
 		$rawLabel = null;
+		$help = null;
 		$label = null;
 		$default = null;
 		$options = null;
@@ -1002,6 +1003,9 @@ class MWVisitor extends TaintednessVisitor {
 				case 'rawrow':
 					$raw = $this->resolveValue( $child->children['value'] );
 					break;
+				case 'help':
+					$help = $this->resolveValue( $child->children['value'] );
+					break;
 			}
 		}
 
@@ -1014,7 +1018,7 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		if (
-			$raw === null && $label === null && $rawLabel === null
+			$raw === null && $label === null && $rawLabel === null && $help === null
 			&& $default === null && $options === null
 		) {
 			// e.g. [ 'class' => 'someCssClass' ] appears a lot
@@ -1088,11 +1092,17 @@ class MWVisitor extends TaintednessVisitor {
 			);
 		}
 		if ( $rawLabel !== null ) {
-			// double escape check for label.
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$rawLabel,
 				'HTMLForm label-raw needs to escape input'
+			);
+		}
+		if ( $help !== null ) {
+			$this->maybeEmitIssueSimplified(
+				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+				$help,
+				'HTMLForm help needs to escape input'
 			);
 		}
 		if ( $isInfo && $raw === true ) {

@@ -158,3 +158,9 @@ $unsafe13 = [
 	$typeKey => $fieldName, // Unsafe
 	$optionsKey => $_GET['x']
 ];
+
+$unsafe14 = [
+	'type' => 'text',
+	'label-message' => 'some-field-msg',
+	'help' => $_GET['x'] // Unsafe
+];

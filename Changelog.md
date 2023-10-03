@@ -10,6 +10,7 @@
 * Array keys (and shapes in general) are now tracked more granularly when backpropagating the effects of a function call.
 * (MW) Analyze the `$rows` argument to `Database::insert()` more accurately, and apply similar rules to `InsertQueryBuilder::row()` and `::rows()`.
 * Improved shape inference for several built-in array functions.
+* (MW) Treat the `help` key in HTMLForm descriptors as an HTML sink.
 
 ### Bug fixes
 * Fixed a bug where `*-taint` annotations in an interface method were only inherited by the method implementation in children classes.

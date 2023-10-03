@@ -12,3 +12,4 @@ integration/htmlform/test.php:131 SecurityCheck-XSS HTMLForm option label needs 
 integration/htmlform/test.php:144 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
 integration/htmlform/test.php:151 SecurityCheck-XSS HTMLForm option label needs escaping
 integration/htmlform/test.php:158 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:163 SecurityCheck-XSS HTMLForm help needs to escape input

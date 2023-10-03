@@ -1621,7 +1621,6 @@ trait TaintednessBaseVisitor {
 	 * @param string $msg
 	 * @param array $params Additional parameters for the message template
 	 * @phan-param list<string|FullyQualifiedFunctionLikeName> $params
-	 * @throws Exception
 	 */
 	public function maybeEmitIssueSimplified(
 		Taintedness $lhsTaint,
