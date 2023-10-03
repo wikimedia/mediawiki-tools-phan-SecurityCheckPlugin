@@ -23,15 +23,15 @@ function firstParamWholeSecondFoo_echoAllPathFooKey( $first, $second ) {
 	$sinkArg['foo'] = $second;
 	echoAllPathFooKey( $sinkArg );
 }
-firstParamWholeSecondFoo_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 1 & 2
-firstParamWholeSecondFoo_echoAllPathFooKey( $_GET['a'], getHTML() ); // TODO HTML 1 & 2, PATH 1
-firstParamWholeSecondFoo_echoAllPathFooKey( $_GET['a'], getPath() ); // TODO HTML 1, PATH 1 & 2
-firstParamWholeSecondFoo_echoAllPathFooKey( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2, PATH 2
-firstParamWholeSecondFoo_echoAllPathFooKey( getHTML(), getHTML() ); // TODO HTML 1 & 2
-firstParamWholeSecondFoo_echoAllPathFooKey( getHTML(), getPath() ); // TODO HTML 1, PATH 2
-firstParamWholeSecondFoo_echoAllPathFooKey( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 1 & 2
-firstParamWholeSecondFoo_echoAllPathFooKey( getPath(), getHTML() ); // TODO HTML 2, PATH 1
-firstParamWholeSecondFoo_echoAllPathFooKey( getPath(), getPath() ); // TODO PATH 1 & 2
+firstParamWholeSecondFoo_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 1 & 2
+firstParamWholeSecondFoo_echoAllPathFooKey( $_GET['a'], getHTML() ); // HTML 1 & 2, PATH 1
+firstParamWholeSecondFoo_echoAllPathFooKey( $_GET['a'], getPath() ); // HTML 1, PATH 1 & 2
+firstParamWholeSecondFoo_echoAllPathFooKey( getHTML(), $_GET['b'] ); // HTML 1 & 2, PATH 2
+firstParamWholeSecondFoo_echoAllPathFooKey( getHTML(), getHTML() ); // HTML 1 & 2
+firstParamWholeSecondFoo_echoAllPathFooKey( getHTML(), getPath() ); // HTML 1, PATH 2
+firstParamWholeSecondFoo_echoAllPathFooKey( getPath(), $_GET['b'] ); // HTML 2, PATH 1 & 2
+firstParamWholeSecondFoo_echoAllPathFooKey( getPath(), getHTML() ); // HTML 2, PATH 1
+firstParamWholeSecondFoo_echoAllPathFooKey( getPath(), getPath() ); // PATH 1 & 2
 
 // First param whole, second bar
 
@@ -40,14 +40,14 @@ function firstParamWholeSecondBar_echoAllPathFooKey( $first, $second ) {
 	$sinkArg['bar'] = $second;
 	echoAllPathFooKey( $sinkArg );
 }
-firstParamWholeSecondBar_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 1
-firstParamWholeSecondBar_echoAllPathFooKey( $_GET['a'], getHTML() ); // TODO HTML 1 & 2, PATH 1
+firstParamWholeSecondBar_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 1
+firstParamWholeSecondBar_echoAllPathFooKey( $_GET['a'], getHTML() ); // HTML 1 & 2, PATH 1
 firstParamWholeSecondBar_echoAllPathFooKey( $_GET['a'], getPath() ); // HTML 1, PATH 1
-firstParamWholeSecondBar_echoAllPathFooKey( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2
-firstParamWholeSecondBar_echoAllPathFooKey( getHTML(), getHTML() ); // TODO HTML 1 & 2
+firstParamWholeSecondBar_echoAllPathFooKey( getHTML(), $_GET['b'] ); // HTML 1 & 2
+firstParamWholeSecondBar_echoAllPathFooKey( getHTML(), getHTML() ); // HTML 1 & 2
 firstParamWholeSecondBar_echoAllPathFooKey( getHTML(), getPath() ); // HTML 1
-firstParamWholeSecondBar_echoAllPathFooKey( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 1
-firstParamWholeSecondBar_echoAllPathFooKey( getPath(), getHTML() ); // TODO HTML 2, PATH 1
+firstParamWholeSecondBar_echoAllPathFooKey( getPath(), $_GET['b'] ); // HTML 2, PATH 1
+firstParamWholeSecondBar_echoAllPathFooKey( getPath(), getHTML() ); // HTML 2, PATH 1
 firstParamWholeSecondBar_echoAllPathFooKey( getPath(), getPath() ); // PATH 1
 
 // First param whole, second unknown
@@ -57,15 +57,15 @@ function firstParamWholeSecondUnknown_echoAllPathFooKey( $first, $second ) {
 	$sinkArg[rand()] = $second;
 	echoAllPathFooKey( $sinkArg );
 }
-firstParamWholeSecondUnknown_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // TODO HTML 1 & 2, PATH 1 & 2
-firstParamWholeSecondUnknown_echoAllPathFooKey( $_GET['a'], getHTML() ); // TODO HTML 1 & 2, PATH 1
-firstParamWholeSecondUnknown_echoAllPathFooKey( $_GET['a'], getPath() ); // TODO HTML 1, PATH 1 & 2
-firstParamWholeSecondUnknown_echoAllPathFooKey( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2, PATH 2
-firstParamWholeSecondUnknown_echoAllPathFooKey( getHTML(), getHTML() ); // TODO HTML 1 & 2
-firstParamWholeSecondUnknown_echoAllPathFooKey( getHTML(), getPath() ); // TODO HTML 1, PATH 2
-firstParamWholeSecondUnknown_echoAllPathFooKey( getPath(), $_GET['b'] ); // TODO HTML 2, PATH 1 & 2
-firstParamWholeSecondUnknown_echoAllPathFooKey( getPath(), getHTML() ); // TODO HTML 2, PATH 1
-firstParamWholeSecondUnknown_echoAllPathFooKey( getPath(), getPath() ); // TODO PATH 1 & 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 1 & 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( $_GET['a'], getHTML() ); // HTML 1 & 2, PATH 1
+firstParamWholeSecondUnknown_echoAllPathFooKey( $_GET['a'], getPath() ); // HTML 1, PATH 1 & 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( getHTML(), $_GET['b'] ); // HTML 1 & 2, PATH 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( getHTML(), getHTML() ); // HTML 1 & 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( getHTML(), getPath() ); // HTML 1, PATH 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( getPath(), $_GET['b'] ); // HTML 2, PATH 1 & 2
+firstParamWholeSecondUnknown_echoAllPathFooKey( getPath(), getHTML() ); // HTML 2, PATH 1
+firstParamWholeSecondUnknown_echoAllPathFooKey( getPath(), getPath() ); // PATH 1 & 2
 
 // First param whole, second key
 
@@ -125,7 +125,7 @@ function firstParamFooSecondUnknown_echoAllPathFooKey( $first, $second ) {
 firstParamFooSecondUnknown_echoAllPathFooKey( $_GET['a'], $_GET['b'] ); // HTML 1 & 2, PATH 1 & 2
 firstParamFooSecondUnknown_echoAllPathFooKey( $_GET['a'], getHTML() ); // HTML 1 & 2, PATH 1
 firstParamFooSecondUnknown_echoAllPathFooKey( $_GET['a'], getPath() ); // HTML 1, PATH 1 & 2
-firstParamFooSecondUnknown_echoAllPathFooKey( getHTML(), $_GET['b'] ); // TODO HTML 1 & 2, PATH 1 & 2
+firstParamFooSecondUnknown_echoAllPathFooKey( getHTML(), $_GET['b'] ); // HTML 1 & 2, PATH 2
 firstParamFooSecondUnknown_echoAllPathFooKey( getHTML(), getHTML() ); // HTML 1 & 2
 firstParamFooSecondUnknown_echoAllPathFooKey( getHTML(), getPath() ); // HTML 1, PATH 2
 firstParamFooSecondUnknown_echoAllPathFooKey( getPath(), $_GET['b'] ); // HTML 2, PATH 1 & 2

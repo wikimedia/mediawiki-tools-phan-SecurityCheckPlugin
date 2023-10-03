@@ -92,7 +92,7 @@ class SingleMethodLinks {
 	 * @param int[] $params
 	 */
 	public function keepOnlyParams( array $params ): void {
-		$this->params = array_diff_key( $this->params, array_fill_keys( $params, 1 ) );
+		$this->params = array_intersect_key( $this->params, array_fill_keys( $params, 1 ) );
 	}
 
 	/**
