@@ -242,3 +242,21 @@ shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getHTML()
 shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getShell() ] ) ); // Safe
 shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getShell(), 'y' => getHTML() ] ) ); // TODO Unsafe
 shell_exec( removeBitsFromDifferentOffsets( [ 'x' => getShell(), 'y' => getShell() ] ) ); // TODO Unsafe
+
+
+function roundTripAndEcho( $par ) {
+	$v = [ 'x' => $par, 'z' => 'safe' ];
+	echo $v['x'];
+}
+roundTripAndEcho( [ 'x' => 'safe', 'z' => $_GET['a'] ] ); // TODO Unsafe
+
+function echoEscapedPartial( $par ) {
+	echo htmlspecialchars( $par['x'] );
+}
+echoEscapedPartial( [ 'x' => getHTML() ] );//Safe
+
+function echoAppendDifferentBits( $par ) {
+	$v = htmlspecialchars( $par['x'] ) . escapeshellcmd( $par['y'] );
+	echo $v;
+}
+echoRemoveBitsFromDifferentOffsets( [ 'x' => getHTML(), 'y' => getShell() ] );//Safe
