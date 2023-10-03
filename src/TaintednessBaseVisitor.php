@@ -1312,7 +1312,7 @@ trait TaintednessBaseVisitor {
 
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
-		foreach ( self::getRelevantLinksForTaintedness( $varLinks, $taint ) as [ $curLinks, $curTaint ] ) {
+		foreach ( $taint->decomposeForLinks( $varLinks ) as [ $curLinks, $curTaint ] ) {
 			/** @var LinksSet $curLinks */
 			/** @var Taintedness $curTaint */
 			foreach ( $curLinks as $method ) {
@@ -1347,41 +1347,6 @@ trait TaintednessBaseVisitor {
 		if ( $diffMem > 2 ) {
 			$this->debug( __METHOD__, "Memory spike $diffMem for variable " . $var->getName() );
 		}
-	}
-
-	/**
-	 * @param MethodLinks $allLinks
-	 * @param Taintedness $taintedness
-	 * @return array<array<LinksSet|Taintedness>>
-	 * @phan-return array<array{0:LinksSet,1:Taintedness}>
-	 * @todo Rewrite this without accessing too many internals of Taintedness and MethodLinks
-	 */
-	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ): array {
-		$pairs = [];
-		$overallTaintFlags = $taintedness->getOverallFlags();
-		if ( $overallTaintFlags !== SecurityCheckPlugin::NO_TAINT ) {
-			$pairs[] = [ $allLinks->getLinksCollapsing(), new Taintedness( $overallTaintFlags ) ];
-		}
-
-		if ( $taintedness->hasKeyFlags() ) {
-			$pairs[] = [ $allLinks->asKeyForForeach()->getLinksCollapsing(), $taintedness->asKeyForForeach() ];
-		}
-
-		foreach ( $taintedness->getDimTaint() as $k => $dimTaint ) {
-			$pairs = array_merge(
-				$pairs,
-				self::getRelevantLinksForTaintedness( $allLinks->getForDim( $k ), $dimTaint )
-			);
-		}
-
-		$unknownDimsTaint = $taintedness->getUnknownDimsTaint();
-		if ( $unknownDimsTaint ) {
-			$pairs = array_merge(
-				$pairs,
-				self::getRelevantLinksForTaintedness( $allLinks->getForDim( null ), $unknownDimsTaint )
-			);
-		}
-		return $pairs;
 	}
 
 	/**

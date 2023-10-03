@@ -108,38 +108,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Temporary method, should only be used in getRelevantLinksForTaintedness
-	 * @return int
-	 */
-	public function getOverallFlags(): int {
-		return $this->flags;
-	}
-
-	/**
-	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
-	 * @return bool
-	 */
-	public function hasKeyFlags(): bool {
-		return $this->keysTaint !== SecurityCheckPlugin::NO_TAINT;
-	}
-
-	/**
-	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
-	 * @return self[]
-	 */
-	public function getDimTaint(): array {
-		return $this->dimTaint;
-	}
-
-	/**
-	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
-	 * @return self|null
-	 */
-	public function getUnknownDimsTaint(): ?self {
-		return $this->unknownDimsTaint;
-	}
-
-	/**
 	 * Recursively extract the taintedness from each key.
 	 *
 	 * @return int
@@ -735,6 +703,41 @@ class Taintedness {
 			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asPreservedTaintedness() );
 		}
 		return $ret;
+	}
+
+	/**
+	 * Given some method links, returns a list of pairs of LinksSet and Taintedness objects, where the taintedness
+	 * in each pair should be backpropagated to the links in the LinksSet.
+	 *
+	 * @param MethodLinks $links
+	 * @return array<array<LinksSet|Taintedness>>
+	 * @phan-return array<array{0:LinksSet,1:Taintedness}>
+	 */
+	public function decomposeForLinks( MethodLinks $links ): array {
+		$pairs = [];
+
+		if ( $this->flags !== SecurityCheckPlugin::NO_TAINT ) {
+			$pairs[] = [ $links->getLinksCollapsing(), new self( $this->flags ) ];
+		}
+
+		if ( $this->keysTaint !== SecurityCheckPlugin::NO_TAINT ) {
+			$pairs[] = [ $links->asKeyForForeach()->getLinksCollapsing(), $this->asKeyForForeach() ];
+		}
+
+		foreach ( $this->dimTaint as $k => $dimTaint ) {
+			$pairs = array_merge(
+				$pairs,
+				$dimTaint->decomposeForLinks( $links->getForDim( $k ) )
+			);
+		}
+
+		if ( $this->unknownDimsTaint ) {
+			$pairs = array_merge(
+				$pairs,
+				$this->unknownDimsTaint->decomposeForLinks( $links->getForDim( null ) )
+			);
+		}
+		return $pairs;
 	}
 
 	/**
