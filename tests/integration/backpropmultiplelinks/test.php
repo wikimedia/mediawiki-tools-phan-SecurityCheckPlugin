@@ -38,6 +38,6 @@ class MainClass {
 
 class DirectTrigger {
 	public static function doTrigger() {
-		MainClass::newWithData( $_GET['a'] ); // TODO: Safe!
+		MainClass::newWithData( $_GET['a'] ); // Safe!
 	}
 }

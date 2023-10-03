@@ -170,12 +170,12 @@ function firstParamBarSecondUnknown_echoFooKeyPathUnknown( $first, $second ) {
 	$sinkArg = [ 'bar' => $first, rand() => $second ];
 	echoFooKeyPathUnknown( $sinkArg );
 }
-firstParamBarSecondUnknown_echoFooKeyPathUnknown( $_GET['a'], $_GET['b'] ); // TODO HTML 2, PATH 1 & 2
-firstParamBarSecondUnknown_echoFooKeyPathUnknown( $_GET['a'], getHTML() ); // TODO HTML 2, PATH 1
-firstParamBarSecondUnknown_echoFooKeyPathUnknown( $_GET['a'], getPath() ); // TODO PATH 1 & 2
-firstParamBarSecondUnknown_echoFooKeyPathUnknown( getHTML(), $_GET['b'] ); // TODO HTML 2, PATH 2
-firstParamBarSecondUnknown_echoFooKeyPathUnknown( getHTML(), getHTML() ); // TODO HTML 2
-firstParamBarSecondUnknown_echoFooKeyPathUnknown( getHTML(), getPath() ); // TODO PATH 2
+firstParamBarSecondUnknown_echoFooKeyPathUnknown( $_GET['a'], $_GET['b'] ); // HTML 2, PATH 1 & 2
+firstParamBarSecondUnknown_echoFooKeyPathUnknown( $_GET['a'], getHTML() ); // HTML 2, PATH 1
+firstParamBarSecondUnknown_echoFooKeyPathUnknown( $_GET['a'], getPath() ); // PATH 1 & 2
+firstParamBarSecondUnknown_echoFooKeyPathUnknown( getHTML(), $_GET['b'] ); // HTML 2, PATH 2
+firstParamBarSecondUnknown_echoFooKeyPathUnknown( getHTML(), getHTML() ); // HTML 2
+firstParamBarSecondUnknown_echoFooKeyPathUnknown( getHTML(), getPath() ); // PATH 2
 firstParamBarSecondUnknown_echoFooKeyPathUnknown( getPath(), $_GET['b'] ); // HTML 2, PATH 1 & 2
 firstParamBarSecondUnknown_echoFooKeyPathUnknown( getPath(), getHTML() ); // HTML 2, PATH 1
 firstParamBarSecondUnknown_echoFooKeyPathUnknown( getPath(), getPath() ); // PATH 1 & 2

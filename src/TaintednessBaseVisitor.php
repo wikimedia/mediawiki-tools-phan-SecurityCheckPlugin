@@ -1358,16 +1358,20 @@ trait TaintednessBaseVisitor {
 	 * @todo Rewrite this without accessing too many internals of Taintedness and MethodLinks
 	 */
 	private static function getRelevantLinksForTaintedness( MethodLinks $allLinks, Taintedness $taintedness ): array {
-		if ( $taintedness->hasOverallFlags() || $allLinks->hasOverallLinks() ) {
+		$overallTaintFlags = $taintedness->getOverallFlags();
+		if ( $overallTaintFlags !== SecurityCheckPlugin::NO_TAINT ) {
 			return [ [ $allLinks, $taintedness ] ];
 		}
 
-		$pairs = [ [ $allLinks->asKeyForForeach(), $taintedness->asKeyForForeach() ] ];
+		$pairs = [];
+		if ( $taintedness->hasKeyFlags() ) {
+			$pairs[] = [ $allLinks->asKeyForForeach(), $taintedness->asKeyForForeach() ];
+		}
 
 		foreach ( $taintedness->getDimTaint() as $k => $dimTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				self::getRelevantLinksForTaintedness( $allLinks->getForDimRaw( $k ), $dimTaint )
+				self::getRelevantLinksForTaintedness( $allLinks->getForDim( $k ), $dimTaint )
 			);
 		}
 
@@ -1375,14 +1379,7 @@ trait TaintednessBaseVisitor {
 		if ( $unknownDimsTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				self::getRelevantLinksForTaintedness( $allLinks->asValueFirstLevel(), $unknownDimsTaint )
-			);
-		}
-		$unknownDimLinks = $allLinks->getUnknownDimLinks();
-		if ( $unknownDimLinks ) {
-			$pairs = array_merge(
-				$pairs,
-				self::getRelevantLinksForTaintedness( $unknownDimLinks, $taintedness->asValueFirstLevel() )
+				self::getRelevantLinksForTaintedness( $allLinks->getForDim( null ), $unknownDimsTaint )
 			);
 		}
 		return $pairs;

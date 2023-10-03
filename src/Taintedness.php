@@ -109,10 +109,18 @@ class Taintedness {
 
 	/**
 	 * Temporary method, should only be used in getRelevantLinksForTaintedness
+	 * @return int
+	 */
+	public function getOverallFlags(): int {
+		return $this->flags;
+	}
+
+	/**
+	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
 	 * @return bool
 	 */
-	public function hasOverallFlags(): bool {
-		return $this->flags > 0;
+	public function hasKeyFlags(): bool {
+		return $this->keysTaint !== SecurityCheckPlugin::NO_TAINT;
 	}
 
 	/**

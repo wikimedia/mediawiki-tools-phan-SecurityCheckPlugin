@@ -105,34 +105,6 @@ class MethodLinks {
 	}
 
 	/**
-	 * Temporary method, should only be used in getRelevantLinksForTaintedness
-	 * @return bool
-	 */
-	public function hasOverallLinks(): bool {
-		return count( $this->links ) > 0;
-	}
-
-	/**
-	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
-	 * @param mixed $dim
-	 * @return self
-	 */
-	public function getForDimRaw( $dim ): self {
-		if ( !is_scalar( $dim ) || !isset( $this->dimLinks[$dim] ) ) {
-			return self::newEmpty();
-		}
-		return clone $this->dimLinks[$dim];
-	}
-
-	/**
-	 * Temporary (?) method, should only be used in getRelevantLinksForTaintedness
-	 * @return self|null
-	 */
-	public function getUnknownDimLinks(): ?self {
-		return $this->unknownDimLinks;
-	}
-
-	/**
 	 * @return self
 	 */
 	public function asCollapsed(): self {
