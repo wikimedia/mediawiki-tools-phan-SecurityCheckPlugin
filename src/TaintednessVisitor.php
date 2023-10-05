@@ -697,8 +697,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 
-		// If we find no __toString(), then presumably the object can't be outputted, so should be safe.
-		$this->curTaintWithError = TaintednessWithError::newEmpty();
 		foreach ( $clazzes as $clazz ) {
 			try {
 				$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
@@ -707,33 +705,40 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				continue;
 			}
 
-			$this->curTaintWithError->mergeWith( $this->handleMethodCall( $toString, $toString->getFQSEN(), [] ) );
+			$toStringTaint = $this->handleMethodCall( $toString, $toString->getFQSEN(), [] );
+			if ( !$this->curTaintWithError ) {
+				$this->curTaintWithError = $toStringTaint;
+			} else {
+				$this->curTaintWithError->mergeWith( $toStringTaint );
+			}
 		}
+
+		// If we find no __toString(), then presumably the object can't be outputted, so should be safe.
+		$this->curTaintWithError ??= TaintednessWithError::newEmpty();
 
 		$this->setCachedData( $node );
 	}
 
 	/**
-	 * Somebody calls a method or function
-	 *
-	 * This has to figure out:
-	 *  Is the return value of the call tainted
-	 *  Are any of the arguments tainted
-	 *  Does the function do anything scary with its arguments
-	 * It also has to maintain quite a bit of book-keeping.
-	 *
-	 * This also handles (function) call, static call, and new operator
 	 * @param Node $node
 	 */
 	public function visitMethodCall( Node $node ): void {
-		$funcs = $this->getFuncsFromNode( $node, __METHOD__ );
-		if ( !$funcs ) {
+		$methodName = $node->children['method'];
+		$isStatic = $node->kind === \ast\AST_STATIC_CALL;
+		try {
+			$method = $this->getCtxN( $node )->getMethod( $methodName, $isStatic, true );
+		} catch ( NodeException | CodeBaseException | IssueException $e ) {
+			$this->debug( __METHOD__, "Cannot find method in node. " . $this->getDebugInfo( $e ) );
+			$method = null;
+		}
+
+		if ( !$method ) {
 			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
 
-		$this->analyzeCallNode( $node, $funcs );
+		$this->analyzeCallNode( $node, [ $method ] );
 	}
 
 	/**
@@ -742,13 +747,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	protected function analyzeCallNode( Node $node, iterable $funcs ): void {
 		$args = $node->children['args']->children;
-		$this->curTaintWithError = TaintednessWithError::newEmpty();
 		foreach ( $funcs as $func ) {
 			// No point in analyzing abstract function declarations
 			if ( !$func instanceof FunctionLikeDeclarationType ) {
-				$this->curTaintWithError->mergeWith( $this->handleMethodCall( $func, $func->getFQSEN(), $args ) );
+				$callTaint = $this->handleMethodCall( $func, $func->getFQSEN(), $args );
+				if ( !$this->curTaintWithError ) {
+					$this->curTaintWithError = $callTaint;
+				} else {
+					$this->curTaintWithError->mergeWith( $callTaint );
+				}
 			}
 		}
+		$this->curTaintWithError ??= TaintednessWithError::newEmpty();
 		$this->setCachedData( $node );
 	}
 
@@ -765,7 +775,20 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitCall( Node $node ): void {
-		$this->visitMethodCall( $node );
+		try {
+			$funcs = $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
+		} catch ( IssueException $e ) {
+			$this->debug( __METHOD__, "Cannot find function in node. " . $this->getDebugInfo( $e ) );
+			$funcs = [];
+		}
+
+		if ( !$funcs ) {
+			$this->setCurTaintUnknown();
+			$this->setCachedData( $node );
+			return;
+		}
+
+		$this->analyzeCallNode( $node, $funcs );
 	}
 
 	/**

@@ -3,6 +3,7 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
+use Closure;
 use Exception;
 use Generator;
 use Phan\AST\ASTReverter;
@@ -684,6 +685,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		$taint = new Taintedness( SecurityCheckPlugin::NO_TAINT );
+		$isPossiblyUnknown = false;
 		foreach ( $typelist as $type ) {
 			if ( $type instanceof LiteralTypeInterface ) {
 				// We're going to assume that literals aren't tainted...
@@ -715,25 +717,25 @@ trait TaintednessBaseVisitor {
 				case 'non-empty-mixed':
 				case 'non-null-mixed':
 					// $this->debug( __METHOD__, "Taint set unknown due to type '$type'." );
-					$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+					$isPossiblyUnknown = true;
 					break;
 				default:
 					if ( $type->hasTemplateTypeRecursive() ) {
 						// TODO Can we do better for template types?
-						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						$isPossiblyUnknown = true;
 						break;
 					}
 
 					if ( !$type->isObjectWithKnownFQSEN() ) {
 						// Likely some phan-specific types not included above
 						$this->debug( __METHOD__, " $type (" . get_class( $type ) . ') not a class?' );
-						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						$isPossiblyUnknown = true;
 						break;
 					}
 
 					$fqsenStr = $type->asFQSEN()->__toString();
 					if ( isset( self::$fqsensWithoutToStringCache[$fqsenStr] ) ) {
-						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						$isPossiblyUnknown = true;
 						break;
 					}
 
@@ -747,7 +749,7 @@ trait TaintednessBaseVisitor {
 						// e.g. code like $this->foo() will reach this
 						// check.
 						self::$fqsensWithoutToStringCache[$fqsenStr] = true;
-						$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+						$isPossiblyUnknown = true;
 						break;
 					}
 					$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
@@ -757,38 +759,10 @@ trait TaintednessBaseVisitor {
 					) );
 			}
 		}
+		if ( $isPossiblyUnknown ) {
+			$taint->add( SecurityCheckPlugin::UNKNOWN_TAINT );
+		}
 		return $taint;
-	}
-
-	/**
-	 * @param Node $node
-	 * @param string $caller
-	 * @return iterable<mixed,FunctionInterface>
-	 */
-	protected function getFuncsFromNode( Node $node, $caller = __METHOD__ ): iterable {
-		$logError = function ( Exception $e ) use ( $caller ): void {
-			$this->debug(
-				$caller,
-				"FIXME complicated case not handled. Maybe func not defined. " . $this->getDebugInfo( $e )
-			);
-		};
-		if ( $node->kind === \ast\AST_CALL ) {
-			try {
-				return $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
-			} catch ( IssueException $e ) {
-				$logError( $e );
-				return [];
-			}
-		}
-
-		$methodName = $node->children['method'];
-		$isStatic = $node->kind === \ast\AST_STATIC_CALL;
-		try {
-			return [ $this->getCtxN( $node )->getMethod( $methodName, $isStatic, true ) ];
-		} catch ( NodeException | CodeBaseException | IssueException $e ) {
-			$logError( $e );
-			return [];
-		}
 	}
 
 	/**
@@ -1648,14 +1622,15 @@ trait TaintednessBaseVisitor {
 	 * @param Taintedness $lhsTaint Taint of left hand side (or equivalent)
 	 * @param Taintedness $rhsTaint Taint of right hand side (or equivalent)
 	 * @param string $msg Issue description
-	 * @param array $msgParams Message parameters passed to emitIssue
-	 * @phan-param list $msgParams
+	 * @param array|Closure $msgParamsOrGetter Message parameters passed to emitIssue. Can also be a closure
+	 * that returns said parameters, for performance.
+	 * @phan-param list|Closure():list $msgParamsOrGetter
 	 */
 	public function maybeEmitIssue(
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
 		string $msg,
-		array $msgParams
+		$msgParamsOrGetter
 	): void {
 		$rhsIsUnknown = $rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT );
 		if ( $rhsIsUnknown && $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
@@ -1685,6 +1660,10 @@ trait TaintednessBaseVisitor {
 			$issues = $this->taintToIssuesAndSeverities( $combinedTaintInt );
 		}
 
+		if ( !$issues ) {
+			return;
+		}
+
 		$context = $this->context;
 		if ( $this->overrideContext ) {
 			// If we are overriding the file/line number,
@@ -1692,6 +1671,10 @@ trait TaintednessBaseVisitor {
 			$msg .= " (Originally at: $this->context)";
 			$context = $this->overrideContext;
 		}
+
+		$msgParams = $msgParamsOrGetter instanceof Closure ? $msgParamsOrGetter() : $msgParamsOrGetter;
+		// Phan doesn't analyze the ternary correctly and thinks this might also be a closure.
+		'@phan-var list $msgParams';
 
 		foreach ( $issues as [ $issueType, $severity, $relevantTaint ] ) {
 			$curMsgParams = [];
@@ -1771,7 +1754,6 @@ trait TaintednessBaseVisitor {
 		bool $isHookHandler = false
 	): ?TaintednessWithError {
 		$taint = $this->getTaintOfFunction( $func );
-		$containingMethod = $this->getCurrentMethod();
 		$funcError = $this->getCausedByLinesForFunc( $func );
 
 		$preserveArgumentsData = [];
@@ -1860,26 +1842,33 @@ trait TaintednessBaseVisitor {
 				$this->handlePassByRef( $func, $argument, $i, $isHookHandler );
 			}
 
-			// Always include the ordinal (it helps for repeated arguments)
-			$taintedArg = $argName;
-			$argStr = ASTReverter::toShortString( $argument );
-			if ( !( $argStr instanceof Node ) && strlen( $argStr ) < 25 ) {
-				// If we have a short representation of the arg, include it as well.
-				$taintedArg .= " (`$argStr`)";
-			}
+			/** @phan-return list */
+			$issueArgsGetter = function () use (
+				$funcName, $argName, $argument, $paramSinkError, $baseArgError
+			): array {
+				// Always include the ordinal (it helps for repeated arguments)
+				$taintedArg = $argName;
+				$argStr = ASTReverter::toShortString( $argument );
+				if ( strlen( $argStr ) < 25 ) {
+					// If we have a short representation of the arg, include it as well.
+					$taintedArg .= " (`$argStr`)";
+				}
+
+				return [
+					$funcName,
+					$this->getCurrentMethod(),
+					$taintedArg,
+					$paramSinkError,
+					$baseArgError,
+				];
+			};
 
 			$this->maybeEmitIssue(
 				$paramSinkTaint,
 				$curArgTaintedness,
 				"Calling method {FUNCTIONLIKE}() in {FUNCTIONLIKE}" .
 				" that outputs using tainted argument {CODE}.{DETAILS}{DETAILS}",
-				[
-					$funcName,
-					$containingMethod,
-					$taintedArg,
-					$paramSinkError,
-					$baseArgError,
-				]
+				$issueArgsGetter
 			);
 
 			$preserveArgumentsData[$i] = [ $curArgTaintedness, $baseArgError ];
