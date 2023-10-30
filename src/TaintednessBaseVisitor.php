@@ -986,21 +986,19 @@ trait TaintednessBaseVisitor {
 			case \ast\AST_CLOSURE_VAR:
 				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 					return [];
-				} else {
-					try {
-						$var = $cn->getVariable();
-						return $this->elementCanBeNumkey( $var, $definitelyNumkey ) ? [ $var ] : [];
-					} catch ( NodeException | IssueException $e ) {
-						$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
-						return [];
-					}
-					// return [];
+				}
+				try {
+					$var = $cn->getVariable();
+					return $this->elementCanBeNumkey( $var, $definitelyNumkey ) ? [ $var ] : [];
+				} catch ( NodeException | IssueException $e ) {
+					$this->debug( __METHOD__, "variable not in scope?? " . $this->getDebugInfo( $e ) );
+					return [];
 				}
 			case \ast\AST_ENCAPS_LIST:
 			case \ast\AST_ARRAY:
 				$results = [];
 				foreach ( $node->children as $child ) {
-					if ( !is_object( $child ) ) {
+					if ( !$child instanceof Node ) {
 						continue;
 					}
 
@@ -1015,13 +1013,13 @@ trait TaintednessBaseVisitor {
 				return $results;
 			case \ast\AST_ARRAY_ELEM:
 				$results = [];
-				if ( is_object( $node->children['key'] ) ) {
+				if ( $node->children['key'] instanceof Node ) {
 					$results = array_merge(
 						$this->getObjsForNodeForNumkeyBackprop( $node->children['key'] ),
 						$results
 					);
 				}
-				if ( is_object( $node->children['value'] ) ) {
+				if ( $node->children['value'] instanceof Node ) {
 					$results = array_merge(
 						$this->getObjsForNodeForNumkeyBackprop( $node->children['value'] ),
 						$results
@@ -1098,9 +1096,6 @@ trait TaintednessBaseVisitor {
 						return [];
 					}
 				}
-				// intentionally resetting options to []
-				// here to ensure we don't recurse beyond
-				// a depth of 1.
 				try {
 					return $this->getReturnObjsOfFunc( $func );
 				} catch ( Exception $e ) {
@@ -1135,7 +1130,7 @@ trait TaintednessBaseVisitor {
 			return $this->getCtxN( $node )->getProperty( $node->kind === \ast\AST_STATIC_PROP );
 		} catch ( NodeException | IssueException | UnanalyzableException $e ) {
 			$this->debug( __METHOD__, "Cannot determine " .
-				"property [3] (Maybe don't know what class) - " .
+				"property (Maybe don't know what class) - " .
 				$this->getDebugInfo( $e )
 			);
 			return null;

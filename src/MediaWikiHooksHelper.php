@@ -71,11 +71,8 @@ class MediaWikiHooksHelper {
 		if ( !isset( $this->hookSubscribers[$hookName] ) ) {
 			$this->hookSubscribers[$hookName] = [];
 		}
-		foreach ( $this->hookSubscribers[$hookName] as $subscribe ) {
-			if ( $subscribe === $fqsen ) {
-				// dupe
-				return true;
-			}
+		if ( in_array( $fqsen, $this->hookSubscribers[$hookName], true ) ) {
+			return true;
 		}
 		$this->hookSubscribers[$hookName][] = $fqsen;
 		return false;
@@ -184,10 +181,8 @@ class MediaWikiHooksHelper {
 			if ( !isset( $this->hookSubscribers[$hook] ) ) {
 				continue;
 			}
-			foreach ( $this->hookSubscribers[$hook] as $implFQSEN ) {
-				if ( $implFQSEN === $fqsen ) {
-					return $hook;
-				}
+			if ( in_array( $fqsen, $this->hookSubscribers[$hook], true ) ) {
+				return $hook;
 			}
 		}
 		return null;

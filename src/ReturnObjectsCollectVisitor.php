@@ -87,10 +87,9 @@ class ReturnObjectsCollectVisitor extends PluginAwareBaseAnalysisVisitor {
 	 */
 	public function visitEncapsList( Node $node ): void {
 		foreach ( $node->children as $child ) {
-			if ( !is_object( $child ) ) {
-				continue;
+			if ( $child instanceof Node ) {
+				$this( $child );
 			}
-			$this( $child );
 		}
 	}
 
@@ -99,10 +98,9 @@ class ReturnObjectsCollectVisitor extends PluginAwareBaseAnalysisVisitor {
 	 */
 	public function visitArray( Node $node ): void {
 		foreach ( $node->children as $child ) {
-			if ( !is_object( $child ) ) {
-				continue;
+			if ( $child instanceof Node ) {
+				$this( $child );
 			}
-			$this( $child );
 		}
 	}
 
@@ -110,10 +108,10 @@ class ReturnObjectsCollectVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * @inheritDoc
 	 */
 	public function visitArrayElem( Node $node ): void {
-		if ( is_object( $node->children['key'] ) ) {
+		if ( $node->children['key'] instanceof Node ) {
 			$this( $node->children['key'] );
 		}
-		if ( is_object( $node->children['value'] ) ) {
+		if ( $node->children['value'] instanceof Node ) {
 			$this( $node->children['value'] );
 		}
 	}

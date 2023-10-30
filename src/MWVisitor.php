@@ -92,10 +92,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node $node
 	 */
 	private function checkExternalLink( Node $node ): void {
-		$escapeArg = $node->children['args']->children[2] ?? true;
-		if ( is_object( $escapeArg ) && $escapeArg->kind === \ast\AST_CONST ) {
-			$escapeArg = $escapeArg->children['name']->children['name'] !== 'false';
-		}
+		$escapeArg = $this->resolveValue( $node->children['args']->children[2] ?? true );
 		$text = $node->children['args']->children[1] ?? null;
 		if ( !$escapeArg && $text instanceof Node ) {
 			$this->maybeEmitIssueSimplified(
@@ -110,7 +107,7 @@ class MWVisitor extends TaintednessVisitor {
 	/**
 	 * Special casing for complex format of IDatabase::select
 	 *
-	 * This handled the $options, and $join_cond. Other args are
+	 * This handles the $options, and $join_cond. Other args are
 	 * handled through normal means
 	 *
 	 * @param Node $node Either an AST_METHOD_CALL or AST_STATIC_CALL
@@ -354,8 +351,8 @@ class MWVisitor extends TaintednessVisitor {
 	public function visitReturn( Node $node ): void {
 		parent::visitReturn( $node );
 		if (
+			!$node->children['expr'] instanceof Node ||
 			!$this->context->isInFunctionLikeScope()
-			|| !$node->children['expr'] instanceof Node
 		) {
 			return;
 		}

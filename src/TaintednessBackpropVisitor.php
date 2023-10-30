@@ -80,10 +80,9 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 */
 	public function visitEncapsList( Node $node ): void {
 		foreach ( $node->children as $child ) {
-			if ( !is_object( $child ) ) {
-				continue;
+			if ( $child instanceof Node ) {
+				$this->recurse( $child );
 			}
-			$this->recurse( $child );
 		}
 	}
 
@@ -92,10 +91,9 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 */
 	public function visitArray( Node $node ): void {
 		foreach ( $node->children as $child ) {
-			if ( !is_object( $child ) ) {
-				continue;
+			if ( $child instanceof Node ) {
+				$this->recurse( $child );
 			}
-			$this->recurse( $child );
 		}
 	}
 

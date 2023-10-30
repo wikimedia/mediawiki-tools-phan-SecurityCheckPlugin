@@ -98,6 +98,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Variables are already handled in visitVar
 		\ast\AST_CLOSURE_VAR => true,
 		\ast\AST_CLOSURE_USES => true,
+		\ast\AST_LABEL => true,
+		\ast\AST_ATTRIBUTE => true,
+		\ast\AST_ATTRIBUTE_GROUP => true,
+		\ast\AST_ATTRIBUTE_LIST => true,
 	];
 
 	/**
@@ -504,13 +508,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		int $op,
 		int $mask
 	): Taintedness {
-		if ( $op === \ast\flags\BINARY_ADD && $mask !== SecurityCheckPlugin::NO_TAINT ) {
-			// HACK: This means that a node can be array, so assume array plus
-			$combinedTaint = $leftTaint->asArrayPlusWith( $rightTaint );
-		} else {
-			$combinedTaint = $leftTaint->asMergedWith( $rightTaint )->asCollapsed()->withOnly( $mask );
+		if ( $mask === SecurityCheckPlugin::NO_TAINT ) {
+			return Taintedness::newSafe();
 		}
-		return $combinedTaint;
+		if ( $op === \ast\flags\BINARY_ADD ) {
+			// HACK: This means that a node can be array, so assume array plus
+			return $leftTaint->asArrayPlusWith( $rightTaint );
+		}
+		return $leftTaint->asMergedWith( $rightTaint )->asCollapsed()->withOnly( $mask );
 	}
 
 	/**
@@ -729,10 +734,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$method = $this->getCtxN( $node )->getMethod( $methodName, $isStatic, true );
 		} catch ( NodeException | CodeBaseException | IssueException $e ) {
 			$this->debug( __METHOD__, "Cannot find method in node. " . $this->getDebugInfo( $e ) );
-			$method = null;
-		}
-
-		if ( !$method ) {
 			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
@@ -775,12 +776,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitCall( Node $node ): void {
-		try {
-			$funcs = $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
-		} catch ( IssueException $e ) {
-			$this->debug( __METHOD__, "Cannot find function in node. " . $this->getDebugInfo( $e ) );
-			$funcs = [];
-		}
+		$funcs = $this->getCtxN( $node->children['expr'] )->getFunctionFromNode();
 
 		if ( !$funcs ) {
 			$this->setCurTaintUnknown();
