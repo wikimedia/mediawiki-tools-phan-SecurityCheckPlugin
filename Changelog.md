@@ -15,6 +15,9 @@
 ### Bug fixes
 * Fixed a bug where `*-taint` annotations in an interface method were only inherited by the method implementation in children classes.
 
+### Internal changes
+* Bumped phan/phan to 5.4.3
+
 ## v5.0.0
 ### Breaking changes
 * The raw_param taint flag was removed; error reporting is now sufficiently good that this is no longer needed, and can be treated as normal exec.

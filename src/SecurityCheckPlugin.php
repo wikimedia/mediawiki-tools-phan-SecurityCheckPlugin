@@ -210,7 +210,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		 * @param Variable $variable
 		 * @param Scope[] $scopeList
 		 * @param bool $varExistsInAllScopes @phan-unused-param
-		 * @suppress PhanUnreferencedClosure, PhanUndeclaredProperty
+		 * @suppress PhanUnreferencedClosure, PhanUndeclaredProperty, UnusedSuppression
 		 */
 		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ) {
 			$varName = $variable->getName();
@@ -288,6 +288,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * Print the taintedness of a variable, when requested
 	 * @see BlockAnalysisVisitor::analyzeSubstituteVarAssert()
 	 * @inheritDoc
+	 * @suppress PhanUndeclaredProperty, UnusedSuppression
 	 */
 	public function analyzeStringLiteralStatement( CodeBase $codeBase, Context $context, string $statement ): bool {
 		$found = false;
@@ -324,7 +325,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			$fqsen = FullyQualifiedMethodName::fromStringInContext( $funcName, $context );
 			$method = $codeBase->getMethodByFQSEN( $fqsen );
 			/** @var FunctionTaintedness|null $fTaint */
-			// @phan-suppress-next-line PhanUndeclaredProperty
 			$fTaint = $method->funcTaint ?? null;
 			if ( !$fTaint ) {
 				return false;
