@@ -60,10 +60,11 @@ class MWVisitor extends TaintednessVisitor {
 
 		// Should this be getDefiningFQSEN() instead?
 		$methodName = (string)$method->getFQSEN();
+		$parserFQSEN = MediaWikiHooksHelper::getInstance()->getMwParserClassFQSEN( $this->code_base )->__toString();
 		// $this->debug( __METHOD__, "Checking to see if we should register $methodName" );
 		switch ( $methodName ) {
-			case '\Parser::setFunctionHook':
-			case '\Parser::setHook':
+			case "$parserFQSEN::setFunctionHook":
+			case "$parserFQSEN::setHook":
 				$type = $this->getHookTypeForRegistrationMethod( $methodName );
 				if ( $type === null ) {
 					break;
@@ -273,10 +274,11 @@ class MWVisitor extends TaintednessVisitor {
 	 * @return string|null The name of the hook that gets registered
 	 */
 	private function getHookTypeForRegistrationMethod( string $method ): ?string {
+		$parserFQSEN = MediaWikiHooksHelper::getInstance()->getMwParserClassFQSEN( $this->code_base )->__toString();
 		switch ( $method ) {
-			case '\Parser::setFunctionHook':
+			case "$parserFQSEN::setFunctionHook":
 				return '!ParserFunctionHook';
-			case '\Parser::setHook':
+			case "$parserFQSEN::setHook":
 				return '!ParserHook';
 			default:
 				$this->debug( __METHOD__, "$method not a hook registerer" );

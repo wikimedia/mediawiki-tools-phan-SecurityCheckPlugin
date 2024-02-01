@@ -2,7 +2,9 @@
 
 namespace SecurityCheckPlugin;
 
+use Phan\CodeBase;
 use Phan\Config;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
@@ -34,6 +36,8 @@ class MediaWikiHooksHelper {
 	 * @phan-var array<string,FullyQualifiedFunctionLikeName[]>
 	 */
 	private $hookSubscribers = [];
+
+	private ?FullyQualifiedClassName $parserFQSEN = null;
 
 	/** @var self|null */
 	private static $instance;
@@ -186,5 +190,21 @@ class MediaWikiHooksHelper {
 			}
 		}
 		return null;
+	}
+
+	public function getMwParserClassFQSEN( CodeBase $codeBase ): FullyQualifiedClassName {
+		if ( !$this->parserFQSEN ) {
+			$namespacedFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
+				'\\MediaWiki\\Parser\\Parser'
+			);
+			if ( $codeBase->hasClassWithFQSEN( $namespacedFQSEN ) ) {
+				$this->parserFQSEN = $namespacedFQSEN;
+			} else {
+				$this->parserFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
+					'\\Parser'
+				);
+			}
+		}
+		return $this->parserFQSEN;
 	}
 }

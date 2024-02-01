@@ -81,7 +81,10 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		}
 		// If there are no type hints, phan won't know that the parser
 		// is a parser as the hook isn't triggered from a real func call.
-		$paramTypes = [ 2 => '\\Parser', 3 => '\\PPFrame' ];
+		$paramTypes = [
+			2 => MediaWikiHooksHelper::getInstance()->getMwParserClassFQSEN( $this->code_base )->__toString(),
+			3 => '\\PPFrame'
+		];
 		foreach ( $paramTypes as $i => $type ) {
 			if ( isset( $params[$i] ) ) {
 				$param = $params[$i];
@@ -118,7 +121,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			} else {
 				$varObj = $scope->getVariableByName( $param->children['name'] );
 				$varObj->setUnionType(
-					UnionType::fromFullyQualifiedPHPDocString( '\\Parser' )
+					MediaWikiHooksHelper::getInstance()->getMwParserClassFQSEN( $this->code_base )->asPHPDocUnionType()
 				);
 			}
 		}

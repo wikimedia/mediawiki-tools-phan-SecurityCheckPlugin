@@ -11,6 +11,7 @@
 * (MW) Analyze the `$rows` argument to `Database::insert()` more accurately, and apply similar rules to `InsertQueryBuilder::row()` and `::rows()`.
 * Improved shape inference for several built-in array functions.
 * (MW) Treat the `help` key in HTMLForm descriptors as an HTML sink.
+* (MW) Add compatibility for new Parser FQSEN `\MediaWiki\Parser\Parser`. The non-namespaced version is also still supported.
 
 ### Bug fixes
 * Fixed a bug where `*-taint` annotations in an interface method were only inherited by the method implementation in children classes.
