@@ -81,9 +81,10 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		}
 		// If there are no type hints, phan won't know that the parser
 		// is a parser as the hook isn't triggered from a real func call.
+		$hooksHelper = MediaWikiHooksHelper::getInstance();
 		$paramTypes = [
-			2 => MediaWikiHooksHelper::getInstance()->getMwParserClassFQSEN( $this->code_base )->__toString(),
-			3 => '\\PPFrame'
+			2 => $hooksHelper->getMwParserClassFQSEN( $this->code_base )->__toString(),
+			3 => $hooksHelper->getPPFrameClassFQSEN( $this->code_base )->__toString(),
 		];
 		foreach ( $paramTypes as $i => $type ) {
 			if ( isset( $params[$i] ) ) {

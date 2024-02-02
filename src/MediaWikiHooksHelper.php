@@ -38,6 +38,7 @@ class MediaWikiHooksHelper {
 	private $hookSubscribers = [];
 
 	private ?FullyQualifiedClassName $parserFQSEN = null;
+	private ?FullyQualifiedClassName $ppFrameFQSEN = null;
 
 	/** @var self|null */
 	private static $instance;
@@ -206,5 +207,21 @@ class MediaWikiHooksHelper {
 			}
 		}
 		return $this->parserFQSEN;
+	}
+
+	public function getPPFrameClassFQSEN( CodeBase $codeBase ): FullyQualifiedClassName {
+		if ( !$this->ppFrameFQSEN ) {
+			$namespacedFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
+				'\\MediaWiki\\Parser\\PPFrame'
+			);
+			if ( $codeBase->hasClassWithFQSEN( $namespacedFQSEN ) ) {
+				$this->ppFrameFQSEN = $namespacedFQSEN;
+			} else {
+				$this->ppFrameFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
+					'\\PPFrame'
+				);
+			}
+		}
+		return $this->ppFrameFQSEN;
 	}
 }
