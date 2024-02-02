@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## ???
+## v6.0.0
 ### Breaking changes
 * (MW) Most of the taintedness values hardcoded in MediaWikiSecurityCheckPlugin::getCustomFuncTaints() have been removed, and annotations have been
   added to the relevant methods in MediaWiki itself. Therefore, this version of phan-taint-check-plugin is only compatible with MediaWiki 1.41+.
