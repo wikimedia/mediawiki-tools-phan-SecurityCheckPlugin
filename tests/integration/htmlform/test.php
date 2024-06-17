@@ -59,6 +59,12 @@ $unsafe4 = [
 	'name' => 'wpFoo'
 ];
 
+$unsafe4a = [
+	'class' => 'MediaWiki\HTMLForm\Field\HTMLCheckField',
+	'label-raw' => "Something " . $_GET['evil'],
+	'name' => 'wpFoo'
+];
+
 $safe7 = [
 	'type' => 'check',
 	'default' => $_GET['evil'],
@@ -70,8 +76,20 @@ $unsafe5 = [
 	'raw' => true,
 ];
 
+$unsafe5a = [
+	'class' => 'MediaWiki\HTMLForm\Field\HTMLInfoField',
+	'default' => $_GET['evil'],
+	'raw' => true,
+];
+
 $unsafe6 = [
 	'class' => HTMLInfoField::class,
+	'default' => $_GET['evil'],
+	'raw' => true,
+];
+
+$unsafe6a = [
+	'class' => MediaWiki\HTMLForm\Field\HTMLInfoField::class,
 	'default' => $_GET['evil'],
 	'raw' => true,
 ];
@@ -106,6 +124,14 @@ $unsafe8 = [
 	]
 ];
 
+$unsafe8a = [
+	'class' => MediaWiki\HTMLForm\Field\HTMLRadioField::class,
+	'options' => [
+		htmlspecialchars( $_GET['evil'] ) => 'the good value',
+		$_GET['evil'] => 'the evil value'
+	]
+];
+
 $unsafe9 = [
 	'type' => 'multiselect',
 	'options' => [
@@ -122,6 +148,14 @@ $unsafe10 = [
 	]
 ];
 
+$unsafe10a = [
+	'class' => 'MediaWiki\HTMLForm\Field\HTMLMultiSelectField',
+	'options' => [
+		htmlspecialchars( $_GET['evil'] ) => 'the good value',
+		$_GET['evil'] => 'the evil value'
+	]
+];
+
 $evilOptions = [
 	htmlspecialchars( $_GET['evil'] ) => 'the good value',
 	$_GET['evil'] => 'the evil value'
@@ -132,8 +166,21 @@ $unsafe11 = [
 	'options' => $evilOptions
 ];
 
+$unsafe11a = [
+	'class' => MediaWiki\HTMLForm\Field\HTMLRadioField::class,
+	'options' => $evilOptions
+];
+
 $safe10 = [
 	'class' => HTMLRadioField::class,
+	'options' => [
+		htmlspecialchars( $_GET['evil'] ) => 'the good value',
+		'foo' => $_GET['ok']
+	]
+];
+
+$safe10a = [
+	'class' => MediaWiki\HTMLForm\Field\HTMLRadioField::class,
 	'options' => [
 		htmlspecialchars( $_GET['evil'] ) => 'the good value',
 		'foo' => $_GET['ok']

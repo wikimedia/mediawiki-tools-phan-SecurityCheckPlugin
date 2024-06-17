@@ -1057,22 +1057,32 @@ class MWVisitor extends TaintednessVisitor {
 			if ( !$this->code_base->hasClassWithFQSEN( $fqsen ) ) {
 				return;
 			}
-			if ( (string)$fqsen === '\HTMLInfoField' ) {
+			$fqsenString = (string)$fqsen;
+			if ( $fqsenString === '\HTMLInfoField' ||
+				$fqsenString === '\MediaWiki\HTMLForm\Field\HTMLInfoField'
+			) {
 				$isInfo = true;
 			}
 			if (
-				(string)$fqsen === '\HTMLMultiSelectField' ||
-				(string)$fqsen === '\HTMLRadioField'
+				$fqsenString === '\HTMLMultiSelectField' ||
+				$fqsenString === '\MediaWiki\HTMLForm\Field\HTMLMultiSelectField' ||
+				$fqsenString === '\HTMLRadioField' ||
+				$fqsenString === '\MediaWiki\HTMLForm\Field\HTMLRadioField'
 			) {
 				$isOptionsSafe = false;
 			}
 
 			$fqsenBase = FullyQualifiedClassName::fromFullyQualifiedString(
-				'\HTMLFormField'
+				'\MediaWiki\HTMLForm\Field\HTMLFormField'
 			);
 			if ( !$this->code_base->hasClassWithFQSEN( $fqsenBase ) ) {
-				$this->debug( __METHOD__, "Missing HTMLFormField base class?!" );
-				return;
+				$fqsenBase = FullyQualifiedClassName::fromFullyQualifiedString(
+					'\HTMLFormField'
+				);
+				if ( !$this->code_base->hasClassWithFQSEN( $fqsenBase ) ) {
+					$this->debug( __METHOD__, "Missing HTMLFormField base class?!" );
+					return;
+				}
 			}
 
 			$isAField = self::isSubclassOf( $fqsen, $fqsenBase, $this->code_base );

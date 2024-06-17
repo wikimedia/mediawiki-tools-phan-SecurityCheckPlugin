@@ -2,14 +2,20 @@ integration/htmlform/test.php:4 SecurityCheck-XSS HTMLForm info field in raw mod
 integration/htmlform/test.php:27 SecurityCheck-XSS HTMLForm label-raw needs to escape input
 integration/htmlform/test.php:33 SecurityCheck-DoubleEscaped HTMLForm label key escapes its input
 integration/htmlform/test.php:57 SecurityCheck-XSS HTMLForm label-raw needs to escape input
-integration/htmlform/test.php:68 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:63 SecurityCheck-XSS HTMLForm label-raw needs to escape input
 integration/htmlform/test.php:74 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
-integration/htmlform/test.php:94 SecurityCheck-XSS HTMLForm option label needs escaping
-integration/htmlform/test.php:102 SecurityCheck-XSS HTMLForm option label needs escaping
-integration/htmlform/test.php:110 SecurityCheck-XSS HTMLForm option label needs escaping
-integration/htmlform/test.php:118 SecurityCheck-XSS HTMLForm option label needs escaping
-integration/htmlform/test.php:131 SecurityCheck-XSS HTMLForm option label needs escaping (Caused by: integration/htmlform/test.php +125)
-integration/htmlform/test.php:144 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
-integration/htmlform/test.php:151 SecurityCheck-XSS HTMLForm option label needs escaping
-integration/htmlform/test.php:158 SecurityCheck-XSS HTMLForm option label needs escaping
-integration/htmlform/test.php:163 SecurityCheck-XSS HTMLForm help needs to escape input
+integration/htmlform/test.php:80 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:86 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:92 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:112 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:120 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:128 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:136 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:144 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:152 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:165 SecurityCheck-XSS HTMLForm option label needs escaping (Caused by: integration/htmlform/test.php +159)
+integration/htmlform/test.php:170 SecurityCheck-XSS HTMLForm option label needs escaping (Caused by: integration/htmlform/test.php +159)
+integration/htmlform/test.php:191 SecurityCheck-XSS HTMLForm info field in raw mode needs to escape default key
+integration/htmlform/test.php:198 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:205 SecurityCheck-XSS HTMLForm option label needs escaping
+integration/htmlform/test.php:210 SecurityCheck-XSS HTMLForm help needs to escape input
