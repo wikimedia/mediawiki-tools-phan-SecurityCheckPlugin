@@ -106,10 +106,12 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		Phan::setPrinter( $printer );
 
 		Phan::analyzeFileList( $codeBase, static function () use ( $cli ) {
-			return $cli->getFileList();
+			// Replace \\ by / for windows machine
+			return str_replace( '\\', '/', $cli->getFileList() );
 		} );
 
-		return $stream->fetch();
+		// Do a "\r\n" -> "\n" and "\r" -> "\n" transformation for windows machine
+		return str_replace( [ "\r\n", "\r" ], "\n", $stream->fetch() );
 	}
 
 	/**
