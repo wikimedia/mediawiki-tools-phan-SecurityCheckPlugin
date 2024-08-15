@@ -209,5 +209,6 @@ $unsafe13 = [
 $unsafe14 = [
 	'type' => 'text',
 	'label-message' => 'some-field-msg',
-	'help' => $_GET['x'] // Unsafe
+	'help' => $_GET['x'], // Unsafe
+	'help-raw' => $_GET['x'] // Unsafe
 ];

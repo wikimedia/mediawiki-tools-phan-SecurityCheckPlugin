@@ -958,6 +958,7 @@ class MWVisitor extends TaintednessVisitor {
 		$class = null;
 		$rawLabel = null;
 		$help = null;
+		$help_raw = null;
 		$label = null;
 		$default = null;
 		$options = null;
@@ -1003,7 +1004,11 @@ class MWVisitor extends TaintednessVisitor {
 					$raw = $this->resolveValue( $child->children['value'] );
 					break;
 				case 'help':
+					// TODO: remove help key case when back compat is no longer needed
 					$help = $this->resolveValue( $child->children['value'] );
+					break;
+				case 'help-raw':
+					$help_raw = $this->resolveValue( $child->children['value'] );
 					break;
 			}
 		}
@@ -1017,8 +1022,8 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		if (
-			$raw === null && $label === null && $rawLabel === null && $help === null
-			&& $default === null && $options === null
+			$raw === null && $label === null && $rawLabel === null && $help == null
+			&& $help_raw === null && $default === null && $options === null
 		) {
 			// e.g. [ 'class' => 'someCssClass' ] appears a lot
 			// in the code base. If we don't have any of the html
@@ -1112,6 +1117,13 @@ class MWVisitor extends TaintednessVisitor {
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 				$help,
 				'HTMLForm help needs to escape input'
+			);
+		}
+		if ( $help_raw !== null ) {
+			$this->maybeEmitIssueSimplified(
+				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+				$help_raw,
+				'HTMLForm help-raw needs to escape input'
 			);
 		}
 		if ( $isInfo && $raw === true ) {

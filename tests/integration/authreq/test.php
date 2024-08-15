@@ -14,6 +14,7 @@ class TestAuth extends AuthenticationRequest {
 				'value' => 'foo',
 				'label' => htmlspecialchars( $_GET['evil'] ),
 				'help' => htmlspecialchars( $_GET['evil'] ),
+				'help-raw' => htmlspecialchars( $_GET['evil'] ),
 				'optional' => true,
 			],
  ];
