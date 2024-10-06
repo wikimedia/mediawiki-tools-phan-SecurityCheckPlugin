@@ -306,8 +306,8 @@ class FunctionTaintedness {
 
 		if ( ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
 			// Remove UNKNOWN, which could be added e.g. when building func taint from the return type.
-			$this->overall->remove( SecurityCheckPlugin::UNKNOWN_TAINT );
-			$this->overall->mergeWith( $other->overall );
+			$this->overall = $this->overall->without( SecurityCheckPlugin::UNKNOWN_TAINT )
+				->asMergedWith( $other->overall );
 			$this->overallFlags |= $other->overallFlags;
 		}
 	}

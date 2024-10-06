@@ -621,19 +621,19 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			$taintAsInt = self::convertTaintNameToConstant( $taintParts['type'] );
 			switch ( $taintParts['prefix'] ) {
 				case '':
-					$overallTaint->add( $taintAsInt );
+					$overallTaint = $overallTaint->with( $taintAsInt );
 					break;
 				case 'exec':
-					$overallTaint->add( Taintedness::flagsAsYesToExecTaint( $taintAsInt ) );
+					$overallTaint = $overallTaint->with( Taintedness::flagsAsYesToExecTaint( $taintAsInt ) );
 					break;
 				case 'escapes':
 				case 'onlysafefor':
-					$overallTaint->add( self::YES_TAINT & ~$taintAsInt );
+					$overallTaint = $overallTaint->with( self::YES_TAINT & ~$taintAsInt );
 					if ( $taintParts['type'] === 'html' ) {
 						if ( $taintParts['prefix'] === 'escapes' ) {
-							$overallTaint->add( self::ESCAPED_EXEC_TAINT );
+							$overallTaint = $overallTaint->with( self::ESCAPED_EXEC_TAINT );
 						} else {
-							$overallTaint->add( self::ESCAPED_TAINT );
+							$overallTaint = $overallTaint->with( self::ESCAPED_TAINT );
 						}
 					}
 					break;

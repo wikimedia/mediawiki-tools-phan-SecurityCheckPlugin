@@ -861,8 +861,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			case '_SERVER':
 				return Taintedness::newTainted();
 			case '_FILES':
-				$ret = Taintedness::newSafe();
-				$ret->addKeysTaintedness( SecurityCheckPlugin::YES_TAINT );
 				$elTaint = Taintedness::newFromArray( [
 					'name' => Taintedness::newTainted(),
 					'type' => Taintedness::newTainted(),
@@ -870,9 +868,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 					'error' => Taintedness::newSafe(),
 					'size' => Taintedness::newSafe(),
 				] );
-				// Use 'null' as fake offset to set unknownDims
-				$ret->setOffsetTaintedness( null, $elTaint );
-				return $ret;
+				return Taintedness::newSafe()->withAddedKeysTaintedness( SecurityCheckPlugin::YES_TAINT )
+					// Use 'null' as fake offset to set unknownDims
+					->withAddedOffsetTaintedness( null, $elTaint );
 			case 'GLOBALS':
 				// Ideally this would recurse properly, but hopefully nobody is using $GLOBALS in complex ways
 				// that wouldn't be covered by this approximation.
@@ -968,7 +966,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// the PHPDoc type, as it may be wrong.
 		$retTaintMask = $this->getTaintMaskForType( $func->getRealReturnType() );
 		if ( $retTaintMask !== null ) {
-			$overallFuncTaint->keepOnly( $retTaintMask->get() );
+			$overallFuncTaint = $overallFuncTaint->withOnly( $retTaintMask->get() );
 		}
 
 		$paramTaint = new FunctionTaintedness( $overallFuncTaint );
@@ -1037,14 +1035,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 					&& $this->nodeCanBeString( $value )
 				)
 			) {
-				$curTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$curTaint = $curTaint->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 			// FIXME This will fail with in-place spread and when some numeric keys are specified
 			//  explicitly (at least).
 			$offset = $key ?? $curNumKey++;
 			$offset = $this->resolveOffset( $offset );
-			$curTaint->setOffsetTaintedness( $offset, $valTaint );
-			$curTaint->addKeysTaintedness( $keyTaint->get() );
+			$curTaint = $curTaint->withAddedOffsetTaintedness( $offset, $valTaint )
+				->withAddedKeysTaintedness( $keyTaint->get() );
 			$curError->mergeWith( $keyTaintAll->getError() );
 			$curError->mergeWith( $valTaintAll->getError() );
 			$links = $links->withKeysLinks( $keyTaintAll->getMethodLinks()->getLinksCollapsing() )
