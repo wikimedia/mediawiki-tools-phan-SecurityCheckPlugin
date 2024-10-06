@@ -146,7 +146,7 @@ class FunctionTaintedness {
 		) {
 			return $this->variadicParamSinkTaint;
 		}
-		return Taintedness::newSafe();
+		return Taintedness::safeSingleton();
 	}
 
 	/**

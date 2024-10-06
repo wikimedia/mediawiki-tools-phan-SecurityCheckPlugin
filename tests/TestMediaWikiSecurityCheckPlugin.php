@@ -28,7 +28,7 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertTaint->addParamFlags( 0, self::NO_OVERRIDE );
 		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
 		// Note, here we are assuming the single row case. The multiple rows case is handled in modifyParamSinkTaint.
-		$sqlExecKeysTaint = Taintedness::newSafe()->withAddedKeysTaintedness( self::SQL_EXEC_TAINT );
+		$sqlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::SQL_EXEC_TAINT );
 		$insertTaint->setParamSinkTaint( 1, $sqlExecKeysTaint );
 		$insertTaint->addParamFlags( 1, self::NO_OVERRIDE );
 		// method name
@@ -43,18 +43,18 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertQBRowTaint->addParamFlags( 0, self::NO_OVERRIDE );
 
 		$insertQBRowsTaint = new FunctionTaintedness( Taintedness::newSafe() );
-		$multiRowsTaint = Taintedness::newSafe()->withAddedOffsetTaintedness( null, clone $sqlExecKeysTaint );
+		$multiRowsTaint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, clone $sqlExecKeysTaint );
 		$insertQBRowsTaint->setParamSinkTaint( 0, $multiRowsTaint );
 		$insertQBRowsTaint->addParamFlags( 0, self::NO_OVERRIDE );
 
-		$htmlExecKeysTaint = Taintedness::newSafe()->withAddedKeysTaintedness( self::HTML_EXEC_TAINT );
+		$htmlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::HTML_EXEC_TAINT );
 
 		$sinkKeysTaint = new FunctionTaintedness( Taintedness::newSafe() );
 		$sinkKeysTaint->setParamSinkTaint( 0, $htmlExecKeysTaint );
 		$sinkKeysTaint->addParamFlags( 0, self::NO_OVERRIDE );
 
 		$sinkKeysOfUnknownDimTaint = new FunctionTaintedness( Taintedness::newSafe() );
-		$htmlExecKeysOfUnknownTaint = Taintedness::newSafe()
+		$htmlExecKeysOfUnknownTaint = Taintedness::safeSingleton()
 			->withAddedOffsetTaintedness( null, clone $htmlExecKeysTaint );
 		$sinkKeysOfUnknownDimTaint->setParamSinkTaint( 0, $htmlExecKeysOfUnknownTaint );
 		$sinkKeysOfUnknownDimTaint->addParamFlags( 0, self::NO_OVERRIDE );

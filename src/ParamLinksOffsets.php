@@ -155,7 +155,7 @@ class ParamLinksOffsets {
 		if ( $this->ownFlags ) {
 			$ret = $taintedness->withOnly( $this->ownFlags );
 		} else {
-			$ret = new Taintedness( SecurityCheckPlugin::NO_TAINT );
+			$ret = Taintedness::safeSingleton();
 		}
 		foreach ( $this->dims as $k => $val ) {
 			$ret = $ret->asMergedWith(
