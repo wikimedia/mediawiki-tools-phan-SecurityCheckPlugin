@@ -457,7 +457,6 @@ trait TaintednessBaseVisitor {
 			$trialFuncName = $trialFunc->getFQSEN();
 			$taint = SecurityCheckPlugin::$pluginInstance->getBuiltinFuncTaint( $trialFuncName );
 			if ( $taint !== null ) {
-				$taint = clone $taint;
 				self::doSetFuncTaint( $func, $taint );
 				if ( !$func->isPHPInternal() ) {
 					// Caused-by lines are presumably unnecessary for PHP internal stuff.
@@ -545,8 +544,7 @@ trait TaintednessBaseVisitor {
 		// may have different meanings in different contexts. E.g. @return self
 		$fqsen = (string)$func->getFQSEN();
 		if ( isset( SecurityCheckPlugin::$docblockCache[ $fqsen ] ) ) {
-			[ $taint, $links ] = SecurityCheckPlugin::$docblockCache[ $fqsen ];
-			return [ clone $taint, clone $links ];
+			return SecurityCheckPlugin::$docblockCache[ $fqsen ];
 		}
 
 		$docBlock = $func->getDocComment();
@@ -884,7 +882,7 @@ trait TaintednessBaseVisitor {
 		$taintOrNull = self::getTaintednessRaw( $variableObj );
 		if ( $taintOrNull !== null ) {
 			$mask = $this->getTaintMaskForTypedElement( $variableObj );
-			$taintedness = $mask !== null ? $taintOrNull->withOnly( $mask->get() ) : clone $taintOrNull;
+			$taintedness = $mask !== null ? $taintOrNull->withOnly( $mask->get() ) : $taintOrNull;
 			// echo "$varName has taintedness $taintedness due to last time\n";
 		} else {
 			$type = $variableObj->getUnionType();
@@ -2016,7 +2014,7 @@ trait TaintednessBaseVisitor {
 		// we never override arg taint for reference params in this case.
 		$overrideTaint = !( $argObj instanceof Property || $globalVarObj || $isHookHandler );
 		// Note, the call itself is only responsible if it adds some taintedness
-		$errTaint = clone $refTaint;
+		$errTaint = $refTaint;
 		$refLinks = self::getMethodLinksRef( $argObj );
 		if ( $refLinks && $refLinks->hasDataForFuncAndParam( $func, $i ) ) {
 			$addedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $i )
@@ -2130,7 +2128,7 @@ trait TaintednessBaseVisitor {
 					return TaintednessWithError::newEmpty();
 				}
 				// TODO: actually handle case changes!
-				$taint = clone $preserveArgumentsData[0][0];
+				$taint = $preserveArgumentsData[0][0];
 				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_flip':
@@ -2170,7 +2168,7 @@ trait TaintednessBaseVisitor {
 				if ( !isset( $preserveArgumentsData[2] ) ) {
 					return TaintednessWithError::newEmpty();
 				}
-				$preservedArgTaint = clone $preserveArgumentsData[2][0];
+				$preservedArgTaint = $preserveArgumentsData[2][0];
 				// TODO: We may actually be able to infer the actual keys, instead of setting as unknown
 				$taint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, $preservedArgTaint );
 				// TODO: We should also add numkey if the argument has sql.
@@ -2188,7 +2186,7 @@ trait TaintednessBaseVisitor {
 				}
 				if ( isset( $preserveArgumentsData[1] ) ) {
 					$preservedValueTaint = $preserveArgumentsData[1][0];
-					$taint = $taint->withAddedOffsetTaintedness( null, clone $preservedValueTaint );
+					$taint = $taint->withAddedOffsetTaintedness( null, $preservedValueTaint );
 					$error->mergeWith(
 						$preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $preservedValueTaint )
 					);
@@ -2231,7 +2229,7 @@ trait TaintednessBaseVisitor {
 				}
 				// We can't infer shape mutations because Taintedness doesn't keep track of the values, so just
 				// return the taintedness of the first argument.
-				$preservedArgTaint = clone $preserveArgumentsData[0][0];
+				$preservedArgTaint = $preserveArgumentsData[0][0];
 				return new TaintednessWithError(
 					$preservedArgTaint,
 					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
@@ -2245,7 +2243,6 @@ trait TaintednessBaseVisitor {
 				}
 				/** @var Taintedness $taint */
 				[ $taint, $error ] = array_shift( $preserveArgumentsData );
-				$taint = clone $taint;
 				foreach ( $preserveArgumentsData as $argData ) {
 					$taint = $taint->withoutKnownKeysFrom( $argData[0] );
 					// No argument besides the first one can contribute to caused-by lines, although
@@ -2287,7 +2284,7 @@ trait TaintednessBaseVisitor {
 				}
 				// We can't infer shape mutations because there might be unknown keys in either argument, so just
 				// return the taintedness of the first argument.
-				$preservedArgTaint = clone $preserveArgumentsData[0][0];
+				$preservedArgTaint = $preserveArgumentsData[0][0];
 				return new TaintednessWithError(
 					$preservedArgTaint,
 					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
@@ -2310,7 +2307,7 @@ trait TaintednessBaseVisitor {
 				if ( !isset( $preserveArgumentsData[0] ) ) {
 					return TaintednessWithError::newEmpty();
 				}
-				$preservedArgTaint = clone $preserveArgumentsData[0][0];
+				$preservedArgTaint = $preserveArgumentsData[0][0];
 				return new TaintednessWithError(
 					$preservedArgTaint,
 					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
@@ -2372,7 +2369,7 @@ trait TaintednessBaseVisitor {
 				// array_pad( $arr, $length, $val ) returns a copy of $arr padded to the size specified by $length
 				// by adding copies of $val.
 				if ( isset( $preserveArgumentsData[0] ) ) {
-					$taint = clone $preserveArgumentsData[0][0];
+					$taint = $preserveArgumentsData[0][0];
 					$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
 				} else {
 					$taint = Taintedness::safeSingleton();
@@ -2405,7 +2402,7 @@ trait TaintednessBaseVisitor {
 				}
 				$firstArgData = array_shift( $preserveArgumentsData );
 				/** @var Taintedness $taint */
-				$taint = clone $firstArgData[0];
+				$taint = $firstArgData[0];
 				$error = $firstArgData[1]->asIntersectedWithTaintedness( $taint );
 				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
 					$taint = $taint->asArrayReplaceWith( $argTaint );

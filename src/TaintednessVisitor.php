@@ -422,7 +422,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
-			clone $rhsTaintedness->getTaintedness(),
+			$rhsTaintedness->getTaintedness(),
 			$rhsTaintedness->getError(),
 			$rhsTaintedness->getMethodLinks(),
 			$rhsTaintedness->getTaintedness(),
@@ -459,7 +459,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$vis = new TaintednessAssignVisitor(
 			$this->code_base,
 			$this->context,
-			clone $rhsTaint,
+			$rhsTaint,
 			$rhsError,
 			$rhsLinks,
 			$errorTaint,
@@ -541,13 +541,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $node->children['dim'] === null ) {
 			// This should only happen in assignments: $x[] = 'foo'. Just return
 			// the taint of the whole object.
-			$this->curTaintWithError = clone $nodeTaint;
+			$this->curTaintWithError = $nodeTaint;
 			$this->setCachedData( $node );
 			return;
 		}
 		$offset = $this->resolveOffset( $node->children['dim'] );
 		$this->curTaintWithError = new TaintednessWithError(
-			clone $nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset ),
+			$nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset ),
 			$nodeTaint->getError(),
 			$nodeTaint->getMethodLinks()->getForDim( $offset )
 		);
@@ -831,7 +831,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaintWithError = new TaintednessWithError(
 			$this->getTaintednessPhanObj( $variableObj ),
 			self::getCausedByRawCloneOrEmpty( $variableObj ),
-			self::getMethodLinksCloneOrEmpty( $variableObj )
+			self::getMethodLinks( $variableObj ) ?? MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
 	}
@@ -913,9 +913,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$actualGlobal = $gvar->getElement();
-		self::setTaintednessRaw( $gvar, self::getTaintednessRawClone( $actualGlobal ) ?: Taintedness::safeSingleton() );
+		self::setTaintednessRaw( $gvar, self::getTaintednessRaw( $actualGlobal ) ?: Taintedness::safeSingleton() );
 		self::setCausedByRaw( $gvar, self::getCausedByRawCloneOrEmpty( $actualGlobal ) );
-		self::setMethodLinks( $gvar, self::getMethodLinksCloneOrEmpty( $actualGlobal ) );
+		self::setMethodLinks( $gvar, self::getMethodLinks( $actualGlobal ) ?? MethodLinks::emptySingleton() );
 	}
 
 	/**
@@ -1083,7 +1083,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->curTaintWithError = new TaintednessWithError(
 			$this->getTaintednessPhanObj( $prop ),
 			self::getCausedByRawCloneOrEmpty( $prop ),
-			self::getMethodLinksCloneOrEmpty( $prop )
+			self::getMethodLinks( $prop ) ?? MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
 	}
@@ -1127,7 +1127,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$objTaint = $this->getTaintednessPhanObj( $prop );
 		$objError = self::getCausedByRawCloneOrEmpty( $prop );
-		$objLinks = self::getMethodLinksCloneOrEmpty( $prop );
+		$objLinks = self::getMethodLinks( $prop ) ?? MethodLinks::emptySingleton();
 
 		if ( $foundStdClass ) {
 			$newTaint = $this->curTaintWithError->getTaintedness()

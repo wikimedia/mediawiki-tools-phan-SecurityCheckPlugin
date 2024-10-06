@@ -23,16 +23,6 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param TypedElementInterface $element
-	 * @return Taintedness|null
-	 * @suppress PhanUnreferencedProtectedMethod False positive
-	 */
-	protected static function getTaintednessRawClone( TypedElementInterface $element ): ?Taintedness {
-		// Performance: use isset(), not property_exists()
-		return isset( $element->taintedness ) ? clone $element->taintedness : null;
-	}
-
-	/**
-	 * @param TypedElementInterface $element
 	 * @param Taintedness $taintedness
 	 */
 	protected static function setTaintednessRaw( TypedElementInterface $element, Taintedness $taintedness ): void {
@@ -90,24 +80,11 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * @note This doesn't return a clone
-	 *
 	 * @param TypedElementInterface $element
 	 * @return MethodLinks|null
 	 */
 	protected static function getMethodLinks( TypedElementInterface $element ): ?MethodLinks {
 		return $element->taintedMethodLinks ?? null;
-	}
-
-	/**
-	 * @param TypedElementInterface $element
-	 * @return MethodLinks
-	 */
-	protected static function getMethodLinksCloneOrEmpty( TypedElementInterface $element ): MethodLinks {
-		// Performance: use isset(), not property_exists()
-		return isset( $element->taintedMethodLinks )
-			? clone $element->taintedMethodLinks
-			: MethodLinks::emptySingleton();
 	}
 
 	/**
@@ -152,8 +129,7 @@ trait TaintednessAccessorsTrait {
 	 * @return Taintedness|null
 	 */
 	protected static function getTaintednessRef( TypedElementInterface $element ): ?Taintedness {
-		// Performance: use isset(), not property_exists()
-		return isset( $element->taintednessRef ) ? clone $element->taintednessRef : null;
+		return $element->taintednessRef ?? null;
 	}
 
 	/**
@@ -181,7 +157,7 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * Get $func's taint, or null if not set. NOTE: This doesn't create a clone.
+	 * Get $func's taint, or null if not set.
 	 *
 	 * @param FunctionInterface $func
 	 * @return FunctionTaintedness|null
