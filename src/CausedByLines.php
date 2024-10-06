@@ -37,20 +37,19 @@ class CausedByLines {
 	 * @param Taintedness $taintedness
 	 * @param MethodLinks|null $links
 	 * @return self
-	 * @note Taintedness and links are cloned as needed
 	 */
 	public function withAddedLines( array $lines, Taintedness $taintedness, MethodLinks $links = null ): self {
 		$ret = new self();
 
 		if ( !$this->lines ) {
 			foreach ( $lines as $line ) {
-				$ret->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+				$ret->lines[] = [ $taintedness, $line, $links ];
 			}
 			return $ret;
 		}
 
 		foreach ( $this->lines as $line ) {
-			$ret->lines[] = [ clone $line[0], $line[1], $line[2] ? clone $line[2] : null ];
+			$ret->lines[] = [ $line[0], $line[1], $line[2] ];
 		}
 
 		foreach ( $lines as $line ) {
@@ -61,12 +60,12 @@ class CausedByLines {
 			if ( $idx !== false ) {
 				$ret->lines[ $idx ][0] = $ret->lines[ $idx ][0]->asMergedWith( $taintedness );
 				if ( $links && !$ret->lines[$idx][2] ) {
-					$ret->lines[$idx][2] = clone $links;
+					$ret->lines[$idx][2] = $links;
 				} elseif ( $links && $links !== $ret->lines[$idx][2] ) {
 					$ret->lines[$idx][2] = $ret->lines[$idx][2]->asMergedWith( $links );
 				}
 			} else {
-				$ret->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+				$ret->lines[] = [ $taintedness, $line, $links ];
 			}
 		}
 
@@ -91,7 +90,7 @@ class CausedByLines {
 			$preservedFlags = $eLinks && ( $curTaint !== SecurityCheckPlugin::NO_TAINT )
 				? $eLinks->filterPreservedFlags( $curTaint )
 				: SecurityCheckPlugin::NO_TAINT;
-			$ret->lines[] = [ new Taintedness( $preservedFlags ), $eLine, clone $links ];
+			$ret->lines[] = [ new Taintedness( $preservedFlags ), $eLine, $links ];
 		}
 		return $ret;
 	}
@@ -156,11 +155,10 @@ class CausedByLines {
 	public function withTaintAddedToMethodArgLinks( Taintedness $taintedness, FunctionInterface $func, int $i ): self {
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
-			$newLinks = $lineLinks ? clone $lineLinks : null;
 			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $i ) ) {
-				$ret->lines[] = [ $lineTaint->asMergedWith( $taintedness ), $lineLine, $newLinks ];
+				$ret->lines[] = [ $lineTaint->asMergedWith( $taintedness ), $lineLine, $lineLinks ];
 			} else {
-				$ret->lines[] = [ clone $lineTaint, $lineLine, $newLinks ];
+				$ret->lines[] = [ $lineTaint, $lineLine, $lineLinks ];
 			}
 		}
 		return $ret;
