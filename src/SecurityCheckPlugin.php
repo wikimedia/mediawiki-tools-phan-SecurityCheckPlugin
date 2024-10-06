@@ -268,7 +268,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				if ( $varErrorOrNull && $varErrorOrNull !== $prevErr ) {
 					$prevErr = $varErrorOrNull;
 					if ( $error ) {
-						$error->mergeWith( $varErrorOrNull );
+						$error = $error->asMergedWith( $varErrorOrNull );
 					} else {
 						$error = $varErrorOrNull;
 					}
