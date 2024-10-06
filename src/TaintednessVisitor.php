@@ -249,7 +249,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			// NOTE: If the method stores its arg to a class prop, and that class prop gets output later,
 			// the exec status of this won't be detected until the output is analyzed, we might miss some issues
 			// in the inbetween period.
-			self::doSetFuncTaint( $func, new FunctionTaintedness( Taintedness::newSafe() ) );
+			self::doSetFuncTaint( $func, FunctionTaintedness::emptySingleton() );
 		}
 	}
 
@@ -982,10 +982,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				: PreservedTaintedness::newEmpty();
 			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
 			if ( $param->isVariadic() ) {
-				$paramTaint->setVariadicParamPreservedTaint( $i, $presTaint );
+				$paramTaint = $paramTaint->withVariadicParamPreservedTaint( $i, $presTaint );
 				$funcError->setVariadicParamPreservedLines( $i, $paramError );
 			} else {
-				$paramTaint->setParamPreservedTaint( $i, $presTaint );
+				$paramTaint = $paramTaint->withParamPreservedTaint( $i, $presTaint );
 				$funcError->setParamPreservedLines( $i, $paramError );
 			}
 		}
