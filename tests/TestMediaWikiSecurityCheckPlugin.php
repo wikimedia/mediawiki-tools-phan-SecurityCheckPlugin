@@ -22,42 +22,36 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 			'overall' => self::YES_TAINT
 		];
 
+		$sqlExecTaint = new Taintedness( self::SQL_EXEC_TAINT );
 		$insertTaint = FunctionTaintedness::emptySingleton();
 		// table name
-		$insertTaint = $insertTaint->withParamSinkTaint( 0, new Taintedness( self::SQL_EXEC_TAINT ) )
-			->withParamFlags( 0, self::NO_OVERRIDE );
+		$insertTaint = $insertTaint->withParamSinkTaint( 0, $sqlExecTaint, self::NO_OVERRIDE );
 		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
 		// Note, here we are assuming the single row case. The multiple rows case is handled in modifyParamSinkTaint.
 		$sqlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::SQL_EXEC_TAINT );
-		$insertTaint = $insertTaint->withParamSinkTaint( 1, $sqlExecKeysTaint )
-			->withParamFlags( 1, self::NO_OVERRIDE );
+		$insertTaint = $insertTaint->withParamSinkTaint( 1, $sqlExecKeysTaint, self::NO_OVERRIDE );
 		// method name
-		$insertTaint = $insertTaint->withParamSinkTaint( 2, new Taintedness( self::SQL_EXEC_TAINT ) )
-			->withParamFlags( 2, self::NO_OVERRIDE );
+		$insertTaint = $insertTaint->withParamSinkTaint( 2, $sqlExecTaint, self::NO_OVERRIDE );
 		// options. They are not escaped
-		$insertTaint = $insertTaint->withParamSinkTaint( 3, new Taintedness( self::SQL_EXEC_TAINT ) )
-			->withParamFlags( 3, self::NO_OVERRIDE );
+		$insertTaint = $insertTaint->withParamSinkTaint( 3, $sqlExecTaint, self::NO_OVERRIDE );
 
 		$insertQBRowTaint = FunctionTaintedness::emptySingleton();
-		$insertQBRowTaint = $insertQBRowTaint->withParamSinkTaint( 0, clone $sqlExecKeysTaint )
-			->withParamFlags( 0, self::NO_OVERRIDE );
+		$insertQBRowTaint = $insertQBRowTaint->withParamSinkTaint( 0, clone $sqlExecKeysTaint, self::NO_OVERRIDE );
 
 		$insertQBRowsTaint = FunctionTaintedness::emptySingleton();
 		$multiRowsTaint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, clone $sqlExecKeysTaint );
-		$insertQBRowsTaint = $insertQBRowsTaint->withParamSinkTaint( 0, $multiRowsTaint )
-			->withParamFlags( 0, self::NO_OVERRIDE );
+		$insertQBRowsTaint = $insertQBRowsTaint->withParamSinkTaint( 0, $multiRowsTaint, self::NO_OVERRIDE );
 
 		$htmlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::HTML_EXEC_TAINT );
 
 		$sinkKeysTaint = FunctionTaintedness::emptySingleton();
-		$sinkKeysTaint = $sinkKeysTaint->withParamSinkTaint( 0, $htmlExecKeysTaint )
-			->withParamFlags( 0, self::NO_OVERRIDE );
+		$sinkKeysTaint = $sinkKeysTaint->withParamSinkTaint( 0, $htmlExecKeysTaint, self::NO_OVERRIDE );
 
 		$sinkKeysOfUnknownDimTaint = FunctionTaintedness::emptySingleton();
 		$htmlExecKeysOfUnknownTaint = Taintedness::safeSingleton()
 			->withAddedOffsetTaintedness( null, clone $htmlExecKeysTaint );
-		$sinkKeysOfUnknownDimTaint = $sinkKeysOfUnknownDimTaint->withParamSinkTaint( 0, $htmlExecKeysOfUnknownTaint )
-			->withParamFlags( 0, self::NO_OVERRIDE );
+		$sinkKeysOfUnknownDimTaint = $sinkKeysOfUnknownDimTaint
+			->withParamSinkTaint( 0, $htmlExecKeysOfUnknownTaint, self::NO_OVERRIDE );
 
 		return [
 			'\Wikimedia\Rdbms\Database::query' => [

@@ -624,12 +624,10 @@ trait TaintednessBaseVisitor {
 				$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT )->asPreservedTaintedness();
 				if ( $isVariadic ) {
 					$funcTaint = $funcTaint->withVariadicParamSinkTaint( $paramNumber, $sinkTaint )
-						->withVariadicParamPreservedTaint( $paramNumber, $preserveTaint )
-						->withVariadicParamFlags( $flags );
+						->withVariadicParamPreservedTaint( $paramNumber, $preserveTaint, $flags );
 				} else {
 					$funcTaint = $funcTaint->withParamSinkTaint( $paramNumber, $sinkTaint )
-						->withParamPreservedTaint( $paramNumber, $preserveTaint )
-						->withParamFlags( $paramNumber, $flags );
+						->withParamPreservedTaint( $paramNumber, $preserveTaint, $flags );
 				}
 				$fakeMethodLinks = $fakeMethodLinks->withFuncAndParam( $func, $paramNumber );
 				$validTaintEncountered = true;
@@ -652,7 +650,7 @@ trait TaintednessBaseVisitor {
 					$invalidLineIssueEmitter( "Return taintedness cannot be exec", [] );
 					continue;
 				}
-				$funcTaint = $funcTaint->withOverall( $taint )->withOverallFlags( $flags );
+				$funcTaint = $funcTaint->withOverall( $taint, $flags );
 				$validTaintEncountered = true;
 			}
 		}
