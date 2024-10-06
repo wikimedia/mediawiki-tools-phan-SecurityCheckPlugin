@@ -262,7 +262,7 @@ class FunctionTaintedness {
 		foreach ( $other->paramSinkTaints as $index => $baseT ) {
 			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
 				if ( isset( $this->paramSinkTaints[$index] ) ) {
-					$this->paramSinkTaints[$index]->mergeWith( $baseT );
+					$this->paramSinkTaints[$index] = $this->paramSinkTaints[$index]->asMergedWith( $baseT );
 				} else {
 					$this->paramSinkTaints[$index] = $baseT;
 				}
@@ -287,7 +287,7 @@ class FunctionTaintedness {
 				$sinkVariadic = $other->variadicParamSinkTaint;
 				if ( $sinkVariadic ) {
 					if ( $this->variadicParamSinkTaint ) {
-						$this->variadicParamSinkTaint->mergeWith( $sinkVariadic );
+						$this->variadicParamSinkTaint = $this->variadicParamSinkTaint->asMergedWith( $sinkVariadic );
 					} else {
 						$this->variadicParamSinkTaint = $sinkVariadic;
 					}

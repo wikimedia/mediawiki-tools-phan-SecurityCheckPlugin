@@ -158,10 +158,12 @@ class ParamLinksOffsets {
 			$ret = new Taintedness( SecurityCheckPlugin::NO_TAINT );
 		}
 		foreach ( $this->dims as $k => $val ) {
-			$ret->mergeWith( $val->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( $k ) ) );
+			$ret = $ret->asMergedWith(
+				$val->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( $k ) )
+			);
 		}
 		if ( $this->unknown ) {
-			$ret->mergeWith(
+			$ret = $ret->asMergedWith(
 				$this->unknown->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( null ) )
 			);
 		}

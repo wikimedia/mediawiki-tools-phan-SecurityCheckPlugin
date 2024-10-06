@@ -60,7 +60,7 @@ class TaintednessWithError {
 	 * @param TaintednessWithError $other
 	 */
 	public function mergeWith( self $other ): void {
-		$this->taintedness->mergeWith( $other->taintedness );
+		$this->taintedness = $this->taintedness->asMergedWith( $other->taintedness );
 		$this->error->mergeWith( $other->error );
 		$this->methodLinks = $this->methodLinks->asMergedWith( $other->methodLinks );
 	}

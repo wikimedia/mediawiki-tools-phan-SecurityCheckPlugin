@@ -101,7 +101,7 @@ class Taintedness {
 		if ( $this->dimTaint ) {
 			$ret->unknownDimsTaint ??= self::newSafe();
 			foreach ( $this->dimTaint as $keyTaint ) {
-				$ret->unknownDimsTaint->mergeWith( $keyTaint );
+				$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $keyTaint );
 			}
 		}
 		return $ret;
@@ -266,38 +266,29 @@ class Taintedness {
 	}
 
 	/**
-	 * Merge this object with $other, recursively and without creating a copy.
-	 * @see Taintedness::asMergedWith() if you need a copy
-	 *
-	 * @param Taintedness $other
-	 */
-	public function mergeWith( self $other ): void {
-		$this->flags |= $other->flags;
-		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
-			$this->unknownDimsTaint = $other->unknownDimsTaint;
-		} elseif ( $other->unknownDimsTaint ) {
-			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
-		}
-		$this->keysTaint |= $other->keysTaint;
-		foreach ( $other->dimTaint as $key => $val ) {
-			if ( !isset( $this->dimTaint[$key] ) ) {
-				$this->dimTaint[$key] = clone $val;
-			} else {
-				$this->dimTaint[$key]->mergeWith( $val );
-			}
-		}
-	}
-
-	/**
 	 * Merge this object with $other, recursively, creating a copy.
-	 * @see Taintedness::mergeWith() for in-place merge
 	 *
 	 * @param Taintedness $other
 	 * @return $this
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
-		$ret->mergeWith( $other );
+
+		$ret->flags |= $other->flags;
+		if ( $other->unknownDimsTaint && !$ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $other->unknownDimsTaint;
+		} elseif ( $other->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
+		}
+		$ret->keysTaint |= $other->keysTaint;
+		foreach ( $other->dimTaint as $key => $val ) {
+			if ( !isset( $ret->dimTaint[$key] ) ) {
+				$ret->dimTaint[$key] = clone $val;
+			} else {
+				$ret->dimTaint[$key] = $ret->dimTaint[$key]->asMergedWith( $val );
+			}
+		}
+
 		return $ret;
 	}
 
@@ -317,7 +308,7 @@ class Taintedness {
 			$ret->dimTaint[$offset] = $value;
 		} else {
 			$ret->unknownDimsTaint ??= self::newSafe();
-			$ret->unknownDimsTaint->mergeWith( $value );
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $value );
 		}
 
 		return $ret;
@@ -349,7 +340,7 @@ class Taintedness {
 		if ( !$ret->unknownDimsTaint ) {
 			$ret->unknownDimsTaint = $other->unknownDimsTaint;
 		} elseif ( $other->unknownDimsTaint ) {
-			$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
 		}
 		foreach ( $other->dimTaint as $k => $v ) {
 			$ret->dimTaint[$k] = isset( $ret->dimTaint[$k] )
@@ -372,7 +363,7 @@ class Taintedness {
 		if ( $other->unknownDimsTaint && !$ret->unknownDimsTaint ) {
 			$ret->unknownDimsTaint = $other->unknownDimsTaint;
 		} elseif ( $other->unknownDimsTaint ) {
-			$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
 		}
 		$ret->keysTaint |= $other->keysTaint;
 		// This is not recursive because array addition isn't
@@ -439,10 +430,10 @@ class Taintedness {
 	public function asValueFirstLevel(): self {
 		$ret = new self( $this->flags & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 		if ( $this->unknownDimsTaint ) {
-			$ret->mergeWith( $this->unknownDimsTaint );
+			$ret = $ret->asMergedWith( $this->unknownDimsTaint );
 		}
 		foreach ( $this->dimTaint as $val ) {
-			$ret->mergeWith( $val );
+			$ret = $ret->asMergedWith( $val );
 		}
 		return $ret;
 	}
@@ -479,7 +470,7 @@ class Taintedness {
 		}
 		$ret->unknownDimsTaint ??= self::newSafe();
 		foreach ( $ret->dimTaint as $dim => $taint ) {
-			$ret->unknownDimsTaint->mergeWith( $taint );
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $taint );
 			unset( $ret->dimTaint[$dim] );
 		}
 		return $ret;
@@ -507,7 +498,7 @@ class Taintedness {
 		$ret->dimTaint = array_replace( $ret->dimTaint, $other->dimTaint );
 		if ( $other->unknownDimsTaint ) {
 			if ( $ret->unknownDimsTaint ) {
-				$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+				$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
 			} else {
 				$ret->unknownDimsTaint = $other->unknownDimsTaint;
 			}
@@ -531,12 +522,12 @@ class Taintedness {
 		$ret->keysTaint |= $other->keysTaint;
 		$ret->unknownDimsTaint ??= new self( SecurityCheckPlugin::NO_TAINT );
 		if ( $other->unknownDimsTaint ) {
-			$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
 		}
 		// Finally, move taintedness from int keys to unknown
 		foreach ( $ret->dimTaint as $k => $val ) {
 			if ( is_int( $k ) ) {
-				$ret->unknownDimsTaint->mergeWith( $val );
+				$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $val );
 				unset( $ret->dimTaint[$k] );
 			}
 		}
@@ -624,7 +615,7 @@ class Taintedness {
 		foreach ( $offsets->getDims() as $k => $val ) {
 			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $val );
 			if ( isset( $ret->dimTaint[$k] ) ) {
-				$ret->dimTaint[$k]->mergeWith( $newVal );
+				$ret->dimTaint[$k] = $ret->dimTaint[$k]->asMergedWith( $newVal );
 			} else {
 				$ret->dimTaint[$k] = $newVal;
 			}
@@ -633,7 +624,7 @@ class Taintedness {
 		if ( $unknownOffs ) {
 			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $unknownOffs );
 			if ( $ret->unknownDimsTaint ) {
-				$ret->unknownDimsTaint->mergeWith( $newVal );
+				$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $newVal );
 			} else {
 				$ret->unknownDimsTaint = $newVal;
 			}

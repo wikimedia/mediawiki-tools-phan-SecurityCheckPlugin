@@ -44,7 +44,7 @@ class CausedByLines {
 			}
 			$idx = array_search( $line, array_column( $this->lines, 1 ), true );
 			if ( $idx !== false ) {
-				$this->lines[ $idx ][0]->mergeWith( $taintedness );
+				$this->lines[ $idx ][0] = $this->lines[ $idx ][0]->asMergedWith( $taintedness );
 				if ( $links && !$this->lines[$idx][2] ) {
 					$this->lines[$idx][2] = clone $links;
 				} elseif ( $links && $links !== $this->lines[$idx][2] ) {
@@ -177,7 +177,7 @@ class CausedByLines {
 		$subsIdx = self::getArraySubsetIdx( $baseLines, $newLines );
 		if ( $subsIdx !== false ) {
 			foreach ( $other->lines as $i => $cur ) {
-				$this->lines[ $i + $subsIdx ][0]->mergeWith( $cur[0] );
+				$this->lines[ $i + $subsIdx ][0] = $this->lines[ $i + $subsIdx ][0]->asMergedWith( $cur[0] );
 				$curLinks = $cur[2];
 				if ( $curLinks && !$this->lines[ $i + $subsIdx ][2] ) {
 					$this->lines[$i + $subsIdx][2] = $curLinks;
@@ -203,7 +203,7 @@ class CausedByLines {
 			if ( $expectedIndex >= 0 && self::getArraySubsetIdx( $newRev, $remaining ) === $expectedIndex ) {
 				$startIdx = $baseLen - $newLen + $expectedIndex;
 				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
-					$this->lines[$j][0]->mergeWith( $other->lines[$j - $startIdx][0] );
+					$this->lines[$j][0] = $this->lines[$j][0]->asMergedWith( $other->lines[$j - $startIdx][0] );
 					$secondLinks = $other->lines[$j - $startIdx][2];
 					if ( $secondLinks && !$this->lines[$j][2] ) {
 						$this->lines[$j][2] = $secondLinks;

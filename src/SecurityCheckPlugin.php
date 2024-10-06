@@ -248,7 +248,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				if ( $taintOrNull && $taintOrNull !== $prevTaint ) {
 					$prevTaint = $taintOrNull;
 					if ( $taintedness ) {
-						$taintedness->mergeWith( $taintOrNull );
+						$taintedness = $taintedness->asMergedWith( $taintOrNull );
 					} else {
 						$taintedness = $taintOrNull;
 					}

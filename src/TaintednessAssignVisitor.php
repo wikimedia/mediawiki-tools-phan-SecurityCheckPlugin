@@ -243,8 +243,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			if ( $this->dimDepth > 0 ) {
 				$curGlobalTaint = self::getTaintednessRaw( $globalVarObj );
 				if ( $curGlobalTaint ) {
-					$newGlobalTaint = clone $curGlobalTaint;
-					$newGlobalTaint->mergeWith( $this->rightTaint );
+					$newGlobalTaint = $curGlobalTaint->asMergedWith( $this->rightTaint );
 				} else {
 					$newGlobalTaint = $this->rightTaint;
 				}
