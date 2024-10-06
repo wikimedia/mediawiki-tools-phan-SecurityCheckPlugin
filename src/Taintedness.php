@@ -38,10 +38,6 @@ class Taintedness {
 	/**
 	 * @return self
 	 */
-	public static function newSafe(): self {
-		return new self( SecurityCheckPlugin::NO_TAINT );
-	}
-
 	public static function safeSingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
@@ -53,8 +49,12 @@ class Taintedness {
 	/**
 	 * @return self
 	 */
-	public static function newUnknown(): self {
-		return new self( SecurityCheckPlugin::UNKNOWN_TAINT );
+	public static function unknownSingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self( SecurityCheckPlugin::UNKNOWN_TAINT );
+		}
+		return $singleton;
 	}
 
 	/**
@@ -69,7 +69,7 @@ class Taintedness {
 	 * @return self
 	 */
 	public static function newFromArray( array $values ): self {
-		$ret = self::newSafe();
+		$ret = self::safeSingleton();
 		foreach ( $values as $key => $value ) {
 			assert( $value instanceof self );
 			$ret = $ret->withAddedOffsetTaintedness( $key, $value );
@@ -107,7 +107,7 @@ class Taintedness {
 		$ret->keysTaint = $this->keysTaint;
 		$ret->unknownDimsTaint = $this->unknownDimsTaint;
 		if ( $this->dimTaint ) {
-			$ret->unknownDimsTaint ??= self::newSafe();
+			$ret->unknownDimsTaint ??= self::safeSingleton();
 			foreach ( $this->dimTaint as $keyTaint ) {
 				$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $keyTaint );
 			}
@@ -315,7 +315,7 @@ class Taintedness {
 		if ( is_scalar( $offset ) ) {
 			$ret->dimTaint[$offset] = $value;
 		} else {
-			$ret->unknownDimsTaint ??= self::newSafe();
+			$ret->unknownDimsTaint ??= self::safeSingleton();
 			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $value );
 		}
 
@@ -416,7 +416,7 @@ class Taintedness {
 	 * @return self Always a copy
 	 */
 	public function asMaybeMovedAtOffset( $offset, int $offsetTaint = null ): self {
-		$ret = self::newSafe();
+		$ret = new self( SecurityCheckPlugin::NO_TAINT );
 		if ( $offsetTaint !== null ) {
 			$ret->keysTaint = $offsetTaint;
 		}
@@ -476,7 +476,7 @@ class Taintedness {
 		if ( !$ret->dimTaint ) {
 			return $ret;
 		}
-		$ret->unknownDimsTaint ??= self::newSafe();
+		$ret->unknownDimsTaint ??= self::safeSingleton();
 		foreach ( $ret->dimTaint as $dim => $taint ) {
 			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $taint );
 			unset( $ret->dimTaint[$dim] );
@@ -619,7 +619,7 @@ class Taintedness {
 		$offsetsFlags = $offsets->getFlags();
 		$ret = $offsetsFlags ?
 			$this->withOnly( ( $offsetsFlags & SecurityCheckPlugin::ALL_TAINT ) << 1 )
-			: self::newSafe();
+			: new self( SecurityCheckPlugin::NO_TAINT );
 		foreach ( $offsets->getDims() as $k => $val ) {
 			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $val );
 			if ( isset( $ret->dimTaint[$k] ) ) {
