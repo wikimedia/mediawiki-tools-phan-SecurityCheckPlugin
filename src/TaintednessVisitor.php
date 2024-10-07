@@ -961,7 +961,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$paramTaint = new FunctionTaintedness( $overallFuncTaint );
-		$funcError = new FunctionCausedByLines();
+		$funcError = FunctionCausedByLines::emptySingleton();
 
 		$links = $retTaintednessWithError->getMethodLinks();
 		$retError = $retTaintednessWithError->getError();
@@ -974,14 +974,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
 			if ( $param->isVariadic() ) {
 				$paramTaint = $paramTaint->withVariadicParamPreservedTaint( $i, $presTaint );
-				$funcError->setVariadicParamPreservedLines( $i, $paramError );
+				$funcError = $funcError->withVariadicParamPreservedLines( $i, $paramError );
 			} else {
 				$paramTaint = $paramTaint->withParamPreservedTaint( $i, $presTaint );
-				$funcError->setParamPreservedLines( $i, $paramError );
+				$funcError = $funcError->withParamPreservedLines( $i, $paramError );
 			}
 		}
 
-		$funcError->setGenericLines( $retError->getLinesForGenericReturn() );
+		$funcError = $funcError->withGenericLines( $retError->getLinesForGenericReturn() );
 		$this->addFuncTaint( $func, $paramTaint );
 		$newFuncTaint = self::getFuncTaint( $func );
 		assert( $newFuncTaint !== null );

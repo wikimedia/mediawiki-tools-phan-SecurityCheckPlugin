@@ -42,12 +42,10 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * @param FunctionInterface $func
-	 * @return FunctionCausedByLines
+	 * @return FunctionCausedByLines|null
 	 */
-	protected static function getFuncCausedByRawCloneOrEmpty( FunctionInterface $func ): FunctionCausedByLines {
-		return isset( $func->funcTaintedOriginalError )
-			? clone $func->funcTaintedOriginalError
-			: new FunctionCausedByLines();
+	protected static function getFuncCausedByRaw( FunctionInterface $func ): ?FunctionCausedByLines {
+		return $func->funcTaintedOriginalError ?? null;
 	}
 
 	/**

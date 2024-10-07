@@ -29,6 +29,14 @@ class FunctionCausedByLines {
 		$this->genericLines = CausedByLines::emptySingleton();
 	}
 
+	public static function emptySingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self();
+		}
+		return $singleton;
+	}
+
 	/**
 	 * @return CausedByLines
 	 * @suppress PhanUnreferencedPublicMethod
@@ -41,29 +49,34 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 * @param ?MethodLinks $links
+	 * @return self
 	 */
-	public function addGenericLines( array $lines, Taintedness $taint, ?MethodLinks $links = null ): void {
-		$this->genericLines = $this->genericLines->withAddedLines( $lines, $taint, $links );
+	public function withAddedGenericLines( array $lines, Taintedness $taint, ?MethodLinks $links = null ): self {
+		$ret = clone $this;
+		$ret->genericLines = $this->genericLines->withAddedLines( $lines, $taint, $links );
+		return $ret;
 	}
 
-	/**
-	 * @param CausedByLines $lines
-	 */
-	public function setGenericLines( CausedByLines $lines ): void {
-		$this->genericLines = $lines;
+	public function withGenericLines( CausedByLines $lines ): self {
+		$ret = clone $this;
+		$ret->genericLines = $lines;
+		return $ret;
 	}
 
 	/**
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
+	 * @return self
 	 */
-	public function addParamSinkLines( int $param, array $lines, Taintedness $taint ): void {
+	public function withAddedParamSinkLines( int $param, array $lines, Taintedness $taint ): self {
 		assert( $param !== $this->variadicParamIndex );
-		if ( !isset( $this->paramSinkLines[$param] ) ) {
-			$this->paramSinkLines[$param] = CausedByLines::emptySingleton();
+		$ret = clone $this;
+		if ( !isset( $ret->paramSinkLines[$param] ) ) {
+			$ret->paramSinkLines[$param] = CausedByLines::emptySingleton();
 		}
-		$this->paramSinkLines[$param] = $this->paramSinkLines[$param]->withAddedLines( $lines, $taint );
+		$ret->paramSinkLines[$param] = $ret->paramSinkLines[$param]->withAddedLines( $lines, $taint );
+		return $ret;
 	}
 
 	/**
@@ -71,71 +84,69 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 * @param ?MethodLinks $links
+	 * @return self
 	 */
-	public function addParamPreservedLines(
+	public function withAddedParamPreservedLines(
 		int $param,
 		array $lines,
 		Taintedness $taint,
 		?MethodLinks $links = null
-	): void {
+	): self {
 		assert( $param !== $this->variadicParamIndex );
-		if ( !isset( $this->paramPreservedLines[$param] ) ) {
-			$this->paramPreservedLines[$param] = CausedByLines::emptySingleton();
+		$ret = clone $this;
+		if ( !isset( $ret->paramPreservedLines[$param] ) ) {
+			$ret->paramPreservedLines[$param] = CausedByLines::emptySingleton();
 		}
-		$this->paramPreservedLines[$param] = $this->paramPreservedLines[$param]
+		$ret->paramPreservedLines[$param] = $ret->paramPreservedLines[$param]
 			->withAddedLines( $lines, $taint, $links );
+		return $ret;
 	}
 
-	/**
-	 * @param int $param
-	 * @param CausedByLines $lines
-	 */
-	public function setParamSinkLines( int $param, CausedByLines $lines ): void {
-		$this->paramSinkLines[$param] = $lines;
+	public function withParamSinkLines( int $param, CausedByLines $lines ): self {
+		$ret = clone $this;
+		$ret->paramSinkLines[$param] = $lines;
+		return $ret;
 	}
 
-	/**
-	 * @param int $param
-	 * @param CausedByLines $lines
-	 */
-	public function setParamPreservedLines( int $param, CausedByLines $lines ): void {
-		$this->paramPreservedLines[$param] = $lines;
+	public function withParamPreservedLines( int $param, CausedByLines $lines ): self {
+		$ret = clone $this;
+		$ret->paramPreservedLines[$param] = $lines;
+		return $ret;
 	}
 
-	/**
-	 * @param int $param
-	 * @param CausedByLines $lines
-	 */
-	public function setVariadicParamSinkLines( int $param, CausedByLines $lines ): void {
-		$this->variadicParamIndex = $param;
-		$this->variadicParamSinkLines = $lines;
+	public function withVariadicParamSinkLines( int $param, CausedByLines $lines ): self {
+		$ret = clone $this;
+		$ret->variadicParamIndex = $param;
+		$ret->variadicParamSinkLines = $lines;
+		return $ret;
 	}
 
-	/**
-	 * @param int $param
-	 * @param CausedByLines $lines
-	 */
-	public function setVariadicParamPreservedLines( int $param, CausedByLines $lines ): void {
-		$this->variadicParamIndex = $param;
-		$this->variadicParamPreservedLines = $lines;
+	public function withVariadicParamPreservedLines( int $param, CausedByLines $lines ): self {
+		$ret = clone $this;
+		$ret->variadicParamIndex = $param;
+		$ret->variadicParamPreservedLines = $lines;
+		return $ret;
 	}
 
 	/**
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
+	 * @return self
 	 */
-	public function addVariadicParamSinkLines(
+	public function withAddedVariadicParamSinkLines(
 		int $param,
 		array $lines,
 		Taintedness $taint
-	): void {
+	): self {
 		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
-		$this->variadicParamIndex = $param;
-		if ( !$this->variadicParamSinkLines ) {
-			$this->variadicParamSinkLines = CausedByLines::emptySingleton();
+		$ret = clone $this;
+		$ret->variadicParamIndex = $param;
+		if ( !$ret->variadicParamSinkLines ) {
+			$ret->variadicParamSinkLines = CausedByLines::emptySingleton();
 		}
-		$this->variadicParamSinkLines = $this->variadicParamSinkLines->withAddedLines( $lines, $taint );
+		$ret->variadicParamSinkLines = $ret->variadicParamSinkLines->withAddedLines( $lines, $taint );
+		return $ret;
 	}
 
 	/**
@@ -143,20 +154,23 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 * @param ?MethodLinks $links
+	 * @return self
 	 */
-	public function addVariadicParamPreservedLines(
+	public function withAddedVariadicParamPreservedLines(
 		int $param,
 		array $lines,
 		Taintedness $taint,
 		?MethodLinks $links = null
-	): void {
+	): self {
 		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
-		$this->variadicParamIndex = $param;
-		if ( !$this->variadicParamPreservedLines ) {
-			$this->variadicParamPreservedLines = CausedByLines::emptySingleton();
+		$ret = clone $this;
+		$ret->variadicParamIndex = $param;
+		if ( !$ret->variadicParamPreservedLines ) {
+			$ret->variadicParamPreservedLines = CausedByLines::emptySingleton();
 		}
-		$this->variadicParamPreservedLines = $this->variadicParamPreservedLines
+		$ret->variadicParamPreservedLines = $ret->variadicParamPreservedLines
 			->withAddedLines( $lines, $taint, $links );
+		return $ret;
 	}
 
 	/**
@@ -196,50 +210,53 @@ class FunctionCausedByLines {
 	/**
 	 * @param FunctionCausedByLines $other
 	 * @param FunctionTaintedness $funcTaint To check NO_OVERRIDE
+	 * @return self
 	 */
-	public function mergeWith( self $other, FunctionTaintedness $funcTaint ): void {
+	public function asMergedWith( self $other, FunctionTaintedness $funcTaint ): self {
+		$ret = clone $this;
 		if ( $funcTaint->canOverrideOverall() ) {
-			$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
+			$ret->genericLines = $ret->genericLines->asMergedWith( $other->genericLines );
 		}
 		foreach ( $other->paramSinkLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
-				if ( isset( $this->paramSinkLines[$param] ) ) {
-					$this->paramSinkLines[$param] = $this->paramSinkLines[$param]->asMergedWith( $lines );
+				if ( isset( $ret->paramSinkLines[$param] ) ) {
+					$ret->paramSinkLines[$param] = $ret->paramSinkLines[$param]->asMergedWith( $lines );
 				} else {
-					$this->paramSinkLines[$param] = $lines;
+					$ret->paramSinkLines[$param] = $lines;
 				}
 			}
 		}
 		foreach ( $other->paramPreservedLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
-				if ( isset( $this->paramPreservedLines[$param] ) ) {
-					$this->paramPreservedLines[$param] = $this->paramPreservedLines[$param]->asMergedWith( $lines );
+				if ( isset( $ret->paramPreservedLines[$param] ) ) {
+					$ret->paramPreservedLines[$param] = $ret->paramPreservedLines[$param]->asMergedWith( $lines );
 				} else {
-					$this->paramPreservedLines[$param] = $lines;
+					$ret->paramPreservedLines[$param] = $lines;
 				}
 			}
 		}
 		$variadicIndex = $other->variadicParamIndex;
 		if ( $variadicIndex !== null && $funcTaint->canOverrideVariadicParam() ) {
-			$this->variadicParamIndex = $variadicIndex;
+			$ret->variadicParamIndex = $variadicIndex;
 			$sinkVariadic = $other->variadicParamSinkLines;
 			if ( $sinkVariadic ) {
-				if ( $this->variadicParamSinkLines ) {
-					$this->variadicParamSinkLines = $this->variadicParamSinkLines->asMergedWith( $sinkVariadic );
+				if ( $ret->variadicParamSinkLines ) {
+					$ret->variadicParamSinkLines = $ret->variadicParamSinkLines->asMergedWith( $sinkVariadic );
 				} else {
-					$this->variadicParamSinkLines = $sinkVariadic;
+					$ret->variadicParamSinkLines = $sinkVariadic;
 				}
 			}
 			$preserveVariadic = $other->variadicParamPreservedLines;
 			if ( $preserveVariadic ) {
-				if ( $this->variadicParamPreservedLines ) {
-					$this->variadicParamPreservedLines = $this->variadicParamPreservedLines
+				if ( $ret->variadicParamPreservedLines ) {
+					$ret->variadicParamPreservedLines = $this->variadicParamPreservedLines
 						->asMergedWith( $preserveVariadic );
 				} else {
-					$this->variadicParamPreservedLines = $preserveVariadic;
+					$ret->variadicParamPreservedLines = $preserveVariadic;
 				}
 			}
 		}
+		return $ret;
 	}
 
 	/**

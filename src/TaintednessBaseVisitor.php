@@ -136,19 +136,19 @@ trait TaintednessBaseVisitor {
 		// Future TODO: we might consider using PreservedTaintedness from the funcs instead of MethodLinks, but using
 		// links is more consistent with what we do for non-function causedby lines.
 
-		$newErr = self::getFuncCausedByRawCloneOrEmpty( $func );
+		$newErr = self::getFuncCausedByRaw( $func ) ?? FunctionCausedByLines::emptySingleton();
 
 		foreach ( $addedTaint->getSinkParamKeysNoVariadic() as $key ) {
 			if ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) {
 				$curTaint = $addedTaint->getParamSinkTaint( $key );
 				if ( $curTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
-					$newErr->addParamSinkLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
+					$newErr = $newErr->withAddedParamSinkLines( $key, $newErrors, $curTaint->asExecToYesTaint() );
 				}
 			}
 		}
 		foreach ( $addedTaint->getPreserveParamKeysNoVariadic() as $key ) {
 			if ( $hasReturnLinks && ( $reason || $allNewTaint->canOverrideNonVariadicParam( $key ) ) ) {
-				$newErr->addParamPreservedLines(
+				$newErr = $newErr->withAddedParamPreservedLines(
 					$key,
 					$newErrors,
 					Taintedness::safeSingleton(),
@@ -160,14 +160,14 @@ trait TaintednessBaseVisitor {
 		if ( $variadicIndex !== null && ( $reason || $allNewTaint->canOverrideVariadicParam() ) ) {
 			$sinkVariadic = $addedTaint->getVariadicParamSinkTaint();
 			if ( $sinkVariadic && $sinkVariadic->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
-				$newErr->addVariadicParamSinkLines(
+				$newErr = $newErr->withAddedVariadicParamSinkLines(
 					$variadicIndex,
 					$newErrors,
 					$sinkVariadic->asExecToYesTaint()
 				);
 			}
 			if ( $hasReturnLinks ) {
-				$newErr->addVariadicParamPreservedLines(
+				$newErr = $newErr->withAddedVariadicParamPreservedLines(
 					$variadicIndex,
 					$newErrors,
 					Taintedness::safeSingleton(),
@@ -179,7 +179,7 @@ trait TaintednessBaseVisitor {
 		$curTaint = $addedTaint->getOverall();
 		if ( ( $reason || $allNewTaint->canOverrideOverall() ) && $curTaint->has( SecurityCheckPlugin::ALL_TAINT ) ) {
 			// Note, the generic error shouldn't have any link
-			$newErr->addGenericLines( $newErrors, $curTaint );
+			$newErr = $newErr->withAddedGenericLines( $newErrors, $curTaint );
 		}
 
 		self::setFuncCausedByRaw( $func, $newErr );
@@ -215,9 +215,8 @@ trait TaintednessBaseVisitor {
 		FunctionCausedByLines $newError,
 		FunctionTaintedness $allFuncTaint
 	): void {
-		$funcError = self::getFuncCausedByRawCloneOrEmpty( $func );
-		$funcError->mergeWith( $newError, $allFuncTaint );
-		self::setFuncCausedByRaw( $func, $funcError );
+		$curError = self::getFuncCausedByRaw( $func ) ?? FunctionCausedByLines::emptySingleton();
+		self::setFuncCausedByRaw( $func, $curError->asMergedWith( $newError, $allFuncTaint ) );
 	}
 
 	/**
@@ -1325,8 +1324,8 @@ trait TaintednessBaseVisitor {
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
 				$paramTaint = FunctionTaintedness::emptySingleton();
-				$funcArgError = new FunctionCausedByLines();
-				$funcSinkError = new FunctionCausedByLines();
+				$funcArgError = FunctionCausedByLines::emptySingleton();
+				$funcSinkError = FunctionCausedByLines::emptySingleton();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
 					$curVarBackpropError = $curVarError
@@ -1335,12 +1334,12 @@ trait TaintednessBaseVisitor {
 						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i, true );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint = $paramTaint->withVariadicParamSinkTaint( $i, $curParTaint );
-						$funcArgError->setVariadicParamSinkLines( $i, $curVarBackpropError );
-						$funcSinkError->setVariadicParamSinkLines( $i, $curSinkBackpropError );
+						$funcArgError = $funcArgError->withVariadicParamSinkLines( $i, $curVarBackpropError );
+						$funcSinkError = $funcSinkError->withVariadicParamSinkLines( $i, $curSinkBackpropError );
 					} else {
 						$paramTaint = $paramTaint->withParamSinkTaint( $i, $curParTaint );
-						$funcArgError->setParamSinkLines( $i, $curVarBackpropError );
-						$funcSinkError->setParamSinkLines( $i, $curSinkBackpropError );
+						$funcArgError = $funcArgError->withParamSinkLines( $i, $curVarBackpropError );
+						$funcSinkError = $funcSinkError->withParamSinkLines( $i, $curSinkBackpropError );
 					}
 				}
 				$this->addFuncTaint( $method, $paramTaint );
@@ -1362,7 +1361,7 @@ trait TaintednessBaseVisitor {
 			/** @var FunctionCausedByLines $funcErrorFromArg */
 			$funcErrorFromArg = array_shift( $data['argerrors'] );
 			foreach ( $data['argerrors'] as $err ) {
-				$funcErrorFromArg->mergeWith( $err, $data['taint'] );
+				$funcErrorFromArg = $funcErrorFromArg->asMergedWith( $err, $data['taint'] );
 			}
 			$this->mergeFuncError( $method, $funcErrorFromArg, $data['taint'] );
 
@@ -1373,7 +1372,7 @@ trait TaintednessBaseVisitor {
 			/** @var FunctionCausedByLines $funcErrorFromSink */
 			$funcErrorFromSink = array_shift( $data['sinkerrors'] );
 			foreach ( $data['sinkerrors'] as $err ) {
-				$funcErrorFromSink->mergeWith( $err, $data['taint'] );
+				$funcErrorFromSink = $funcErrorFromSink->asMergedWith( $err, $data['taint'] );
 			}
 			$this->mergeFuncError( $method, $funcErrorFromSink, $data['taint'] );
 		}
@@ -1472,7 +1471,7 @@ trait TaintednessBaseVisitor {
 	 */
 	private function getCausedByLinesForFunc( FunctionInterface $element ): FunctionCausedByLines {
 		$element = $this->getActualFuncWithCausedBy( $element );
-		return self::getFuncCausedByRawCloneOrEmpty( $element );
+		return self::getFuncCausedByRaw( $element ) ?? FunctionCausedByLines::emptySingleton();
 	}
 
 	/**
