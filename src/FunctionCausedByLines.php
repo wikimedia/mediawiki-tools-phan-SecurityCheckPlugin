@@ -242,19 +242,6 @@ class FunctionCausedByLines {
 		}
 	}
 
-	public function __clone() {
-		$this->genericLines = clone $this->genericLines;
-		foreach ( $this->paramSinkLines as $k => $pLines ) {
-			$this->paramSinkLines[$k] = clone $pLines;
-		}
-		if ( $this->variadicParamSinkLines ) {
-			$this->variadicParamSinkLines = clone $this->variadicParamSinkLines;
-		}
-		if ( $this->variadicParamPreservedLines ) {
-			$this->variadicParamPreservedLines = clone $this->variadicParamPreservedLines;
-		}
-	}
-
 	/**
 	 * @return string
 	 */

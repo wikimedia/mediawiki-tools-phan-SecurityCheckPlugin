@@ -314,25 +314,6 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * Make sure to clone properties when cloning the instance
-	 */
-	public function __clone() {
-		$this->overall = clone $this->overall;
-		foreach ( $this->paramSinkTaints as $k => $e ) {
-			$this->paramSinkTaints[$k] = clone $e;
-		}
-		foreach ( $this->paramPreserveTaints as $k => $t ) {
-			$this->paramPreserveTaints[$k] = clone $t;
-		}
-		if ( $this->variadicParamSinkTaint ) {
-			$this->variadicParamSinkTaint = clone $this->variadicParamSinkTaint;
-		}
-		if ( $this->variadicParamPreserveTaint ) {
-			$this->variadicParamPreserveTaint = clone $this->variadicParamPreserveTaint;
-		}
-	}
-
-	/**
 	 * @return string
 	 */
 	public function toString(): string {

@@ -322,7 +322,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitClone( Node $node ): void {
-		$this->curTaintWithError = clone $this->getTaintedness( $node->children['expr'] );
+		$this->curTaintWithError = $this->getTaintedness( $node->children['expr'] );
 		$this->setCachedData( $node );
 	}
 
@@ -1099,7 +1099,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$exprType = $this->getNodeType( $nodeExpr );
 		$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
 		if ( $exprType && $exprType->hasType( $stdClassType ) ) {
-			$exprTaint = clone $this->getTaintedness( $nodeExpr );
+			$exprTaint = $this->getTaintedness( $nodeExpr );
 			$this->curTaintWithError = new TaintednessWithError(
 				$exprTaint->getTaintedness(),
 				$exprTaint->getError(),
@@ -1187,7 +1187,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			\ast\flags\UNARY_SILENCE
 		];
 		if ( in_array( $node->flags, $unsafe, true ) ) {
-			$this->curTaintWithError = clone $this->getTaintedness( $node->children['expr'] );
+			$this->curTaintWithError = $this->getTaintedness( $node->children['expr'] );
 		} else {
 			$this->setCurTaintSafe();
 		}
@@ -1229,7 +1229,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	private function analyzeIncOrDec( Node $node ): void {
-		$this->curTaintWithError = clone $this->getTaintedness( $node->children['var'] );
+		$this->curTaintWithError = $this->getTaintedness( $node->children['var'] );
 		$this->setCachedData( $node );
 	}
 

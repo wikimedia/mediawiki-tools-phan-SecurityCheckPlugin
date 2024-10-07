@@ -83,10 +83,4 @@ class TaintednessWithError {
 		$ret->methodLinks = $ret->methodLinks->asMergedWith( $other->methodLinks );
 		return $ret;
 	}
-
-	public function __clone() {
-		$this->taintedness = clone $this->taintedness;
-		$this->error = clone $this->error;
-		$this->methodLinks = clone $this->methodLinks;
-	}
 }
