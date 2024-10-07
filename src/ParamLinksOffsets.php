@@ -167,7 +167,7 @@ class ParamLinksOffsets {
 				$this->unknown->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( null ) )
 			);
 		}
-		// XXX Should we do something to the keys here?
+		$ret = $ret->with( $taintedness->asKeyForForeach()->withOnly( $this->keysFlags )->get() );
 		return $ret;
 	}
 

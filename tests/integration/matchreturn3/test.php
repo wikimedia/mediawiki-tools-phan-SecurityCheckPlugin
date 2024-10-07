@@ -81,14 +81,14 @@ function preserveKeys( $arg ) {
 		return $k;
 	}
 }
-echo preserveKeys( $_GET['a'] ); // TODO Unsafe
-echo preserveKeys( getHTML() ); // TODO Unsafe
+echo preserveKeys( $_GET['a'] ); // Unsafe
+echo preserveKeys( getHTML() ); // Unsafe
 echo preserveKeys( getShell() ); // Safe
 echo preserveKeys( [ 'x' => $_GET['a'] ] ); // Safe
 echo preserveKeys( [ 'x' => getHTML() ] ); // Safe
 echo preserveKeys( [ 'x' => getShell() ] ); // Safe
-echo preserveKeys( [ $_GET['a'] => '' ] ); // TODO Unsafe
-echo preserveKeys( [ getHTML() => '' ] ); // TODO Unsafe
+echo preserveKeys( [ $_GET['a'] => '' ] ); // Unsafe
+echo preserveKeys( [ getHTML() => '' ] ); // Unsafe
 echo preserveKeys( [ getShell() => '' ] ); // Safe
 
 function preserveEscapedKeys( $arg ) {
