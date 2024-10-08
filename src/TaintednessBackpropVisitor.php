@@ -103,11 +103,19 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	public function visitArrayElem( Node $node ): void {
 		$key = $node->children['key'];
 		if ( $key instanceof Node ) {
-			$this->recurse( $key, $this->taintedness->asKeyForForeach() );
+			$this->recurse(
+				$key,
+				$this->taintedness->asKeyForForeach(),
+				$this->additionalError ? $this->additionalError->asAllKeyForForeach() : null
+			);
 		}
 		$value = $node->children['value'];
 		if ( $value instanceof Node ) {
-			$this->recurse( $value, $this->taintedness->getTaintednessForOffsetOrWhole( $key ) );
+			$this->recurse(
+				$value,
+				$this->taintedness->getTaintednessForOffsetOrWhole( $key ),
+				$this->additionalError ? $this->additionalError->getForDim( $key ) : null
+			);
 		}
 	}
 
@@ -132,7 +140,11 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 			// FIXME. doesn't handle tainted array keys!
 			$offs = $node->children['dim'];
 			$realOffs = $offs !== null ? $this->resolveOffset( $offs ) : null;
-			$this->recurse( $node->children['expr'], $this->taintedness->asMaybeMovedAtOffset( $realOffs ) );
+			$this->recurse(
+				$node->children['expr'],
+				$this->taintedness->asMaybeMovedAtOffset( $realOffs ),
+				$this->additionalError ? $this->additionalError->asAllMaybeMovedAtOffset( $realOffs ) : null
+			);
 		}
 	}
 
@@ -277,18 +289,21 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 *
 	 * @param Node $node
 	 * @param Taintedness|null $taint
+	 * @param CausedByLines|null $error
 	 */
-	private function recurse( Node $node, Taintedness $taint = null ): void {
+	private function recurse( Node $node, Taintedness $taint = null, CausedByLines $error = null ): void {
 		if ( !$taint ) {
 			$this( $node );
 			return;
 		}
-		$oldTaint = $this->taintedness;
+
+		[ $oldTaint, $oldErr ] = [ $this->taintedness, $this->additionalError ];
 		$this->taintedness = $taint;
+		$this->additionalError = $error;
 		try {
 			$this( $node );
 		} finally {
-			$this->taintedness = $oldTaint;
+			[ $this->taintedness, $this->additionalError ] = [ $oldTaint, $oldErr ];
 		}
 	}
 

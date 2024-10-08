@@ -2,6 +2,7 @@
 
 namespace SecurityCheckPlugin;
 
+use ast\Node;
 use Phan\Language\Element\FunctionInterface;
 
 /**
@@ -174,6 +175,113 @@ class CausedByLines {
 	}
 
 	/**
+	 * Returns a copy of $this with all taintedness and links moved at the given offset.
+	 * @param Node|mixed $offset
+	 * @return self
+	 */
+	public function asAllMaybeMovedAtOffset( $offset ): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$ret->lines[] = [
+				$lineTaint->asMaybeMovedAtOffset( $offset ),
+				$lineLine,
+				$lineLinks ? $lineLinks->asMaybeMovedAtOffset( $offset ) : null
+			];
+		}
+		return $ret;
+	}
+
+	/**
+	 * Returns a copy of $this with all taintedness and links moved inside keys.
+	 * @return self
+	 */
+	public function asAllMovedToKeys(): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$ret->lines[] = [
+				$lineTaint->asMovedToKeys(),
+				$lineLine,
+				$lineLinks ? $lineLinks->asMovedToKeys() : null
+			];
+		}
+		return $ret;
+	}
+
+	/**
+	 * @param Node|mixed $dim
+	 * @return self
+	 */
+	public function getForDim( $dim ): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$newTaint = $lineTaint->getTaintednessForOffsetOrWhole( $dim );
+			$newLinks = $lineLinks ? $lineLinks->getForDim( $dim ) : null;
+			if ( !$newTaint->isSafe() || ( $newLinks && !$newLinks->isEmpty() ) ) {
+				$ret->lines[] = [
+					$newTaint,
+					$lineLine,
+					$newLinks
+				];
+			}
+		}
+		return $ret;
+	}
+
+	public function asAllCollapsed(): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$ret->lines[] = [
+				$lineTaint->asCollapsed(),
+				$lineLine,
+				$lineLinks ? $lineLinks->asCollapsed() : null
+			];
+		}
+		return $ret;
+	}
+
+	public function asAllValueFirstLevel(): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$ret->lines[] = [
+				$lineTaint->asValueFirstLevel(),
+				$lineLine,
+				$lineLinks ? $lineLinks->asValueFirstLevel() : null
+			];
+		}
+		return $ret;
+	}
+
+	public function asAllKeyForForeach(): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$ret->lines[] = [
+				$lineTaint->asKeyForForeach(),
+				$lineLine,
+				$lineLinks ? $lineLinks->asKeyForForeach() : null
+			];
+		}
+		return $ret;
+	}
+
+	/**
 	 * @note this isn't a merge operation like array_merge. What this method does is:
 	 * 1 - if $other is a subset of $this, leave $this as-is;
 	 * 2 - update taintedness values in $this if the *lines* (not taint values) in $other
@@ -186,9 +294,10 @@ class CausedByLines {
 	 * even a single taintedness value in $this changes.
 	 *
 	 * @param self $other
+	 * @param int $dimDepth Only used for assignments; depth of the array index access on the LHS.
 	 * @return self
 	 */
-	public function asMergedWith( self $other ): self {
+	public function asMergedWith( self $other, int $dimDepth = 0 ): self {
 		$ret = clone $this;
 
 		if ( !$ret->lines ) {
@@ -218,14 +327,18 @@ class CausedByLines {
 			foreach ( $other->lines as $i => $otherLine ) {
 				/** @var Taintedness $curTaint */
 				$curTaint = $ret->lines[ $i + $subsIdx ][0];
-				$ret->lines[ $i + $subsIdx ][0] = $curTaint->asMergedWith( $otherLine[0] );
+				$ret->lines[ $i + $subsIdx ][0] = $dimDepth
+					? $curTaint->asMergedForAssignment( $otherLine[0], $dimDepth )
+					: $curTaint->asMergedWith( $otherLine[0] );
 				/** @var MethodLinks $curLinks */
 				$curLinks = $ret->lines[ $i + $subsIdx ][2];
 				$otherLinks = $otherLine[2];
 				if ( $otherLinks && !$curLinks ) {
 					$ret->lines[$i + $subsIdx][2] = $otherLinks;
 				} elseif ( $otherLinks && $otherLinks !== $curLinks ) {
-					$ret->lines[$i + $subsIdx][2] = $curLinks->asMergedWith( $otherLinks );
+					$ret->lines[$i + $subsIdx][2] = $dimDepth
+						? $curLinks->asMergedForAssignment( $otherLinks, $dimDepth )
+						: $curLinks->asMergedWith( $otherLinks );
 				}
 			}
 			return $ret;
@@ -249,14 +362,18 @@ class CausedByLines {
 					/** @var Taintedness $curTaint */
 					$curTaint = $ret->lines[$j][0];
 					$otherTaint = $other->lines[$j - $startIdx][0];
-					$ret->lines[$j][0] = $curTaint->asMergedWith( $otherTaint );
+					$ret->lines[$j][0] = $dimDepth
+						? $curTaint->asMergedForAssignment( $otherTaint, $dimDepth )
+						: $curTaint->asMergedWith( $otherTaint );
 					$secondLinks = $other->lines[$j - $startIdx][2];
 					/** @var MethodLinks $curLinks */
 					$curLinks = $ret->lines[$j][2];
 					if ( $secondLinks && !$curLinks ) {
 						$ret->lines[$j][2] = $secondLinks;
 					} elseif ( $secondLinks && $secondLinks !== $curLinks ) {
-						$ret->lines[$j][2] = $curLinks->asMergedWith( $secondLinks );
+						$ret->lines[$j][2] = $dimDepth
+							? $curLinks->asMergedForAssignment( $secondLinks, $dimDepth )
+							: $curLinks->asMergedWith( $secondLinks );
 					}
 				}
 				$resultingLines = array_merge( $ret->lines, array_slice( $other->lines, $newLen - $expectedIndex ) );

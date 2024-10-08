@@ -94,7 +94,7 @@ foreach ( $arr4['l2'] as $k => $_ ) {
 }
 
 $arr4[$_GET['u1']] = 'foo';
-$arr4['l1'][$_GET['u2']] = [];// TODO Exclude these lines from caused-by lines where appropriate (requires more granularity)
+$arr4['l1'][$_GET['u2']] = [];
 $arr4['l1']['l11'][$_GET['u2']] = [];
 foreach ( $arr4 as $k => $_ ) {
 	echo $k; // Unsafe

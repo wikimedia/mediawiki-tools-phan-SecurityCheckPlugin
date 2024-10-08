@@ -26,7 +26,7 @@ echo $arr2; // Safe
 $arr1['stillsafe'] = $arr2[ $GLOBALS['unknown'] ];
 echo $arr1['stillsafe']; // Safe
 
-htmlspecialchars( $arr2[ $GLOBALS['alsounknown'] ] ); // DoubleEscaped, can only be caused by $arr2['esc2'] at line 9. TODO Should not be caused by line 3
+htmlspecialchars( $arr2[ $GLOBALS['alsounknown'] ] ); // DoubleEscaped, can only be caused by $arr2['esc2'] at line 9 (and not line 3)
 
 $arr1 = [
 	'l1' => [

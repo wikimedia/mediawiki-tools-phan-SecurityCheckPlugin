@@ -428,6 +428,12 @@ class Taintedness {
 		return $ret;
 	}
 
+	public function asMovedToKeys(): self {
+		$ret = new self( SecurityCheckPlugin::NO_TAINT );
+		$ret->keysTaint = $this->get();
+		return $ret;
+	}
+
 	/**
 	 * Get a representation of this taint at the first depth level. For instance, this can be used in a foreach
 	 * assignment for the value. Own taint and unknown keys taint are preserved, and then we merge in recursively
@@ -684,31 +690,36 @@ class Taintedness {
 	 * in each pair should be backpropagated to the links in the LinksSet.
 	 *
 	 * @param MethodLinks $links
-	 * @return array<array<LinksSet|Taintedness>>
-	 * @phan-return array<array{0:LinksSet,1:Taintedness}>
+	 * @param CausedByLines $error
+	 * @return array<array<LinksSet|Taintedness|CausedByLines>>
+	 * @phan-return array<array{0:LinksSet,1:Taintedness,2:CausedByLines}>
 	 */
-	public function decomposeForLinks( MethodLinks $links ): array {
+	public function decomposeForLinks( MethodLinks $links, CausedByLines $error ): array {
 		$pairs = [];
 
 		if ( $this->flags !== SecurityCheckPlugin::NO_TAINT ) {
-			$pairs[] = [ $links->getLinksCollapsing(), new self( $this->flags ) ];
+			$pairs[] = [ $links->getLinksCollapsing(), new self( $this->flags ), $error ];
 		}
 
 		if ( $this->keysTaint !== SecurityCheckPlugin::NO_TAINT ) {
-			$pairs[] = [ $links->asKeyForForeach()->getLinksCollapsing(), $this->asKeyForForeach() ];
+			$pairs[] = [
+				$links->asKeyForForeach()->getLinksCollapsing(),
+				$this->asKeyForForeach(),
+				$error->asAllKeyForForeach()
+			];
 		}
 
 		foreach ( $this->dimTaint as $k => $dimTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				$dimTaint->decomposeForLinks( $links->getForDim( $k ) )
+				$dimTaint->decomposeForLinks( $links->getForDim( $k ), $error->getForDim( $k ) )
 			);
 		}
 
 		if ( $this->unknownDimsTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				$this->unknownDimsTaint->decomposeForLinks( $links->getForDim( null ) )
+				$this->unknownDimsTaint->decomposeForLinks( $links->getForDim( null ), $error->getForDim( null ) )
 			);
 		}
 		return $pairs;

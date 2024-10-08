@@ -410,7 +410,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$rhs = $node->children['expr'];
 
 		$rhsTaintedness = $this->getTaintedness( $rhs );
-
 		$curTaint = $this->doVisitAssign(
 			$lhs,
 			$rhs,
@@ -540,7 +539,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$offset = $this->resolveOffset( $node->children['dim'] );
 		$this->curTaintWithError = new TaintednessWithError(
 			$nodeTaint->getTaintedness()->getTaintednessForOffsetOrWhole( $offset ),
-			$nodeTaint->getError(),
+			$nodeTaint->getError()->getForDim( $offset ),
 			$nodeTaint->getMethodLinks()->getForDim( $offset )
 		);
 		$this->setCachedData( $node );
@@ -1035,8 +1034,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$offset = $this->resolveOffset( $offset );
 			$curTaint = $curTaint->withAddedOffsetTaintedness( $offset, $valTaint )
 				->withAddedKeysTaintedness( $keyTaint->get() );
-			$curError = $curError->asMergedWith( $keyTaintAll->getError() )
-				->asMergedWith( $valTaintAll->getError() );
+			$valError = $valTaintAll->getError()->asAllMaybeMovedAtOffset( $offset );
+			$keyError = $keyTaintAll->getError()->asAllMovedToKeys();
+			$curError = $curError->asMergedWith( $keyError )
+				->asMergedWith( $valError );
 			$links = $links->withKeysLinks( $keyTaintAll->getMethodLinks()->getLinksCollapsing() )
 				->withLinksAtDim( $offset, $valTaintAll->getMethodLinks() );
 		}

@@ -1273,7 +1273,7 @@ trait TaintednessBaseVisitor {
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
 		$newFuncErrorData = new Set();
-		foreach ( $taint->decomposeForLinks( $varLinks ) as [ $curLinks, $curTaint ] ) {
+		foreach ( $taint->decomposeForLinks( $varLinks, $backpropError ) as [ $curLinks, $curTaint, $curError ] ) {
 			/** @var LinksSet $curLinks */
 			/** @var Taintedness $curTaint */
 			foreach ( $curLinks as $method ) {
@@ -1284,7 +1284,7 @@ trait TaintednessBaseVisitor {
 				$funcError = new FunctionCausedByLines();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
-					$curBackpropError = $backpropError
+					$curBackpropError = $curError
 						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint = $paramTaint->withVariadicParamSinkTaint( $i, $curParTaint );
@@ -1912,7 +1912,8 @@ trait TaintednessBaseVisitor {
 			$combinedArgTaint = $combinedArgTaint->asMergedWith( $preservedArgTaint );
 			$relevantParamError = $funcError->getParamPreservedLines( $i )
 				->asPreservingTaintednessAndLinks( $preservedArgTaint, $curArgLinks );
-			$curArgError = $baseArgError->asIntersectedWithTaintedness( $preservedArgTaint )
+			// TODO: Improve shape of caused-by lines
+			$curArgError = $baseArgError->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint )
 				->asMergedWith( $relevantParamError );
 			// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
 			// than one argument, it will appear once per preserved argument in the overall caused-by of the
@@ -2110,7 +2111,7 @@ trait TaintednessBaseVisitor {
 					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asValueFirstLevel();
-				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				$error = $preserveArgumentsData[0][1]->asAllValueFirstLevel()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_values':
 				// Same taintedness as the original array (first and only param), but with safe keys and numkey.
@@ -2121,7 +2122,7 @@ trait TaintednessBaseVisitor {
 				if ( $taint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
 					$taint = $taint->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 				}
-				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				$error = $preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			// Functions that return a key from the array (first and only parameter)
 			case 'key':
@@ -2134,7 +2135,7 @@ trait TaintednessBaseVisitor {
 					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asKeyForForeach();
-				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				$error = $preserveArgumentsData[0][1]->asAllKeyForForeach()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_change_key_case':
 				// The overall shape remains the same, but the keys of the outermost array (first param) have different
@@ -2153,7 +2154,7 @@ trait TaintednessBaseVisitor {
 				}
 				$taint = $preserveArgumentsData[0][0]->asKeyForForeach()
 					->withAddedKeysTaintedness( $preserveArgumentsData[0][0]->asValueFirstLevel()->get() );
-				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				$error = $preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'implode':
 			case 'join':
@@ -2165,7 +2166,8 @@ trait TaintednessBaseVisitor {
 				// TODO: Right now we don't support the deprecated syntax; should we?
 				if ( isset( $preserveArgumentsData[0] ) ) {
 					$joinerTaint = $preserveArgumentsData[0][0]->asCollapsed();
-					$joinerError = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $joinerTaint );
+					$joinerError = $preserveArgumentsData[0][1]->asAllCollapsed()
+						->asIntersectedWithTaintedness( $joinerTaint );
 				}
 				$combinedTaint = $joinerTaint ?? Taintedness::safeSingleton();
 				$combinedError = $joinerError ?? CausedByLines::emptySingleton();
@@ -2173,7 +2175,7 @@ trait TaintednessBaseVisitor {
 					$arrayTaint = $preserveArgumentsData[1][0]->withoutKeys()->asCollapsed();
 					$combinedTaint = $combinedTaint->asMergedWith( $arrayTaint );
 					$combinedError = $combinedError->asMergedWith(
-						$preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $arrayTaint )
+						$preserveArgumentsData[1][1]->asAllCollapsed()->asIntersectedWithTaintedness( $arrayTaint )
 					);
 				}
 				return new TaintednessWithError( $combinedTaint, $combinedError, MethodLinks::emptySingleton() );
@@ -2187,7 +2189,8 @@ trait TaintednessBaseVisitor {
 				// TODO: We may actually be able to infer the actual keys, instead of setting as unknown
 				$taint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, $preservedArgTaint );
 				// TODO: We should also add numkey if the argument has sql.
-				$error = $preserveArgumentsData[2][1]->asIntersectedWithTaintedness( $preservedArgTaint );
+				$error = $preserveArgumentsData[2][1]->asAllCollapsed()
+					->asIntersectedWithTaintedness( $preservedArgTaint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_fill_keys':
 				// array_fill_keys( $keys, $value ) creates an array whose keys are the element in $keys, and whose
@@ -2198,14 +2201,15 @@ trait TaintednessBaseVisitor {
 					$keysTaintedness = $preserveArgumentsData[0][0]->asValueFirstLevel();
 					$taint = $taint->withAddedKeysTaintedness( $keysTaintedness->get() );
 					$error = $error->asMergedWith(
-						$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint )
+						$preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $taint )
 					);
 				}
 				if ( isset( $preserveArgumentsData[1] ) ) {
 					$preservedValueTaint = $preserveArgumentsData[1][0];
 					$taint = $taint->withAddedOffsetTaintedness( null, $preservedValueTaint );
 					$error = $error->asMergedWith(
-						$preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $preservedValueTaint )
+						$preserveArgumentsData[1][1]->asAllCollapsed()
+							->asIntersectedWithTaintedness( $preservedValueTaint )
 					);
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
@@ -2218,14 +2222,14 @@ trait TaintednessBaseVisitor {
 					$keysTaintedness = $preserveArgumentsData[0][0]->asValueFirstLevel();
 					$taint = $taint->withAddedKeysTaintedness( $keysTaintedness->get() );
 					$error = $error->asMergedWith(
-						$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint )
+						$preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $taint )
 					);
 				}
 				if ( isset( $preserveArgumentsData[1] ) ) {
 					$valueTaint = $preserveArgumentsData[1][0]->withoutKeys();
 					$taint = $taint->asMergedWith( $valueTaint );
 					$error = $error->asMergedWith(
-						$preserveArgumentsData[1][1]->asIntersectedWithTaintedness( $valueTaint )
+						$preserveArgumentsData[1][1]->asAllCollapsed()->asIntersectedWithTaintedness( $valueTaint )
 					);
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
@@ -2236,7 +2240,7 @@ trait TaintednessBaseVisitor {
 					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
-				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				$error = $preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_diff':
 			case 'array_diff_assoc':
@@ -2272,7 +2276,7 @@ trait TaintednessBaseVisitor {
 				// The shape is destroyed to avoid pretending that we know anything about the final shape of the array.
 				return new TaintednessWithError(
 					$taint->asKnownKeysMadeUnknown(),
-					$error,
+					$error->asAllCollapsed(),
 					MethodLinks::emptySingleton()
 				);
 			case 'array_intersect':
@@ -2296,7 +2300,7 @@ trait TaintednessBaseVisitor {
 					// No argument besides the first one can contribute to caused-by lines, although
 					// ideally we would intersect $error with the current error.
 				}
-				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
+				return new TaintednessWithError( $taint, $error->asAllCollapsed(), MethodLinks::emptySingleton() );
 			case 'array_intersect_key':
 				// array_intersect_key( $arr, $x_1, ..., $x_n ) is similar to array_intersect, but here two elements are
 				// considered equal if they have the same key (irregardless of the value).
@@ -2344,7 +2348,9 @@ trait TaintednessBaseVisitor {
 				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
 					$preservedArgTaint = $argTaint->asCollapsed();
 					$taint = $taint->asMergedWith( $preservedArgTaint );
-					$error = $error->asMergedWith( $argError->asIntersectedWithTaintedness( $preservedArgTaint ) );
+					$error = $error->asMergedWith(
+						$argError->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint )
+					);
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_filter':
@@ -2356,7 +2362,7 @@ trait TaintednessBaseVisitor {
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				return new TaintednessWithError(
 					$preservedArgTaint,
-					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					$preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::emptySingleton()
 				);
 			case 'array_reduce':
@@ -2368,7 +2374,7 @@ trait TaintednessBaseVisitor {
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asCollapsed();
 				return new TaintednessWithError(
 					$preservedArgTaint,
-					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					$preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::emptySingleton()
 				);
 			case 'array_reverse':
@@ -2383,7 +2389,7 @@ trait TaintednessBaseVisitor {
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				return new TaintednessWithError(
 					$preservedArgTaint,
-					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					$preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::emptySingleton()
 				);
 			case 'array_pad':
@@ -2400,7 +2406,7 @@ trait TaintednessBaseVisitor {
 					$valArgTaint = $preserveArgumentsData[2][0];
 					$taint = $taint->withAddedOffsetTaintedness( null, $valArgTaint );
 					$error = $error->asMergedWith(
-						$preserveArgumentsData[2][1]->asIntersectedWithTaintedness( $valArgTaint )
+						$preserveArgumentsData[2][1]->asAllCollapsed()->asIntersectedWithTaintedness( $valArgTaint )
 					);
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
@@ -2414,7 +2420,7 @@ trait TaintednessBaseVisitor {
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				return new TaintednessWithError(
 					$preservedArgTaint,
-					$preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $preservedArgTaint ),
+					$preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint ),
 					MethodLinks::emptySingleton()
 				);
 			case 'array_replace':
@@ -2430,7 +2436,9 @@ trait TaintednessBaseVisitor {
 				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
 					$taint = $taint->asArrayReplaceWith( $argTaint );
 					// Note: we may be adding too many caused-by lines here
-					$error = $error->asMergedWith( $argError->asIntersectedWithTaintedness( $argTaint ) );
+					$error = $error->asMergedWith(
+						$argError->asAllCollapsed()->asIntersectedWithTaintedness( $argTaint )
+					);
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_merge':
@@ -2457,7 +2465,9 @@ trait TaintednessBaseVisitor {
 				foreach ( $preserveArgumentsData as [ $curArgTaintedness, $baseArgError ] ) {
 					$preservedArgTaint = $curArgTaintedness->asKnownKeysMadeUnknown();
 					$taint = $taint->asMergedWith( $preservedArgTaint );
-					$error = $error->asMergedWith( $baseArgError->asIntersectedWithTaintedness( $preservedArgTaint ) );
+					$error = $error->asMergedWith(
+						$baseArgError->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint )
+					);
 				}
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_chunk':
@@ -2470,7 +2480,7 @@ trait TaintednessBaseVisitor {
 				// For now, we just assume that keys are preserved.
 				$taint = Taintedness::safeSingleton()
 					->withAddedOffsetTaintedness( null, $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown() );
-				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
+				$error = $preserveArgumentsData[0][1]->asAllCollapsed()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			default:
 				return null;

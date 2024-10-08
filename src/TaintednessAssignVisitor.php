@@ -112,7 +112,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				$this->code_base,
 				$this->context,
 				$this->rightTaint->getTaintednessForOffsetOrWhole( $key ),
-				$this->rightError,
+				$this->rightError->getForDim( $key ),
 				$this->rightLinks,
 				$this->errorTaint->getTaintednessForOffsetOrWhole( $key ),
 				$this->errorLinks,
@@ -203,7 +203,10 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightTaint = $this->rightTaint->asMaybeMovedAtOffset( $curOff, $dimTaintInt );
 		$dimLinks = $dimTaintWithErr->getMethodLinks()->getLinksCollapsing();
 		$this->rightLinks = $this->rightLinks->asMaybeMovedAtOffset( $curOff, $dimLinks );
-		$this->errorTaint = $this->errorTaint->withAddedKeysTaintedness( $dimTaintInt );
+		$this->rightError = $this->rightError->asAllMaybeMovedAtOffset( $curOff );
+		$this->errorTaint = $this->errorTaint->asMaybeMovedAtOffset( $curOff )
+			->withAddedKeysTaintedness( $dimTaintInt );
+		$this->errorLinks = $this->errorLinks->asMaybeMovedAtOffset( $curOff );
 		$this->maybeAddNumkeyOnAssignmentLHS( $node );
 		$this( $node->children['expr'] );
 	}
@@ -282,8 +285,10 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		}
 
 		if ( $this->dimDepth > 0 ) {
-			$curError = self::getCausedByRaw( $variableObj );
-			$newError = $curError ? $curError->asMergedWith( $this->rightError ) : $this->rightError;
+			$curError = self::getCausedByRaw( $variableObj ) ?? CausedByLines::emptySingleton();
+			$newError = $override
+				? $curError->asMergedWith( $this->rightError, $this->dimDepth )
+				: $curError->asMergedWith( $this->rightError );
 			$overrideError = true;
 		} else {
 			$newError = $this->rightError;

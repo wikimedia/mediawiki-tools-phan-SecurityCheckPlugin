@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### New features
+* Improved accuracy of error reporting ("caused-by lines") by tracking array shapes in more places.
+
 ## v6.0.0
 ### Breaking changes
 * (MW) Most of the taintedness values hardcoded in MediaWikiSecurityCheckPlugin::getCustomFuncTaints() have been removed, and annotations have been

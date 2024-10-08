@@ -1,6 +1,6 @@
 integration/arrayoffsets4/test.php:9 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +7; integration/arrayoffsets4/test.php +4)
 integration/arrayoffsets4/test.php:10 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +7; integration/arrayoffsets4/test.php +4)
-integration/arrayoffsets4/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +20; integration/arrayoffsets4/test.php +14; integration/arrayoffsets4/test.php +16)
+integration/arrayoffsets4/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +20; integration/arrayoffsets4/test.php +16)
 integration/arrayoffsets4/test.php:22 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +20; integration/arrayoffsets4/test.php +14; integration/arrayoffsets4/test.php +16)
 integration/arrayoffsets4/test.php:23 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +20; integration/arrayoffsets4/test.php +14; integration/arrayoffsets4/test.php +16)
 integration/arrayoffsets4/test.php:36 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/arrayoffsets4/test.php +34; integration/arrayoffsets4/test.php +28)

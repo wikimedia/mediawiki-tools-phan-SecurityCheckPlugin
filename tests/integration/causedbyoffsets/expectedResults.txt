@@ -1,0 +1,2 @@
+integration/causedbyoffsets/test.php:10 SecurityCheck-XSS Calling method \execUnusedValue() in [no method] that outputs using tainted argument #1 (`$_GET['t']`). (Caused by: integration/causedbyoffsets/test.php +8; integration/causedbyoffsets/test.php +6)
+integration/causedbyoffsets/test.php:19 SecurityCheck-XSS Calling method \execUnusedKey() in [no method] that outputs using tainted argument #1 (`$_GET['t']`). (Caused by: integration/causedbyoffsets/test.php +17; integration/causedbyoffsets/test.php +15)

@@ -33,7 +33,7 @@ $arr1 = [
 	]
 ];
 
-$arr1['inner'][$_GET['unknown unsafe']] = $arr3['inner']['safe']; // TODO This line adds a safe value, so it should be in caused-by lines only for keys, but right now we don't distinguish these cases
+$arr1['inner'][$_GET['unknown unsafe']] = $arr3['inner']['safe']; // This line adds a safe value, so it must be in caused-by lines for keys only
 echo $arr1['inner']['safe']; // Safe
 echo $arr1['inner']['unsafe']; // Unsafe
 echo $arr1['inner']; // Unsafe

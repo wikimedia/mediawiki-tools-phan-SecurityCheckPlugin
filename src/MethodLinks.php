@@ -230,6 +230,12 @@ class MethodLinks {
 		return $ret;
 	}
 
+	public function asMovedToKeys(): self {
+		$ret = new self;
+		$ret->keysLinks = $this->getLinksCollapsing();
+		return $ret;
+	}
+
 	/**
 	 * @param self $other
 	 * @param int $depth
