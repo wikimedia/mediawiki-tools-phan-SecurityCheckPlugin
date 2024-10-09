@@ -1,4 +1,4 @@
-integration/matchreturn3/test.php:27 SecurityCheckDebugTaintedness Method TestDontAddOffsetToUnknownInArray::doTest has first param with taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: *HTML}}}
+integration/matchreturn3/test.php:27 SecurityCheckDebugTaintedness Method TestDontAddOffsetToUnknownInArray::doTest has first param with taintedness: {Own: *HTML}
 integration/matchreturn3/test.php:35 SecurityCheck-XSS Calling method \TestDontAddOffsetToUnknownInArray::doTest() in [no method] that outputs using tainted argument #1 (`$_GET`). (Caused by: integration/matchreturn3/test.php +31; integration/matchreturn3/test.php +30; integration/matchreturn3/test.php +29)
 integration/matchreturn3/test.php:37 SecurityCheckDebugTaintedness Method AddOffsetToUnknown::doTest has first param with taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: *HTML}}}
 integration/matchreturn3/test.php:44 SecurityCheck-XSS Calling method \AddOffsetToUnknown::doTest() in [no method] that outputs using tainted argument #1 (`$_GET`). (Caused by: integration/matchreturn3/test.php +40; integration/matchreturn3/test.php +39)
