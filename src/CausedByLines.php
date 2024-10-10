@@ -193,14 +193,30 @@ class CausedByLines {
 		$baseLines = array_column( $ret->lines, 1 );
 		$newLines = array_column( $other->lines, 1 );
 		$subsIdx = self::getArraySubsetIdx( $baseLines, $newLines );
+
+		if ( $subsIdx === false ) {
+			// Try reversing the order to see if we get a better merge.
+			// TODO This whole thing is horrible. We need a better way to merge caused-by lines programmatically
+			$reverseSubsetIdx = self::getArraySubsetIdx( $newLines, $baseLines );
+			if ( $reverseSubsetIdx !== false ) {
+				[ $ret, $other ] = [ clone $other, $ret ];
+				[ $baseLines, $newLines ] = [ $newLines, $baseLines ];
+				$subsIdx = $reverseSubsetIdx;
+			}
+		}
+
 		if ( $subsIdx !== false ) {
-			foreach ( $other->lines as $i => $cur ) {
-				$ret->lines[ $i + $subsIdx ][0] = $ret->lines[ $i + $subsIdx ][0]->asMergedWith( $cur[0] );
-				$curLinks = $cur[2];
-				if ( $curLinks && !$ret->lines[ $i + $subsIdx ][2] ) {
-					$ret->lines[$i + $subsIdx][2] = $curLinks;
-				} elseif ( $curLinks && $curLinks !== $ret->lines[ $i + $subsIdx ][2] ) {
-					$ret->lines[$i + $subsIdx][2] = $ret->lines[$i + $subsIdx][2]->asMergedWith( $curLinks );
+			foreach ( $other->lines as $i => $otherLine ) {
+				/** @var Taintedness $curTaint */
+				$curTaint = $ret->lines[ $i + $subsIdx ][0];
+				$ret->lines[ $i + $subsIdx ][0] = $curTaint->asMergedWith( $otherLine[0] );
+				/** @var MethodLinks $curLinks */
+				$curLinks = $ret->lines[ $i + $subsIdx ][2];
+				$otherLinks = $otherLine[2];
+				if ( $otherLinks && !$curLinks ) {
+					$ret->lines[$i + $subsIdx][2] = $otherLinks;
+				} elseif ( $otherLinks && $otherLinks !== $curLinks ) {
+					$ret->lines[$i + $subsIdx][2] = $curLinks->asMergedWith( $otherLinks );
 				}
 			}
 			return $ret;
@@ -221,12 +237,17 @@ class CausedByLines {
 			if ( $expectedIndex >= 0 && self::getArraySubsetIdx( $newRev, $remaining ) === $expectedIndex ) {
 				$startIdx = $baseLen - $newLen + $expectedIndex;
 				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
-					$ret->lines[$j][0] = $ret->lines[$j][0]->asMergedWith( $other->lines[$j - $startIdx][0] );
+					/** @var Taintedness $curTaint */
+					$curTaint = $ret->lines[$j][0];
+					$otherTaint = $other->lines[$j - $startIdx][0];
+					$ret->lines[$j][0] = $curTaint->asMergedWith( $otherTaint );
 					$secondLinks = $other->lines[$j - $startIdx][2];
-					if ( $secondLinks && !$ret->lines[$j][2] ) {
+					/** @var MethodLinks $curLinks */
+					$curLinks = $ret->lines[$j][2];
+					if ( $secondLinks && !$curLinks ) {
 						$ret->lines[$j][2] = $secondLinks;
-					} elseif ( $secondLinks && $secondLinks !== $ret->lines[$j][2] ) {
-						$ret->lines[$j][2] = $ret->lines[$j][2]->asMergedWith( $secondLinks );
+					} elseif ( $secondLinks && $secondLinks !== $curLinks ) {
+						$ret->lines[$j][2] = $curLinks->asMergedWith( $secondLinks );
 					}
 				}
 				$resultingLines = array_merge( $ret->lines, array_slice( $other->lines, $newLen - $expectedIndex ) );
@@ -333,7 +354,7 @@ class CausedByLines {
 		$r = [];
 		foreach ( $this->lines as [ $t, $line, $links ] ) {
 			$r[] = "\t[\n\t\tT: " . $t->toShortString() . "\n\t\tL: " . $line . "\n\t\tLinks: " .
-				( $links ?: 'none' ) . "\n\t]";
+				( $links ? $links->toString( "\t\t" ) : 'none' ) . "\n\t]";
 		}
 		return "[\n" . implode( ",\n", $r ) . "\n]";
 	}

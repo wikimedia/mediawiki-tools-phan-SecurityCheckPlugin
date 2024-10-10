@@ -33,6 +33,7 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
+use Phan\Library\Set;
 
 /**
  * Trait for the Tainedness visitor subclasses. Mostly contains
@@ -1271,6 +1272,7 @@ trait TaintednessBaseVisitor {
 
 		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
 		$oldMem = memory_get_peak_usage();
+		$newFuncErrorData = new Set();
 		foreach ( $taint->decomposeForLinks( $varLinks ) as [ $curLinks, $curTaint ] ) {
 			/** @var LinksSet $curLinks */
 			/** @var Taintedness $curTaint */
@@ -1297,8 +1299,22 @@ trait TaintednessBaseVisitor {
 				$newFuncTaint = self::getFuncTaint( $method );
 				assert( $newFuncTaint !== null );
 				$this->maybeAddFuncError( $method, null, $paramTaint, $newFuncTaint );
-				$this->mergeFuncError( $method, $funcError, $newFuncTaint );
+
+				$curMethodData = $newFuncErrorData[$method] ?? [];
+				$curMethodData['taint'] = $newFuncTaint;
+				$curMethodData['errors'][] = $funcError;
+				$newFuncErrorData[$method] = $curMethodData;
 			}
+		}
+
+		foreach ( $newFuncErrorData as $method ) {
+			$data = $newFuncErrorData[$method];
+			/** @var FunctionCausedByLines $newFuncError */
+			$newFuncError = array_shift( $data['errors'] );
+			foreach ( $data['errors'] as $err ) {
+				$newFuncError->mergeWith( $err, $data['taint'] );
+			}
+			$this->mergeFuncError( $method, $newFuncError, $data['taint'] );
 		}
 
 		$newMem = memory_get_peak_usage();
