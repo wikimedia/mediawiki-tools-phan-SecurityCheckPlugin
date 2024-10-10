@@ -244,28 +244,38 @@ class MethodLinks {
 			return;
 		}
 		foreach ( $this->dimLinks as $k => $links ) {
+			$alreadyCloned = false;
 			foreach ( $links->links as $func ) {
 				if ( $this->links->contains( $func ) ) {
 					$dimParams = array_keys( $links->links[$func]->getParams() );
 					$thisParams = array_keys( $this->links[$func]->getParams() );
 					$keepParams = array_diff( $dimParams, $thisParams );
+					if ( !$alreadyCloned ) {
+						$this->dimLinks[$k] = $links->deepClone();
+						$alreadyCloned = true;
+					}
 					if ( !$keepParams ) {
-						unset( $links->links[$func] );
+						unset( $this->dimLinks[$k]->links[$func] );
 					} else {
-						$links->links[$func]->keepOnlyParams( $keepParams );
+						$this->dimLinks[$k]->links[$func]->keepOnlyParams( $keepParams );
 					}
 				}
 			}
-			if ( $links->isEmpty() ) {
+			if ( $this->dimLinks[$k]->isEmpty() ) {
 				unset( $this->dimLinks[$k] );
 			}
 		}
 		if ( $this->unknownDimLinks ) {
+			$alreadyCloned = false;
 			foreach ( $this->unknownDimLinks->links as $func ) {
 				if ( $this->links->contains( $func ) ) {
 					$dimParams = array_keys( $this->unknownDimLinks->links[$func]->getParams() );
 					$thisParams = array_keys( $this->links[$func]->getParams() );
 					$keepParams = array_diff( $dimParams, $thisParams );
+					if ( !$alreadyCloned ) {
+						$this->unknownDimLinks = $this->unknownDimLinks->deepClone();
+						$alreadyCloned = true;
+					}
 					if ( !$keepParams ) {
 						unset( $this->unknownDimLinks->links[$func] );
 					} else {
