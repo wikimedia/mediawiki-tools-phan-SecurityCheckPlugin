@@ -1796,13 +1796,14 @@ trait TaintednessBaseVisitor {
 				$curArgTaintedness = $curArgTaintedness->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 			}
 
-			$paramSinkTaint = SecurityCheckPlugin::$pluginInstance->modifyParamSinkTaint(
+			[ $paramSinkTaint, $paramSinkError ] = SecurityCheckPlugin::$pluginInstance->modifyParamSinkTaint(
 				$paramSinkTaint,
 				$curArgTaintedness,
 				$argument,
 				$i,
 				$func,
 				$taint,
+				$paramSinkError,
 				$this->context,
 				$this->code_base
 			);

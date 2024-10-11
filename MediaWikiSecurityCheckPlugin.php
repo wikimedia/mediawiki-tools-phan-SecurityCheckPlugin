@@ -31,6 +31,7 @@ use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\Type\GenericArrayType;
+use SecurityCheckPlugin\CausedByLines;
 use SecurityCheckPlugin\FunctionTaintedness;
 use SecurityCheckPlugin\MWPreVisitor;
 use SecurityCheckPlugin\MWVisitor;
@@ -212,11 +213,12 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		int $argIndex,
 		FunctionInterface $func,
 		FunctionTaintedness $funcTaint,
+		CausedByLines $paramSinkError,
 		Context $context,
 		CodeBase $code_base
-	): Taintedness {
+	): array {
 		if ( !$func instanceof Method || $argIndex !== 1 || $func->getName() !== 'insert' ) {
-			return $paramSinkTaint;
+			return [ $paramSinkTaint, $paramSinkError ];
 		}
 
 		$classFQSEN = $func->getClassFQSEN();
@@ -224,7 +226,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			$idbFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( '\\Wikimedia\\Rdbms\\IDatabase' );
 			$isDBSubclass = $classFQSEN->asType()->asExpandedTypes( $code_base )->hasType( $idbFQSEN->asType() );
 			if ( !$isDBSubclass ) {
-				return $paramSinkTaint;
+				return [ $paramSinkTaint, $paramSinkError ];
 			}
 		}
 
@@ -232,13 +234,20 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		$keyType = GenericArrayType::keyUnionTypeFromTypeSetStrict( $argType->getTypeSet() );
 		if ( $keyType !== GenericArrayType::KEY_INT ) {
 			// Note, it might still be an array of rows, but it's too hard for us to tell.
-			return $paramSinkTaint;
+			return [ $paramSinkTaint, $paramSinkError ];
 		}
 
 		// Definitely a list of rows, so remove taintedness from the outer array keys, and instead add it to the
 		// keys of inner arrays.
 		$sqlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::SQL_EXEC_TAINT );
-		return Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, $sqlExecKeysTaint );
+		$adjustedTaint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, $sqlExecKeysTaint );
+
+		$curErrorLines = $paramSinkError->toLinesArray();
+		assert( count( $curErrorLines ) === 1 && str_starts_with( $curErrorLines[0], 'Builtin' ) );
+		$adjustedError = CausedByLines::emptySingleton()
+			->withAddedLines( $curErrorLines, $adjustedTaint->asExecToYesTaint() );
+
+		return [ $adjustedTaint, $adjustedError ];
 	}
 
 	/**

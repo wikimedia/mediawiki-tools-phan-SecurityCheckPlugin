@@ -658,9 +658,11 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @param int $argIndex Which argument number is this
 	 * @param FunctionInterface $func The function/method being called
 	 * @param FunctionTaintedness $funcTaint Taint of method formal parameters
+	 * @param CausedByLines $paramSinkError
 	 * @param Context $context Context object
 	 * @param CodeBase $code_base CodeBase object
-	 * @return Taintedness The taint to use for actual parameter
+	 * @return array<Taintedness|CausedByLines> The taint and caused-by lines to use for actual parameter
+	 * @phan-return array{0:Taintedness,1:CausedByLines}
 	 * @suppress PhanUnusedPublicMethodParameter
 	 */
 	public function modifyParamSinkTaint(
@@ -670,11 +672,12 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		int $argIndex,
 		FunctionInterface $func,
 		FunctionTaintedness $funcTaint,
+		CausedByLines $paramSinkError,
 		Context $context,
 		CodeBase $code_base
-	): Taintedness {
+	): array {
 		// no-op
-		return $paramSinkTaint;
+		return [ $paramSinkTaint, $paramSinkError ];
 	}
 
 	/**
