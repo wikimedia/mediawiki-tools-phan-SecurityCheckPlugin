@@ -81,10 +81,10 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function asPreservingTaintednessAndLinks( Taintedness $taintedness, MethodLinks $links ): self {
-		$ret = new self;
 		if ( !$this->lines ) {
-			return $ret;
+			return $this;
 		}
+		$ret = new self;
 		$curTaint = $taintedness->get();
 		foreach ( $this->lines as [ $_, $eLine, $eLinks ] ) {
 			$preservedFlags = $eLinks && ( $curTaint !== SecurityCheckPlugin::NO_TAINT )
@@ -100,10 +100,10 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function asIntersectedWithTaintedness( Taintedness $taintedness ): self {
-		$ret = new self;
 		if ( !$this->lines ) {
-			return $ret;
+			return $this;
 		}
+		$ret = new self;
 		$curTaint = $taintedness->get();
 		foreach ( $this->lines as [ $eTaint, $eLine, $links ] ) {
 			$newTaint = $curTaint !== SecurityCheckPlugin::NO_TAINT
@@ -120,6 +120,9 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
 		$ret = new self;
 		foreach ( $this->lines as $line ) {
 			if ( $line[2] && $line[2]->hasDataForFuncAndParam( $func, $param ) ) {
@@ -133,6 +136,9 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function getLinesForGenericReturn(): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $_ ] ) {
 			if ( !$lineTaint->isSafe() ) {
@@ -153,6 +159,9 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function withTaintAddedToMethodArgLinks( Taintedness $taintedness, FunctionInterface $func, int $i ): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
 			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $i ) ) {
