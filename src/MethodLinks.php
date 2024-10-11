@@ -46,8 +46,11 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function getForDim( $dim ): self {
+		if ( $this === self::emptySingleton() ) {
+			return $this;
+		}
 		if ( !is_scalar( $dim ) ) {
-			$ret = ( new self( clone $this->links ) )->withAddedOffset( $dim );
+			$ret = ( new self( $this->links ) )->withAddedOffset( $dim );
 			if ( $this->unknownDimLinks ) {
 				$ret = $ret->asMergedWith( $this->unknownDimLinks );
 			}
@@ -60,13 +63,16 @@ class MethodLinks {
 			if ( $this->unknownDimLinks ) {
 				$ret = $this->dimLinks[$dim]->asMergedWith( $this->unknownDimLinks );
 			} else {
-				$ret = $this->dimLinks[$dim]->deepClone();
+				$ret = $this->dimLinks[$dim];
 			}
+			$ret = clone $ret;
+			$ret->links = clone $ret->links;
 			$ret->links->mergeWith( $this->links );
 			return $ret;
 		}
 		if ( $this->unknownDimLinks ) {
-			$ret = $this->unknownDimLinks->deepClone();
+			$ret = clone $this->unknownDimLinks;
+			$ret->links = clone $ret->links;
 			$ret->links->mergeWith( $this->links );
 		} else {
 			$ret = new self( $this->links );
@@ -79,7 +85,10 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asValueFirstLevel(): self {
-		$ret = new self( clone $this->links );
+		if ( $this === self::emptySingleton() ) {
+			return $this;
+		}
+		$ret = new self( $this->links );
 		if ( $this->unknownDimLinks ) {
 			$ret = $ret->asMergedWith( $this->unknownDimLinks );
 		}
@@ -93,6 +102,9 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asKeyForForeach(): self {
+		if ( $this === self::emptySingleton() ) {
+			return $this;
+		}
 		if ( $this->keysLinks ) {
 			$links = $this->keysLinks->asMergedWith( $this->links );
 		} else {
@@ -118,6 +130,9 @@ class MethodLinks {
 	}
 
 	public function withKeysLinks( LinksSet $links ): self {
+		if ( !count( $links ) ) {
+			return $this;
+		}
 		$ret = clone $this;
 		if ( !$ret->keysLinks ) {
 			$ret->keysLinks = $links;
@@ -131,6 +146,9 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asCollapsed(): self {
+		if ( $this === self::emptySingleton() ) {
+			return $this;
+		}
 		$ret = new self( $this->links );
 		foreach ( $this->dimLinks as $links ) {
 			$ret = $ret->asMergedWith( $links->asCollapsed() );
@@ -148,8 +166,16 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asMergedWith( self $other ): self {
-		$ret = $this->deepClone();
+		$emptySingleton = self::emptySingleton();
+		if ( $other === $emptySingleton ) {
+			return $this;
+		}
+		if ( $this === $emptySingleton ) {
+			return $other;
+		}
+		$ret = clone $this;
 
+		$ret->links = clone $ret->links;
 		$ret->links->mergeWith( $other->links );
 		foreach ( $other->dimLinks as $key => $links ) {
 			if ( isset( $ret->dimLinks[$key] ) ) {
@@ -166,6 +192,7 @@ class MethodLinks {
 		if ( $other->keysLinks && !$ret->keysLinks ) {
 			$ret->keysLinks = $other->keysLinks;
 		} elseif ( $other->keysLinks ) {
+			$ret->keysLinks = clone $ret->keysLinks;
 			$ret->keysLinks->mergeWith( $other->keysLinks );
 		}
 
@@ -177,7 +204,8 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function withAddedOffset( $offset ): self {
-		$ret = $this->deepClone();
+		$ret = clone $this;
+		$ret->links = clone $ret->links;
 		foreach ( $ret->links as $func ) {
 			$ret->links[$func]->pushOffsetToAll( $offset );
 		}
@@ -194,9 +222,9 @@ class MethodLinks {
 	public function asMaybeMovedAtOffset( $offset, LinksSet $keyLinks = null ): self {
 		$ret = new self;
 		if ( $offset instanceof Node || $offset === null ) {
-			$ret->unknownDimLinks = $this->deepClone();
+			$ret->unknownDimLinks = $this;
 		} else {
-			$ret->dimLinks[$offset] = $this->deepClone();
+			$ret->dimLinks[$offset] = $this;
 		}
 		$ret->keysLinks = $keyLinks;
 		return $ret;
@@ -211,11 +239,13 @@ class MethodLinks {
 		if ( $depth === 0 ) {
 			return $other;
 		}
-		$ret = $this->deepClone();
+		$ret = clone $this;
+		$ret->links = clone $ret->links;
 		$ret->links->mergeWith( $other->links );
 		if ( !$ret->keysLinks ) {
 			$ret->keysLinks = $other->keysLinks;
 		} elseif ( $other->keysLinks ) {
+			$ret->keysLinks = clone $ret->keysLinks;
 			$ret->keysLinks->mergeWith( $other->keysLinks );
 		}
 		if ( !$ret->unknownDimLinks ) {
@@ -251,7 +281,8 @@ class MethodLinks {
 					$thisParams = array_keys( $this->links[$func]->getParams() );
 					$keepParams = array_diff( $dimParams, $thisParams );
 					if ( !$alreadyCloned ) {
-						$this->dimLinks[$k] = $links->deepClone();
+						$this->dimLinks[$k] = clone $links;
+						$this->dimLinks[$k]->links = clone $links->links;
 						$alreadyCloned = true;
 					}
 					if ( !$keepParams ) {
@@ -273,7 +304,8 @@ class MethodLinks {
 					$thisParams = array_keys( $this->links[$func]->getParams() );
 					$keepParams = array_diff( $dimParams, $thisParams );
 					if ( !$alreadyCloned ) {
-						$this->unknownDimLinks = $this->unknownDimLinks->deepClone();
+						$this->unknownDimLinks = clone $this->unknownDimLinks;
+						$this->unknownDimLinks->links = clone $this->unknownDimLinks->links;
 						$alreadyCloned = true;
 					}
 					if ( !$keepParams ) {
@@ -287,20 +319,6 @@ class MethodLinks {
 				$this->unknownDimLinks = null;
 			}
 		}
-	}
-
-	public function deepClone(): self {
-		$ret = new self( clone $this->links );
-		foreach ( $this->dimLinks as $k => $links ) {
-			$ret->dimLinks[$k] = clone $links;
-		}
-		if ( $this->unknownDimLinks ) {
-			$ret->unknownDimLinks = clone $this->unknownDimLinks;
-		}
-		if ( $this->keysLinks ) {
-			$ret->keysLinks = clone $this->keysLinks;
-		}
-		return $ret;
 	}
 
 	/**
@@ -395,7 +413,8 @@ class MethodLinks {
 	}
 
 	public function withFuncAndParam( FunctionInterface $func, int $i ): self {
-		$ret = $this->deepClone();
+		$ret = clone $this;
+		$ret->links = clone $ret->links;
 		if ( $ret->links->contains( $func ) ) {
 			$ret->links[$func]->addParam( $i );
 		} else {
@@ -473,6 +492,9 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
+		if ( $this === self::emptySingleton() ) {
+			return $this;
+		}
 		$retLinks = new LinksSet();
 		if ( $this->links->contains( $func ) ) {
 			$retLinks->attach( $func, $this->links[$func] );
