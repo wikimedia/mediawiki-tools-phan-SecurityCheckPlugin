@@ -1216,16 +1216,24 @@ trait TaintednessBaseVisitor {
 			$newLinks = $curLinks->asMergedWith( $rhsLinks );
 		}
 
+		// Don't attach things like Variable and Parameter. These are local elements, and setting taint
+		// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
+		// Parameter object for each analysis, we will end up with duplicated links that do nothing but
+		// eating memory.
 		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable || $lhs instanceof PassByReferenceVariable ) {
-			// Don't attach things like Variable and Parameter. These are local elements, and setting taint
-			// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
-			// Parameter object for each analysis, we will end up with duplicated links that do nothing but
-			// eating memory.
+			$elForVarLinks = $lhs;
+			while ( $elForVarLinks instanceof PassByReferenceVariable ) {
+				// Unwrap pass-by-refs now, so that we don't attach links twice for the same variable (phan clones
+				// PassByReferenceVariable objects when analyzing methods, but the underlying element remains the same).
+				// TODO This should become unnecessary once the TODO in handleMethodCall about postponing
+				// handlePassByRef is resolved.
+				$elForVarLinks = $elForVarLinks->getElement();
+			}
 			foreach ( $newLinks->getMethodAndParamTuples() as [ $method, $index ] ) {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof VarLinksSet );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				$varLinks->attach( $lhs, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
+				$varLinks->attach( $elForVarLinks, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
 			}
 		}
 
@@ -1390,13 +1398,6 @@ trait TaintednessBaseVisitor {
 
 		foreach ( $varLinks as $var ) {
 			$presTaint = $varLinks[$var];
-			if ( $var instanceof PassByReferenceVariable ) {
-				// TODO This should become unnecessary once the TODO in handleMethodCall about postponing
-				// handlePassByRef is resolved.
-				$var = $var->getElement();
-			}
-			assert( $var instanceof TypedElementInterface );
-
 			$taintToPropagate = $presTaint->asTaintednessForArgument( $taintAdjusted );
 
 			$adjustedCausedBy = ( self::getCausedByRaw( $var ) ?? CausedByLines::emptySingleton() )
