@@ -433,11 +433,11 @@ class CausedByLines {
 	 *   doing so would make phan emit a new issue for the same line whenever new caused-by
 	 *   lines are added to the array.
 	 *
-	 * @param int $taintType Must only have normal flags, and no EXEC flags.
+	 * @param Taintedness $taint Must have EXEC flags only.
 	 * @return string
 	 */
-	public function toStringForIssue( int $taintType ): string {
-		$filteredLines = $this->getRelevantLinesForTaintedness( $taintType );
+	public function toStringForIssue( Taintedness $taint ): string {
+		$filteredLines = $this->getRelevantLinesForTaintedness( $taint );
 		if ( !$filteredLines ) {
 			return '';
 		}
@@ -451,13 +451,14 @@ class CausedByLines {
 	}
 
 	/**
-	 * @param int $taintedness With only normal flags, and no EXEC flags.
+	 * @param Taintedness $taintedness With EXEC flags only.
 	 * @return string[]
 	 */
-	private function getRelevantLinesForTaintedness( int $taintedness ): array {
+	private function getRelevantLinesForTaintedness( Taintedness $taintedness ): array {
 		$ret = [];
 		foreach ( $this->lines as [ $lineTaint, $lineText ] ) {
-			if ( $lineTaint->has( $taintedness ) ) {
+			$intersection = Taintedness::intersectForSink( $taintedness, $lineTaint );
+			if ( !$intersection->isSafe() ) {
 				$ret[] = $lineText;
 			}
 		}

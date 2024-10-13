@@ -726,6 +726,25 @@ class Taintedness {
 	}
 
 	/**
+	 * Return a copy of this object with SQL taint added to every SQL_NUMKEY element.
+	 * @return self
+	 */
+	public function withSQLExecAddedToNumkeyExec(): self {
+		$ret = clone $this;
+		if ( $ret->flags & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) {
+			$ret->flags |= SecurityCheckPlugin::SQL_EXEC_TAINT;
+		}
+		foreach ( $ret->dimTaint as $k => $dimTaint ) {
+			$ret->dimTaint[$k] = $dimTaint->withSQLExecAddedToNumkeyExec();
+		}
+		$ret->unknownDimsTaint = $ret->unknownDimsTaint ? $ret->unknownDimsTaint->withSQLExecAddedToNumkeyExec() : null;
+		if ( $ret->keysTaint & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) {
+			$ret->keysTaint |= SecurityCheckPlugin::SQL_EXEC_TAINT;
+		}
+		return $ret;
+	}
+
+	/**
 	 * Get a stringified representation of this taintedness, useful for debugging etc.
 	 *
 	 * @param string $indent
