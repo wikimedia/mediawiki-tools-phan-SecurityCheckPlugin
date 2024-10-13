@@ -30,6 +30,9 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 			$value = $value->children['var'];
 		}
 
+		$valueTaint = $lhsTaintedness->asValueFirstLevel();
+		$valueError = $lhsTaintednessWithError->getError()->asAllValueFirstLevel();
+		$valueLinks = $lhsLinks->asValueFirstLevel();
 		// TODO Actually compute this
 		$rhsIsArray = false;
 		// NOTE: As mentioned in test 'foreach', we won't be able to retroactively attribute
@@ -37,25 +40,28 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 		$valueVisitor = new TaintednessAssignVisitor(
 			$this->code_base,
 			$this->context,
-			$lhsTaintedness->asValueFirstLevel(),
-			$lhsTaintednessWithError->getError()->asAllValueFirstLevel(),
-			$lhsLinks->asValueFirstLevel(),
-			$lhsTaintedness->asValueFirstLevel(),
-			$lhsLinks,
+			$valueTaint,
+			$valueError,
+			$valueLinks,
+			$valueTaint,
+			$valueLinks,
 			$rhsIsArray
 		);
 		$valueVisitor( $value );
 
 		$key = $node->children['key'] ?? null;
 		if ( $key instanceof Node ) {
+			$keyTaint = $lhsTaintedness->asKeyForForeach();
+			$keyError = $lhsTaintednessWithError->getError()->asAllKeyForForeach();
+			$keyLinks = $lhsLinks->asKeyForForeach();
 			$keyVisitor = new TaintednessAssignVisitor(
 				$this->code_base,
 				$this->context,
-				$lhsTaintedness->asKeyForForeach(),
-				$lhsTaintednessWithError->getError()->asAllKeyForForeach(),
-				$lhsLinks->asKeyForForeach(),
-				$lhsTaintedness->asKeyForForeach(),
-				$lhsLinks,
+				$keyTaint,
+				$keyError,
+				$keyLinks,
+				$keyTaint,
+				$keyLinks,
 				$rhsIsArray
 			);
 			$keyVisitor( $key );

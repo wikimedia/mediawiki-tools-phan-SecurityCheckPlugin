@@ -80,6 +80,11 @@ class ParamLinksOffsets {
 		if ( $this->unknown ) {
 			$this->unknown->pushOffset( $offset );
 		}
+
+		if ( $this->ownFlags === SecurityCheckPlugin::NO_TAINT ) {
+			return;
+		}
+
 		$ownFlags = $this->ownFlags;
 		$this->ownFlags = SecurityCheckPlugin::NO_TAINT;
 		if ( is_scalar( $offset ) && !isset( $this->dims[$offset] ) ) {
@@ -175,7 +180,7 @@ class ParamLinksOffsets {
 	 * @return string
 	 */
 	public function __toString(): string {
-		$ret = '(own): ' . SecurityCheckPlugin::taintToString( $this->ownFlags );
+		$ret = '<(own): ' . SecurityCheckPlugin::taintToString( $this->ownFlags );
 
 		if ( $this->keysFlags ) {
 			$ret .= ', keys: ' . SecurityCheckPlugin::taintToString( $this->keysFlags );
@@ -192,6 +197,6 @@ class ParamLinksOffsets {
 			}
 			$ret .= implode( ', ', $dimBits ) . ']';
 		}
-		return $ret;
+		return $ret . '>';
 	}
 }

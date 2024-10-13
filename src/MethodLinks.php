@@ -88,7 +88,7 @@ class MethodLinks {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
 		}
-		$ret = new self( $this->links );
+		$ret = ( new self( clone $this->links ) )->withAddedOffset( null );
 		if ( $this->unknownDimLinks ) {
 			$ret = $ret->asMergedWith( $this->unknownDimLinks );
 		}
@@ -105,12 +105,11 @@ class MethodLinks {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
 		}
+		$links = $this->links->asAllMovedToKeys();
 		if ( $this->keysLinks ) {
-			$links = $this->keysLinks->asMergedWith( $this->links );
-		} else {
-			$links = $this->links;
+			$links = $links->asMergedWith( $this->keysLinks );
 		}
-		return new self( $links->asAllMovedToKeys() );
+		return new self( $links );
 	}
 
 	/**
