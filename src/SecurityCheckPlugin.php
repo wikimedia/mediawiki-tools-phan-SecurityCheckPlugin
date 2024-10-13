@@ -323,7 +323,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			// FIXME This is a hack. The annotation is INTERNAL, for use only in the backpropoffsets-blowup
 			// test. We should either find a better way to test that, or maybe add a public annotation
 			// for debugging taintedness of a method (probably unreadable on a single line).
-			$funcName = preg_replace( '/@taint-check-debug-method-first-arg ([a-z:]+)\b.*/i', '$1', $statement );
+			$funcName = preg_replace( '/@taint-check-debug-method-first-arg ([a-z0-9:]+)\b.*/i', '$1', $statement );
 			// Let any exception bubble up here, the annotation is for internal use in testing
 			$fqsen = FullyQualifiedMethodName::fromStringInContext( $funcName, $context );
 			$method = $codeBase->getMethodByFQSEN( $fqsen );

@@ -417,8 +417,15 @@ class MethodLinks {
 		return false;
 	}
 
-	public function withFuncAndParam( FunctionInterface $func, int $i ): self {
+	public function withFuncAndParam( FunctionInterface $func, int $i, bool $isVariadic ): self {
 		$ret = clone $this;
+
+		if ( $isVariadic ) {
+			$baseUnkLinks = $ret->unknownDimLinks ?? self::emptySingleton();
+			$ret->unknownDimLinks = $baseUnkLinks->withFuncAndParam( $func, $i, false );
+			return $ret;
+		}
+
 		$ret->links = clone $ret->links;
 		if ( $ret->links->contains( $func ) ) {
 			$ret->links[$func]->addParam( $i );

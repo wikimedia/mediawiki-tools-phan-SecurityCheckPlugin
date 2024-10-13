@@ -596,7 +596,7 @@ trait TaintednessBaseVisitor {
 						break;
 					}
 				}
-				if ( $paramNumber === null ) {
+				if ( $paramNumber === null || $isVariadic === null ) {
 					$invalidLineIssueEmitter(
 						'Annotated parameter ${PARAMETER} not found in the signature',
 						[ $m['paramname'] ]
@@ -627,7 +627,7 @@ trait TaintednessBaseVisitor {
 					$funcTaint = $funcTaint->withParamSinkTaint( $paramNumber, $sinkTaint )
 						->withParamPreservedTaint( $paramNumber, $preserveTaint, $flags );
 				}
-				$fakeMethodLinks = $fakeMethodLinks->withFuncAndParam( $func, $paramNumber );
+				$fakeMethodLinks = $fakeMethodLinks->withFuncAndParam( $func, $paramNumber, $isVariadic );
 				$validTaintEncountered = true;
 				if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
 					// Special case to auto-set anything that escapes html to detect double escaping.
@@ -1178,7 +1178,7 @@ trait TaintednessBaseVisitor {
 		self::ensureVarLinksForArgExist( $func, $i );
 
 		$curLinks = self::getMethodLinks( $param ) ?? MethodLinks::emptySingleton();
-		self::setMethodLinks( $param, $curLinks->withFuncAndParam( $func, $i ) );
+		self::setMethodLinks( $param, $curLinks->withFuncAndParam( $func, $i, $param->isVariadic() ) );
 	}
 
 	/**
