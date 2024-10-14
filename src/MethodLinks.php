@@ -43,14 +43,18 @@ class MethodLinks {
 	/**
 	 * @note This returns a clone
 	 * @param mixed $dim
+	 * @param bool $pushOffsets
 	 * @return self
 	 */
-	public function getForDim( $dim ): self {
+	public function getForDim( $dim, bool $pushOffsets = true ): self {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
 		}
 		if ( !is_scalar( $dim ) ) {
-			$ret = ( new self( $this->links ) )->withAddedOffset( $dim );
+			$ret = ( new self( $this->links ) );
+			if ( $pushOffsets ) {
+				$ret = $ret->withAddedOffset( $dim );
+			}
 			if ( $this->unknownDimLinks ) {
 				$ret = $ret->asMergedWith( $this->unknownDimLinks );
 			}
@@ -78,7 +82,7 @@ class MethodLinks {
 			$ret = new self( $this->links );
 		}
 
-		return $ret->withAddedOffset( $dim );
+		return $pushOffsets ? $ret->withAddedOffset( $dim ) : $ret;
 	}
 
 	/**

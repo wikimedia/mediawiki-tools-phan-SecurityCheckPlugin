@@ -712,14 +712,17 @@ class Taintedness {
 		foreach ( $this->dimTaint as $k => $dimTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				$dimTaint->decomposeForLinks( $links->getForDim( $k ), $error->getForDim( $k ) )
+				$dimTaint->decomposeForLinks( $links->getForDim( $k ), $error->getForDim( $k, false ) )
 			);
 		}
 
 		if ( $this->unknownDimsTaint ) {
 			$pairs = array_merge(
 				$pairs,
-				$this->unknownDimsTaint->decomposeForLinks( $links->getForDim( null ), $error->getForDim( null ) )
+				$this->unknownDimsTaint->decomposeForLinks(
+					$links->getForDim( null ),
+					$error->getForDim( null, false )
+				)
 			);
 		}
 		return $pairs;

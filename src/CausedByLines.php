@@ -226,16 +226,17 @@ class CausedByLines {
 
 	/**
 	 * @param Node|mixed $dim
+	 * @param bool $pushOffsetsInLinks
 	 * @return self
 	 */
-	public function getForDim( $dim ): self {
+	public function getForDim( $dim, bool $pushOffsetsInLinks = true ): self {
 		if ( !$this->lines ) {
 			return $this;
 		}
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
 			$newTaint = $lineTaint->getTaintednessForOffsetOrWhole( $dim );
-			$newLinks = $lineLinks ? $lineLinks->getForDim( $dim ) : null;
+			$newLinks = $lineLinks ? $lineLinks->getForDim( $dim, $pushOffsetsInLinks ) : null;
 			if ( !$newTaint->isSafe() || ( $newLinks && !$newLinks->isEmpty() ) ) {
 				$ret->lines[] = [
 					$newTaint,
