@@ -99,7 +99,16 @@ class ParamLinksOffsets {
 	 */
 	public function asMovedToKeys(): self {
 		$ret = new self( SecurityCheckPlugin::NO_TAINT );
+
+		foreach ( $this->dims as $k => $val ) {
+			$ret->dims[$k] = $val->asMovedToKeys();
+		}
+		if ( $this->unknown ) {
+			$ret->unknown = $this->unknown->asMovedToKeys();
+		}
+
 		$ret->keysFlags = $this->ownFlags;
+
 		return $ret;
 	}
 
