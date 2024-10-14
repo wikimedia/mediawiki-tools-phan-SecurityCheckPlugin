@@ -64,15 +64,16 @@ class MethodLinks {
 			return $ret;
 		}
 		if ( isset( $this->dimLinks[$dim] ) ) {
-			if ( $this->unknownDimLinks ) {
-				$ret = $this->dimLinks[$dim]->asMergedWith( $this->unknownDimLinks );
-			} else {
-				$ret = $this->dimLinks[$dim];
+			$ret = ( new self( $this->links ) );
+			if ( $pushOffsets ) {
+				$ret = $ret->withAddedOffset( $dim );
 			}
-			$ret = clone $ret;
-			$ret->links = clone $ret->links;
-			$ret->links->mergeWith( $this->links );
-			return $ret;
+			if ( $this->unknownDimLinks ) {
+				$offsetLinks = $this->dimLinks[$dim]->asMergedWith( $this->unknownDimLinks );
+			} else {
+				$offsetLinks = $this->dimLinks[$dim];
+			}
+			return $ret->asMergedWith( $offsetLinks );
 		}
 		if ( $this->unknownDimLinks ) {
 			$ret = clone $this->unknownDimLinks;
