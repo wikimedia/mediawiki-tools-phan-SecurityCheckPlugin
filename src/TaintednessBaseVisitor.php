@@ -1293,7 +1293,7 @@ trait TaintednessBaseVisitor {
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
 					$curBackpropError = $curError
-						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i );
+						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i, true );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint = $paramTaint->withVariadicParamSinkTaint( $i, $curParTaint );
 						$funcError->setVariadicParamSinkLines( $i, $curBackpropError );
@@ -1401,14 +1401,14 @@ trait TaintednessBaseVisitor {
 			$taintToPropagate = $presTaint->asTaintednessForArgument( $taintAdjusted );
 
 			$adjustedCausedBy = ( self::getCausedByRaw( $var ) ?? CausedByLines::emptySingleton() )
-				->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i );
+				->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i, false );
 			self::setCausedByRaw( $var, $adjustedCausedBy );
 			$this->setTaintedness( $var, $taintToPropagate, false );
 			$this->addTaintError( $var, $taintToPropagate, null );
 			if ( $var instanceof GlobalVariable ) {
 				$globalVar = $var->getElement();
 				$adjustedGlobalCausedBy = ( self::getCausedByRaw( $globalVar ) ?? CausedByLines::emptySingleton() )
-					->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i );
+					->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i, false );
 				self::setCausedByRaw( $globalVar, $adjustedGlobalCausedBy );
 				$this->setTaintedness( $globalVar, $taintToPropagate, false );
 				$this->addTaintError( $globalVar, $taintToPropagate, null );

@@ -116,6 +116,25 @@ class PreservedTaintedness {
 		return $ret;
 	}
 
+	public function asTaintednessForBackpropError( Taintedness $sinkTaint ): Taintedness {
+		$ret = $this->ownOffsets->appliedToTaintednessForBackprop( $sinkTaint );
+
+		foreach ( $this->dimTaint as $val ) {
+			$ret = $ret->asMergedWith( $val->asTaintednessForBackpropError( $sinkTaint ) );
+		}
+		if ( $this->unknownDimsTaint ) {
+			$ret = $ret->asMergedWith(
+				$this->unknownDimsTaint->asTaintednessForBackpropError( $sinkTaint )
+			);
+		}
+		if ( $this->keysOffsets ) {
+			$ret = $ret->withAddedKeysTaintedness(
+				$this->keysOffsets->appliedToTaintednessForBackprop( $sinkTaint )->get()
+			);
+		}
+		return $ret;
+	}
+
 	/**
 	 * Get a stringified representation of this taintedness suitable for the debug annotation
 	 *

@@ -151,22 +151,33 @@ class CausedByLines {
 	}
 
 	/**
-	 * For every line in this object, check if the line has links for $func, and if so, add $taintedness to the
-	 * line taintedness.
+	 * For every line in this object, check if the line has links for $func, and if so, add preserved taintedness from
+	 * $taintedness to the line.
 	 *
 	 * @param Taintedness $taintedness
 	 * @param FunctionInterface $func
 	 * @param int $i Parameter index
+	 * @param bool $isSink True when backpropagating method links for a sink (and $taintedness is the taintedness of the
+	 * sink); false when backpropagating variable links (and $taintedness is the new taintedness of the variable).
 	 * @return self
 	 */
-	public function withTaintAddedToMethodArgLinks( Taintedness $taintedness, FunctionInterface $func, int $i ): self {
+	public function withTaintAddedToMethodArgLinks(
+		Taintedness $taintedness,
+		FunctionInterface $func,
+		int $i,
+		bool $isSink
+	): self {
 		if ( !$this->lines ) {
 			return $this;
 		}
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
 			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $i ) ) {
-				$ret->lines[] = [ $lineTaint->asMergedWith( $taintedness ), $lineLine, $lineLinks ];
+				$preservedTaint = $isSink
+					? $lineLinks->asPreservedTaintednessForFuncParam( $func, $i )
+						->asTaintednessForBackpropError( $taintedness )
+					: $taintedness;
+				$ret->lines[] = [ $lineTaint->asMergedWith( $preservedTaint ), $lineLine, $lineLinks ];
 			} else {
 				$ret->lines[] = [ $lineTaint, $lineLine, $lineLinks ];
 			}

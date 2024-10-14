@@ -185,6 +185,28 @@ class ParamLinksOffsets {
 		return $ret;
 	}
 
+	public function appliedToTaintednessForBackprop( Taintedness $taintedness ): Taintedness {
+		if ( $this->ownFlags ) {
+			$ret = $taintedness->withOnly( $this->ownFlags );
+		} else {
+			$ret = Taintedness::safeSingleton();
+		}
+		foreach ( $this->dims as $k => $val ) {
+			$ret = $ret->withAddedOffsetTaintedness(
+				$k,
+				$val->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( $k ) )
+			);
+		}
+		if ( $this->unknown ) {
+			$ret = $ret->withAddedOffsetTaintedness(
+				null,
+				$this->unknown->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( null ) )
+			);
+		}
+		$ret = $ret->withAddedKeysTaintedness( $taintedness->asKeyForForeach()->withOnly( $this->keysFlags )->get() );
+		return $ret;
+	}
+
 	/**
 	 * @return string
 	 */
