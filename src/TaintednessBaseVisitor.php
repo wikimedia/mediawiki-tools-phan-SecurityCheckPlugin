@@ -400,6 +400,17 @@ trait TaintednessBaseVisitor {
 			return $annotatedTaint;
 		}
 
+		if ( $this->context->isInFunctionLikeScope() && $func->getFQSEN() === $this->context->getFunctionLikeFQSEN() ) {
+			// Recursive function. Analyzing it again isn't useful. Provisionally mark the function as safe, the idea
+			// being that anything dangerous will be added as it's found. Failing to do this would mark the function as
+			// inconditionally preserving all taintedness, as we'd look at its return type only. `--analyze-twice` gives
+			// more accurate results here, since it will analyze the function again once its taintedness (except that
+			// coming from the recursive call) is known.
+			$taint = FunctionTaintedness::emptySingleton();
+			self::doSetFuncTaint( $func, $taint );
+			return $taint;
+		}
+
 		$isPHPInternalFunc = $func->isPHPInternal();
 		if ( !$isPHPInternalFunc ) {
 			// PHP internal functions cannot be analyzed because they don't have a body.

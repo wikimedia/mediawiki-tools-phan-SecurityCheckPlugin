@@ -1,5 +1,4 @@
 integration/recursion2/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/recursion2/test.php +17)
 integration/recursion2/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/recursion2/test.php +17)
-integration/recursion2/test.php:22 SecurityCheck-LikelyFalsePositive Echoing expression that was not html escaped
 integration/recursion2/test.php:22 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/recursion2/test.php +25)
 integration/recursion2/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/recursion2/test.php +25)
