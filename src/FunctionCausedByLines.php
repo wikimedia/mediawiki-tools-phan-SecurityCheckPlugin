@@ -40,9 +40,9 @@ class FunctionCausedByLines {
 	/**
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @param MethodLinks|null $links
+	 * @param ?MethodLinks $links
 	 */
-	public function addGenericLines( array $lines, Taintedness $taint, MethodLinks $links = null ): void {
+	public function addGenericLines( array $lines, Taintedness $taint, ?MethodLinks $links = null ): void {
 		$this->genericLines = $this->genericLines->withAddedLines( $lines, $taint, $links );
 	}
 
@@ -70,13 +70,13 @@ class FunctionCausedByLines {
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @param MethodLinks|null $links
+	 * @param ?MethodLinks $links
 	 */
 	public function addParamPreservedLines(
 		int $param,
 		array $lines,
 		Taintedness $taint,
-		MethodLinks $links = null
+		?MethodLinks $links = null
 	): void {
 		assert( $param !== $this->variadicParamIndex );
 		if ( !isset( $this->paramPreservedLines[$param] ) ) {
@@ -142,13 +142,13 @@ class FunctionCausedByLines {
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @param MethodLinks|null $links
+	 * @param ?MethodLinks $links
 	 */
 	public function addVariadicParamPreservedLines(
 		int $param,
 		array $lines,
 		Taintedness $taint,
-		MethodLinks $links = null
+		?MethodLinks $links = null
 	): void {
 		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
 		$this->variadicParamIndex = $param;

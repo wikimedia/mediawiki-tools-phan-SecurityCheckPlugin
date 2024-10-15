@@ -25,7 +25,7 @@ class MethodLinks {
 	/**
 	 * @param LinksSet|null $links
 	 */
-	public function __construct( LinksSet $links = null ) {
+	public function __construct( ?LinksSet $links = null ) {
 		$this->links = $links ?? new LinksSet();
 	}
 
@@ -223,7 +223,7 @@ class MethodLinks {
 	 * @param LinksSet|null $keyLinks
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset, LinksSet $keyLinks = null ): self {
+	public function asMaybeMovedAtOffset( $offset, ?LinksSet $keyLinks = null ): self {
 		$ret = new self;
 		if ( $offset instanceof Node || $offset === null ) {
 			$ret->unknownDimLinks = $this;

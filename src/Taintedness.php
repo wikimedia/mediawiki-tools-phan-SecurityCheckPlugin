@@ -412,10 +412,10 @@ class Taintedness {
 	 * Create a new object with $this at the given $offset (if scalar) or as unknown object.
 	 *
 	 * @param Node|string|int|bool|float|null $offset
-	 * @param int|null $offsetTaint If available, will be used as key taint
+	 * @param ?int $offsetTaint If available, will be used as key taint
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset, int $offsetTaint = null ): self {
+	public function asMaybeMovedAtOffset( $offset, ?int $offsetTaint = null ): self {
 		$ret = new self( SecurityCheckPlugin::NO_TAINT );
 		if ( $offsetTaint !== null ) {
 			$ret->keysTaint = $offsetTaint;

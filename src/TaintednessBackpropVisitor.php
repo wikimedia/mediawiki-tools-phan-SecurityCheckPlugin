@@ -32,7 +32,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 		CodeBase $code_base,
 		Context $context,
 		Taintedness $taintedness,
-		CausedByLines $additionalError = null
+		?CausedByLines $additionalError = null
 	) {
 		parent::__construct( $code_base, $context );
 		$this->taintedness = $taintedness;
@@ -288,10 +288,10 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 	 * Wrapper for __invoke. Allows changing the taintedness before recursing, and restoring later.
 	 *
 	 * @param Node $node
-	 * @param Taintedness|null $taint
-	 * @param CausedByLines|null $error
+	 * @param ?Taintedness $taint
+	 * @param ?CausedByLines $error
 	 */
-	private function recurse( Node $node, Taintedness $taint = null, CausedByLines $error = null ): void {
+	private function recurse( Node $node, ?Taintedness $taint = null, ?CausedByLines $error = null ): void {
 		if ( !$taint ) {
 			$this( $node );
 			return;

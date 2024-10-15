@@ -8,6 +8,9 @@
 ### Bug fixes
 * Fixed a host of bugs affecting backpropagation of taintedness, resulting in anything between false positives, false negatives, inaccurate error reporting, and OOM.
 
+### Internal changes
+* Bumped phan/phan to 5.4.5
+
 ## v6.0.0
 ### Breaking changes
 * (MW) Most of the taintedness values hardcoded in MediaWikiSecurityCheckPlugin::getCustomFuncTaints() have been removed, and annotations have been

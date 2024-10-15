@@ -114,7 +114,7 @@ trait TaintednessBaseVisitor {
 		$reason,
 		FunctionTaintedness $addedTaint,
 		FunctionTaintedness $allNewTaint,
-		MethodLinks $returnLinks = null
+		?MethodLinks $returnLinks = null
 	): void {
 		if ( !is_string( $reason ) ) {
 			$newErrors = [ $this->dbgInfo( $reason ?? $this->context ) ];
@@ -229,7 +229,7 @@ trait TaintednessBaseVisitor {
 		TypedElementInterface $elem,
 		Taintedness $taintedness,
 		?MethodLinks $links,
-		string $reason = null
+		?string $reason = null
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
 
@@ -1147,7 +1147,7 @@ trait TaintednessBaseVisitor {
 	 * @param Context|null $context Override the context to make debug info for
 	 * @return string path/to/file +linenumber
 	 */
-	protected function dbgInfo( Context $context = null ): string {
+	protected function dbgInfo( ?Context $context = null ): string {
 		$ctx = $context ?: $this->context;
 		// Using a + instead of : so that I can just copy and paste
 		// into a vim command line.
@@ -1258,7 +1258,7 @@ trait TaintednessBaseVisitor {
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
 		Taintedness $taint,
-		CausedByLines $additionalError = null
+		?CausedByLines $additionalError = null
 	): void {
 		$futureTaint = $this->getPossibleFutureTaintOfElement( $var );
 		if ( $futureTaint !== null && !$futureTaint->has( $taint->get() ) ) {
@@ -1351,7 +1351,7 @@ trait TaintednessBaseVisitor {
 	protected function markAllDependentMethodsExecForNode(
 		Node $node,
 		Taintedness $taint,
-		CausedByLines $additionalError = null,
+		?CausedByLines $additionalError = null,
 		bool $tempNumkey = false
 	): void {
 		if ( !$tempNumkey ) {
@@ -2110,7 +2110,7 @@ trait TaintednessBaseVisitor {
 	protected function backpropagateArgTaint(
 		Node $argument,
 		Taintedness $taint,
-		CausedByLines $funcError = null
+		?CausedByLines $funcError = null
 	): void {
 		if ( $taint->has( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) ) {
 			// Special case for numkey, we need to "filter" the argument.
