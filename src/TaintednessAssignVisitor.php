@@ -178,8 +178,8 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			&& ( $dim === null || $this->nodeCanBeIntKey( $dim ) )
 			&& !$this->isRHSArray()
 		) {
-			$this->rightTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
-			$this->errorTaint->add( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$this->rightTaint = $this->rightTaint->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+			$this->errorTaint = $this->errorTaint->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
 		}
 	}
 
@@ -203,7 +203,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->rightTaint = $this->rightTaint->asMaybeMovedAtOffset( $curOff, $dimTaintInt );
 		$dimLinks = $dimTaintWithErr->getMethodLinks()->getLinksCollapsing();
 		$this->rightLinks = $this->rightLinks->asMaybeMovedAtOffset( $curOff, $dimLinks );
-		$this->errorTaint->addKeysTaintedness( $dimTaintInt );
+		$this->errorTaint = $this->errorTaint->withAddedKeysTaintedness( $dimTaintInt );
 		$this->maybeAddNumkeyOnAssignmentLHS( $node );
 		$this( $node->children['expr'] );
 	}

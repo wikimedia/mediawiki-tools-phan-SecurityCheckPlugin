@@ -64,7 +64,7 @@ class Taintedness {
 		$ret = self::newSafe();
 		foreach ( $values as $key => $value ) {
 			assert( $value instanceof self );
-			$ret->setOffsetTaintedness( $key, $value );
+			$ret = $ret->withAddedOffsetTaintedness( $key, $value );
 		}
 		return $ret;
 	}
@@ -123,20 +123,7 @@ class Taintedness {
 	// Value manipulation
 
 	/**
-	 * Add the given taint to this object's flags, *without* creating a clone
-	 * @see Taintedness::with() if you need a clone
-	 * @see Taintedness::mergeWith() if you want to preserve the whole shape
-	 *
-	 * @param int $taint
-	 */
-	public function add( int $taint ): void {
-		// TODO: Should this clear UNKNOWN_TAINT if its present only in one of the args?
-		$this->flags |= $taint;
-	}
-
-	/**
 	 * Returns a copy of this object, with the bits in $other added to flags.
-	 * @see Taintedness::add() for the in-place version
 	 * @see Taintedness::asMergedWith() if you want to preserve the whole shape
 	 *
 	 * @param int $other
@@ -144,31 +131,19 @@ class Taintedness {
 	 */
 	public function with( int $other ): self {
 		$ret = clone $this;
-		$ret->add( $other );
+		// TODO: Should this clear UNKNOWN_TAINT if its present only in one of the args?
+		$ret->flags |= $other;
 		return $ret;
 	}
 
 	/**
-	 * Recursively remove the given taint from this object, *without* creating a clone
-	 * @see Taintedness::without() if you need a clone
-	 *
-	 * @param int $other
-	 */
-	public function remove( int $other ): void {
-		$this->keepOnly( ~$other );
-	}
-
-	/**
 	 * Returns a copy of this object, with the bits in $other removed recursively.
-	 * @see Taintedness::remove() for the in-place version
 	 *
 	 * @param int $other
 	 * @return $this
 	 */
 	public function without( int $other ): self {
-		$ret = clone $this;
-		$ret->remove( $other );
-		return $ret;
+		return $this->withOnly( ~$other );
 	}
 
 	/**
@@ -198,32 +173,23 @@ class Taintedness {
 	}
 
 	/**
-	 * Keep only the taint in $taint, recursively, preserving the shape and without creating a copy.
-	 * @see Taintedness::withOnly if you need a clone
-	 *
-	 * @param int $taint
-	 */
-	public function keepOnly( int $taint ): void {
-		$this->flags &= $taint;
-		if ( $this->unknownDimsTaint ) {
-			$this->unknownDimsTaint->keepOnly( $taint );
-		}
-		$this->keysTaint &= $taint;
-		foreach ( $this->dimTaint as $val ) {
-			$val->keepOnly( $taint );
-		}
-	}
-
-	/**
 	 * Returns a copy of this object, with only the taint in $taint kept (recursively, preserving the shape)
-	 * @see Taintedness::keepOnly() for the in-place version
 	 *
 	 * @param int $other
 	 * @return $this
 	 */
 	public function withOnly( int $other ): self {
 		$ret = clone $this;
-		$ret->keepOnly( $other );
+
+		$ret->flags &= $other;
+		if ( $ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->withOnly( $other );
+		}
+		$ret->keysTaint &= $other;
+		foreach ( $ret->dimTaint as $k => $val ) {
+			$ret->dimTaint[$k] = $val->withOnly( $other );
+		}
+
 		return $ret;
 	}
 
@@ -277,24 +243,26 @@ class Taintedness {
 	}
 
 	/**
-	 * Removes offset data from $this for all known offsets of $other, in place.
+	 * Returns a copy of $this without offset data from all known offsets of $other.
 	 *
 	 * @param Taintedness $other
-	 * @return void
+	 * @return self
 	 */
-	public function removeKnownKeysFrom( self $other ): void {
+	public function withoutKnownKeysFrom( self $other ): self {
+		$ret = clone $this;
 		foreach ( $other->dimTaint as $key => $_ ) {
-			unset( $this->dimTaint[$key] );
+			unset( $ret->dimTaint[$key] );
 		}
 		if (
-			( $this->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) &&
-			!$this->has( SecurityCheckPlugin::SQL_TAINT )
+			( $ret->flags & SecurityCheckPlugin::SQL_NUMKEY_TAINT ) &&
+			!$ret->has( SecurityCheckPlugin::SQL_TAINT )
 		) {
 			// Note that this adjustment is not guaranteed to happen immediately after the removal of the last
 			// integer key. For instance, in [ 0 => unsafe, 'foo' => unsafe ], if only the element 0 is removed,
 			// this branch will not run because 'foo' still contributes sql taint.
-			$this->flags &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
+			$ret->flags &= ~SecurityCheckPlugin::SQL_NUMKEY_TAINT;
 		}
+		return $ret;
 	}
 
 	/**
@@ -336,26 +304,34 @@ class Taintedness {
 	// Offsets taintedness
 
 	/**
-	 * Set the taintedness for $offset to $value, in place
+	 * Returns a copy of $this, adding $value to the taintedness for $offset
 	 *
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param Taintedness $value
+	 * @return self
 	 */
-	public function setOffsetTaintedness( $offset, self $value ): void {
+	public function withAddedOffsetTaintedness( $offset, self $value ): self {
+		$ret = clone $this;
+
 		if ( is_scalar( $offset ) ) {
-			$this->dimTaint[$offset] = $value;
+			$ret->dimTaint[$offset] = $value;
 		} else {
-			$this->unknownDimsTaint ??= self::newSafe();
-			$this->unknownDimsTaint->mergeWith( $value );
+			$ret->unknownDimsTaint ??= self::newSafe();
+			$ret->unknownDimsTaint->mergeWith( $value );
 		}
+
+		return $ret;
 	}
 
 	/**
-	 * Adds the bits in $value to the taintedness of the keys
+	 * Returns a copy of $this with the bits in $value added to the taintedness of the keys
 	 * @param int $value
+	 * @return self
 	 */
-	public function addKeysTaintedness( int $value ): void {
-		$this->keysTaint |= $value;
+	public function withAddedKeysTaintedness( int $value ): self {
+		$ret = clone $this;
+		$ret->keysTaint |= $value;
+		return $ret;
 	}
 
 	/**
@@ -384,23 +360,6 @@ class Taintedness {
 	}
 
 	/**
-	 * Apply an array addition with $other
-	 *
-	 * @param Taintedness $other
-	 */
-	public function arrayPlus( self $other ): void {
-		$this->flags |= $other->flags;
-		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
-			$this->unknownDimsTaint = $other->unknownDimsTaint;
-		} elseif ( $other->unknownDimsTaint ) {
-			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
-		}
-		$this->keysTaint |= $other->keysTaint;
-		// This is not recursive because array addition isn't
-		$this->dimTaint += $other->dimTaint;
-	}
-
-	/**
 	 * Apply the effect of array addition and return a clone of $this
 	 *
 	 * @param Taintedness $other
@@ -408,7 +367,17 @@ class Taintedness {
 	 */
 	public function asArrayPlusWith( self $other ): self {
 		$ret = clone $this;
-		$ret->arrayPlus( $other );
+
+		$ret->flags |= $other->flags;
+		if ( $other->unknownDimsTaint && !$ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $other->unknownDimsTaint;
+		} elseif ( $other->unknownDimsTaint ) {
+			$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+		}
+		$ret->keysTaint |= $other->keysTaint;
+		// This is not recursive because array addition isn't
+		$ret->dimTaint += $other->dimTaint;
+
 		return $ret;
 	}
 
@@ -526,46 +495,52 @@ class Taintedness {
 	}
 
 	/**
-	 * Applies an array_replace operations to $this, in place.
+	 * Returns a copy of $this, array_replace'd with $other.
 	 *
 	 * @param Taintedness $other
-	 * @return void
+	 * @return self
 	 */
-	public function arrayReplace( self $other ): void {
-		$this->flags |= $other->flags;
-		$this->dimTaint = array_replace( $this->dimTaint, $other->dimTaint );
+	public function asArrayReplaceWith( self $other ): self {
+		$ret = clone $this;
+
+		$ret->flags |= $other->flags;
+		$ret->dimTaint = array_replace( $ret->dimTaint, $other->dimTaint );
 		if ( $other->unknownDimsTaint ) {
-			if ( $this->unknownDimsTaint ) {
-				$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+			if ( $ret->unknownDimsTaint ) {
+				$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
 			} else {
-				$this->unknownDimsTaint = $other->unknownDimsTaint;
+				$ret->unknownDimsTaint = $other->unknownDimsTaint;
 			}
 		}
+
+		return $ret;
 	}
 
 	/**
-	 * Applies an array_merge operations to $this, in place.
+	 * Returns a copy of $this, array_merge'd with $other.
 	 *
 	 * @param Taintedness $other
-	 * @return void
+	 * @return self
 	 */
-	public function arrayMerge( self $other ): void {
+	public function asArrayMergeWith( self $other ): self {
+		$ret = clone $this;
 		// First merge the known elements
-		$this->dimTaint = array_merge( $this->dimTaint, $other->dimTaint );
+		$ret->dimTaint = array_merge( $ret->dimTaint, $other->dimTaint );
 		// Then merge general flags, key flags, and any unknown keys
-		$this->flags |= $other->flags;
-		$this->keysTaint |= $other->keysTaint;
-		$this->unknownDimsTaint ??= new self( SecurityCheckPlugin::NO_TAINT );
+		$ret->flags |= $other->flags;
+		$ret->keysTaint |= $other->keysTaint;
+		$ret->unknownDimsTaint ??= new self( SecurityCheckPlugin::NO_TAINT );
 		if ( $other->unknownDimsTaint ) {
-			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
+			$ret->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
 		}
 		// Finally, move taintedness from int keys to unknown
-		foreach ( $this->dimTaint as $k => $val ) {
+		foreach ( $ret->dimTaint as $k => $val ) {
 			if ( is_int( $k ) ) {
-				$this->unknownDimsTaint->mergeWith( $val );
-				unset( $this->dimTaint[$k] );
+				$ret->unknownDimsTaint->mergeWith( $val );
+				unset( $ret->dimTaint[$k] );
 			}
 		}
+		return $ret;
 	}
 
 	// Conversion/checks shortcuts

@@ -102,13 +102,16 @@ class PreservedTaintedness {
 		$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
 
 		foreach ( $this->dimTaint as $k => $val ) {
-			$ret->setOffsetTaintedness( $k, $val->asTaintednessForArgument( $argTaint ) );
+			$ret = $ret->withAddedOffsetTaintedness( $k, $val->asTaintednessForArgument( $argTaint ) );
 		}
 		if ( $this->unknownDimsTaint ) {
-			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asTaintednessForArgument( $argTaint ) );
+			$ret = $ret->withAddedOffsetTaintedness(
+				null,
+				$this->unknownDimsTaint->asTaintednessForArgument( $argTaint )
+			);
 		}
 		if ( $this->keysOffsets ) {
-			$ret->addKeysTaintedness( $this->keysOffsets->appliedToTaintedness( $argTaint )->get() );
+			$ret = $ret->withAddedKeysTaintedness( $this->keysOffsets->appliedToTaintedness( $argTaint )->get() );
 		}
 		return $ret;
 	}
