@@ -30,6 +30,7 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
+use Phan\Language\Type\FunctionLikeDeclarationType;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
@@ -1790,6 +1791,11 @@ trait TaintednessBaseVisitor {
 		bool $computePreserve = true,
 		bool $isHookHandler = false
 	): ?TaintednessWithError {
+		$specialCallResult = null;
+		if ( $this->maybeHandleSpecialCall( $func, $args, $computePreserve, $specialCallResult ) ) {
+			return $specialCallResult;
+		}
+
 		$taint = $this->getTaintOfFunction( $func );
 		$funcError = $this->getCausedByLinesForFunc( $func );
 
@@ -1965,6 +1971,106 @@ trait TaintednessBaseVisitor {
 		$callTaintedness = $callTaintedness->asMergedWith( $combinedArgTaint );
 		$callError = $funcError->getGenericLines()->asMergedWith( $combinedArgErrors );
 		return new TaintednessWithError( $callTaintedness, $callError, MethodLinks::emptySingleton() );
+	}
+
+	/**
+	 * Handle calls to special built-in functions.
+	 *
+	 * @param FunctionInterface $func
+	 * @param array $args Arguments to function/method
+	 * @phan-param array<Node|mixed> $args
+	 * @param bool $computePreserve
+	 * @param TaintednessWithError|null &$result
+	 * @return bool
+	 */
+	private function maybeHandleSpecialCall(
+		FunctionInterface $func,
+		array $args,
+		bool $computePreserve,
+		?TaintednessWithError &$result
+	): bool {
+		switch ( ltrim( $func->getName(), '\\' ) ) {
+			case 'call_user_func':
+				if ( !$args ) {
+					// Syntax error, whatever.
+					return false;
+				}
+				$callbackNode = array_shift( $args );
+				// Use the same method as ClosureReturnTypeOverridePlugin to avoid emitting new issues.
+				$callbacks = UnionTypeVisitor::functionLikeListFromNodeAndContext(
+					$this->code_base,
+					$this->context,
+					$callbackNode,
+					false
+				);
+
+				$result = $computePreserve ? TaintednessWithError::emptySingleton() : null;
+				foreach ( $callbacks as $callback ) {
+					// No point in analyzing abstract function declarations
+					if ( !$callback instanceof FunctionLikeDeclarationType ) {
+						$callTaint = $this->handleMethodCall(
+							$callback, $callback->getFQSEN(), $args, $computePreserve
+						);
+						if ( $result && $callTaint ) {
+							$result = $result->asMergedWith( $callTaint );
+						}
+					}
+				}
+				return true;
+			case 'call_user_func_array':
+				if ( count( $args ) < 2 ) {
+					// Syntax error, whatever.
+					return false;
+				}
+				// Use the same method as ClosureReturnTypeOverridePlugin to avoid emitting new issues.
+				$callbacks = UnionTypeVisitor::functionLikeListFromNodeAndContext(
+					$this->code_base,
+					$this->context,
+					$args[0],
+					false
+				);
+				$callbackArguments = self::extractArrayArgs( $args[1] );
+				if ( $callbackArguments === null ) {
+					return false;
+				}
+
+				$result = $computePreserve ? TaintednessWithError::emptySingleton() : null;
+				foreach ( $callbacks as $callback ) {
+					// No point in analyzing abstract function declarations
+					if ( !$callback instanceof FunctionLikeDeclarationType ) {
+						$callTaint = $this->handleMethodCall(
+							$callback, $callback->getFQSEN(), $callbackArguments, $computePreserve
+						);
+						if ( $result && $callTaint ) {
+							$result = $result->asMergedWith( $callTaint );
+						}
+					}
+				}
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	/**
+	 * Given the node for an array that contains arguments to a function, extract those arguments.
+	 * Shamelessly stolen from phan's ClosureReturnTypeOverridePlugin.
+	 *
+	 * @param Node|mixed $argArrayNode
+	 * @return array<Node|mixed>|null
+	 */
+	private static function extractArrayArgs( $argArrayNode ): ?array {
+		if ( !( $argArrayNode instanceof Node ) || $argArrayNode->kind !== \ast\AST_ARRAY ) {
+			return null;
+		}
+		$arguments = [];
+		foreach ( $argArrayNode->children as $child ) {
+			if ( !( $child instanceof Node ) ) {
+				continue;
+			}
+			$arguments[] = $child->children['value'];
+		}
+		return $arguments;
 	}
 
 	/**
