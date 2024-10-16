@@ -455,8 +455,8 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::assertFunctionTaintArrayWellFormed( $rawFuncTaint );
 				// Note: for backcompat, we set NO_OVERRIDE everywhere.
 				$overallFlags = ( $rawFuncTaint['overall'] & self::FUNCTION_FLAGS ) | self::NO_OVERRIDE;
-				$funcTaint = new FunctionTaintedness( new Taintedness( $rawFuncTaint['overall'] & ~$overallFlags ) );
-				$funcTaint->addOverallFlags( $overallFlags );
+				$funcTaint = ( new FunctionTaintedness( new Taintedness( $rawFuncTaint['overall'] & ~$overallFlags ) ) )
+					->withOverallFlags( $overallFlags );
 				unset( $rawFuncTaint['overall'] );
 				foreach ( $rawFuncTaint as $i => $val ) {
 					assert( ( $val & self::UNKNOWN_TAINT ) === 0, 'Cannot set UNKNOWN' );
@@ -464,20 +464,21 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					// TODO Split sink and preserve in the hardcoded arrays
 					if ( $val & self::VARIADIC_PARAM ) {
 						$pTaint = new Taintedness( $val & ~( self::VARIADIC_PARAM | $paramFlags ) );
-						$funcTaint->setVariadicParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
-						$funcTaint->setVariadicParamPreservedTaint(
-							$i,
-							$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
-						);
-						$funcTaint->addVariadicParamFlags( $paramFlags );
+						$funcTaint = $funcTaint
+							->withVariadicParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) )
+							->withVariadicParamPreservedTaint(
+								$i,
+								$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
+							)
+							->withVariadicParamFlags( $paramFlags );
 					} else {
 						$pTaint = new Taintedness( $val & ~$paramFlags );
-						$funcTaint->setParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) );
-						$funcTaint->setParamPreservedTaint(
-							$i,
-							$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
-						);
-						$funcTaint->addParamFlags( $i, $paramFlags );
+						$funcTaint = $funcTaint->withParamSinkTaint( $i, $pTaint->withOnly( self::ALL_EXEC_TAINT ) )
+							->withParamPreservedTaint(
+								$i,
+								$pTaint->without( self::ALL_EXEC_TAINT )->asPreservedTaintedness()
+							)
+							->withParamFlags( $i, $paramFlags );
 					}
 				}
 			}

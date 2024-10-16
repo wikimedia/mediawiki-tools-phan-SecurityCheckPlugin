@@ -43,18 +43,24 @@ class FunctionTaintedness {
 		$this->overall = $overall;
 	}
 
-	/**
-	 * @param Taintedness $val
-	 */
-	public function setOverall( Taintedness $val ): void {
-		$this->overall = $val;
+	public static function emptySingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self( Taintedness::safeSingleton() );
+		}
+		return $singleton;
 	}
 
-	/**
-	 * @param int $flags
-	 */
-	public function addOverallFlags( int $flags ): void {
-		$this->overallFlags |= $flags;
+	public function withOverall( Taintedness $val ): self {
+		$ret = clone $this;
+		$ret->overall = $val;
+		return $ret;
+	}
+
+	public function withOverallFlags( int $flags ): self {
+		$ret = clone $this;
+		$ret->overallFlags |= $flags;
+		return $ret;
 	}
 
 	/**
@@ -78,10 +84,13 @@ class FunctionTaintedness {
 	 *
 	 * @param int $param
 	 * @param Taintedness $taint
+	 * @return self
 	 */
-	public function setParamSinkTaint( int $param, Taintedness $taint ): void {
-		assert( $param !== $this->variadicParamIndex );
-		$this->paramSinkTaints[$param] = $taint;
+	public function withParamSinkTaint( int $param, Taintedness $taint ): self {
+		$ret = clone $this;
+		assert( $param !== $ret->variadicParamIndex );
+		$ret->paramSinkTaints[$param] = $taint;
+		return $ret;
 	}
 
 	/**
@@ -89,45 +98,41 @@ class FunctionTaintedness {
 	 *
 	 * @param int $param
 	 * @param PreservedTaintedness $taint
+	 * @return self
 	 */
-	public function setParamPreservedTaint( int $param, PreservedTaintedness $taint ): void {
-		assert( $param !== $this->variadicParamIndex );
-		$this->paramPreserveTaints[$param] = $taint;
+	public function withParamPreservedTaint( int $param, PreservedTaintedness $taint ): self {
+		$ret = clone $this;
+		assert( $param !== $ret->variadicParamIndex );
+		$ret->paramPreserveTaints[$param] = $taint;
+		return $ret;
 	}
 
-	/**
-	 * @param int $param
-	 * @param int $flags
-	 */
-	public function addParamFlags( int $param, int $flags ): void {
-		$this->paramFlags[$param] = ( $this->paramFlags[$param] ?? 0 ) | $flags;
+	public function withParamFlags( int $param, int $flags ): self {
+		$ret = clone $this;
+		$ret->paramFlags[$param] = ( $ret->paramFlags[$param] ?? 0 ) | $flags;
+		return $ret;
 	}
 
-	/**
-	 * @param int $index
-	 * @param Taintedness $taint
-	 */
-	public function setVariadicParamSinkTaint( int $index, Taintedness $taint ): void {
-		assert( !isset( $this->paramPreserveTaints[$index] ) && !isset( $this->paramSinkTaints[$index] ) );
-		$this->variadicParamIndex = $index;
-		$this->variadicParamSinkTaint = $taint;
+	public function withVariadicParamSinkTaint( int $index, Taintedness $taint ): self {
+		$ret = clone $this;
+		assert( !isset( $ret->paramPreserveTaints[$index] ) && !isset( $ret->paramSinkTaints[$index] ) );
+		$ret->variadicParamIndex = $index;
+		$ret->variadicParamSinkTaint = $taint;
+		return $ret;
 	}
 
-	/**
-	 * @param int $index
-	 * @param PreservedTaintedness $taint
-	 */
-	public function setVariadicParamPreservedTaint( int $index, PreservedTaintedness $taint ): void {
-		assert( !isset( $this->paramPreserveTaints[$index] ) && !isset( $this->paramSinkTaints[$index] ) );
-		$this->variadicParamIndex = $index;
-		$this->variadicParamPreserveTaint = $taint;
+	public function withVariadicParamPreservedTaint( int $index, PreservedTaintedness $taint ): self {
+		$ret = clone $this;
+		assert( !isset( $ret->paramPreserveTaints[$index] ) && !isset( $ret->paramSinkTaints[$index] ) );
+		$ret->variadicParamIndex = $index;
+		$ret->variadicParamPreserveTaint = $taint;
+		return $ret;
 	}
 
-	/**
-	 * @param int $flags
-	 */
-	public function addVariadicParamFlags( int $flags ): void {
-		$this->variadicParamFlags |= $flags;
+	public function withVariadicParamFlags( int $flags ): self {
+		$ret = clone $this;
+		$ret->variadicParamFlags |= $flags;
+		return $ret;
 	}
 
 	/**
@@ -256,69 +261,65 @@ class FunctionTaintedness {
 	/**
 	 * Merge this object with another. This respects NO_OVERRIDE, since it doesn't touch any element
 	 * where it's set. If the overall taint has UNKNOWN, it's cleared if we're setting it now.
-	 * @param self $other
-	 */
-	public function mergeWith( self $other ): void {
-		foreach ( $other->paramSinkTaints as $index => $baseT ) {
-			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-				if ( isset( $this->paramSinkTaints[$index] ) ) {
-					$this->paramSinkTaints[$index] = $this->paramSinkTaints[$index]->asMergedWith( $baseT );
-				} else {
-					$this->paramSinkTaints[$index] = $baseT;
-				}
-				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
-			}
-		}
-		foreach ( $other->paramPreserveTaints as $index => $baseT ) {
-			if ( ( ( $this->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-				if ( isset( $this->paramPreserveTaints[$index] ) ) {
-					$this->paramPreserveTaints[$index]->mergeWith( $baseT );
-				} else {
-					$this->paramPreserveTaints[$index] = $baseT;
-				}
-				$this->paramFlags[$index] = ( $this->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
-			}
-		}
-
-		if ( ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-			$variadicIndex = $other->variadicParamIndex;
-			if ( $variadicIndex !== null ) {
-				$this->variadicParamIndex = $variadicIndex;
-				$sinkVariadic = $other->variadicParamSinkTaint;
-				if ( $sinkVariadic ) {
-					if ( $this->variadicParamSinkTaint ) {
-						$this->variadicParamSinkTaint = $this->variadicParamSinkTaint->asMergedWith( $sinkVariadic );
-					} else {
-						$this->variadicParamSinkTaint = $sinkVariadic;
-					}
-				}
-				$presVariadic = $other->variadicParamPreserveTaint;
-				if ( $presVariadic ) {
-					if ( $this->variadicParamPreserveTaint ) {
-						$this->variadicParamPreserveTaint->mergeWith( $presVariadic );
-					} else {
-						$this->variadicParamPreserveTaint = $presVariadic;
-					}
-				}
-				$this->variadicParamFlags |= $other->variadicParamFlags;
-			}
-		}
-
-		if ( ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
-			// Remove UNKNOWN, which could be added e.g. when building func taint from the return type.
-			$this->overall = $this->overall->without( SecurityCheckPlugin::UNKNOWN_TAINT )
-				->asMergedWith( $other->overall );
-			$this->overallFlags |= $other->overallFlags;
-		}
-	}
-
-	/**
+	 *
 	 * @param self $other
 	 * @return self
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
-		$ret->mergeWith( $other );
+
+		foreach ( $other->paramSinkTaints as $index => $baseT ) {
+			if ( ( ( $ret->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+				if ( isset( $ret->paramSinkTaints[$index] ) ) {
+					$ret->paramSinkTaints[$index] = $ret->paramSinkTaints[$index]->asMergedWith( $baseT );
+				} else {
+					$ret->paramSinkTaints[$index] = $baseT;
+				}
+				$ret->paramFlags[$index] = ( $ret->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
+			}
+		}
+		foreach ( $other->paramPreserveTaints as $index => $baseT ) {
+			if ( ( ( $ret->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+				if ( isset( $ret->paramPreserveTaints[$index] ) ) {
+					$ret->paramPreserveTaints[$index]->mergeWith( $baseT );
+				} else {
+					$ret->paramPreserveTaints[$index] = $baseT;
+				}
+				$ret->paramFlags[$index] = ( $ret->paramFlags[$index] ?? 0 ) | ( $other->paramFlags[$index] ?? 0 );
+			}
+		}
+
+		if ( ( $ret->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+			$variadicIndex = $other->variadicParamIndex;
+			if ( $variadicIndex !== null ) {
+				$ret->variadicParamIndex = $variadicIndex;
+				$sinkVariadic = $other->variadicParamSinkTaint;
+				if ( $sinkVariadic ) {
+					if ( $ret->variadicParamSinkTaint ) {
+						$ret->variadicParamSinkTaint = $ret->variadicParamSinkTaint->asMergedWith( $sinkVariadic );
+					} else {
+						$ret->variadicParamSinkTaint = $sinkVariadic;
+					}
+				}
+				$presVariadic = $other->variadicParamPreserveTaint;
+				if ( $presVariadic ) {
+					if ( $ret->variadicParamPreserveTaint ) {
+						$ret->variadicParamPreserveTaint->mergeWith( $presVariadic );
+					} else {
+						$ret->variadicParamPreserveTaint = $presVariadic;
+					}
+				}
+				$ret->variadicParamFlags |= $other->variadicParamFlags;
+			}
+		}
+
+		if ( ( $ret->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
+			// Remove UNKNOWN, which could be added e.g. when building func taint from the return type.
+			$ret->overall = $ret->overall->without( SecurityCheckPlugin::UNKNOWN_TAINT )
+				->asMergedWith( $other->overall );
+			$ret->overallFlags |= $other->overallFlags;
+		}
+
 		return $ret;
 	}
 

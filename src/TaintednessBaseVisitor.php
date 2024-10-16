@@ -95,7 +95,7 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function ensureFuncTaintIsSet( FunctionInterface $func ): void {
 		if ( !self::getFuncTaint( $func ) ) {
-			self::doSetFuncTaint( $func, new FunctionTaintedness( Taintedness::newSafe() ) );
+			self::doSetFuncTaint( $func, FunctionTaintedness::emptySingleton() );
 		}
 	}
 
@@ -576,7 +576,7 @@ trait TaintednessBaseVisitor {
 		// the person would specify all the dangerous taints, so
 		// don't set the unknown flag if not taint annotation on
 		// @return.
-		$funcTaint = new FunctionTaintedness( Taintedness::newSafe() );
+		$funcTaint = FunctionTaintedness::emptySingleton();
 		// TODO $fakeMethodLinks here is a bit hacky...
 		$fakeMethodLinks = MethodLinks::emptySingleton();
 		foreach ( $lines as $line ) {
@@ -623,19 +623,21 @@ trait TaintednessBaseVisitor {
 				$sinkTaint = $taint->withOnly( SecurityCheckPlugin::ALL_EXEC_TAINT );
 				$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT )->asPreservedTaintedness();
 				if ( $isVariadic ) {
-					$funcTaint->setVariadicParamSinkTaint( $paramNumber, $sinkTaint );
-					$funcTaint->setVariadicParamPreservedTaint( $paramNumber, $preserveTaint );
-					$funcTaint->addVariadicParamFlags( $flags );
+					$funcTaint = $funcTaint->withVariadicParamSinkTaint( $paramNumber, $sinkTaint )
+						->withVariadicParamPreservedTaint( $paramNumber, $preserveTaint )
+						->withVariadicParamFlags( $flags );
 				} else {
-					$funcTaint->setParamSinkTaint( $paramNumber, $sinkTaint );
-					$funcTaint->setParamPreservedTaint( $paramNumber, $preserveTaint );
-					$funcTaint->addParamFlags( $paramNumber, $flags );
+					$funcTaint = $funcTaint->withParamSinkTaint( $paramNumber, $sinkTaint )
+						->withParamPreservedTaint( $paramNumber, $preserveTaint )
+						->withParamFlags( $paramNumber, $flags );
 				}
 				$fakeMethodLinks = $fakeMethodLinks->withFuncAndParam( $func, $paramNumber );
 				$validTaintEncountered = true;
 				if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
 					// Special case to auto-set anything that escapes html to detect double escaping.
-					$funcTaint->setOverall( $funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT ) );
+					$funcTaint = $funcTaint->withOverall(
+						$funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT )
+					);
 				}
 			} elseif ( strpos( $trimmedLine, '@return-taint' ) === 0 ) {
 				$taintLine = substr( $trimmedLine, strlen( '@return-taint' ) + 1 );
@@ -650,8 +652,7 @@ trait TaintednessBaseVisitor {
 					$invalidLineIssueEmitter( "Return taintedness cannot be exec", [] );
 					continue;
 				}
-				$funcTaint->setOverall( $taint );
-				$funcTaint->addOverallFlags( $flags );
+				$funcTaint = $funcTaint->withOverall( $taint )->withOverallFlags( $flags );
 				$validTaintEncountered = true;
 			}
 		}
@@ -1287,17 +1288,17 @@ trait TaintednessBaseVisitor {
 				$paramInfo = $curLinks[$method];
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
-				$paramTaint = new FunctionTaintedness( Taintedness::newSafe() );
+				$paramTaint = FunctionTaintedness::emptySingleton();
 				$funcError = new FunctionCausedByLines();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
 					$curBackpropError = $backpropError
 						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
-						$paramTaint->setVariadicParamSinkTaint( $i, $curParTaint );
+						$paramTaint = $paramTaint->withVariadicParamSinkTaint( $i, $curParTaint );
 						$funcError->setVariadicParamSinkLines( $i, $curBackpropError );
 					} else {
-						$paramTaint->setParamSinkTaint( $i, $curParTaint );
+						$paramTaint = $paramTaint->withParamSinkTaint( $i, $curParTaint );
 						$funcError->setParamSinkLines( $i, $curBackpropError );
 					}
 					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
