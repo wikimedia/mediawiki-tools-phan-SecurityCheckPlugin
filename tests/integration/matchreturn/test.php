@@ -248,7 +248,7 @@ function roundTripAndEcho( $par ) {
 	$v = [ 'x' => $par, 'z' => 'safe' ];
 	echo $v['x'];
 }
-roundTripAndEcho( [ 'x' => 'safe', 'z' => $_GET['a'] ] ); // TODO Unsafe
+roundTripAndEcho( [ 'x' => 'safe', 'z' => $_GET['a'] ] ); // Unsafe
 
 function echoEscapedPartial( $par ) {
 	echo htmlspecialchars( $par['x'] );

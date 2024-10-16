@@ -47,7 +47,14 @@ class MethodLinks {
 	 */
 	public function getForDim( $dim ): self {
 		if ( !is_scalar( $dim ) ) {
-			return $this->asValueFirstLevel()->withAddedOffset( $dim );
+			$ret = ( new self( clone $this->links ) )->withAddedOffset( $dim );
+			if ( $this->unknownDimLinks ) {
+				$ret = $ret->asMergedWith( $this->unknownDimLinks );
+			}
+			foreach ( $this->dimLinks as $links ) {
+				$ret = $ret->asMergedWith( $links );
+			}
+			return $ret;
 		}
 		if ( isset( $this->dimLinks[$dim] ) ) {
 			if ( $this->unknownDimLinks ) {
@@ -56,10 +63,15 @@ class MethodLinks {
 				$ret = $this->dimLinks[$dim]->deepClone();
 			}
 			$ret->links->mergeWith( $this->links );
-			return $ret->withAddedOffset( $dim );
+			return $ret;
 		}
-		$ret = $this->unknownDimLinks ? $this->unknownDimLinks->deepClone() : new self();
-		$ret->links->mergeWith( $this->links );
+		if ( $this->unknownDimLinks ) {
+			$ret = $this->unknownDimLinks->deepClone();
+			$ret->links->mergeWith( $this->links );
+		} else {
+			$ret = new self( $this->links );
+		}
+
 		return $ret->withAddedOffset( $dim );
 	}
 
