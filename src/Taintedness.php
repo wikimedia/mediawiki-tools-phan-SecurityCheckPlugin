@@ -42,6 +42,14 @@ class Taintedness {
 		return new self( SecurityCheckPlugin::NO_TAINT );
 	}
 
+	public static function safeSingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self( SecurityCheckPlugin::NO_TAINT );
+		}
+		return $singleton;
+	}
+
 	/**
 	 * @return self
 	 */
@@ -389,10 +397,10 @@ class Taintedness {
 			if ( $this->unknownDimsTaint ) {
 				$ret = $this->dimTaint[$offset]->asMergedWith( $this->unknownDimsTaint );
 			} else {
-				$ret = $this->dimTaint[$offset];
+				$ret = clone $this->dimTaint[$offset];
 			}
 		} elseif ( $this->unknownDimsTaint ) {
-			$ret = $this->unknownDimsTaint;
+			$ret = clone $this->unknownDimsTaint;
 		} else {
 			return new self( $this->flags );
 		}
@@ -520,7 +528,7 @@ class Taintedness {
 		// Then merge general flags, key flags, and any unknown keys
 		$ret->flags |= $other->flags;
 		$ret->keysTaint |= $other->keysTaint;
-		$ret->unknownDimsTaint ??= new self( SecurityCheckPlugin::NO_TAINT );
+		$ret->unknownDimsTaint ??= self::safeSingleton();
 		if ( $other->unknownDimsTaint ) {
 			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
 		}
@@ -611,7 +619,7 @@ class Taintedness {
 		$offsetsFlags = $offsets->getFlags();
 		$ret = $offsetsFlags ?
 			$this->withOnly( ( $offsetsFlags & SecurityCheckPlugin::ALL_TAINT ) << 1 )
-			: new self( SecurityCheckPlugin::NO_TAINT );
+			: self::newSafe();
 		foreach ( $offsets->getDims() as $k => $val ) {
 			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $val );
 			if ( isset( $ret->dimTaint[$k] ) ) {
@@ -764,18 +772,6 @@ EOT;
 		}
 		$ret .= '}';
 		return $ret;
-	}
-
-	/**
-	 * Make sure to clone member variables, too.
-	 */
-	public function __clone() {
-		if ( $this->unknownDimsTaint ) {
-			$this->unknownDimsTaint = clone $this->unknownDimsTaint;
-		}
-		foreach ( $this->dimTaint as $k => $v ) {
-			$this->dimTaint[$k] = clone $v;
-		}
 	}
 
 	/**

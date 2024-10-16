@@ -92,7 +92,7 @@ class CausedByLines {
 		foreach ( $this->lines as [ $eTaint, $eLine, $links ] ) {
 			$newTaint = $curTaint !== SecurityCheckPlugin::NO_TAINT
 				? $eTaint->withOnly( $curTaint )
-				: new Taintedness( SecurityCheckPlugin::NO_TAINT );
+				: Taintedness::safeSingleton();
 			$ret->lines[] = [ $newTaint, $eLine, $links ];
 		}
 		return $ret;

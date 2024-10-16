@@ -601,7 +601,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		$taints = explode( ',', strtolower( $filteredLine ) );
 		$taints = array_map( 'trim', $taints );
 
-		$overallTaint = new Taintedness( self::NO_TAINT );
+		$overallTaint = Taintedness::safeSingleton();
 		$overallFlags = self::NO_OVERRIDE;
 		$numberOfTaintsProcessed = 0;
 		foreach ( $taints as $taint ) {

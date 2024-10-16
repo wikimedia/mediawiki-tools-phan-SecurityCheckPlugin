@@ -166,7 +166,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 	private function setCurTaintSafe(): void {
 		$this->curTaintWithError = new TaintednessWithError(
-			Taintedness::newSafe(),
+			Taintedness::safeSingleton(),
 			new CausedByLines(),
 			MethodLinks::emptySingleton()
 		);
@@ -517,7 +517,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		int $mask
 	): Taintedness {
 		if ( $mask === SecurityCheckPlugin::NO_TAINT ) {
-			return Taintedness::newSafe();
+			return Taintedness::safeSingleton();
 		}
 		if ( $op === \ast\flags\BINARY_ADD ) {
 			// HACK: This means that a node can be array, so assume array plus
@@ -864,11 +864,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				$elTaint = Taintedness::newFromArray( [
 					'name' => Taintedness::newTainted(),
 					'type' => Taintedness::newTainted(),
-					'tmp_name' => Taintedness::newSafe(),
-					'error' => Taintedness::newSafe(),
-					'size' => Taintedness::newSafe(),
+					'tmp_name' => Taintedness::safeSingleton(),
+					'error' => Taintedness::safeSingleton(),
+					'size' => Taintedness::safeSingleton(),
 				] );
-				return Taintedness::newSafe()->withAddedKeysTaintedness( SecurityCheckPlugin::YES_TAINT )
+				return Taintedness::safeSingleton()->withAddedKeysTaintedness( SecurityCheckPlugin::YES_TAINT )
 					// Use 'null' as fake offset to set unknownDims
 					->withAddedOffsetTaintedness( null, $elTaint );
 			case 'GLOBALS':
@@ -913,7 +913,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			return;
 		}
 		$actualGlobal = $gvar->getElement();
-		self::setTaintednessRaw( $gvar, self::getTaintednessRawClone( $actualGlobal ) ?: Taintedness::newSafe() );
+		self::setTaintednessRaw( $gvar, self::getTaintednessRawClone( $actualGlobal ) ?: Taintedness::safeSingleton() );
 		self::setCausedByRaw( $gvar, self::getCausedByRawCloneOrEmpty( $actualGlobal ) );
 		self::setMethodLinks( $gvar, self::getMethodLinksCloneOrEmpty( $actualGlobal ) );
 	}
@@ -1004,7 +1004,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitArray( Node $node ): void {
-		$curTaint = Taintedness::newSafe();
+		$curTaint = Taintedness::safeSingleton();
 		$curError = new CausedByLines();
 		$links = MethodLinks::emptySingleton();
 		// Current numeric key in the array

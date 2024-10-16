@@ -144,7 +144,7 @@ trait TaintednessBaseVisitor {
 				$newErr->addParamPreservedLines(
 					$key,
 					$newErrors,
-					Taintedness::newSafe(),
+					Taintedness::safeSingleton(),
 					$returnLinks->asFilteredForFuncAndParam( $func, $key )
 				);
 			}
@@ -163,7 +163,7 @@ trait TaintednessBaseVisitor {
 				$newErr->addVariadicParamPreservedLines(
 					$variadicIndex,
 					$newErrors,
-					Taintedness::newSafe(),
+					Taintedness::safeSingleton(),
 					$returnLinks->asFilteredForFuncAndParam( $func, $variadicIndex )
 				);
 			}
@@ -254,12 +254,12 @@ trait TaintednessBaseVisitor {
 	 */
 	protected function ensureTaintednessIsSet( TypedElementInterface $varObj ): void {
 		if ( !self::getTaintednessRaw( $varObj ) ) {
-			self::setTaintednessRaw( $varObj, Taintedness::newSafe() );
+			self::setTaintednessRaw( $varObj, Taintedness::safeSingleton() );
 		}
 		if ( $varObj instanceof GlobalVariable ) {
 			$gVarObj = $varObj->getElement();
 			if ( !self::getTaintednessRaw( $gVarObj ) ) {
-				self::setTaintednessRaw( $gVarObj, Taintedness::newSafe() );
+				self::setTaintednessRaw( $gVarObj, Taintedness::safeSingleton() );
 			}
 		}
 	}
@@ -684,7 +684,7 @@ trait TaintednessBaseVisitor {
 			return new Taintedness( SecurityCheckPlugin::UNKNOWN_TAINT );
 		}
 
-		$taint = new Taintedness( SecurityCheckPlugin::NO_TAINT );
+		$taint = Taintedness::safeSingleton();
 		$isPossiblyUnknown = false;
 		foreach ( $typelist as $type ) {
 			if ( $type instanceof LiteralTypeInterface ) {
@@ -836,7 +836,7 @@ trait TaintednessBaseVisitor {
 		assert( is_scalar( $expr ) || $expr === null );
 		// Optim: avoid using TaintednessWithError::newEmpty()
 		return new TaintednessWithError(
-			new Taintedness( SecurityCheckPlugin::NO_TAINT ),
+			Taintedness::safeSingleton(),
 			new CausedByLines(),
 			MethodLinks::emptySingleton()
 		);
@@ -1877,7 +1877,7 @@ trait TaintednessBaseVisitor {
 			return $hardcodedPreservedTaint;
 		}
 		$overallTaint = $taint->getOverall();
-		$combinedArgTaint = Taintedness::newSafe();
+		$combinedArgTaint = Taintedness::safeSingleton();
 		$combinedArgErrors = new CausedByLines();
 		foreach ( $preserveArgumentsData as $i => [ $curArgTaintedness, $baseArgError ] ) {
 			if ( $taint->hasParamPreserve( $i ) ) {
@@ -2155,7 +2155,7 @@ trait TaintednessBaseVisitor {
 					$joinerTaint = $preserveArgumentsData[0][0]->asCollapsed();
 					$joinerError = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $joinerTaint );
 				}
-				$combinedTaint = $joinerTaint ?? Taintedness::newSafe();
+				$combinedTaint = $joinerTaint ?? Taintedness::safeSingleton();
 				$combinedError = $joinerError ?? new CausedByLines();
 				if ( isset( $preserveArgumentsData[1] ) ) {
 					$arrayTaint = $preserveArgumentsData[1][0]->withoutKeys()->asCollapsed();
@@ -2173,14 +2173,14 @@ trait TaintednessBaseVisitor {
 				}
 				$preservedArgTaint = clone $preserveArgumentsData[2][0];
 				// TODO: We may actually be able to infer the actual keys, instead of setting as unknown
-				$taint = Taintedness::newSafe()->withAddedOffsetTaintedness( null, $preservedArgTaint );
+				$taint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, $preservedArgTaint );
 				// TODO: We should also add numkey if the argument has sql.
 				$error = $preserveArgumentsData[2][1]->asIntersectedWithTaintedness( $preservedArgTaint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
 			case 'array_fill_keys':
 				// array_fill_keys( $keys, $value ) creates an array whose keys are the element in $keys, and whose
 				// values are all equal to $value.
-				$taint = Taintedness::newSafe();
+				$taint = Taintedness::safeSingleton();
 				$error = new CausedByLines();
 				if ( isset( $preserveArgumentsData[0] ) ) {
 					$keysTaintedness = $preserveArgumentsData[0][0]->asValueFirstLevel();
@@ -2198,7 +2198,7 @@ trait TaintednessBaseVisitor {
 			case 'array_combine':
 				// array_fill_keys( $keys, $values ) creates an array whose keys are the element in $keys, and whose
 				// values the elements in $values.
-				$taint = Taintedness::newSafe();
+				$taint = Taintedness::safeSingleton();
 				$error = new CausedByLines();
 				if ( isset( $preserveArgumentsData[0] ) ) {
 					$keysTaintedness = $preserveArgumentsData[0][0]->asValueFirstLevel();
@@ -2322,7 +2322,7 @@ trait TaintednessBaseVisitor {
 				// arguments, element by element.
 				// TODO: Analyze the callback. For now we only preserve taintedness of array arguments.
 				unset( $preserveArgumentsData[0] );
-				$taint = Taintedness::newSafe();
+				$taint = Taintedness::safeSingleton();
 				$error = new CausedByLines();
 				foreach ( $preserveArgumentsData as [ $argTaint, $argError ] ) {
 					$preservedArgTaint = $argTaint->asCollapsed();
@@ -2376,7 +2376,7 @@ trait TaintednessBaseVisitor {
 					$taint = clone $preserveArgumentsData[0][0];
 					$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
 				} else {
-					$taint = Taintedness::newSafe();
+					$taint = Taintedness::safeSingleton();
 					$error = new CausedByLines();
 				}
 				if ( isset( $preserveArgumentsData[2] ) ) {
@@ -2433,7 +2433,7 @@ trait TaintednessBaseVisitor {
 			// TODO Handle these with recursion.
 			case 'array_merge_recursive':
 			case 'array_replace_recursive':
-				$taint = Taintedness::newSafe();
+				$taint = Taintedness::safeSingleton();
 				$error = new CausedByLines();
 				foreach ( $preserveArgumentsData as [ $curArgTaintedness, $baseArgError ] ) {
 					$preservedArgTaint = $curArgTaintedness->asKnownKeysMadeUnknown();
@@ -2449,7 +2449,7 @@ trait TaintednessBaseVisitor {
 				}
 				// TODO: Check value of $preserve_keys to determine the key taintedness more accurately.
 				// For now, we just assume that keys are preserved.
-				$taint = Taintedness::newSafe()
+				$taint = Taintedness::safeSingleton()
 					->withAddedOffsetTaintedness( null, $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown() );
 				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, MethodLinks::emptySingleton() );
