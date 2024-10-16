@@ -256,7 +256,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		}
 
 		if ( $this->dimDepth > 0 ) {
-			$curLinks = self::getMethodLinksCloneOrEmpty( $variableObj );
+			$curLinks = self::getMethodLinks( $variableObj ) ?? MethodLinks::emptySingleton();
 			$newLinks = $override
 				? $curLinks->asMergedForAssignment( $this->rightLinks, $this->dimDepth )
 				: $curLinks->asMergedWith( $this->rightLinks );
@@ -269,8 +269,10 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		if ( $globalVarObj ) {
 			// Merge dependencies on the global copy as well
 			if ( $this->dimDepth > 0 ) {
-				$curGlobalLinks = self::getMethodLinksCloneOrEmpty( $globalVarObj );
-				$newGlobalLinks = $curGlobalLinks->asMergedWith( $this->rightLinks );
+				$curGlobalLinks = self::getMethodLinks( $globalVarObj );
+				$newGlobalLinks = $curGlobalLinks
+					? $curGlobalLinks->asMergedWith( $this->rightLinks )
+					: $this->rightLinks;
 				$overrideGlobalLinks = true;
 			} else {
 				$newGlobalLinks = $this->rightLinks;
