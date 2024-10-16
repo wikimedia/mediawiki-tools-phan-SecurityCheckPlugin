@@ -158,7 +158,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function setCurTaintUnknown(): void {
 		$this->curTaintWithError = new TaintednessWithError(
-			Taintedness::newUnknown(),
+			Taintedness::unknownSingleton(),
 			new CausedByLines(),
 			MethodLinks::emptySingleton()
 		);

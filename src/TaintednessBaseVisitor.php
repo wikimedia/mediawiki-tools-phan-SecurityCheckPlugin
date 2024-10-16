@@ -682,7 +682,7 @@ trait TaintednessBaseVisitor {
 		$typelist = $types->getUniqueFlattenedTypeSet();
 		if ( !$typelist ) {
 			// $this->debug( __METHOD__, "Setting type unknown due to no type info." );
-			return new Taintedness( SecurityCheckPlugin::UNKNOWN_TAINT );
+			return Taintedness::unknownSingleton();
 		}
 
 		$taint = Taintedness::safeSingleton();
