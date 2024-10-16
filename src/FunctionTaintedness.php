@@ -39,8 +39,9 @@ class FunctionTaintedness {
 	/**
 	 * @param Taintedness $overall
 	 */
-	public function __construct( Taintedness $overall ) {
+	public function __construct( Taintedness $overall, int $overallFlags = 0 ) {
 		$this->overall = $overall;
+		$this->overallFlags = $overallFlags;
 	}
 
 	public static function emptySingleton(): self {
@@ -51,14 +52,9 @@ class FunctionTaintedness {
 		return $singleton;
 	}
 
-	public function withOverall( Taintedness $val ): self {
+	public function withOverall( Taintedness $val, int $flags = 0 ): self {
 		$ret = clone $this;
 		$ret->overall = $val;
-		return $ret;
-	}
-
-	public function withOverallFlags( int $flags ): self {
-		$ret = clone $this;
 		$ret->overallFlags |= $flags;
 		return $ret;
 	}
@@ -84,12 +80,14 @@ class FunctionTaintedness {
 	 *
 	 * @param int $param
 	 * @param Taintedness $taint
+	 * @param int $flags
 	 * @return self
 	 */
-	public function withParamSinkTaint( int $param, Taintedness $taint ): self {
+	public function withParamSinkTaint( int $param, Taintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
 		assert( $param !== $ret->variadicParamIndex );
 		$ret->paramSinkTaints[$param] = $taint;
+		$ret->paramFlags[$param] = ( $ret->paramFlags[$param] ?? 0 ) | $flags;
 		return $ret;
 	}
 
@@ -98,39 +96,31 @@ class FunctionTaintedness {
 	 *
 	 * @param int $param
 	 * @param PreservedTaintedness $taint
+	 * @param int $flags
 	 * @return self
 	 */
-	public function withParamPreservedTaint( int $param, PreservedTaintedness $taint ): self {
+	public function withParamPreservedTaint( int $param, PreservedTaintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
 		assert( $param !== $ret->variadicParamIndex );
 		$ret->paramPreserveTaints[$param] = $taint;
-		return $ret;
-	}
-
-	public function withParamFlags( int $param, int $flags ): self {
-		$ret = clone $this;
 		$ret->paramFlags[$param] = ( $ret->paramFlags[$param] ?? 0 ) | $flags;
 		return $ret;
 	}
 
-	public function withVariadicParamSinkTaint( int $index, Taintedness $taint ): self {
+	public function withVariadicParamSinkTaint( int $index, Taintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
 		assert( !isset( $ret->paramPreserveTaints[$index] ) && !isset( $ret->paramSinkTaints[$index] ) );
 		$ret->variadicParamIndex = $index;
 		$ret->variadicParamSinkTaint = $taint;
+		$ret->variadicParamFlags |= $flags;
 		return $ret;
 	}
 
-	public function withVariadicParamPreservedTaint( int $index, PreservedTaintedness $taint ): self {
+	public function withVariadicParamPreservedTaint( int $index, PreservedTaintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
 		assert( !isset( $ret->paramPreserveTaints[$index] ) && !isset( $ret->paramSinkTaints[$index] ) );
 		$ret->variadicParamIndex = $index;
 		$ret->variadicParamPreserveTaint = $taint;
-		return $ret;
-	}
-
-	public function withVariadicParamFlags( int $flags ): self {
-		$ret = clone $this;
 		$ret->variadicParamFlags |= $flags;
 		return $ret;
 	}
