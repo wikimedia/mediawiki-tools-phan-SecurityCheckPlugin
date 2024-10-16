@@ -232,8 +232,11 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				return;
 			}
 
+			/** @var Taintedness $taintedness */
 			$taintedness = $prevTaint = $firstVar->taintedness ?? null;
+			/** @var MethodLinks $methodLinks */
 			$methodLinks = $prevLinks = $firstVar->taintedMethodLinks ?? null;
+			/** @var CausedByLines $error */
 			$error = $prevErr = $firstVar->taintedOriginalError ?? null;
 
 			foreach ( $vars as $localVar ) {
@@ -255,7 +258,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				if ( $variableObjLinksOrNull && $variableObjLinksOrNull !== $prevLinks ) {
 					$prevLinks = $variableObjLinksOrNull;
 					if ( $methodLinks ) {
-						$methodLinks->mergeWith( $variableObjLinksOrNull );
+						$methodLinks = $methodLinks->asMergedWith( $variableObjLinksOrNull );
 					} else {
 						$methodLinks = $variableObjLinksOrNull;
 					}

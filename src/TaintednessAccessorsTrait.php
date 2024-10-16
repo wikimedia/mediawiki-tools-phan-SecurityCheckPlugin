@@ -105,7 +105,9 @@ trait TaintednessAccessorsTrait {
 	 */
 	protected static function getMethodLinksCloneOrEmpty( TypedElementInterface $element ): MethodLinks {
 		// Performance: use isset(), not property_exists()
-		return isset( $element->taintedMethodLinks ) ? clone $element->taintedMethodLinks : new MethodLinks();
+		return isset( $element->taintedMethodLinks )
+			? clone $element->taintedMethodLinks
+			: MethodLinks::emptySingleton();
 	}
 
 	/**

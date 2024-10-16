@@ -48,7 +48,7 @@ class CausedByLines {
 				if ( $links && !$this->lines[$idx][2] ) {
 					$this->lines[$idx][2] = clone $links;
 				} elseif ( $links && $links !== $this->lines[$idx][2] ) {
-					$this->lines[$idx][2]->mergeWith( $links );
+					$this->lines[$idx][2] = $this->lines[$idx][2]->asMergedWith( $links );
 				}
 			} else {
 				$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
@@ -182,7 +182,7 @@ class CausedByLines {
 				if ( $curLinks && !$this->lines[ $i + $subsIdx ][2] ) {
 					$this->lines[$i + $subsIdx][2] = $curLinks;
 				} elseif ( $curLinks && $curLinks !== $this->lines[ $i + $subsIdx ][2] ) {
-					$this->lines[$i + $subsIdx][2]->mergeWith( $curLinks );
+					$this->lines[$i + $subsIdx][2] = $this->lines[$i + $subsIdx][2]->asMergedWith( $curLinks );
 				}
 			}
 			return;
@@ -208,7 +208,7 @@ class CausedByLines {
 					if ( $secondLinks && !$this->lines[$j][2] ) {
 						$this->lines[$j][2] = $secondLinks;
 					} elseif ( $secondLinks && $secondLinks !== $this->lines[$j][2] ) {
-						$this->lines[$j][2]->mergeWith( $secondLinks );
+						$this->lines[$j][2] = $this->lines[$j][2]->asMergedWith( $secondLinks );
 					}
 				}
 				$ret = array_merge( $this->lines, array_slice( $other->lines, $newLen - $expectedIndex ) );
