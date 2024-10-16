@@ -41,14 +41,6 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * @param TypedElementInterface $element
-	 * @return CausedByLines
-	 */
-	protected static function getCausedByRawCloneOrEmpty( TypedElementInterface $element ): CausedByLines {
-		return isset( $element->taintedOriginalError ) ? clone $element->taintedOriginalError : new CausedByLines();
-	}
-
-	/**
 	 * @param FunctionInterface $func
 	 * @return FunctionCausedByLines
 	 */

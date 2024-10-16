@@ -30,7 +30,7 @@ class TaintednessWithError {
 	public static function newEmpty(): self {
 		return new self(
 			Taintedness::safeSingleton(),
-			new CausedByLines(),
+			CausedByLines::emptySingleton(),
 			MethodLinks::emptySingleton()
 		);
 	}
@@ -61,7 +61,7 @@ class TaintednessWithError {
 	 */
 	public function mergeWith( self $other ): void {
 		$this->taintedness = $this->taintedness->asMergedWith( $other->taintedness );
-		$this->error->mergeWith( $other->error );
+		$this->error = $this->error->asMergedWith( $other->error );
 		$this->methodLinks = $this->methodLinks->asMergedWith( $other->methodLinks );
 	}
 

@@ -26,7 +26,7 @@ class FunctionCausedByLines {
 	private $variadicParamPreservedLines;
 
 	public function __construct() {
-		$this->genericLines = new CausedByLines();
+		$this->genericLines = CausedByLines::emptySingleton();
 	}
 
 	/**
@@ -43,7 +43,7 @@ class FunctionCausedByLines {
 	 * @param MethodLinks|null $links
 	 */
 	public function addGenericLines( array $lines, Taintedness $taint, MethodLinks $links = null ): void {
-		$this->genericLines->addLines( $lines, $taint, $links );
+		$this->genericLines = $this->genericLines->withAddedLines( $lines, $taint, $links );
 	}
 
 	/**
@@ -61,9 +61,9 @@ class FunctionCausedByLines {
 	public function addParamSinkLines( int $param, array $lines, Taintedness $taint ): void {
 		assert( $param !== $this->variadicParamIndex );
 		if ( !isset( $this->paramSinkLines[$param] ) ) {
-			$this->paramSinkLines[$param] = new CausedByLines();
+			$this->paramSinkLines[$param] = CausedByLines::emptySingleton();
 		}
-		$this->paramSinkLines[$param]->addLines( $lines, $taint );
+		$this->paramSinkLines[$param] = $this->paramSinkLines[$param]->withAddedLines( $lines, $taint );
 	}
 
 	/**
@@ -80,9 +80,10 @@ class FunctionCausedByLines {
 	): void {
 		assert( $param !== $this->variadicParamIndex );
 		if ( !isset( $this->paramPreservedLines[$param] ) ) {
-			$this->paramPreservedLines[$param] = new CausedByLines();
+			$this->paramPreservedLines[$param] = CausedByLines::emptySingleton();
 		}
-		$this->paramPreservedLines[$param]->addLines( $lines, $taint, $links );
+		$this->paramPreservedLines[$param] = $this->paramPreservedLines[$param]
+			->withAddedLines( $lines, $taint, $links );
 	}
 
 	/**
@@ -132,9 +133,9 @@ class FunctionCausedByLines {
 		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
 		$this->variadicParamIndex = $param;
 		if ( !$this->variadicParamSinkLines ) {
-			$this->variadicParamSinkLines = new CausedByLines();
+			$this->variadicParamSinkLines = CausedByLines::emptySingleton();
 		}
-		$this->variadicParamSinkLines->addLines( $lines, $taint );
+		$this->variadicParamSinkLines = $this->variadicParamSinkLines->withAddedLines( $lines, $taint );
 	}
 
 	/**
@@ -152,9 +153,10 @@ class FunctionCausedByLines {
 		assert( !isset( $this->paramSinkLines[$param] ) && !isset( $this->paramPreservedLines[$param] ) );
 		$this->variadicParamIndex = $param;
 		if ( !$this->variadicParamPreservedLines ) {
-			$this->variadicParamPreservedLines = new CausedByLines();
+			$this->variadicParamPreservedLines = CausedByLines::emptySingleton();
 		}
-		$this->variadicParamPreservedLines->addLines( $lines, $taint, $links );
+		$this->variadicParamPreservedLines = $this->variadicParamPreservedLines
+			->withAddedLines( $lines, $taint, $links );
 	}
 
 	/**
@@ -171,7 +173,7 @@ class FunctionCausedByLines {
 		) {
 			return $this->variadicParamSinkLines;
 		}
-		return new CausedByLines();
+		return CausedByLines::emptySingleton();
 	}
 
 	/**
@@ -188,7 +190,7 @@ class FunctionCausedByLines {
 		) {
 			return $this->variadicParamPreservedLines;
 		}
-		return new CausedByLines();
+		return CausedByLines::emptySingleton();
 	}
 
 	/**
@@ -197,12 +199,12 @@ class FunctionCausedByLines {
 	 */
 	public function mergeWith( self $other, FunctionTaintedness $funcTaint ): void {
 		if ( $funcTaint->canOverrideOverall() ) {
-			$this->genericLines->mergeWith( $other->genericLines );
+			$this->genericLines = $this->genericLines->asMergedWith( $other->genericLines );
 		}
 		foreach ( $other->paramSinkLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
 				if ( isset( $this->paramSinkLines[$param] ) ) {
-					$this->paramSinkLines[$param]->mergeWith( $lines );
+					$this->paramSinkLines[$param] = $this->paramSinkLines[$param]->asMergedWith( $lines );
 				} else {
 					$this->paramSinkLines[$param] = $lines;
 				}
@@ -211,7 +213,7 @@ class FunctionCausedByLines {
 		foreach ( $other->paramPreservedLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
 				if ( isset( $this->paramPreservedLines[$param] ) ) {
-					$this->paramPreservedLines[$param]->mergeWith( $lines );
+					$this->paramPreservedLines[$param] = $this->paramPreservedLines[$param]->asMergedWith( $lines );
 				} else {
 					$this->paramPreservedLines[$param] = $lines;
 				}
@@ -223,7 +225,7 @@ class FunctionCausedByLines {
 			$sinkVariadic = $other->variadicParamSinkLines;
 			if ( $sinkVariadic ) {
 				if ( $this->variadicParamSinkLines ) {
-					$this->variadicParamSinkLines->mergeWith( $sinkVariadic );
+					$this->variadicParamSinkLines = $this->variadicParamSinkLines->asMergedWith( $sinkVariadic );
 				} else {
 					$this->variadicParamSinkLines = $sinkVariadic;
 				}
@@ -231,7 +233,8 @@ class FunctionCausedByLines {
 			$preserveVariadic = $other->variadicParamPreservedLines;
 			if ( $preserveVariadic ) {
 				if ( $this->variadicParamPreservedLines ) {
-					$this->variadicParamPreservedLines->mergeWith( $preserveVariadic );
+					$this->variadicParamPreservedLines = $this->variadicParamPreservedLines
+						->asMergedWith( $preserveVariadic );
 				} else {
 					$this->variadicParamPreservedLines = $preserveVariadic;
 				}

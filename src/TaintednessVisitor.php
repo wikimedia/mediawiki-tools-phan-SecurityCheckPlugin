@@ -159,7 +159,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private function setCurTaintUnknown(): void {
 		$this->curTaintWithError = new TaintednessWithError(
 			Taintedness::unknownSingleton(),
-			new CausedByLines(),
+			CausedByLines::emptySingleton(),
 			MethodLinks::emptySingleton()
 		);
 	}
@@ -167,7 +167,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	private function setCurTaintSafe(): void {
 		$this->curTaintWithError = new TaintednessWithError(
 			Taintedness::safeSingleton(),
-			new CausedByLines(),
+			CausedByLines::emptySingleton(),
 			MethodLinks::emptySingleton()
 		);
 	}
@@ -380,7 +380,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// TODO Links and error?
 		$this->curTaintWithError = new TaintednessWithError(
 			$curTaint,
-			new CausedByLines(),
+			CausedByLines::emptySingleton(),
 			MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
@@ -431,7 +431,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// TODO Links and error?
 		$this->curTaintWithError = new TaintednessWithError(
 			$curTaint,
-			new CausedByLines(),
+			CausedByLines::emptySingleton(),
 			MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
@@ -583,7 +583,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		// Its unclear if we should consider this tainted or not
 		$this->curTaintWithError = new TaintednessWithError(
 			Taintedness::newTainted(),
-			new CausedByLines(),
+			CausedByLines::emptySingleton(),
 			MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
@@ -814,7 +814,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		if ( $hardcodedTaint ) {
 			$this->curTaintWithError = new TaintednessWithError(
 				$hardcodedTaint,
-				new CausedByLines(),
+				CausedByLines::emptySingleton(),
 				MethodLinks::emptySingleton()
 			);
 			$this->setCachedData( $node );
@@ -830,7 +830,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$variableObj = $this->context->getScope()->getVariableByName( $varName );
 		$this->curTaintWithError = new TaintednessWithError(
 			$this->getTaintednessPhanObj( $variableObj ),
-			self::getCausedByRawCloneOrEmpty( $variableObj ),
+			self::getCausedByRaw( $variableObj ) ?? CausedByLines::emptySingleton(),
 			self::getMethodLinks( $variableObj ) ?? MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
@@ -914,7 +914,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$actualGlobal = $gvar->getElement();
 		self::setTaintednessRaw( $gvar, self::getTaintednessRaw( $actualGlobal ) ?: Taintedness::safeSingleton() );
-		self::setCausedByRaw( $gvar, self::getCausedByRawCloneOrEmpty( $actualGlobal ) );
+		self::setCausedByRaw( $gvar, self::getCausedByRaw( $actualGlobal ) ?? CausedByLines::emptySingleton() );
 		self::setMethodLinks( $gvar, self::getMethodLinks( $actualGlobal ) ?? MethodLinks::emptySingleton() );
 	}
 
@@ -1005,7 +1005,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	public function visitArray( Node $node ): void {
 		$curTaint = Taintedness::safeSingleton();
-		$curError = new CausedByLines();
+		$curError = CausedByLines::emptySingleton();
 		$links = MethodLinks::emptySingleton();
 		// Current numeric key in the array
 		$curNumKey = 0;
@@ -1043,8 +1043,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$offset = $this->resolveOffset( $offset );
 			$curTaint = $curTaint->withAddedOffsetTaintedness( $offset, $valTaint )
 				->withAddedKeysTaintedness( $keyTaint->get() );
-			$curError->mergeWith( $keyTaintAll->getError() );
-			$curError->mergeWith( $valTaintAll->getError() );
+			$curError = $curError->asMergedWith( $keyTaintAll->getError() )
+				->asMergedWith( $valTaintAll->getError() );
 			$links = $links->withKeysLinks( $keyTaintAll->getMethodLinks()->getLinksCollapsing() )
 				->withLinksAtDim( $offset, $valTaintAll->getMethodLinks() );
 		}
@@ -1082,7 +1082,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 		$this->curTaintWithError = new TaintednessWithError(
 			$this->getTaintednessPhanObj( $prop ),
-			self::getCausedByRawCloneOrEmpty( $prop ),
+			self::getCausedByRaw( $prop ) ?? CausedByLines::emptySingleton(),
 			self::getMethodLinks( $prop ) ?? MethodLinks::emptySingleton()
 		);
 		$this->setCachedData( $node );
@@ -1126,7 +1126,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$objTaint = $this->getTaintednessPhanObj( $prop );
-		$objError = self::getCausedByRawCloneOrEmpty( $prop );
+		$objError = self::getCausedByRaw( $prop ) ?? CausedByLines::emptySingleton();
 		$objLinks = self::getMethodLinks( $prop ) ?? MethodLinks::emptySingleton();
 
 		if ( $foundStdClass ) {

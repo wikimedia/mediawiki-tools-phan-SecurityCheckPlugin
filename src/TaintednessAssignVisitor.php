@@ -283,8 +283,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 
 		if ( $this->dimDepth > 0 ) {
 			$curError = self::getCausedByRaw( $variableObj );
-			$newError = $curError ? clone $curError : new CausedByLines();
-			$newError->mergeWith( $this->rightError );
+			$newError = $curError ? $curError->asMergedWith( $this->rightError ) : $this->rightError;
 			$overrideError = true;
 		} else {
 			$newError = $this->rightError;

@@ -24,36 +24,53 @@ class CausedByLines {
 	 */
 	private $lines = [];
 
+	public static function emptySingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self();
+		}
+		return $singleton;
+	}
+
 	/**
 	 * @param string[] $lines
 	 * @param Taintedness $taintedness
 	 * @param MethodLinks|null $links
+	 * @return self
 	 * @note Taintedness and links are cloned as needed
 	 */
-	public function addLines( array $lines, Taintedness $taintedness, MethodLinks $links = null ): void {
+	public function withAddedLines( array $lines, Taintedness $taintedness, MethodLinks $links = null ): self {
+		$ret = new self();
+
 		if ( !$this->lines ) {
 			foreach ( $lines as $line ) {
-				$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+				$ret->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
 			}
-			return;
+			return $ret;
+		}
+
+		foreach ( $this->lines as $line ) {
+			$ret->lines[] = [ clone $line[0], $line[1], $line[2] ? clone $line[2] : null ];
 		}
 
 		foreach ( $lines as $line ) {
-			if ( count( $this->lines ) >= self::LINES_HARD_LIMIT ) {
+			if ( count( $ret->lines ) >= self::LINES_HARD_LIMIT ) {
 				break;
 			}
-			$idx = array_search( $line, array_column( $this->lines, 1 ), true );
+			$idx = array_search( $line, array_column( $ret->lines, 1 ), true );
 			if ( $idx !== false ) {
-				$this->lines[ $idx ][0] = $this->lines[ $idx ][0]->asMergedWith( $taintedness );
-				if ( $links && !$this->lines[$idx][2] ) {
-					$this->lines[$idx][2] = clone $links;
-				} elseif ( $links && $links !== $this->lines[$idx][2] ) {
-					$this->lines[$idx][2] = $this->lines[$idx][2]->asMergedWith( $links );
+				$ret->lines[ $idx ][0] = $ret->lines[ $idx ][0]->asMergedWith( $taintedness );
+				if ( $links && !$ret->lines[$idx][2] ) {
+					$ret->lines[$idx][2] = clone $links;
+				} elseif ( $links && $links !== $ret->lines[$idx][2] ) {
+					$ret->lines[$idx][2] = $ret->lines[$idx][2]->asMergedWith( $links );
 				}
 			} else {
-				$this->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
+				$ret->lines[] = [ clone $taintedness, $line, $links ? clone $links : null ];
 			}
 		}
+
+		return $ret;
 	}
 
 	/**
@@ -162,34 +179,37 @@ class CausedByLines {
 	 * even a single taintedness value in $this changes.
 	 *
 	 * @param self $other
+	 * @return self
 	 */
-	public function mergeWith( self $other ): void {
-		if ( !$this->lines ) {
-			$this->lines = $other->lines;
-			return;
+	public function asMergedWith( self $other ): self {
+		$ret = clone $this;
+
+		if ( !$ret->lines ) {
+			$ret->lines = $other->lines;
+			return $ret;
 		}
-		if ( !$other->lines || self::getArraySubsetIdx( $this->lines, $other->lines ) !== false ) {
-			return;
+		if ( !$other->lines || self::getArraySubsetIdx( $ret->lines, $other->lines ) !== false ) {
+			return $ret;
 		}
 
-		$baseLines = array_column( $this->lines, 1 );
+		$baseLines = array_column( $ret->lines, 1 );
 		$newLines = array_column( $other->lines, 1 );
 		$subsIdx = self::getArraySubsetIdx( $baseLines, $newLines );
 		if ( $subsIdx !== false ) {
 			foreach ( $other->lines as $i => $cur ) {
-				$this->lines[ $i + $subsIdx ][0] = $this->lines[ $i + $subsIdx ][0]->asMergedWith( $cur[0] );
+				$ret->lines[ $i + $subsIdx ][0] = $ret->lines[ $i + $subsIdx ][0]->asMergedWith( $cur[0] );
 				$curLinks = $cur[2];
-				if ( $curLinks && !$this->lines[ $i + $subsIdx ][2] ) {
-					$this->lines[$i + $subsIdx][2] = $curLinks;
-				} elseif ( $curLinks && $curLinks !== $this->lines[ $i + $subsIdx ][2] ) {
-					$this->lines[$i + $subsIdx][2] = $this->lines[$i + $subsIdx][2]->asMergedWith( $curLinks );
+				if ( $curLinks && !$ret->lines[ $i + $subsIdx ][2] ) {
+					$ret->lines[$i + $subsIdx][2] = $curLinks;
+				} elseif ( $curLinks && $curLinks !== $ret->lines[ $i + $subsIdx ][2] ) {
+					$ret->lines[$i + $subsIdx][2] = $ret->lines[$i + $subsIdx][2]->asMergedWith( $curLinks );
 				}
 			}
-			return;
+			return $ret;
 		}
 
-		$ret = null;
-		$baseLen = count( $this->lines );
+		$resultingLines = null;
+		$baseLen = count( $ret->lines );
 		$newLen = count( $other->lines );
 		// NOTE: array_shift is O(n), and O(n^2) over all iterations, because it reindexes the whole array.
 		// So reverse the arrays, that is O(n) twice, and use array_pop which is O(1) (O(n) for all iterations)
@@ -203,32 +223,24 @@ class CausedByLines {
 			if ( $expectedIndex >= 0 && self::getArraySubsetIdx( $newRev, $remaining ) === $expectedIndex ) {
 				$startIdx = $baseLen - $newLen + $expectedIndex;
 				for ( $j = $startIdx; $j < $baseLen; $j++ ) {
-					$this->lines[$j][0] = $this->lines[$j][0]->asMergedWith( $other->lines[$j - $startIdx][0] );
+					$ret->lines[$j][0] = $ret->lines[$j][0]->asMergedWith( $other->lines[$j - $startIdx][0] );
 					$secondLinks = $other->lines[$j - $startIdx][2];
-					if ( $secondLinks && !$this->lines[$j][2] ) {
-						$this->lines[$j][2] = $secondLinks;
-					} elseif ( $secondLinks && $secondLinks !== $this->lines[$j][2] ) {
-						$this->lines[$j][2] = $this->lines[$j][2]->asMergedWith( $secondLinks );
+					if ( $secondLinks && !$ret->lines[$j][2] ) {
+						$ret->lines[$j][2] = $secondLinks;
+					} elseif ( $secondLinks && $secondLinks !== $ret->lines[$j][2] ) {
+						$ret->lines[$j][2] = $ret->lines[$j][2]->asMergedWith( $secondLinks );
 					}
 				}
-				$ret = array_merge( $this->lines, array_slice( $other->lines, $newLen - $expectedIndex ) );
+				$resultingLines = array_merge( $ret->lines, array_slice( $other->lines, $newLen - $expectedIndex ) );
 				break;
 			}
 			array_pop( $remaining );
 			$expectedIndex++;
 		} while ( $remaining );
-		$ret ??= array_merge( $this->lines, $other->lines );
+		$resultingLines ??= array_merge( $ret->lines, $other->lines );
 
-		$this->lines = array_slice( $ret, 0, self::LINES_HARD_LIMIT );
-	}
+		$ret->lines = array_slice( $resultingLines, 0, self::LINES_HARD_LIMIT );
 
-	/**
-	 * @param self $other
-	 * @return self
-	 */
-	public function asMergedWith( self $other ): self {
-		$ret = clone $this;
-		$ret->mergeWith( $other );
 		return $ret;
 	}
 
