@@ -157,19 +157,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * Sets $this->curTaint to UNKNOWN. Shorthand to filter the usages of curTaint.
 	 */
 	private function setCurTaintUnknown(): void {
-		$this->curTaintWithError = new TaintednessWithError(
-			Taintedness::unknownSingleton(),
-			CausedByLines::emptySingleton(),
-			MethodLinks::emptySingleton()
-		);
+		$this->curTaintWithError = TaintednessWithError::unknownSingleton();
 	}
 
 	private function setCurTaintSafe(): void {
-		$this->curTaintWithError = new TaintednessWithError(
-			Taintedness::safeSingleton(),
-			CausedByLines::emptySingleton(),
-			MethodLinks::emptySingleton()
-		);
+		$this->curTaintWithError = TaintednessWithError::emptySingleton();
 	}
 
 	/**
@@ -722,12 +714,12 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			if ( !$this->curTaintWithError ) {
 				$this->curTaintWithError = $toStringTaint;
 			} else {
-				$this->curTaintWithError->mergeWith( $toStringTaint );
+				$this->curTaintWithError = $this->curTaintWithError->asMergedWith( $toStringTaint );
 			}
 		}
 
 		// If we find no __toString(), then presumably the object can't be outputted, so should be safe.
-		$this->curTaintWithError ??= TaintednessWithError::newEmpty();
+		$this->curTaintWithError ??= TaintednessWithError::emptySingleton();
 
 		$this->setCachedData( $node );
 	}
@@ -763,11 +755,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				if ( !$this->curTaintWithError ) {
 					$this->curTaintWithError = $callTaint;
 				} else {
-					$this->curTaintWithError->mergeWith( $callTaint );
+					$this->curTaintWithError = $this->curTaintWithError->asMergedWith( $callTaint );
 				}
 			}
 		}
-		$this->curTaintWithError ??= TaintednessWithError::newEmpty();
+		$this->curTaintWithError ??= TaintednessWithError::emptySingleton();
 		$this->setCachedData( $node );
 	}
 
@@ -1273,9 +1265,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitEncapsList( Node $node ): void {
-		$this->curTaintWithError = TaintednessWithError::newEmpty();
+		$this->curTaintWithError = TaintednessWithError::emptySingleton();
 		foreach ( $node->children as $child ) {
-			$this->curTaintWithError->mergeWith( $this->getTaintedness( $child ) );
+			$this->curTaintWithError = $this->curTaintWithError->asMergedWith( $this->getTaintedness( $child ) );
 		}
 		$this->setCachedData( $node );
 	}
@@ -1320,13 +1312,14 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitMatch( Node $node ): void {
-		$this->curTaintWithError = TaintednessWithError::newEmpty();
+		$this->curTaintWithError = TaintednessWithError::emptySingleton();
 		// Based on UnionTypeVisitor
 		foreach ( $node->children['stmts']->children as $armNode ) {
 			// It sounds a bit weird to have to call this ourselves, but aight.
 			if ( !BlockExitStatusChecker::willUnconditionallyThrowOrReturn( $armNode ) ) {
 				// Note, we're straight using the expr to avoid implementing visitMatchArm
-				$this->curTaintWithError->mergeWith( $this->getTaintedness( $armNode->children['expr'] ) );
+				$this->curTaintWithError = $this->curTaintWithError
+					->asMergedWith( $this->getTaintedness( $armNode->children['expr'] ) );
 			}
 		}
 

@@ -830,12 +830,7 @@ trait TaintednessBaseVisitor {
 		}
 
 		assert( is_scalar( $expr ) || $expr === null );
-		// Optim: avoid using TaintednessWithError::newEmpty()
-		return new TaintednessWithError(
-			Taintedness::safeSingleton(),
-			CausedByLines::emptySingleton(),
-			MethodLinks::emptySingleton()
-		);
+		return TaintednessWithError::emptySingleton();
 	}
 
 	/**
@@ -2095,7 +2090,7 @@ trait TaintednessBaseVisitor {
 			case 'prev':
 			case 'reset':
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asValueFirstLevel();
 				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
@@ -2103,7 +2098,7 @@ trait TaintednessBaseVisitor {
 			case 'array_values':
 				// Same taintedness as the original array (first and only param), but with safe keys and numkey.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->withoutKeys();
 				if ( $taint->has( SecurityCheckPlugin::SQL_TAINT ) ) {
@@ -2119,7 +2114,7 @@ trait TaintednessBaseVisitor {
 			// that don't contribute to the resulting taintedness.
 			case 'array_keys':
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asKeyForForeach();
 				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
@@ -2128,7 +2123,7 @@ trait TaintednessBaseVisitor {
 				// The overall shape remains the same, but the keys of the outermost array (first param) have different
 				// case. Second param (lower vs upper) is safe.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				// TODO: actually handle case changes!
 				$taint = $preserveArgumentsData[0][0];
@@ -2137,7 +2132,7 @@ trait TaintednessBaseVisitor {
 			case 'array_flip':
 				// Swaps keys and values of the array (first and only param)
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asKeyForForeach()
 					->withAddedKeysTaintedness( $preserveArgumentsData[0][0]->asValueFirstLevel()->get() );
@@ -2169,7 +2164,7 @@ trait TaintednessBaseVisitor {
 				// array_fill( $start, $count, $value ) creates an array with $count copies of $value, starting
 				// at key $start. The first two params are integers, and thus safe.
 				if ( !isset( $preserveArgumentsData[2] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$preservedArgTaint = $preserveArgumentsData[2][0];
 				// TODO: We may actually be able to infer the actual keys, instead of setting as unknown
@@ -2221,7 +2216,7 @@ trait TaintednessBaseVisitor {
 				// Removes duplicate from an array (first param). We can't tell what gets removed, and what's the effect
 				// of this function on array keys. Second param is safe.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$taint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				$error = $preserveArgumentsData[0][1]->asIntersectedWithTaintedness( $taint );
@@ -2234,7 +2229,7 @@ trait TaintednessBaseVisitor {
 				// - array_diff_assoc does the same, but two elements are considered equal if they have the same value
 				//   AND the same key.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				// We can't infer shape mutations because Taintedness doesn't keep track of the values, so just
 				// return the taintedness of the first argument.
@@ -2248,7 +2243,7 @@ trait TaintednessBaseVisitor {
 				// array_diff_key( $arr, $x_1, ..., $x_n ) is similar to array_diff, but here two elements are
 				// considered equal if they have the same key (regardless of the value).
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				/** @var Taintedness $taint */
 				[ $taint, $error ] = array_shift( $preserveArgumentsData );
@@ -2271,7 +2266,7 @@ trait TaintednessBaseVisitor {
 				// - array_intersect_assoc does the same, but two elements are considered equal if they have the same
 				//   value AND the same key.
 				if ( !$preserveArgumentsData ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				// Note: we can't do an actual intersect on the values because Taintedness does not store them, but
 				// intersecting the taintedness flags, although not perfect, is correct and approximates that.
@@ -2289,7 +2284,7 @@ trait TaintednessBaseVisitor {
 				// array_intersect_key( $arr, $x_1, ..., $x_n ) is similar to array_intersect, but here two elements are
 				// considered equal if they have the same key (irregardless of the value).
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				// We can't infer shape mutations because there might be unknown keys in either argument, so just
 				// return the taintedness of the first argument.
@@ -2314,7 +2309,7 @@ trait TaintednessBaseVisitor {
 			case 'array_uintersect_uassoc':
 				// Only the taintedness from first argument is preserved.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$preservedArgTaint = $preserveArgumentsData[0][0];
 				return new TaintednessWithError(
@@ -2339,7 +2334,7 @@ trait TaintednessBaseVisitor {
 				// array_filter( $arr, $cb, $mode ) filters the $arr by using $cb.
 				// TODO: Analyze the callback. For now we preserve the whole taintedness of the array.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				return new TaintednessWithError(
@@ -2351,7 +2346,7 @@ trait TaintednessBaseVisitor {
 				// array_reduce( $arr, $cb, $initial ) applies $cb to $arr to obtain a single value.
 				// TODO: Analyze the callback. For now we preserve the whole taintedness of the array.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asCollapsed();
 				return new TaintednessWithError(
@@ -2366,7 +2361,7 @@ trait TaintednessBaseVisitor {
 				// - Removing only int keys if false
 				// - Preserving the whole shape if true
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				return new TaintednessWithError(
@@ -2397,7 +2392,7 @@ trait TaintednessBaseVisitor {
 				// and of size $len. String keys are always preserved, $preserveKeys controls whether int keys
 				// are also preserved.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$preservedArgTaint = $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown();
 				return new TaintednessWithError(
@@ -2409,7 +2404,7 @@ trait TaintednessBaseVisitor {
 				// array_replace( $arr, $rep_1, ..., $rep_n ) returns a copy of $arr where each element is replaced
 				// with the element having the same key in the rightmost argument.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				$firstArgData = array_shift( $preserveArgumentsData );
 				/** @var Taintedness $taint */
@@ -2427,7 +2422,7 @@ trait TaintednessBaseVisitor {
 				// keys are always appended, and never replaced. Additionally, integer keys in the resulting array
 				// will be renumbered incrementally starting from 0.
 				if ( !$preserveArgumentsData ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				/** @var Taintedness $taint */
 				/** @var CausedByLines $error */
@@ -2452,7 +2447,7 @@ trait TaintednessBaseVisitor {
 				// array_chunk( $array, $length, $preserve_keys = false ) returns a list of chunks of $array. The keys
 				// in each chunk are the same of $array if $preserve_keys is true. Else, they're just numbers.
 				if ( !isset( $preserveArgumentsData[0] ) ) {
-					return TaintednessWithError::newEmpty();
+					return TaintednessWithError::emptySingleton();
 				}
 				// TODO: Check value of $preserve_keys to determine the key taintedness more accurately.
 				// For now, we just assume that keys are preserved.

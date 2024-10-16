@@ -27,12 +27,28 @@ class TaintednessWithError {
 		$this->methodLinks = $methodLinks;
 	}
 
-	public static function newEmpty(): self {
-		return new self(
-			Taintedness::safeSingleton(),
-			CausedByLines::emptySingleton(),
-			MethodLinks::emptySingleton()
-		);
+	public static function emptySingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self(
+				Taintedness::safeSingleton(),
+				CausedByLines::emptySingleton(),
+				MethodLinks::emptySingleton()
+			);
+		}
+		return $singleton;
+	}
+
+	public static function unknownSingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self(
+				Taintedness::unknownSingleton(),
+				CausedByLines::emptySingleton(),
+				MethodLinks::emptySingleton()
+			);
+		}
+		return $singleton;
 	}
 
 	/**
@@ -57,21 +73,14 @@ class TaintednessWithError {
 	}
 
 	/**
-	 * @param TaintednessWithError $other
-	 */
-	public function mergeWith( self $other ): void {
-		$this->taintedness = $this->taintedness->asMergedWith( $other->taintedness );
-		$this->error = $this->error->asMergedWith( $other->error );
-		$this->methodLinks = $this->methodLinks->asMergedWith( $other->methodLinks );
-	}
-
-	/**
 	 * @param self $other
 	 * @return self
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
-		$ret->mergeWith( $other );
+		$ret->taintedness = $ret->taintedness->asMergedWith( $other->taintedness );
+		$ret->error = $ret->error->asMergedWith( $other->error );
+		$ret->methodLinks = $ret->methodLinks->asMergedWith( $other->methodLinks );
 		return $ret;
 	}
 
