@@ -300,8 +300,21 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->addTaintError( $variableObj, $this->errorTaint, $this->errorLinks );
 		$this->mergeTaintError( $variableObj, $newError );
 		if ( $globalVarObj ) {
+			if ( $this->dimDepth > 0 ) {
+				$curGlobalError = self::getCausedByRaw( $globalVarObj );
+				$newGlobalError = $curGlobalError
+					? $curGlobalError->asMergedWith( $this->rightError )
+					: $this->rightError;
+				$overrideGlobalError = true;
+			} else {
+				$newGlobalError = $this->rightError;
+				$overrideGlobalError = false;
+			}
+			if ( $overrideGlobalError ) {
+				self::clearTaintError( $globalVarObj );
+			}
 			$this->addTaintError( $globalVarObj, $this->errorTaint, $this->errorLinks );
-			$this->mergeTaintError( $globalVarObj, $newError );
+			$this->mergeTaintError( $globalVarObj, $newGlobalError );
 		}
 	}
 }
