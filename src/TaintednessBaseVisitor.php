@@ -1958,6 +1958,10 @@ trait TaintednessBaseVisitor {
 				$parTaint = $taint->getParamPreservedTaint( $i );
 				$preservedArgTaint = $parTaint->asTaintednessForArgument( $curArgTaintedness );
 				$curArgLinks = MethodLinks::emptySingleton();
+				$relevantParamError = $funcError->getParamPreservedLines( $i )
+					->asPreservedForParameter( $curArgTaintedness, $curArgLinks, $func, $i );
+				$curArgError = $baseArgError->asPreservedForArgument( $parTaint )
+					->asMergedWith( $relevantParamError );
 			} elseif (
 				$overallTaint->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
 			) {
@@ -1965,6 +1969,9 @@ trait TaintednessBaseVisitor {
 				// when unspecified or is unknown. So just pass the taint through, destroying the shape.
 				$preservedArgTaint = $curArgTaintedness->asCollapsed();
 				$curArgLinks = MethodLinks::emptySingleton();
+				$relevantParamError = $funcError->getParamPreservedLines( $i )
+					->asPreservedForParameter( $curArgTaintedness, $curArgLinks, $func, $i );
+				$curArgError = $baseArgError->asAllCollapsed()->asMergedWith( $relevantParamError );
 			} else {
 				// This parameter has no taint info. And overall this function doesn't depend on param
 				// for taint and isn't unknown. So we consider this argument untainted.
@@ -1972,11 +1979,6 @@ trait TaintednessBaseVisitor {
 			}
 
 			$combinedArgTaint = $combinedArgTaint->asMergedWith( $preservedArgTaint );
-			$relevantParamError = $funcError->getParamPreservedLines( $i )
-				->asPreservedForParameter( $curArgTaintedness, $curArgLinks, $func, $i );
-			// TODO: Improve shape of caused-by lines
-			$curArgError = $baseArgError->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint )
-				->asMergedWith( $relevantParamError );
 			// NOTE: If any line inside the callee's body is responsible for preserving the taintedness of more
 			// than one argument, it will appear once per preserved argument in the overall caused-by of the
 			// call expression. This is probably a good thing, but can increase the length of caused-by lines.

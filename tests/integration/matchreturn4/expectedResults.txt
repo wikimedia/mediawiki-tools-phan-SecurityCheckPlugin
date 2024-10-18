@@ -1,0 +1,1 @@
+integration/matchreturn4/test.php:9 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/matchreturn4/test.php +7; integration/matchreturn4/test.php +4)

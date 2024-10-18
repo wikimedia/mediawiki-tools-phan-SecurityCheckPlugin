@@ -102,6 +102,24 @@ class CausedByLines {
 	}
 
 	/**
+	 * If this object represents the caused-by lines for a given function argument, apply the effect of a method call
+	 * that preserves the given taintedness.
+	 */
+	public function asPreservedForArgument(
+		PreservedTaintedness $preservedTaint
+	): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $eTaint, $eLine, $eLinks ] ) {
+			$newTaint = $preservedTaint->asTaintednessForArgument( $eTaint );
+			$ret->lines[] = [ $newTaint, $eLine, $eLinks ];
+		}
+		return $ret;
+	}
+
+	/**
 	 * @param Taintedness $taintedness
 	 * @return self
 	 */
