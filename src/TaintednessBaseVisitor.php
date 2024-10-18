@@ -75,6 +75,11 @@ trait TaintednessBaseVisitor {
 	protected static $fqsensWithoutToStringCache = [];
 
 	/**
+	 * @var array<string,bool> FQSENs of functions currently being analyzed by us, map of [ (string)FQSEN => true ]
+	 */
+	private static $funcAnalysisStack = [];
+
+	/**
 	 * Merge taintedness of a function/method
 	 *
 	 * @param FunctionInterface $func
@@ -400,8 +405,12 @@ trait TaintednessBaseVisitor {
 			return $annotatedTaint;
 		}
 
-		if ( $this->context->isInFunctionLikeScope() && $func->getFQSEN() === $this->context->getFunctionLikeFQSEN() ) {
-			// Recursive function. Analyzing it again isn't useful. Provisionally mark the function as safe, the idea
+		$fqsen = $func->getFQSEN();
+		if (
+			isset( self::$funcAnalysisStack[$fqsen->__toString()] ) ||
+			( $this->context->isInFunctionLikeScope() && $fqsen === $this->context->getFunctionLikeFQSEN() )
+		) {
+			// Recursive function(s). Analyzing it again isn't useful. Provisionally mark the function as safe, the idea
 			// being that anything dangerous will be added as it's found. Failing to do this would mark the function as
 			// inconditionally preserving all taintedness, as we'd look at its return type only. `--analyze-twice` gives
 			// more accurate results here, since it will analyze the function again once its taintedness (except that
@@ -501,6 +510,12 @@ trait TaintednessBaseVisitor {
 	 * @param FunctionInterface $func
 	 */
 	public function analyzeFunc( FunctionInterface $func ): void {
+		$fqsenStr = $func->getFQSEN()->__toString();
+		if ( isset( self::$funcAnalysisStack[$fqsenStr] ) ) {
+			// Bail out immediately if this function is already being analyzed.
+			return;
+		}
+
 		$node = $func->getNode();
 		if ( !$node ) {
 			return;
@@ -511,20 +526,20 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 
-		static $depth = 0;
 		// @todo Tune the max depth. Raw benchmarking shows very little difference between e.g.
 		// 5 and 10. However, while with higher values we can detect more issues and avoid more
 		// false positives, it becomes harder to tell where an issue is coming from.
 		// Thus, this value should be increased only when we'll have better error reporting.
-		if ( $depth > 5 ) {
+		$maxDepth = 5;
+		if ( count( self::$funcAnalysisStack ) > $maxDepth ) {
 			// $this->debug( __METHOD__, 'WARNING: aborting analysis earlier due to max depth' );
 			return;
 		}
 		if ( $node->kind === \ast\AST_CLOSURE && isset( $node->children['uses'] ) ) {
 			return;
 		}
-		$depth++;
 
+		self::$funcAnalysisStack[$fqsenStr] = true;
 		// Like Analyzable::analyze, clone the context to avoid overriding anything
 		$context = clone $func->getContext();
 		// @phan-suppress-next-line PhanUndeclaredMethod All implementations have it
@@ -540,7 +555,7 @@ trait TaintednessBaseVisitor {
 				$node
 			);
 		} finally {
-			$depth--;
+			unset( self::$funcAnalysisStack[$fqsenStr] );
 		}
 	}
 
