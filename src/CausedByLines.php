@@ -7,11 +7,6 @@ use Phan\Language\Element\FunctionInterface;
 
 /**
  * Value object used to store caused-by lines.
- *
- * @note `clone` will not deep-clone instances of this class. That'd be more correct in theory, but it's
- * tremendously expensive for this class (+35s and +600MB for MW core).
- *
- * @todo Keep per-offset caused-by lines
  */
 class CausedByLines {
 	private const MAX_LINES_PER_ISSUE = 80;
