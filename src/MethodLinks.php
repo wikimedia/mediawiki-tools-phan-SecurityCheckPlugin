@@ -120,6 +120,7 @@ class MethodLinks {
 	/**
 	 * @param mixed $dim
 	 * @param MethodLinks $links
+	 * @return self
 	 */
 	public function withLinksAtDim( $dim, self $links ): self {
 		$ret = clone $this;
@@ -514,6 +515,9 @@ class MethodLinks {
 	 * @return string
 	 */
 	public function toString( string $indent = '' ): string {
+		if ( $this === self::emptySingleton() ) {
+			return '(empty)';
+		}
 		$elementsIndent = $indent . "\t";
 		$ret = "{\n$elementsIndent" . 'OWN: ' . $this->links->__toString() . ',';
 		if ( $this->keysLinks ) {

@@ -35,6 +35,9 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function withAddedLines( array $lines, Taintedness $taintedness, ?MethodLinks $links = null ): self {
+		if ( $links && $links->isEmpty() ) {
+			$links = null;
+		}
 		$ret = new self();
 
 		if ( !$this->lines ) {
