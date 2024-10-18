@@ -1973,7 +1973,7 @@ trait TaintednessBaseVisitor {
 
 			$combinedArgTaint = $combinedArgTaint->asMergedWith( $preservedArgTaint );
 			$relevantParamError = $funcError->getParamPreservedLines( $i )
-				->asPreservingTaintednessAndLinks( $preservedArgTaint, $curArgLinks );
+				->asPreservedForParameter( $curArgTaintedness, $curArgLinks, $func, $i );
 			// TODO: Improve shape of caused-by lines
 			$curArgError = $baseArgError->asAllCollapsed()->asIntersectedWithTaintedness( $preservedArgTaint )
 				->asMergedWith( $relevantParamError );

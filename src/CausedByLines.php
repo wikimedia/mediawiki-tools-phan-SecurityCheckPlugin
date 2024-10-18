@@ -69,24 +69,31 @@ class CausedByLines {
 	}
 
 	/**
-	 * Move any possibly preserved taintedness stored in the method links to the actual taintedness of this line,
-	 * and use $links as the new links being preserved.
-	 *
-	 * @param Taintedness $taintedness
-	 * @param MethodLinks $links
-	 * @return self
+	 * If this object represents the caused-by lines for a given function parameter, apply the effect of a method call
+	 * where the argument for that parameter has the specified taintedness and links.
 	 */
-	public function asPreservingTaintednessAndLinks( Taintedness $taintedness, MethodLinks $links ): self {
+	public function asPreservedForParameter(
+		Taintedness $argTaint,
+		MethodLinks $argLinks,
+		FunctionInterface $func,
+		int $param
+	): self {
 		if ( !$this->lines ) {
 			return $this;
 		}
 		$ret = new self;
-		$curTaint = $taintedness->get();
-		foreach ( $this->lines as [ $_, $eLine, $eLinks ] ) {
-			$preservedFlags = $eLinks && ( $curTaint !== SecurityCheckPlugin::NO_TAINT )
-				? $eLinks->filterPreservedFlags( $curTaint )
-				: SecurityCheckPlugin::NO_TAINT;
-			$ret->lines[] = [ new Taintedness( $preservedFlags ), $eLine, $links ];
+		$argHasLinks = !$argLinks->isEmpty();
+		foreach ( $this->lines as [ $eTaint, $eLine, $eLinks ] ) {
+			if ( $eLinks ) {
+				$preservedTaint = $eLinks->asPreservedTaintednessForFuncParam( $func, $param )
+					->asTaintednessForArgument( $argTaint );
+				$newTaint = $eTaint->asMergedWith( $preservedTaint );
+				if ( $argHasLinks || !$newTaint->isSafe() ) {
+					$ret->lines[] = [ $newTaint, $eLine, $argLinks ];
+				}
+			} else {
+				$ret->lines[] = [ $eTaint, $eLine, $argLinks ];
+			}
 		}
 		return $ret;
 	}

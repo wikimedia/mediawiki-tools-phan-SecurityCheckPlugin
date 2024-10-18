@@ -153,8 +153,8 @@ echo preserveDifferentDims( 'safe', $_GET['unsafe'] )['x']; // Safe
 echo preserveDifferentDims( 'safe', $_GET['unsafe'] )['y']; // Unsafe
 echo preserveDifferentDims( $_GET['unsafe'], 'safe' )['x']; // Unsafe
 echo preserveDifferentDims( $_GET['unsafe'], 'safe' )['y']; // Safe
-echo preserveDifferentDims( $_GET['unsafe'], $_GET['unsafe'] )['x']; // Unsafe
-echo preserveDifferentDims( $_GET['unsafe'], $_GET['unsafe'] )['y']; // Unsafe
+echo preserveDifferentDims( $_GET['unsafe'], $_GET['unsafe'] )['x']; // Unsafe, NOT caused by 147
+echo preserveDifferentDims( $_GET['unsafe'], $_GET['unsafe'] )['y']; // Unsafe, NOT caused by 146
 
 
 function preservePar( $x ) {

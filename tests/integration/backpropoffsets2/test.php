@@ -69,7 +69,7 @@ function getSafeOrUnsafeRandom( $arg ) {
 	}
 	return $x;
 }
-echo getSafeOrUnsafeRandom( [ 'unsafe' => $_GET['a'], 'safe' => 'safe' ] ); // Unsafe
+echo getSafeOrUnsafeRandom( [ 'unsafe' => $_GET['a'], 'safe' => 'safe' ] ); // Unsafe, NOT caused by 66
 
 function getSafeOrUnsafeRandom2( $arg ) {
 	if ( rand() ) {
@@ -104,7 +104,7 @@ function getRandomDifferentDims( $arg ) {
 	}
 	return $x;
 }
-echo getRandomDifferentDims( [ 'unsafe' => $_GET['a'], 'safe' => [ 'safe' => 'safe', 'unsafe' => $_GET['b'] ] ] ); // Unsafe
+echo getRandomDifferentDims( [ 'unsafe' => $_GET['a'], 'safe' => [ 'safe' => 'safe', 'unsafe' => $_GET['b'] ] ] ); // Unsafe, NOT caused by 103 and 102
 
 function getUnknown( $arg ) {
 	$x = $arg[$GLOBALS['x']];
@@ -120,7 +120,7 @@ function getMaybeUnknown( $arg ) {
 	}
 	return $x;
 }
-echo getMaybeUnknown( [ 'unsafe' => $_GET['a'], 'safe' => 'safe' ] );//Unsafe
+echo getMaybeUnknown( [ 'unsafe' => $_GET['a'], 'safe' => 'safe' ] );//Unsafe, NOT caused by 117
 
 
 function echoArgArray( $arg ) {

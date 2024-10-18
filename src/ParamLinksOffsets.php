@@ -105,22 +105,6 @@ class ParamLinksOffsets {
 		return $ret;
 	}
 
-	/**
-	 * @note This should only be used by SingleMethodLinks::getAllPreservedFlags
-	 * @return int
-	 */
-	public function getFlagsRecursively(): int {
-		$ret = $this->ownFlags;
-		foreach ( $this->dims as $dimOffsets ) {
-			$ret |= $dimOffsets->getFlagsRecursively();
-		}
-		if ( $this->unknown ) {
-			$ret |= $this->unknown->getFlagsRecursively();
-		}
-		$ret |= $this->keysFlags;
-		return $ret;
-	}
-
 	public function __clone() {
 		foreach ( $this->dims as $k => $v ) {
 			$this->dims[$k] = clone $v;
