@@ -30,13 +30,6 @@ class ParamLinksOffsets {
 	/**
 	 * @return self
 	 */
-	public static function newAll(): self {
-		return new self( SecurityCheckPlugin::ALL_TAINT );
-	}
-
-	/**
-	 * @return self
-	 */
 	public static function newEmpty(): self {
 		return new self( SecurityCheckPlugin::NO_TAINT );
 	}

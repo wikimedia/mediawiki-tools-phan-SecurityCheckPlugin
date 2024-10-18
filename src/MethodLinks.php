@@ -422,20 +422,25 @@ class MethodLinks {
 		return false;
 	}
 
-	public function withFuncAndParam( FunctionInterface $func, int $i, bool $isVariadic ): self {
+	public function withFuncAndParam(
+		FunctionInterface $func,
+		int $i,
+		bool $isVariadic,
+		int $initialFlags = SecurityCheckPlugin::ALL_TAINT
+	): self {
 		$ret = clone $this;
 
 		if ( $isVariadic ) {
 			$baseUnkLinks = $ret->unknownDimLinks ?? self::emptySingleton();
-			$ret->unknownDimLinks = $baseUnkLinks->withFuncAndParam( $func, $i, false );
+			$ret->unknownDimLinks = $baseUnkLinks->withFuncAndParam( $func, $i, false, $initialFlags );
 			return $ret;
 		}
 
 		$ret->links = clone $ret->links;
 		if ( $ret->links->contains( $func ) ) {
-			$ret->links[$func]->addParam( $i );
+			$ret->links[$func]->addParam( $i, $initialFlags );
 		} else {
-			$ret->links[$func] = SingleMethodLinks::newWithParam( $i );
+			$ret->links[$func] = SingleMethodLinks::newWithParam( $i, $initialFlags );
 		}
 		return $ret;
 	}

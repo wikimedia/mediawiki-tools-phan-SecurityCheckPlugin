@@ -631,7 +631,8 @@ trait TaintednessBaseVisitor {
 				/** @var Taintedness $taint */
 				[ $taint, $flags ] = $taintData;
 				$sinkTaint = $taint->withOnly( SecurityCheckPlugin::ALL_EXEC_TAINT );
-				$preserveTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT )->asPreservedTaintedness();
+				$allTaint = $taint->without( SecurityCheckPlugin::ALL_EXEC_TAINT );
+				$preserveTaint = $allTaint->asPreservedTaintedness();
 				if ( $isVariadic ) {
 					$funcTaint = $funcTaint->withVariadicParamSinkTaint( $paramNumber, $sinkTaint )
 						->withVariadicParamPreservedTaint( $paramNumber, $preserveTaint, $flags );
@@ -639,7 +640,15 @@ trait TaintednessBaseVisitor {
 					$funcTaint = $funcTaint->withParamSinkTaint( $paramNumber, $sinkTaint )
 						->withParamPreservedTaint( $paramNumber, $preserveTaint, $flags );
 				}
-				$fakeMethodLinks = $fakeMethodLinks->withFuncAndParam( $func, $paramNumber, $isVariadic );
+				$preservedFlags = $allTaint->get();
+				if ( $preservedFlags !== SecurityCheckPlugin::NO_TAINT ) {
+					$fakeMethodLinks = $fakeMethodLinks->withFuncAndParam(
+						$func,
+						$paramNumber,
+						$isVariadic,
+						$preservedFlags
+					);
+				}
 				$validTaintEncountered = true;
 				if ( ( $taint->get() & SecurityCheckPlugin::ESCAPES_HTML ) === SecurityCheckPlugin::ESCAPES_HTML ) {
 					// Special case to auto-set anything that escapes html to detect double escaping.

@@ -13,21 +13,14 @@ class SingleMethodLinks {
 	 */
 	private $params = [];
 
-	/**
-	 * @param int $i
-	 * @return self
-	 */
-	public static function newWithParam( int $i ): self {
+	public static function newWithParam( int $i, int $initialFlags ): self {
 		$ret = new self;
-		$ret->addParam( $i );
+		$ret->addParam( $i, $initialFlags );
 		return $ret;
 	}
 
-	/**
-	 * @param int $i
-	 */
-	public function addParam( int $i ): void {
-		$this->params[$i] = ParamLinksOffsets::newAll();
+	public function addParam( int $i, int $flags ): void {
+		$this->params[$i] = new ParamLinksOffsets( $flags );
 	}
 
 	/**
