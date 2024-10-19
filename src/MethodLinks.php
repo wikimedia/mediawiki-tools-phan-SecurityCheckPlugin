@@ -107,14 +107,26 @@ class MethodLinks {
 	 * @return self
 	 */
 	public function asKeyForForeach(): self {
-		if ( $this === self::emptySingleton() ) {
+		$emptySingleton = self::emptySingleton();
+		if ( $this === $emptySingleton ) {
 			return $this;
 		}
-		$links = $this->links->asAllMovedToKeys();
-		if ( $this->keysLinks ) {
-			$links = $links->asMergedWith( $this->keysLinks );
+
+		$hasBaseLinks = count( $this->links ) !== 0;
+		$hasKeyLinks = $this->keysLinks && count( $this->keysLinks ) !== 0;
+
+		if ( $hasBaseLinks ) {
+			$newLinks = $this->links->asAllMovedToKeys();
+			if ( $hasKeyLinks ) {
+				$newLinks = $newLinks->asMergedWith( $this->keysLinks );
+			}
+		} elseif ( $hasKeyLinks ) {
+			$newLinks = $this->keysLinks;
+		} else {
+			return $emptySingleton;
 		}
-		return new self( $links );
+
+		return new self( $newLinks );
 	}
 
 	/**

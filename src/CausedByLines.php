@@ -260,7 +260,10 @@ class CausedByLines {
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
 			$newTaint = $lineTaint->getTaintednessForOffsetOrWhole( $dim );
 			$newLinks = $lineLinks ? $lineLinks->getForDim( $dim, $pushOffsetsInLinks ) : null;
-			if ( !$newTaint->isSafe() || ( $newLinks && !$newLinks->isEmpty() ) ) {
+			if ( $newLinks && $newLinks->isEmpty() ) {
+				$newLinks = null;
+			}
+			if ( $newLinks || !$newTaint->isSafe() ) {
 				$ret->lines[] = [
 					$newTaint,
 					$lineLine,
@@ -307,11 +310,14 @@ class CausedByLines {
 		}
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
-			$ret->lines[] = [
-				$lineTaint->asKeyForForeach(),
-				$lineLine,
-				$lineLinks ? $lineLinks->asKeyForForeach() : null
-			];
+			$newTaint = $lineTaint->asKeyForForeach();
+			$newLinks = $lineLinks ? $lineLinks->asKeyForForeach() : null;
+			if ( $newLinks && $newLinks->isEmpty() ) {
+				$newLinks = null;
+			}
+			if ( $newLinks || !$newTaint->isSafe() ) {
+				$ret->lines[] = [ $newTaint, $lineLine, $newLinks ];
+			}
 		}
 		return $ret;
 	}
