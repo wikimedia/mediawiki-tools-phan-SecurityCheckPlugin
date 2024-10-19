@@ -196,11 +196,11 @@ class CausedByLines {
 		$ret = new self;
 		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
 			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $i ) ) {
-				$preservedTaint = $isSink
-					? $lineLinks->asPreservedTaintednessForFuncParam( $func, $i )
-						->asTaintednessForBackpropError( $taintedness )
-					: $taintedness;
-				$ret->lines[] = [ $lineTaint->asMergedWith( $preservedTaint ), $lineLine, $lineLinks ];
+				$preservedTaint = $lineLinks->asPreservedTaintednessForFuncParam( $func, $i );
+				$newTaint = $isSink
+					? $preservedTaint->asTaintednessForBackpropError( $taintedness )
+					: $preservedTaint->asTaintednessForVarBackpropError( $taintedness );
+				$ret->lines[] = [ $lineTaint->asMergedWith( $newTaint ), $lineLine, $lineLinks ];
 			} else {
 				$ret->lines[] = [ $lineTaint, $lineLine, $lineLinks ];
 			}

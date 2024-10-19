@@ -20,15 +20,15 @@ class SinkClassShape {
 	public $sinkProp;
 
 	public function __construct( $val ) {
-		$this->sinkProp['foo'] = $val; // Should be in the caused-by for doSinkFoo only
-		$this->sinkProp['bar'] = $val; // Should be in the caused-by for doSinkBar only
+		$this->sinkProp['foo'] = $val; // Must be in the caused-by for doSinkFoo only
+		$this->sinkProp['bar'] = $val; // Must be in the caused-by for doSinkBar only
 	}
 
 	public function doSinkFoo() {
-		echo $this->sinkProp['foo']; // TODO Should only be caused by the line that sets foo
+		echo $this->sinkProp['foo']; // Must only be caused by the line that sets foo
 	}
 
 	public function doSinkBar() {
-		echo $this->sinkProp['bar']; // TODO Should only be caused by the line that sets bar
+		echo $this->sinkProp['bar']; // Must only be caused by the line that sets bar
 	}
 }
