@@ -686,46 +686,59 @@ class Taintedness {
 	}
 
 	/**
-	 * Given some method links, returns a list of pairs of LinksSet and Taintedness objects, where the taintedness
-	 * in each pair should be backpropagated to the links in the LinksSet.
+	 * Given some method links, returns a list of tuples of LinksSet, Taintedness, and CausedByLines objects, where the
+	 * values in each tuple should be backpropagated together.
 	 *
 	 * @param MethodLinks $links
-	 * @param CausedByLines $error
+	 * @param CausedByLines $varError
+	 * @param CausedByLines $sinkError
 	 * @return array<array<LinksSet|Taintedness|CausedByLines>>
-	 * @phan-return array<array{0:LinksSet,1:Taintedness,2:CausedByLines}>
+	 * @phan-return array<array{0:LinksSet,1:Taintedness,2:CausedByLines,3:CausedByLines}> The first CausedByLines
+	 * object is for the argument error, the second is for the sink error.
 	 */
-	public function decomposeForLinks( MethodLinks $links, CausedByLines $error ): array {
-		$pairs = [];
+	public function decomposeForLinks( MethodLinks $links, CausedByLines $varError, CausedByLines $sinkError ): array {
+		$tuples = [];
 
 		if ( $this->flags !== SecurityCheckPlugin::NO_TAINT ) {
-			$pairs[] = [ $links->getLinksCollapsing(), new self( $this->flags ), $error ];
+			$tuples[] = [
+				$links->getLinksCollapsing(),
+				new self( $this->flags ),
+				$varError,
+				$sinkError
+			];
 		}
 
 		if ( $this->keysTaint !== SecurityCheckPlugin::NO_TAINT ) {
-			$pairs[] = [
+			$tuples[] = [
 				$links->asKeyForForeach()->getLinksCollapsing(),
 				$this->asKeyForForeach(),
-				$error->asAllKeyForForeach()
+				$varError->asAllKeyForForeach(),
+				$sinkError->asAllKeyForForeach()
 			];
 		}
 
 		foreach ( $this->dimTaint as $k => $dimTaint ) {
-			$pairs = array_merge(
-				$pairs,
-				$dimTaint->decomposeForLinks( $links->getForDim( $k ), $error->getForDim( $k, false ) )
+			$tuples = array_merge(
+				$tuples,
+				$dimTaint->decomposeForLinks(
+					$links->getForDim( $k ),
+					$varError->getForDim( $k, false ),
+					$sinkError->getForDim( $k, false )
+				)
 			);
 		}
 
 		if ( $this->unknownDimsTaint ) {
-			$pairs = array_merge(
-				$pairs,
+			$tuples = array_merge(
+				$tuples,
 				$this->unknownDimsTaint->decomposeForLinks(
 					$links->getForDim( null ),
-					$error->getForDim( null, false )
+					$varError->getForDim( null, false ),
+					$sinkError->getForDim( null, false )
 				)
 			);
 		}
-		return $pairs;
+		return $tuples;
 	}
 
 	/**

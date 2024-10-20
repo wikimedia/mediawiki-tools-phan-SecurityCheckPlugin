@@ -1287,20 +1287,20 @@ trait TaintednessBaseVisitor {
 	 * that are used with different levels of escaping, which is not a good idea anyway.
 	 *
 	 * @param TypedElementInterface $var The variable in question
-	 * @param Taintedness $taint What taint to mark them as.
-	 * @param CausedByLines|null $additionalError Any extra caused-by lines to add
+	 * @param Taintedness $sinkTaint What taint to mark them as.
+	 * @param CausedByLines|null $sinkError Any extra caused-by lines from the sink to add
 	 */
 	protected function markAllDependentMethodsExec(
 		TypedElementInterface $var,
-		Taintedness $taint,
-		?CausedByLines $additionalError = null
+		Taintedness $sinkTaint,
+		?CausedByLines $sinkError = null
 	): void {
 		$futureTaint = $this->getPossibleFutureTaintOfElement( $var );
-		if ( $futureTaint !== null && !$futureTaint->has( $taint->get() ) ) {
+		if ( $futureTaint !== null && !$futureTaint->has( $sinkTaint->get() ) ) {
 			return;
 		}
 		// Ensure we only set exec bits, not normal taint bits.
-		$taint = $taint->withOnly( SecurityCheckPlugin::BACKPROP_TAINTS );
+		$taint = $sinkTaint->withOnly( SecurityCheckPlugin::BACKPROP_TAINTS );
 		if ( $taint->isSafe() || $this->isIssueSuppressedOrFalsePositive( $taint ) ) {
 			return;
 		}
@@ -1310,17 +1310,17 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 		$varError = self::getCausedByRaw( $var );
-		$backpropError = $varError ? $varError->withOnlyLinks() : CausedByLines::emptySingleton();
-		if ( $additionalError ) {
-			$backpropError = $backpropError->asMergedWith( $additionalError );
-		}
+		$varError = $varError ? $varError->withOnlyLinks() : CausedByLines::emptySingleton();
+		$sinkError ??= CausedByLines::emptySingleton();
 
-		// $this->debug( __METHOD__, "Setting {$var->getName()} exec {$taint->toShortString()}" );
-		$oldMem = memory_get_peak_usage();
 		$newFuncErrorData = new Set();
-		foreach ( $taint->decomposeForLinks( $varLinks, $backpropError ) as [ $curLinks, $curTaint, $curError ] ) {
+		$backpropTuples = $taint->decomposeForLinks( $varLinks, $varError, $sinkError );
+		foreach ( $backpropTuples as [ $curLinks, $curTaint, $curVarError, $curSinkError ] ) {
 			/** @var LinksSet $curLinks */
 			/** @var Taintedness $curTaint */
+			/** @var CausedByLines $curVarError */
+			/** @var CausedByLines $curSinkError */
+			$curError = $curVarError->asMergedWith( $curSinkError );
 			foreach ( $curLinks as $method ) {
 				$paramInfo = $curLinks[$method];
 				// Note, not forCaller, as that doesn't see variadic parameters
@@ -1338,7 +1338,6 @@ trait TaintednessBaseVisitor {
 						$paramTaint = $paramTaint->withParamSinkTaint( $i, $curParTaint );
 						$funcError->setParamSinkLines( $i, $curBackpropError );
 					}
-					// $this->debug( __METHOD__, "Setting method $method arg $i as $taint due to dependency on $var" );
 				}
 				$this->addFuncTaint( $method, $paramTaint );
 				$newFuncTaint = self::getFuncTaint( $method );
@@ -1360,12 +1359,6 @@ trait TaintednessBaseVisitor {
 				$newFuncError->mergeWith( $err, $data['taint'] );
 			}
 			$this->mergeFuncError( $method, $newFuncError, $data['taint'] );
-		}
-
-		$newMem = memory_get_peak_usage();
-		$diffMem = round( ( $newMem - $oldMem ) / ( 1024 * 1024 ) );
-		if ( $diffMem > 2 ) {
-			$this->debug( __METHOD__, "Memory spike $diffMem for variable " . $var->getName() );
 		}
 	}
 
