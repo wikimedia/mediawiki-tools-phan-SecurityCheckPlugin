@@ -1480,6 +1480,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param string $method __METHOD__ in question
 	 * @param string $msg debug message
+	 * @codeCoverageIgnore
 	 */
 	public function debug( $method, $msg ): void {
 		if ( $this->debugOutput === null ) {

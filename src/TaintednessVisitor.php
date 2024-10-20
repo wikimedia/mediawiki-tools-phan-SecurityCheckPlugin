@@ -195,7 +195,9 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$func = $this->code_base->getFunctionByFQSEN( $closureFQSEN );
 			$this->analyzeFunctionLike( $func );
 		} else {
+			// @codeCoverageIgnoreStart
 			$this->debug( __METHOD__, 'closure doesn\'t exist' );
+			// @codeCoverageIgnoreEnd
 		}
 		$this->setCurTaintSafe();
 		$this->setCachedData( $node );

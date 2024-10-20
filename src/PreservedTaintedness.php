@@ -203,9 +203,7 @@ class PreservedTaintedness {
 	}
 
 	/**
-	 * Get a stringified representation of this taintedness suitable for the debug annotation
-	 *
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function toShortString(): string {
 		$ret = "{Own: " . $this->ownOffsets->__toString();
@@ -229,7 +227,7 @@ class PreservedTaintedness {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		return $this->toShortString();

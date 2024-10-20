@@ -315,7 +315,7 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function toString(): string {
 		$str = "[\n\toverall: " . $this->overall->toShortString() .
@@ -348,8 +348,7 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * @param int $flags
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	private static function flagsToString( int $flags ): string {
 		$bits = [];
@@ -363,7 +362,7 @@ class FunctionTaintedness {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		return $this->toString();

@@ -566,8 +566,8 @@ class CausedByLines {
 	}
 
 	/**
-	 * @return string
 	 * @suppress PhanUnreferencedPublicMethod
+	 * @codeCoverageIgnore
 	 */
 	public function toDebugString(): string {
 		if ( $this === self::emptySingleton() ) {

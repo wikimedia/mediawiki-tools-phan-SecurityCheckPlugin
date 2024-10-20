@@ -95,7 +95,7 @@ class SingleMethodLinks {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		$paramBits = [];

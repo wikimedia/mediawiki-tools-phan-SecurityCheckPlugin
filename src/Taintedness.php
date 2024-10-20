@@ -766,11 +766,10 @@ class Taintedness {
 	/**
 	 * Get a stringified representation of this taintedness, useful for debugging etc.
 	 *
-	 * @param string $indent
-	 * @return string
+	 * @codeCoverageIgnore
 	 * @suppress PhanUnreferencedPublicMethod
 	 */
-	public function toString( $indent = '' ): string {
+	public function toString( string $indent = '' ): string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );
 		$keys = SecurityCheckPlugin::taintToString( $this->keysTaint );
 		$ret = <<<EOT
@@ -824,7 +823,7 @@ EOT;
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		return $this->toShortString();

@@ -22,10 +22,10 @@
 
 namespace SecurityCheckPlugin;
 
-use AssertionError;
 use ast\Node;
 use Closure;
 use Error;
+use InvalidArgumentException;
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
@@ -41,6 +41,7 @@ use Phan\PluginV3\BeforeLoopBodyAnalysisCapability;
 use Phan\PluginV3\MergeVariableInfoCapability;
 use Phan\PluginV3\PostAnalyzeNodeCapability;
 use Phan\PluginV3\PreAnalyzeNodeCapability;
+use RuntimeException;
 
 /**
  * Base class used by the Generic and MediaWiki flavours of the plugin.
@@ -193,7 +194,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 */
 	private function assertRequiredConfig(): void {
 		if ( Config::get_quick_mode() ) {
-			throw new AssertionError( 'Quick mode must be disabled to run taint-check' );
+			throw new RuntimeException( 'Quick mode must be disabled to run taint-check' );
 		}
 	}
 
@@ -745,7 +746,9 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 			case 'none':
 				return self::NO_TAINT;
 			default:
-				throw new AssertionError( "$name not valid taint" );
+				// @codeCoverageIgnoreStart
+				throw new InvalidArgumentException( "$name not valid taint" );
+				// @codeCoverageIgnoreEnd
 		}
 	}
 

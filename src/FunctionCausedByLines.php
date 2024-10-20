@@ -266,7 +266,7 @@ class FunctionCausedByLines {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function toString(): string {
 		$str = "{\nGeneric: " . $this->genericLines->toDebugString() . ",\n";
@@ -287,7 +287,7 @@ class FunctionCausedByLines {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		return $this->toString();

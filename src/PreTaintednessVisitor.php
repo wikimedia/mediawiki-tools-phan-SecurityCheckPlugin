@@ -87,9 +87,10 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			$paramName = $param->children['name'];
 			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $paramName ) ) {
-				// Well uh-oh.
+				// @codeCoverageIgnoreStart
 				$this->debug( __METHOD__, "Missing variable for param \$" . $paramName );
 				continue;
+				// @codeCoverageIgnoreEnd
 			}
 			$varObj = $scope->getVariableByName( $paramName );
 

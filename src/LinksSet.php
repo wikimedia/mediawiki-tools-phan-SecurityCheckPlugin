@@ -50,6 +50,9 @@ class LinksSet extends Set {
 		return $ret;
 	}
 
+	/**
+	 * @codeCoverageIgnore
+	 */
 	public function __toString(): string {
 		$children = [];
 		foreach ( $this as $func ) {

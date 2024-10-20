@@ -16,6 +16,9 @@ use Phan\Library\Set;
  * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class VarLinksSet extends Set {
+	/**
+	 * @codeCoverageIgnore
+	 */
 	public function __toString(): string {
 		$children = [];
 		foreach ( $this as $var ) {

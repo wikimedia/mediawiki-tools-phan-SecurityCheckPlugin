@@ -523,8 +523,7 @@ class MethodLinks {
 	}
 
 	/**
-	 * @param string $indent
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function toString( string $indent = '' ): string {
 		if ( $this === self::emptySingleton() ) {
@@ -550,7 +549,7 @@ class MethodLinks {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		return $this->toString();

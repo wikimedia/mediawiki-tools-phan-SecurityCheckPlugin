@@ -203,7 +203,7 @@ class ParamLinksOffsets {
 	}
 
 	/**
-	 * @return string
+	 * @codeCoverageIgnore
 	 */
 	public function __toString(): string {
 		$ret = '<(own): ' . SecurityCheckPlugin::taintToString( $this->ownFlags );

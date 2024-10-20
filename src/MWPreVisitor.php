@@ -69,9 +69,10 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		for ( $i = 0; $i < 2 && $i < count( $params ); $i++ ) {
 			$param = $params[$i];
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
-				// Well uh-oh.
+				// @codeCoverageIgnoreStart
 				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
 				continue;
+				// @codeCoverageIgnoreEnd
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$argTaint = Taintedness::newTainted();
@@ -90,8 +91,9 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			if ( isset( $params[$i] ) ) {
 				$param = $params[$i];
 				if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
-					// Well uh-oh.
+					// @codeCoverageIgnoreStart
 					$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+					// @codeCoverageIgnoreEnd
 				} else {
 					$varObj = $scope->getVariableByName( $param->children['name'] );
 					$varObj->setUnionType(
@@ -117,8 +119,9 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		if ( isset( $params[0] ) ) {
 			$param = $params[0];
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
-				// Well uh-oh.
+				// @codeCoverageIgnoreStart
 				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
+				// @codeCoverageIgnoreEnd
 			} else {
 				$varObj = $scope->getVariableByName( $param->children['name'] );
 				$varObj->setUnionType(
@@ -132,9 +135,10 @@ class MWPreVisitor extends PreTaintednessVisitor {
 				continue;
 			}
 			if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
-				// Well uh-oh.
+				// @codeCoverageIgnoreStart
 				$this->debug( __METHOD__, "Missing variable for param \$" . $param->children['name'] );
 				continue;
+				// @codeCoverageIgnoreEnd
 			}
 			$varObj = $scope->getVariableByName( $param->children['name'] );
 			$argTaint = Taintedness::newTainted();
