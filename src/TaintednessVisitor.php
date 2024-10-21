@@ -961,34 +961,44 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		$paramTaint = new FunctionTaintedness( $overallFuncTaint );
-		$funcError = FunctionCausedByLines::emptySingleton();
 
-		$links = $retTaintednessWithError->getMethodLinks();
-		$retError = $retTaintednessWithError->getError();
-		// Note, not forCaller, as that doesn't see variadic parameters
-		$calleeParamList = $func->getParameterList();
-		foreach ( $calleeParamList as $i => $param ) {
-			$presTaint = $retTaintMask === null || !$retTaintMask->isSafe()
-				? $links->asPreservedTaintednessForFuncParam( $func, $i )
-				: PreservedTaintedness::emptySingleton();
-			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
-			if ( $param->isVariadic() ) {
-				$paramTaint = $paramTaint->withVariadicParamPreservedTaint( $i, $presTaint );
-				$funcError = $funcError->withVariadicParamPreservedLines( $i, $paramError );
-			} else {
-				$paramTaint = $paramTaint->withParamPreservedTaint( $i, $presTaint );
-				$funcError = $funcError->withParamPreservedLines( $i, $paramError );
+		if ( $retTaintMask === null || !$retTaintMask->isSafe() ) {
+			$funcError = FunctionCausedByLines::emptySingleton();
+			$links = $retTaintednessWithError->getMethodLinks();
+			$retError = $retTaintednessWithError->getError();
+			// Note, not forCaller, as that doesn't see variadic parameters
+			$calleeParamList = $func->getParameterList();
+			foreach ( $calleeParamList as $i => $param ) {
+				$presTaint = $links->asPreservedTaintednessForFuncParam( $func, $i );
+				$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
+				if ( !$presTaint->isEmpty() ) {
+					$paramTaint = $param->isVariadic()
+						? $paramTaint->withVariadicParamPreservedTaint( $i, $presTaint )
+						: $paramTaint->withParamPreservedTaint( $i, $presTaint );
+				}
+				if ( !$paramError->isEmpty() ) {
+					if ( $param->isVariadic() ) {
+						$funcError = $funcError->withVariadicParamPreservedLines( $i, $paramError );
+					} else {
+						$funcError = $funcError->withParamPreservedLines( $i, $paramError );
+					}
+				}
 			}
-		}
+			$genericError = $retError->getLinesForGenericReturn();
+			if ( !$genericError->isEmpty() ) {
+				$funcError = $funcError->withGenericLines( $genericError );
+			}
 
-		$funcError = $funcError->withGenericLines( $retError->getLinesForGenericReturn() );
-		$this->addFuncTaint( $func, $paramTaint );
-		$newFuncTaint = self::getFuncTaint( $func );
-		assert( $newFuncTaint !== null );
-		$this->maybeAddFuncError( $func, null, $paramTaint, $newFuncTaint, $links );
-		// Note: adding the error after setting the taintedness means that the return line comes before
-		// the other lines
-		$this->mergeFuncError( $func, $funcError, $newFuncTaint );
+			$this->addFuncTaint( $func, $paramTaint );
+			$newFuncTaint = self::getFuncTaint( $func );
+			assert( $newFuncTaint !== null );
+			$this->maybeAddFuncError( $func, null, $paramTaint, $newFuncTaint, $links );
+			// Note: adding the error after setting the taintedness means that the return line comes before
+			// the other lines
+			$this->mergeFuncError( $func, $funcError, $newFuncTaint );
+		} else {
+			$this->addFuncTaint( $func, $paramTaint );
+		}
 	}
 
 	/**

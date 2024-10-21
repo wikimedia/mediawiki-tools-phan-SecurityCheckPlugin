@@ -184,6 +184,21 @@ class PreservedTaintedness {
 		return $ret;
 	}
 
+	public function isEmpty(): bool {
+		if ( !$this->ownOffsets->isEmpty() || ( $this->keysOffsets && !$this->keysOffsets->isEmpty() ) ) {
+			return false;
+		}
+		foreach ( $this->dimTaint as $val ) {
+			if ( !$val->isEmpty() ) {
+				return false;
+			}
+		}
+		if ( $this->unknownDimsTaint && !$this->unknownDimsTaint->isEmpty() ) {
+			return false;
+		}
+		return true;
+	}
+
 	/**
 	 * Get a stringified representation of this taintedness suitable for the debug annotation
 	 *

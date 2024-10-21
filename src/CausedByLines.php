@@ -116,7 +116,9 @@ class CausedByLines {
 			$newTaint = $preservedTaint->asTaintednessForArgument( $eTaint );
 			// TODO: Pass appropriate links through, see I1bd8ae302e91a2b6b951953bc321ea6ae89d5955
 			$newLinks = null;
-			$ret->lines[] = [ $newTaint, $eLine, $newLinks ];
+			if ( !$newTaint->isSafe() ) {
+				$ret->lines[] = [ $newTaint, $eLine, $newLinks ];
+			}
 		}
 		return $ret;
 	}
@@ -361,6 +363,14 @@ class CausedByLines {
 	 * @return self
 	 */
 	public function asMergedWith( self $other, int $dimDepth = 0 ): self {
+		$emptySingleton = self::emptySingleton();
+		if ( $this === $emptySingleton ) {
+			return $other;
+		}
+		if ( $other === $emptySingleton ) {
+			return $this;
+		}
+
 		$ret = clone $this;
 
 		if ( !$ret->lines ) {
@@ -528,6 +538,10 @@ class CausedByLines {
 		return $ret;
 	}
 
+	public function isEmpty(): bool {
+		return $this->lines === [];
+	}
+
 	/**
 	 * @return string[]
 	 * @suppress PhanUnreferencedPublicMethod
@@ -541,6 +555,9 @@ class CausedByLines {
 	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function toDebugString(): string {
+		if ( $this === self::emptySingleton() ) {
+			return '(empty)';
+		}
 		$r = [];
 		foreach ( $this->lines as [ $t, $line, $links ] ) {
 			$r[] = "\t[\n\t\tT: " . $t->toShortString() . "\n\t\tL: " . $line . "\n\t\tLinks: " .

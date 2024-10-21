@@ -184,6 +184,23 @@ class ParamLinksOffsets {
 		return $ret;
 	}
 
+	public function isEmpty(): bool {
+		if ( $this->ownFlags || $this->keysFlags ) {
+			return false;
+		}
+		foreach ( $this->dims as $val ) {
+			if ( !$val->isEmpty() ) {
+				return false;
+			}
+		}
+
+		if ( $this->unknown && !$this->unknown->isEmpty() ) {
+			return false;
+		}
+
+		return true;
+	}
+
 	/**
 	 * @return string
 	 */

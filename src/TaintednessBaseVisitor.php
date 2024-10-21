@@ -1981,6 +1981,9 @@ trait TaintednessBaseVisitor {
 		foreach ( $preserveArgumentsData as $i => [ $curArgTaintedness, $baseArgError ] ) {
 			if ( $taint->hasParamPreserve( $i ) ) {
 				$parTaint = $taint->getParamPreservedTaint( $i );
+				if ( $parTaint->isEmpty() ) {
+					continue;
+				}
 				$preservedArgTaint = $parTaint->asTaintednessForArgument( $curArgTaintedness );
 				$curArgLinks = MethodLinks::emptySingleton();
 				$relevantParamError = $funcError->getParamPreservedLines( $i )
