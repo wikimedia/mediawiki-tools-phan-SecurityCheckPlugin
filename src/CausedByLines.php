@@ -112,9 +112,11 @@ class CausedByLines {
 			return $this;
 		}
 		$ret = new self;
-		foreach ( $this->lines as [ $eTaint, $eLine, $eLinks ] ) {
+		foreach ( $this->lines as [ $eTaint, $eLine, $_ ] ) {
 			$newTaint = $preservedTaint->asTaintednessForArgument( $eTaint );
-			$ret->lines[] = [ $newTaint, $eLine, $eLinks ];
+			// TODO: Pass appropriate links through, see I1bd8ae302e91a2b6b951953bc321ea6ae89d5955
+			$newLinks = null;
+			$ret->lines[] = [ $newTaint, $eLine, $newLinks ];
 		}
 		return $ret;
 	}
