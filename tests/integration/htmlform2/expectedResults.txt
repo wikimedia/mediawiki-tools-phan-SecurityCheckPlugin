@@ -1,2 +1,2 @@
 integration/htmlform2/test.php:6 SecurityCheck-XSS HTMLForm option label needs escaping (Caused by: integration/htmlform2/test.php +4; integration/htmlform2/test.php +40; integration/htmlform2/test.php +38; integration/htmlform2/test.php +37)
-integration/htmlform2/test.php:12 SecurityCheck-XSS HTMLForm option label needs escaping (Caused by: integration/htmlform2/test.php +10; integration/htmlform2/test.php +48; integration/htmlform2/test.php +46)
+integration/htmlform2/test.php:12 SecurityCheck-XSS HTMLForm option label needs escaping (Caused by: integration/htmlform2/test.php +10; integration/htmlform2/test.php +48; integration/htmlform2/test.php +46; integration/htmlform2/test.php +45)

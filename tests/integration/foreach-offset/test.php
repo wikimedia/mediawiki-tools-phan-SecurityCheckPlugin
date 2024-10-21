@@ -27,7 +27,7 @@ class TestForeachKey {
 }
 '@taint-check-debug-method-first-arg TestForeachKey::execKeyInForeach';
 
-TestForeachKey::execKeyInForeach( $_GET['a'] ); // Unsafe
+TestForeachKey::execKeyInForeach( $_GET['a'] ); // Unsafe caused by 18, 19, 22, 24
 
 class TestForeachWrapped {
 	public static function execAllInForeach( $items ) {

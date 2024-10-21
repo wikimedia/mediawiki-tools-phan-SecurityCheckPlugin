@@ -1,0 +1,3 @@
+integration/returndimlinks/test.php:9 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/returndimlinks/test.php +6; integration/returndimlinks/test.php +5)
+integration/returndimlinks/test.php:18 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/returndimlinks/test.php +15; integration/returndimlinks/test.php +14)
+integration/returndimlinks/test.php:28 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/returndimlinks/test.php +25; integration/returndimlinks/test.php +23)

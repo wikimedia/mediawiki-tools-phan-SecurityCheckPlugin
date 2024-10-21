@@ -128,8 +128,8 @@ class PreservedTaintedness {
 			);
 		}
 		if ( $this->keysOffsets ) {
-			$ret = $ret->withAddedKeysTaintedness(
-				$this->keysOffsets->appliedToTaintednessForBackprop( $sinkTaint )->get()
+			$ret = $ret->asMergedWith(
+				$this->keysOffsets->appliedToTaintednessForBackprop( $sinkTaint )
 			);
 		}
 		return $ret;

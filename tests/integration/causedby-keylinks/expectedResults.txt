@@ -1,0 +1,2 @@
+integration/causedby-keylinks/test.php:8 SecurityCheck-XSS Calling method \execArgAsKey() in [no method] that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: integration/causedby-keylinks/test.php +4; integration/causedby-keylinks/test.php +5)
+integration/causedby-keylinks/test.php:19 SecurityCheck-XSS Calling method \execArgDimAsKey() in [no method] that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: integration/causedby-keylinks/test.php +12; integration/causedby-keylinks/test.php +13; integration/causedby-keylinks/test.php +16)
