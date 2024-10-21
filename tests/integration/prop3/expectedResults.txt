@@ -1,1 +1,1 @@
-integration/prop3/test.php:43 SecurityCheck-XSS Calling method \Foo2::setMyProp() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: integration/prop3/test.php +41; integration/prop3/test.php +29)
+integration/prop3/test.php:43 SecurityCheck-XSS Calling method \Foo2::setMyProp() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: integration/prop3/test.php +29; integration/prop3/test.php +41)

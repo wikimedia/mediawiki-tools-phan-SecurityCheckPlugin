@@ -3,7 +3,8 @@
 ## UNRELEASED
 ### New features
 * Improved accuracy of error reporting ("caused-by lines") by tracking array shapes in more places.
-* Added support for analyzing `call_user_func` and `call_user_func_array`
+* Added support for analyzing `call_user_func` and `call_user_func_array`.
+* Improved readability of error reporting by reordering the lines to follow parameters from call to sink (i.e. opposite to what they were before).
 
 ### Bug fixes
 * Fixed a host of bugs affecting backpropagation of taintedness, resulting in anything between false positives, false negatives, inaccurate error reporting, and OOM.

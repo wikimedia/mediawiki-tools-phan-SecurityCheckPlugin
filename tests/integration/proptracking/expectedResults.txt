@@ -1,1 +1,1 @@
-integration/proptracking/test.php:31 SecurityCheck-XSS Calling method \Echoed::setFoo() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/proptracking/test.php +26; integration/proptracking/test.php +23)
+integration/proptracking/test.php:31 SecurityCheck-XSS Calling method \Echoed::setFoo() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/proptracking/test.php +23; integration/proptracking/test.php +26)

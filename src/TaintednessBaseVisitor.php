@@ -1310,7 +1310,7 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 		$varError = self::getCausedByRaw( $var );
-		$varError = $varError ? $varError->withOnlyLinks() : CausedByLines::emptySingleton();
+		$varError = $varError ? $varError->withOnlyLinks()->asReversed() : CausedByLines::emptySingleton();
 		$sinkError ??= CausedByLines::emptySingleton();
 
 		$newFuncErrorData = new Set();
@@ -1320,45 +1320,62 @@ trait TaintednessBaseVisitor {
 			/** @var Taintedness $curTaint */
 			/** @var CausedByLines $curVarError */
 			/** @var CausedByLines $curSinkError */
-			$curError = $curVarError->asMergedWith( $curSinkError );
 			foreach ( $curLinks as $method ) {
 				$paramInfo = $curLinks[$method];
 				// Note, not forCaller, as that doesn't see variadic parameters
 				$calleeParamList = $method->getParameterList();
 				$paramTaint = FunctionTaintedness::emptySingleton();
-				$funcError = new FunctionCausedByLines();
+				$funcArgError = new FunctionCausedByLines();
+				$funcSinkError = new FunctionCausedByLines();
 				foreach ( $paramInfo->getParams() as $i => $paramOffsets ) {
 					$curParTaint = $curTaint->asMovedAtRelevantOffsetsForBackprop( $paramOffsets );
-					$curBackpropError = $curError
+					$curVarBackpropError = $curVarError
+						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i, true );
+					$curSinkBackpropError = $curSinkError
 						->withTaintAddedToMethodArgLinks( $curParTaint->asExecToYesTaint(), $method, $i, true );
 					if ( isset( $calleeParamList[$i] ) && $calleeParamList[$i]->isVariadic() ) {
 						$paramTaint = $paramTaint->withVariadicParamSinkTaint( $i, $curParTaint );
-						$funcError->setVariadicParamSinkLines( $i, $curBackpropError );
+						$funcArgError->setVariadicParamSinkLines( $i, $curVarBackpropError );
+						$funcSinkError->setVariadicParamSinkLines( $i, $curSinkBackpropError );
 					} else {
 						$paramTaint = $paramTaint->withParamSinkTaint( $i, $curParTaint );
-						$funcError->setParamSinkLines( $i, $curBackpropError );
+						$funcArgError->setParamSinkLines( $i, $curVarBackpropError );
+						$funcSinkError->setParamSinkLines( $i, $curSinkBackpropError );
 					}
 				}
 				$this->addFuncTaint( $method, $paramTaint );
 				$newFuncTaint = self::getFuncTaint( $method );
 				assert( $newFuncTaint !== null );
-				$this->maybeAddFuncError( $method, null, $paramTaint, $newFuncTaint );
 
+				// TODO: refactor mergeFuncError and maybeAddFuncError to avoid this.
 				$curMethodData = $newFuncErrorData[$method] ?? [];
 				$curMethodData['taint'] = $newFuncTaint;
-				$curMethodData['errors'][] = $funcError;
+				$curMethodData['argerrors'][] = $funcArgError;
+				$curMethodData['sinkerrors'][] = $funcSinkError;
+				$curMethodData['paramerrortaints'][] = $paramTaint;
 				$newFuncErrorData[$method] = $curMethodData;
 			}
 		}
 
 		foreach ( $newFuncErrorData as $method ) {
 			$data = $newFuncErrorData[$method];
-			/** @var FunctionCausedByLines $newFuncError */
-			$newFuncError = array_shift( $data['errors'] );
-			foreach ( $data['errors'] as $err ) {
-				$newFuncError->mergeWith( $err, $data['taint'] );
+			/** @var FunctionCausedByLines $funcErrorFromArg */
+			$funcErrorFromArg = array_shift( $data['argerrors'] );
+			foreach ( $data['argerrors'] as $err ) {
+				$funcErrorFromArg->mergeWith( $err, $data['taint'] );
 			}
-			$this->mergeFuncError( $method, $newFuncError, $data['taint'] );
+			$this->mergeFuncError( $method, $funcErrorFromArg, $data['taint'] );
+
+			foreach ( $data['paramerrortaints'] as $paramErrTaint ) {
+				$this->maybeAddFuncError( $method, null, $paramErrTaint, $data['taint'] );
+			}
+
+			/** @var FunctionCausedByLines $funcErrorFromSink */
+			$funcErrorFromSink = array_shift( $data['sinkerrors'] );
+			foreach ( $data['sinkerrors'] as $err ) {
+				$funcErrorFromSink->mergeWith( $err, $data['taint'] );
+			}
+			$this->mergeFuncError( $method, $funcErrorFromSink, $data['taint'] );
 		}
 	}
 

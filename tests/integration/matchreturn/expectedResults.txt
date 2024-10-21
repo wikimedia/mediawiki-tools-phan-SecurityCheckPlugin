@@ -46,4 +46,4 @@ integration/matchreturn/test.php:222 SecurityCheck-XSS Echoing expression that w
 integration/matchreturn/test.php:224 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: annotations in \getHTML; integration/matchreturn/test.php +219)
 integration/matchreturn/test.php:227 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: annotations in \getHTML; integration/matchreturn/test.php +219)
 integration/matchreturn/test.php:230 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: annotations in \getHTML; integration/matchreturn/test.php +219)
-integration/matchreturn/test.php:251 SecurityCheck-XSS Calling method \roundTripAndEcho() in [no method] that outputs using tainted argument #1. (Caused by: integration/matchreturn/test.php +249; integration/matchreturn/test.php +248)
+integration/matchreturn/test.php:251 SecurityCheck-XSS Calling method \roundTripAndEcho() in [no method] that outputs using tainted argument #1. (Caused by: integration/matchreturn/test.php +248; integration/matchreturn/test.php +249)

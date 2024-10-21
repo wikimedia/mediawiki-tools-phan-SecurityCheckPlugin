@@ -45,4 +45,4 @@ function indirectLink( &$arg ) {
 }
 
 $var2 = $_GET['baz']; // Note: this MUST be in caused-by
-indirectLink( $var2 );// Unsafe, caused by lines 47, 44, 43
+indirectLink( $var2 );// Unsafe, caused by lines 43, 44, 47

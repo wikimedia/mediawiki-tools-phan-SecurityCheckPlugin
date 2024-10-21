@@ -1,1 +1,1 @@
-integration/execfunc/test.php:6 SecurityCheck-XSS Calling method \OutputBufferingClass::addHTML() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`). (Caused by: integration/execfunc/OutputBufferingClass.php +15; integration/execfunc/OutputBufferingClass.php +7)
+integration/execfunc/test.php:6 SecurityCheck-XSS Calling method \OutputBufferingClass::addHTML() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`). (Caused by: integration/execfunc/OutputBufferingClass.php +7; integration/execfunc/OutputBufferingClass.php +15)

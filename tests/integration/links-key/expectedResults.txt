@@ -1,2 +1,2 @@
 integration/links-key/test.php:3 SecurityCheckDebugTaintedness Method LinksOnKeyOfVal::echoKeyOfVal has first param with taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: NONE; Keys: *HTML}}}
-integration/links-key/test.php:15 SecurityCheck-XSS Calling method \LinksOnKeyOfVal::echoKeyOfVal() in [no method] that outputs using tainted argument #1 (`[$_GET['a']]`). (Caused by: integration/links-key/test.php +7; integration/links-key/test.php +6; integration/links-key/test.php +5)
+integration/links-key/test.php:15 SecurityCheck-XSS Calling method \LinksOnKeyOfVal::echoKeyOfVal() in [no method] that outputs using tainted argument #1 (`[$_GET['a']]`). (Caused by: integration/links-key/test.php +5; integration/links-key/test.php +6; integration/links-key/test.php +7)

@@ -336,6 +336,12 @@ class CausedByLines {
 		return $ret;
 	}
 
+	public function asReversed(): self {
+		$ret = new self();
+		$ret->lines = array_reverse( $this->lines );
+		return $ret;
+	}
+
 	/**
 	 * @note this isn't a merge operation like array_merge. What this method does is:
 	 * 1 - if $other is a subset of $this, leave $this as-is;

@@ -25,7 +25,7 @@ function execXAndY( $arg ): void {
 	echo $local['y'];
 }
 
-execXAndY( $_GET['a'] ); // Unsafe, caused by lines 25, 24, 23
-execXAndY( [ 'x' => $_GET['a'], 'y' => $_GET['a'] ] ); // Unsafe, caused by lines 25, 24, 23
-execXAndY( [ 'x' => $_GET['a'] ] ); // Unsafe, caused by lines 24, 23
-execXAndY( [ 'y' => $_GET['a'] ] ); // Unsafe, caused by lines 25, 23
+execXAndY( $_GET['a'] ); // Unsafe, caused by lines 23, 24, 25
+execXAndY( [ 'x' => $_GET['a'], 'y' => $_GET['a'] ] ); // Unsafe, caused by lines 23, 24, 25
+execXAndY( [ 'x' => $_GET['a'] ] ); // Unsafe, caused by lines 23, 24
+execXAndY( [ 'y' => $_GET['a'] ] ); // Unsafe, caused by lines 23, 25

@@ -18,5 +18,5 @@ class CausedByDifferentParams {
 }
 
 $class = new CausedByDifferentParams();
-$class->sinkTwoParams( $_GET['a'], '' ); // Caused by 14, 13
-$class->sinkTwoParams( '', $_GET['a'] ); // Caused by 16, 15
+$class->sinkTwoParams( $_GET['a'], '' ); // Caused by 14, 13 TODO: NOT 16
+$class->sinkTwoParams( '', $_GET['a'] ); // Caused by 16, 15 TODO: NOT 14

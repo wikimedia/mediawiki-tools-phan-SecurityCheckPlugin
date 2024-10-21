@@ -4,4 +4,4 @@ integration/assignop2/test.php:10 SecurityCheck-XSS Echoing expression that was 
 integration/assignop2/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop2/test.php +8)
 integration/assignop2/test.php:18 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop2/test.php +15)
 integration/assignop2/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/assignop2/test.php +17)
-integration/assignop2/test.php:28 SecurityCheck-XSS Calling method \taintLinksShouldBePreserved() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/assignop2/test.php +25; integration/assignop2/test.php +23)
+integration/assignop2/test.php:28 SecurityCheck-XSS Calling method \taintLinksShouldBePreserved() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/assignop2/test.php +23; integration/assignop2/test.php +25)

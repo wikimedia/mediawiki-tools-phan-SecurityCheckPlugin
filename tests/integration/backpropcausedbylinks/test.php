@@ -14,5 +14,5 @@ function addsUnsafeAndCallsSink( $arg ) {
 
 function triggerBackpropagation() {
 	$x = $_GET['a'];
-	addsUnsafeAndCallsSink( $x ); // Unsafe caused by 12, 10, annotation, 16 (line 11 isn't relevant here)
+	addsUnsafeAndCallsSink( $x ); // Unsafe caused by 10, 12, annotation, 16 (line 11 isn't relevant here)
 }

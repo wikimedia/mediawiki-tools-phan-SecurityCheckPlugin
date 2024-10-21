@@ -12,4 +12,4 @@ class LinksOnKeyOfVal {
 
 '@taint-check-debug-method-first-arg LinksOnKeyOfVal::echoKeyOfVal';
 
-LinksOnKeyOfVal::echoKeyOfVal( [ $_GET['a'] ] ); // XSS, caused by 7, 6, 5
+LinksOnKeyOfVal::echoKeyOfVal( [ $_GET['a'] ] ); // XSS, caused by 5, 6, 7

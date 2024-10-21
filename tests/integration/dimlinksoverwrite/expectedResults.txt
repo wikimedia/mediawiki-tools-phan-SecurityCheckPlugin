@@ -1,1 +1,1 @@
-integration/dimlinksoverwrite/test.php:9 SecurityCheck-XSS Calling method \foobar() in [no method] that outputs using tainted argument #1 (`$_GET['X']`). (Caused by: integration/dimlinksoverwrite/test.php +6; integration/dimlinksoverwrite/test.php +4)
+integration/dimlinksoverwrite/test.php:9 SecurityCheck-XSS Calling method \foobar() in [no method] that outputs using tainted argument #1 (`$_GET['X']`). (Caused by: integration/dimlinksoverwrite/test.php +4; integration/dimlinksoverwrite/test.php +6)

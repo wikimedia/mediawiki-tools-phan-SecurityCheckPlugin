@@ -1,1 +1,1 @@
-integration/selftaint/test.php:24 SecurityCheck-XSS Calling method \Foo::__construct() in [no method] that outputs using tainted argument #1 (`$b`). (Caused by: integration/selftaint/test.php +12; integration/selftaint/test.php +8) (Caused by: integration/selftaint/test.php +23)
+integration/selftaint/test.php:24 SecurityCheck-XSS Calling method \Foo::__construct() in [no method] that outputs using tainted argument #1 (`$b`). (Caused by: integration/selftaint/test.php +8; integration/selftaint/test.php +12) (Caused by: integration/selftaint/test.php +23)

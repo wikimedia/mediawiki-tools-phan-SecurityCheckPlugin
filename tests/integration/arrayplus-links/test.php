@@ -24,6 +24,6 @@ function arrayPlusAndExecUnsafeWithFullAssignment( $data ) {
 	echo $local['unsafe'];
 }
 
-arrayPlusAndExecUnsafeWithFullAssignment( [ 'unsafe' => $_GET['x'] ] ); // XSS caused by 24, 23
+arrayPlusAndExecUnsafeWithFullAssignment( [ 'unsafe' => $_GET['x'] ] ); // XSS caused by 23, 24
 arrayPlusAndExecUnsafeWithFullAssignment( [ 'safe' => $_GET['x'] ] ); // Safe
 arrayPlusAndExecUnsafeWithFullAssignment( [ 'somethingelse' => $_GET['x'] ] ); // Safe
