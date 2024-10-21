@@ -160,7 +160,7 @@ class FunctionTaintedness {
 		) {
 			return $this->variadicParamPreserveTaint;
 		}
-		return PreservedTaintedness::newEmpty();
+		return PreservedTaintedness::emptySingleton();
 	}
 
 	/**
@@ -271,7 +271,7 @@ class FunctionTaintedness {
 		foreach ( $other->paramPreserveTaints as $index => $baseT ) {
 			if ( ( ( $ret->paramFlags[$index] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0 ) {
 				if ( isset( $ret->paramPreserveTaints[$index] ) ) {
-					$ret->paramPreserveTaints[$index]->mergeWith( $baseT );
+					$ret->paramPreserveTaints[$index] = $ret->paramPreserveTaints[$index]->asMergedWith( $baseT );
 				} else {
 					$ret->paramPreserveTaints[$index] = $baseT;
 				}
@@ -294,7 +294,8 @@ class FunctionTaintedness {
 				$presVariadic = $other->variadicParamPreserveTaint;
 				if ( $presVariadic ) {
 					if ( $ret->variadicParamPreserveTaint ) {
-						$ret->variadicParamPreserveTaint->mergeWith( $presVariadic );
+						$ret->variadicParamPreserveTaint = $ret->variadicParamPreserveTaint
+							->asMergedWith( $presVariadic );
 					} else {
 						$ret->variadicParamPreserveTaint = $presVariadic;
 					}

@@ -472,13 +472,13 @@ class MethodLinks {
 			}
 		}
 		if ( !$ret ) {
-			$ret = new PreservedTaintedness( ParamLinksOffsets::newEmpty() );
+			$ret = PreservedTaintedness::emptySingleton();
 		}
 		foreach ( $this->dimLinks as $dim => $dimLinks ) {
-			$ret->setOffsetTaintedness( $dim, $dimLinks->asPreservedTaintednessForFuncParam( $func, $param ) );
+			$ret = $ret->withOffsetTaintedness( $dim, $dimLinks->asPreservedTaintednessForFuncParam( $func, $param ) );
 		}
 		if ( $this->unknownDimLinks ) {
-			$ret->setOffsetTaintedness(
+			$ret = $ret->withOffsetTaintedness(
 				null,
 				$this->unknownDimLinks->asPreservedTaintednessForFuncParam( $func, $param )
 			);
@@ -486,7 +486,7 @@ class MethodLinks {
 		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
 			$keyInfo = $this->keysLinks[$func];
 			if ( $keyInfo->hasParam( $param ) ) {
-				$ret->setKeysOffsets( $keyInfo->getParamOffsets( $param ) );
+				$ret = $ret->withKeysOffsets( $keyInfo->getParamOffsets( $param ) );
 			}
 		}
 		return $ret;

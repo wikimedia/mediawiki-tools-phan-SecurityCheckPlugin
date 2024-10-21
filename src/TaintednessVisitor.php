@@ -970,7 +970,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		foreach ( $calleeParamList as $i => $param ) {
 			$presTaint = $retTaintMask === null || !$retTaintMask->isSafe()
 				? $links->asPreservedTaintednessForFuncParam( $func, $i )
-				: PreservedTaintedness::newEmpty();
+				: PreservedTaintedness::emptySingleton();
 			$paramError = $retError->asFilteredForFuncAndParam( $func, $i );
 			if ( $param->isVariadic() ) {
 				$paramTaint = $paramTaint->withVariadicParamPreservedTaint( $i, $presTaint );

@@ -32,8 +32,12 @@ class PreservedTaintedness {
 	/**
 	 * @return self
 	 */
-	public static function newEmpty(): self {
-		return new self( ParamLinksOffsets::newEmpty() );
+	public static function emptySingleton(): self {
+		static $singleton;
+		if ( !$singleton ) {
+			$singleton = new self( ParamLinksOffsets::newEmpty() );
+		}
+		return $singleton;
 	}
 
 	/**
@@ -41,46 +45,24 @@ class PreservedTaintedness {
 	 *
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param self $value
+	 * @return self
 	 */
-	public function setOffsetTaintedness( $offset, self $value ): void {
+	public function withOffsetTaintedness( $offset, self $value ): self {
+		$ret = clone $this;
 		if ( is_scalar( $offset ) ) {
-			$this->dimTaint[$offset] = $value;
+			$ret->dimTaint[$offset] = $value;
 		} else {
-			$this->unknownDimsTaint ??= self::newEmpty();
-			$this->unknownDimsTaint->mergeWith( $value );
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint
+				? $ret->unknownDimsTaint->asMergedWith( $value )
+				: $value;
 		}
+		return $ret;
 	}
 
-	/**
-	 * @param ParamLinksOffsets $offsets
-	 */
-	public function setKeysOffsets( ParamLinksOffsets $offsets ): void {
-		$this->keysOffsets = $offsets;
-	}
-
-	/**
-	 * @param self $other
-	 */
-	public function mergeWith( self $other ): void {
-		$this->ownOffsets->mergeWith( $other->ownOffsets );
-		if ( $other->keysOffsets && !$this->keysOffsets ) {
-			$this->keysOffsets = $other->keysOffsets;
-		} elseif ( $other->keysOffsets ) {
-			$this->keysOffsets->mergeWith( $other->keysOffsets );
-		}
-
-		if ( $other->unknownDimsTaint && !$this->unknownDimsTaint ) {
-			$this->unknownDimsTaint = $other->unknownDimsTaint;
-		} elseif ( $other->unknownDimsTaint ) {
-			$this->unknownDimsTaint->mergeWith( $other->unknownDimsTaint );
-		}
-		foreach ( $other->dimTaint as $key => $val ) {
-			if ( !array_key_exists( $key, $this->dimTaint ) ) {
-				$this->dimTaint[$key] = clone $val;
-			} else {
-				$this->dimTaint[$key]->mergeWith( $val );
-			}
-		}
+	public function withKeysOffsets( ParamLinksOffsets $offsets ): self {
+		$ret = clone $this;
+		$ret->keysOffsets = $offsets;
+		return $ret;
 	}
 
 	/**
@@ -89,8 +71,38 @@ class PreservedTaintedness {
 	 * @suppress PhanUnreferencedPublicMethod Kept for consistency
 	 */
 	public function asMergedWith( self $other ): self {
+		$emptySingleton = self::emptySingleton();
+		if ( $this === $emptySingleton ) {
+			return $other;
+		}
+		if ( $other === $emptySingleton ) {
+			return $this;
+		}
+
 		$ret = clone $this;
-		$ret->mergeWith( $other );
+		$ret->ownOffsets = clone $ret->ownOffsets;
+		$ret->ownOffsets->mergeWith( $other->ownOffsets );
+
+		if ( $other->keysOffsets && !$ret->keysOffsets ) {
+			$ret->keysOffsets = $other->keysOffsets;
+		} elseif ( $other->keysOffsets ) {
+			$ret->keysOffsets = clone $ret->keysOffsets;
+			$ret->keysOffsets->mergeWith( $other->keysOffsets );
+		}
+
+		if ( $other->unknownDimsTaint && !$ret->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $other->unknownDimsTaint;
+		} elseif ( $other->unknownDimsTaint ) {
+			$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $other->unknownDimsTaint );
+		}
+		foreach ( $other->dimTaint as $key => $val ) {
+			if ( !array_key_exists( $key, $ret->dimTaint ) ) {
+				$ret->dimTaint[$key] = $val;
+			} else {
+				$ret->dimTaint[$key] = $ret->dimTaint[$key]->asMergedWith( $val );
+			}
+		}
+
 		return $ret;
 	}
 
@@ -99,6 +111,10 @@ class PreservedTaintedness {
 	 * @return Taintedness
 	 */
 	public function asTaintednessForArgument( Taintedness $argTaint ): Taintedness {
+		if ( $this === self::emptySingleton() ) {
+			return Taintedness::safeSingleton();
+		}
+
 		$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
 
 		foreach ( $this->dimTaint as $k => $val ) {
@@ -117,6 +133,10 @@ class PreservedTaintedness {
 	}
 
 	public function asTaintednessForBackpropError( Taintedness $sinkTaint ): Taintedness {
+		if ( $this === self::emptySingleton() ) {
+			return Taintedness::safeSingleton();
+		}
+
 		$ret = $this->ownOffsets->appliedToTaintednessForBackprop( $sinkTaint );
 
 		foreach ( $this->dimTaint as $val ) {
@@ -136,6 +156,10 @@ class PreservedTaintedness {
 	}
 
 	public function asTaintednessForVarBackpropError( Taintedness $newTaint ): Taintedness {
+		if ( $this === self::emptySingleton() ) {
+			return Taintedness::safeSingleton();
+		}
+
 		$ret = $this->ownOffsets->appliedToTaintednessForBackprop( $newTaint );
 
 		foreach ( $this->dimTaint as $key => $val ) {
@@ -184,19 +208,6 @@ class PreservedTaintedness {
 		}
 		$ret .= '}';
 		return $ret;
-	}
-
-	/**
-	 * Make sure to clone member variables, too.
-	 */
-	public function __clone() {
-		$this->ownOffsets = clone $this->ownOffsets;
-		if ( $this->unknownDimsTaint ) {
-			$this->unknownDimsTaint = clone $this->unknownDimsTaint;
-		}
-		foreach ( $this->dimTaint as $k => $v ) {
-			$this->dimTaint[$k] = clone $v;
-		}
 	}
 
 	/**

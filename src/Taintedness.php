@@ -675,12 +675,15 @@ class Taintedness {
 	 * @return PreservedTaintedness
 	 */
 	public function asPreservedTaintedness(): PreservedTaintedness {
-		$ret = new PreservedTaintedness( new ParamLinksOffsets( $this->flags ) );
+		$ret = $this->flags
+			? new PreservedTaintedness( new ParamLinksOffsets( $this->flags ) )
+			: PreservedTaintedness::emptySingleton();
+
 		foreach ( $this->dimTaint as $k => $val ) {
-			$ret->setOffsetTaintedness( $k, $val->asPreservedTaintedness() );
+			$ret = $ret->withOffsetTaintedness( $k, $val->asPreservedTaintedness() );
 		}
 		if ( $this->unknownDimsTaint ) {
-			$ret->setOffsetTaintedness( null, $this->unknownDimsTaint->asPreservedTaintedness() );
+			$ret = $ret->withOffsetTaintedness( null, $this->unknownDimsTaint->asPreservedTaintedness() );
 		}
 		return $ret;
 	}
