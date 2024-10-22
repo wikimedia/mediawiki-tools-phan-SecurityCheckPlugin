@@ -214,9 +214,11 @@ class FunctionCausedByLines {
 	 */
 	public function asMergedWith( self $other, FunctionTaintedness $funcTaint ): self {
 		$ret = clone $this;
-		if ( $funcTaint->canOverrideOverall() ) {
+		$canOverrideOverall = $funcTaint->canOverrideOverall();
+		if ( $canOverrideOverall ) {
 			$ret->genericLines = $ret->genericLines->asMergedWith( $other->genericLines );
 		}
+
 		foreach ( $other->paramSinkLines as $param => $lines ) {
 			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
 				if ( isset( $ret->paramSinkLines[$param] ) ) {
@@ -226,12 +228,14 @@ class FunctionCausedByLines {
 				}
 			}
 		}
-		foreach ( $other->paramPreservedLines as $param => $lines ) {
-			if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
-				if ( isset( $ret->paramPreservedLines[$param] ) ) {
-					$ret->paramPreservedLines[$param] = $ret->paramPreservedLines[$param]->asMergedWith( $lines );
-				} else {
-					$ret->paramPreservedLines[$param] = $lines;
+		if ( $canOverrideOverall ) {
+			foreach ( $other->paramPreservedLines as $param => $lines ) {
+				if ( $funcTaint->canOverrideNonVariadicParam( $param ) ) {
+					if ( isset( $ret->paramPreservedLines[$param] ) ) {
+						$ret->paramPreservedLines[$param] = $ret->paramPreservedLines[$param]->asMergedWith( $lines );
+					} else {
+						$ret->paramPreservedLines[$param] = $lines;
+					}
 				}
 			}
 		}
@@ -246,13 +250,15 @@ class FunctionCausedByLines {
 					$ret->variadicParamSinkLines = $sinkVariadic;
 				}
 			}
-			$preserveVariadic = $other->variadicParamPreservedLines;
-			if ( $preserveVariadic ) {
-				if ( $ret->variadicParamPreservedLines ) {
-					$ret->variadicParamPreservedLines = $this->variadicParamPreservedLines
-						->asMergedWith( $preserveVariadic );
-				} else {
-					$ret->variadicParamPreservedLines = $preserveVariadic;
+			if ( $canOverrideOverall ) {
+				$preserveVariadic = $other->variadicParamPreservedLines;
+				if ( $preserveVariadic ) {
+					if ( $ret->variadicParamPreservedLines ) {
+						$ret->variadicParamPreservedLines = $this->variadicParamPreservedLines
+							->asMergedWith( $preserveVariadic );
+					} else {
+						$ret->variadicParamPreservedLines = $preserveVariadic;
+					}
 				}
 			}
 		}

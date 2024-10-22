@@ -1,0 +1,2 @@
+integration/causedby-annotation2/test.php:20 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/causedby-annotation2/test.php +19; integration/causedby-annotation2/test.php +18; annotations in \TestPreserve::asValuesOfArrayWithUnsafeKeys)
+integration/causedby-annotation2/test.php:39 SecurityCheck-XSS Calling method \TestSink::execArgAndReturnTainted() in \TestSink::main that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: integration/causedby-annotation2/test.php +31; integration/causedby-annotation2/test.php +32)
