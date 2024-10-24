@@ -138,15 +138,6 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * Clears any previous error on the given element.
-	 *
-	 * @param TypedElementInterface $elem
-	 */
-	protected static function clearTaintError( TypedElementInterface $elem ): void {
-		unset( $elem->taintedOriginalError );
-	}
-
-	/**
 	 * Get $func's taint, or null if not set.
 	 *
 	 * @param FunctionInterface $func

@@ -186,26 +186,6 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Add the given caused-by lines to $element.
-	 *
-	 * @param TypedElementInterface $element
-	 * @param CausedByLines $rightError
-	 */
-	protected function mergeTaintError( TypedElementInterface $element, CausedByLines $rightError ): void {
-		assert( !$element instanceof FunctionInterface, 'Should use mergeFuncTaintError' );
-
-		$curError = self::getCausedByRaw( $element );
-
-		if ( !$curError ) {
-			$newLeftError = $rightError;
-		} else {
-			$newLeftError = $curError->asMergedWith( $rightError );
-		}
-
-		self::setCausedByRaw( $element, $newLeftError );
-	}
-
-	/**
 	 * @param FunctionInterface $func
 	 * @param FunctionCausedByLines $newError
 	 * @param FunctionTaintedness $allFuncTaint Used to check NO_OVERRIDE
@@ -220,9 +200,7 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Add the current context to taintedOriginalError book-keeping
-	 *
-	 * This allows us to show users what line caused an issue.
+	 * Shortcut to add all possible caused-by lines for the current context to the given variable-like element.
 	 *
 	 * @param TypedElementInterface $elem Where to put it
 	 * @param Taintedness $taintedness
@@ -236,10 +214,25 @@ trait TaintednessBaseVisitor {
 		?string $reason = null
 	): void {
 		assert( !$elem instanceof FunctionInterface, 'Should use addFuncTaintError' );
+		$newErrors = $this->getCausedByLinesToAdd( $taintedness, $links, $reason );
+		$curErr = self::getCausedByRaw( $elem ) ?? CausedByLines::emptySingleton();
+		self::setCausedByRaw( $elem, $curErr->withAddedLines( $newErrors, $taintedness, $links ) );
+	}
 
+	/**
+	 * @param Taintedness $taintedness
+	 * @param MethodLinks|null $links
+	 * @param string|null $reason To override the caused by line
+	 * @return string[]
+	 */
+	private function getCausedByLinesToAdd(
+		Taintedness $taintedness,
+		?MethodLinks $links,
+		?string $reason = null
+	): array {
 		if ( !$taintedness->has( SecurityCheckPlugin::ALL_TAINT ) && ( !$links || $links->isEmpty() ) ) {
 			// Don't add book-keeping if no actual taint was added.
-			return;
+			return [];
 		}
 
 		$newErrors = $reason !== null ? [ $reason ] : [ $this->dbgInfo() ];
@@ -247,9 +240,7 @@ trait TaintednessBaseVisitor {
 			// @phan-suppress-previous-line PhanUndeclaredProperty
 			$newErrors[] = $this->dbgInfo( $this->overrideContext );
 		}
-
-		$curErr = self::getCausedByRaw( $elem ) ?? CausedByLines::emptySingleton();
-		self::setCausedByRaw( $elem, $curErr->withAddedLines( $newErrors, $taintedness, $links ) );
+		return $newErrors;
 	}
 
 	/**
@@ -1445,21 +1436,23 @@ trait TaintednessBaseVisitor {
 		foreach ( $varLinks as $var ) {
 			$presTaint = $varLinks[$var];
 			$taintToPropagate = $presTaint->asTaintednessForArgument( $taintAdjusted );
+			$this->setTaintedness( $var, $taintToPropagate, false );
 
+			$newErrors = $this->getCausedByLinesToAdd( $taintToPropagate, null );
 			$adjustedCausedBy = ( self::getCausedByRaw( $var ) ?? CausedByLines::emptySingleton() )
 				->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i, false );
-			self::setCausedByRaw( $var, $adjustedCausedBy );
-			$this->setTaintedness( $var, $taintToPropagate, false );
-			$this->addTaintError( $var, $taintToPropagate, null );
+			$newCausedBy = $adjustedCausedBy->withAddedLines( $newErrors, $taintToPropagate )->asMergedWith( $error );
+			self::setCausedByRaw( $var, $newCausedBy );
+
 			if ( $var instanceof GlobalVariable ) {
 				$globalVar = $var->getElement();
+				$this->setTaintedness( $globalVar, $taintToPropagate, false );
+
 				$adjustedGlobalCausedBy = ( self::getCausedByRaw( $globalVar ) ?? CausedByLines::emptySingleton() )
 					->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i, false );
-				self::setCausedByRaw( $globalVar, $adjustedGlobalCausedBy );
-				$this->setTaintedness( $globalVar, $taintToPropagate, false );
-				$this->addTaintError( $globalVar, $taintToPropagate, null );
+				$newGlobalCausedBy = $adjustedGlobalCausedBy->withAddedLines( $newErrors, $taintToPropagate );
+				self::setCausedByRaw( $globalVar, $newGlobalCausedBy );
 			}
-			$this->mergeTaintError( $var, $error );
 		}
 	}
 

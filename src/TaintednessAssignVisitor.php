@@ -284,6 +284,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->mergeTaintDependencies( $globalVarObj, $newGlobalLinks, $overrideGlobalLinks );
 		}
 
+		$curLineCausedBy = $this->getCausedByLinesToAdd( $this->errorTaint, $this->errorLinks );
 		if ( $this->dimDepth > 0 ) {
 			$curError = self::getCausedByRaw( $variableObj ) ?? CausedByLines::emptySingleton();
 			$newError = $override
@@ -294,11 +295,13 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 			$newError = $this->rightError;
 			$overrideError = $override;
 		}
-		if ( $overrideError ) {
-			self::clearTaintError( $variableObj );
-		}
-		$this->addTaintError( $variableObj, $this->errorTaint, $this->errorLinks );
-		$this->mergeTaintError( $variableObj, $newError );
+		$curError = $overrideError
+			? CausedByLines::emptySingleton()
+			: self::getCausedByRaw( $variableObj ) ?? CausedByLines::emptySingleton();
+		$newOverallError = $curError->withAddedLines( $curLineCausedBy, $this->errorTaint, $this->errorLinks )
+			->asMergedWith( $newError );
+		self::setCausedByRaw( $variableObj, $newOverallError );
+
 		if ( $globalVarObj ) {
 			if ( $this->dimDepth > 0 ) {
 				$curGlobalError = self::getCausedByRaw( $globalVarObj );
@@ -310,11 +313,13 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				$newGlobalError = $this->rightError;
 				$overrideGlobalError = false;
 			}
-			if ( $overrideGlobalError ) {
-				self::clearTaintError( $globalVarObj );
-			}
-			$this->addTaintError( $globalVarObj, $this->errorTaint, $this->errorLinks );
-			$this->mergeTaintError( $globalVarObj, $newGlobalError );
+			$curGlobalError = $overrideGlobalError
+				? CausedByLines::emptySingleton()
+				: self::getCausedByRaw( $globalVarObj ) ?? CausedByLines::emptySingleton();
+			$newOverallGlobalError = $curGlobalError
+				->withAddedLines( $curLineCausedBy, $this->errorTaint, $this->errorLinks )
+				->asMergedWith( $newGlobalError );
+			self::setCausedByRaw( $globalVarObj, $newOverallGlobalError );
 		}
 	}
 }
