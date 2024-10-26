@@ -1,2 +1,2 @@
 integration/doubleassign/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/doubleassign/test.php +6)
-integration/doubleassign/test.php:29 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/doubleassign/test.php +22; integration/doubleassign/test.php +17)
+integration/doubleassign/test.php:29 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/doubleassign/test.php +17; integration/doubleassign/test.php +22)

@@ -994,10 +994,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->addFuncTaint( $func, $paramTaint );
 			$newFuncTaint = self::getFuncTaint( $func );
 			assert( $newFuncTaint !== null );
-			$this->maybeAddFuncError( $func, null, $paramTaint, $newFuncTaint, $links );
-			// Note: adding the error after setting the taintedness means that the return line comes before
-			// the other lines
+
+			$this->maybeAddFuncError( $func, null, $paramTaint->withoutPreserved(), $newFuncTaint );
 			$this->mergeFuncError( $func, $funcError, $newFuncTaint );
+			$this->maybeAddFuncError( $func, null, $paramTaint->asOnlyPreserved(), $newFuncTaint, $links );
 		} else {
 			$this->addFuncTaint( $func, $paramTaint );
 		}

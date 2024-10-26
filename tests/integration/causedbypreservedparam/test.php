@@ -15,7 +15,7 @@ function appendUnsafeToParam( $x ) {
 	return $y;
 }
 $taintedArg2 = $_GET['a'];
-echo appendUnsafeToParam( $taintedArg2 ); // Lines 13, 14, 15, 17
+echo appendUnsafeToParam( $taintedArg2 ); // Lines 15, 14 (overall), 17, 13, 15 (argument)
 $safeArg = 'safe';
 echo appendUnsafeToParam( $safeArg ); // Lines 14, 15
 $unsafeButNoHTMLArg = htmlspecialchars( $_GET['a'] );

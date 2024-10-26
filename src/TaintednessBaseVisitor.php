@@ -1292,7 +1292,7 @@ trait TaintednessBaseVisitor {
 			return;
 		}
 		$varError = self::getCausedByRaw( $var );
-		$varError = $varError ? $varError->withOnlyLinks()->asReversed() : CausedByLines::emptySingleton();
+		$varError = $varError ? $varError->withOnlyLinks() : CausedByLines::emptySingleton();
 		$sinkError ??= CausedByLines::emptySingleton();
 
 		$methodParamTuples = $varLinks->getMethodAndParamTuples();
@@ -1935,7 +1935,15 @@ trait TaintednessBaseVisitor {
 
 		$hardcodedPreservedTaint = $this->getHardcodedPreservedTaintForFunc( $func, $preserveArgumentsData );
 		if ( $hardcodedPreservedTaint ) {
-			return $hardcodedPreservedTaint;
+			$callLinks = $hardcodedPreservedTaint->getMethodLinks();
+			$callLineCausedBy = $this->getCausedByLinesToAdd( Taintedness::safeSingleton(), $callLinks );
+			$callError = $hardcodedPreservedTaint->getError()
+				->withAddedLines( $callLineCausedBy, Taintedness::safeSingleton(), $callLinks );
+			return new TaintednessWithError(
+				$hardcodedPreservedTaint->getTaintedness(),
+				$callError,
+				$callLinks
+			);
 		}
 		$overallTaint = $taint->getOverall();
 		$combinedArgTaint = Taintedness::safeSingleton();
@@ -1955,7 +1963,9 @@ trait TaintednessBaseVisitor {
 				$curArgLinks = MethodLinks::emptySingleton();
 				$relevantParamError = $funcError->getParamPreservedLines( $i )
 					->asPreservedForParameter( $curArgTaintedness, $curArgLinks, $func, $i );
+				$callLineCausedBy = $this->getCausedByLinesToAdd( Taintedness::safeSingleton(), $curArgLinks );
 				$curArgError = $baseArgError->asPreservedForArgument( $parTaint )
+					->withAddedLines( $callLineCausedBy, Taintedness::safeSingleton(), $curArgLinks )
 					->asMergedWith( $relevantParamError );
 			} elseif (
 				$overallTaint->has( SecurityCheckPlugin::PRESERVE_TAINT | SecurityCheckPlugin::UNKNOWN_TAINT )
@@ -1966,7 +1976,10 @@ trait TaintednessBaseVisitor {
 				$curArgLinks = MethodLinks::emptySingleton();
 				$relevantParamError = $funcError->getParamPreservedLines( $i )
 					->asPreservedForParameter( $curArgTaintedness, $curArgLinks, $func, $i );
-				$curArgError = $baseArgError->asAllCollapsed()->asMergedWith( $relevantParamError );
+				$callLineCausedBy = $this->getCausedByLinesToAdd( Taintedness::safeSingleton(), $curArgLinks );
+				$curArgError = $baseArgError->asAllCollapsed()
+					->withAddedLines( $callLineCausedBy, Taintedness::safeSingleton(), $curArgLinks )
+					->asMergedWith( $relevantParamError );
 			} else {
 				// This parameter has no taint info. And overall this function doesn't depend on param
 				// for taint and isn't unknown. So we consider this argument untainted.

@@ -301,22 +301,6 @@ class Taintedness {
 		return $ret;
 	}
 
-	public function withoutShape( self $other ): self {
-		$ret = clone $this;
-
-		$ret->flags &= ~$other->flags;
-		foreach ( $other->dimTaint as $key => $val ) {
-			if ( isset( $ret->dimTaint[$key] ) ) {
-				$ret->dimTaint[$key] = $ret->dimTaint[$key]->withoutShape( $val );
-			}
-		}
-		if ( $other->unknownDimsTaint && $ret->unknownDimsTaint ) {
-			$ret->unknownDimsTaint = $ret->unknownDimsTaint->withoutShape( $other->unknownDimsTaint );
-		}
-		$ret->keysTaint &= ~$other->keysTaint;
-		return $ret;
-	}
-
 	// Offsets taintedness
 
 	/**

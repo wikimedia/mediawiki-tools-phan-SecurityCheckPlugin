@@ -314,6 +314,20 @@ class FunctionTaintedness {
 		return $ret;
 	}
 
+	public function withoutPreserved(): self {
+		$ret = clone $this;
+		$ret->paramPreserveTaints = [];
+		$ret->variadicParamPreserveTaint = null;
+		return $ret;
+	}
+
+	public function asOnlyPreserved(): self {
+		$ret = new self( Taintedness::safeSingleton() );
+		$ret->paramPreserveTaints = $this->paramPreserveTaints;
+		$ret->variadicParamPreserveTaint = $this->variadicParamPreserveTaint;
+		return $ret;
+	}
+
 	/**
 	 * @codeCoverageIgnore
 	 */

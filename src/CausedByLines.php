@@ -99,26 +99,33 @@ class CausedByLines {
 			return $this->asMergedWith( $rightLines );
 		}
 
-		$ret = clone $this;
+		if ( !$rightLines->lines ) {
+			return $this->withAddedLines( $lines, $taintedness, $links );
+		}
 
-		foreach ( $lines as $line ) {
-			if ( count( $ret->lines ) >= self::LINES_HARD_LIMIT ) {
-				break;
-			}
-			$remainingTaint = $taintedness;
-			$remainingLinks = $links ?: MethodLinks::emptySingleton();
-			foreach ( $ret->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
-				if ( $lineLine === $line ) {
-					$remainingTaint = $remainingTaint->withoutShape( $lineTaint );
-					$remainingLinks = $lineLinks ? $remainingLinks->withoutShape( $lineLinks ) : $remainingLinks;
+		$ret = $this->withAddedLines( $lines, $taintedness )
+			->asMergedWith( $rightLines );
+
+		if ( $links ) {
+			$ret = clone $ret;
+			foreach ( $lines as $line ) {
+				if ( count( $ret->lines ) >= self::LINES_HARD_LIMIT ) {
+					break;
 				}
-			}
-			if ( !$remainingTaint->isSafe() || !$remainingLinks->isEmpty() ) {
-				$ret->lines[] = [ $remainingTaint, $line, $remainingLinks ];
+
+				$remainingLinks = $links;
+				foreach ( $ret->lines as [ $_, $lineLine, $lineLinks ] ) {
+					if ( $lineLine === $line ) {
+						$remainingLinks = $lineLinks ? $remainingLinks->withoutShape( $lineLinks ) : $remainingLinks;
+					}
+				}
+				if ( !$remainingLinks->isEmpty() ) {
+					$ret->lines[] = [ Taintedness::safeSingleton(), $line, $remainingLinks ];
+				}
 			}
 		}
 
-		return $ret->asMergedWith( $rightLines );
+		return $ret;
 	}
 
 	/**
@@ -403,12 +410,6 @@ class CausedByLines {
 				$ret->lines[] = [ $safeTaint, $lineLine, $lineLinks ];
 			}
 		}
-		return $ret;
-	}
-
-	public function asReversed(): self {
-		$ret = new self();
-		$ret->lines = array_reverse( $this->lines );
 		return $ret;
 	}
 

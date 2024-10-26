@@ -55,7 +55,7 @@ function concatArgAndEvilSameLine( string $x ) {
 	return $r;
 }
 echo concatArgAndEvilSameLine( 's' ); // Lines 54, 55
-echo concatArgAndEvilSameLine( $_GET['y'] ); // Lines 54, 55
+echo concatArgAndEvilSameLine( $_GET['y'] ); // Lines 54, 55; they might be repeated due to having both overall and param taint.
 
 
 function returnEscapedParam( $par ) {
