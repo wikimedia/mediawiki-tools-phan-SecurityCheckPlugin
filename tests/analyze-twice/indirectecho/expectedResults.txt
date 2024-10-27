@@ -1,2 +1,2 @@
-integration/indirectecho/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/indirectecho/test.php +7; integration/indirectecho/test2.php +5)
+integration/indirectecho/test.php:11 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/indirectecho/test2.php +5; integration/indirectecho/test.php +7)
 integration/indirectecho/test2.php:5 SecurityCheck-XSS Calling method \Foo::appendHold() in [no method] that outputs using tainted argument #1 (`$_POST['foo']`). (Caused by: integration/indirectecho/test.php +7; integration/indirectecho/test.php +11)

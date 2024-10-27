@@ -11,9 +11,9 @@ class CausedByDifferentParams {
 
 	function sinkTwoParams( $x, $y ) {
 		$this->prop = $x;
-		echo $this->prop; // Caused by 13, 21, and possibly 15 and 22
+		echo $this->prop; // TODO: Caused by 13, 21, and possibly 15 and 22
 		$this->prop = $y;
-		echo $this->prop; // Caused by 15, 22, and possibly 13 and 21
+		echo $this->prop; // TODO: Caused by 15, 22, and possibly 13 and 21
 	}
 }
 

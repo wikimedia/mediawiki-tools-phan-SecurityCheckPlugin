@@ -124,7 +124,7 @@ class TestSafeSafe {
 	public $propSafeSafe;
 
 	public function testSafe() {
-		echoSafe( $this->propSafeSafe ); // TODO Safe
+		echoSafe( $this->propSafeSafe ); // Unsafe
 	}
 	public function __construct( $arg ) {
 		$this->propSafeSafe = [ 'safe' => $arg, 'unsafe' => $_GET['a'] ];

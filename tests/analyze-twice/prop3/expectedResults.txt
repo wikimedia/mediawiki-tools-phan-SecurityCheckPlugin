@@ -1,4 +1,4 @@
 integration/prop3/test.php:20 SecurityCheck-XSS Calling method \Foo::setMyProp() in [no method] that outputs using tainted argument #1 (`$_GET['do']`). (Caused by: integration/prop3/test.php +11; integration/prop3/test.php +21)
-integration/prop3/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/prop3/test.php +15; integration/prop3/test.php +11; integration/prop3/test.php +20)
-integration/prop3/test.php:41 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/prop3/test.php +33; integration/prop3/test.php +29; integration/prop3/test.php +43)
+integration/prop3/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/prop3/test.php +15; integration/prop3/test.php +20; integration/prop3/test.php +11)
+integration/prop3/test.php:41 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/prop3/test.php +33; integration/prop3/test.php +43; integration/prop3/test.php +29)
 integration/prop3/test.php:43 SecurityCheck-XSS Calling method \Foo2::setMyProp() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: integration/prop3/test.php +29; integration/prop3/test.php +41)

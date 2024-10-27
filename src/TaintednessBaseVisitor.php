@@ -1433,7 +1433,7 @@ trait TaintednessBaseVisitor {
 			$newErrors = $this->getCausedByLinesToAdd( $taintToPropagate, null );
 			$adjustedCausedBy = ( self::getCausedByRaw( $var ) ?? CausedByLines::emptySingleton() )
 				->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i, false );
-			$newCausedBy = $adjustedCausedBy->withAddedLines( $newErrors, $taintToPropagate )->asMergedWith( $error );
+			$newCausedBy = $error->withAddedLines( $newErrors, $taintToPropagate )->asMergedWith( $adjustedCausedBy );
 			self::setCausedByRaw( $var, $newCausedBy );
 
 			if ( $var instanceof GlobalVariable ) {
@@ -1442,7 +1442,8 @@ trait TaintednessBaseVisitor {
 
 				$adjustedGlobalCausedBy = ( self::getCausedByRaw( $globalVar ) ?? CausedByLines::emptySingleton() )
 					->withTaintAddedToMethodArgLinks( $taintToPropagate, $method, $i, false );
-				$newGlobalCausedBy = $adjustedGlobalCausedBy->withAddedLines( $newErrors, $taintToPropagate );
+				$newGlobalCausedBy = $error->withAddedLines( $newErrors, $taintToPropagate )
+					->asMergedWith( $adjustedGlobalCausedBy );
 				self::setCausedByRaw( $globalVar, $newGlobalCausedBy );
 			}
 		}
