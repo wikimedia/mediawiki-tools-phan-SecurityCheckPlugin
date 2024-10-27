@@ -168,16 +168,17 @@ class ParamLinksOffsets {
 		} else {
 			$ret = Taintedness::safeSingleton();
 		}
+
 		foreach ( $this->dims as $k => $val ) {
 			$ret = $ret->withAddedOffsetTaintedness(
 				$k,
-				$val->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( $k ) )
+				$val->appliedToTaintednessForBackprop( $taintedness->getTaintednessForOffsetOrWhole( $k ) )
 			);
 		}
 		if ( $this->unknown ) {
 			$ret = $ret->withAddedOffsetTaintedness(
 				null,
-				$this->unknown->appliedToTaintedness( $taintedness->getTaintednessForOffsetOrWhole( null ) )
+				$this->unknown->appliedToTaintednessForBackprop( $taintedness->getTaintednessForOffsetOrWhole( null ) )
 			);
 		}
 		$ret = $ret->withAddedKeysTaintedness( $taintedness->asKeyForForeach()->withOnly( $this->keysFlags )->get() );

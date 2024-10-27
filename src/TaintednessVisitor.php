@@ -636,7 +636,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$sinkTaint,
 			$rhsTaint,
 			"$issueMsg{DETAILS}",
-			[ $exprTaint->getError() ]
+			[ [ 'lines' => $exprTaint->getError(), 'sink' => false ] ]
 		);
 
 		if ( $expr instanceof Node && !$rhsTaint->has( Taintedness::flagsAsExecToYesTaint( $sinkTaintInt ) ) ) {

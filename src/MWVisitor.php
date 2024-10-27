@@ -1147,7 +1147,7 @@ class MWVisitor extends TaintednessVisitor {
 				$htmlExecTaint,
 				$optTaint->getTaintedness()->asKeyForForeach(),
 				'HTMLForm option label needs escaping{DETAILS}',
-				[ $optTaint->getError() ]
+				[ [ 'lines' => $optTaint->getError(), 'sink' => false ] ]
 			);
 		}
 	}

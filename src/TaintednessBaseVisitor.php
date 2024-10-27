@@ -1674,7 +1674,7 @@ trait TaintednessBaseVisitor {
 			$lhsTaint,
 			$rhsTaint->getTaintedness(),
 			$msg . '{DETAILS}',
-			array_merge( $params, [ $rhsTaint->getError() ] )
+			array_merge( $params, [ [ 'lines' => $rhsTaint->getError(), 'sink' => false ] ] )
 		);
 	}
 
@@ -1744,13 +1744,21 @@ trait TaintednessBaseVisitor {
 		// Phan doesn't analyze the ternary correctly and thinks this might also be a closure.
 		'@phan-var list $msgParams';
 
-		/** @var Taintedness $relevantTaint */
-		foreach ( $issues as [ $issueType, $severity, $relevantTaint ] ) {
+		/** @var Taintedness $relevantSinkTaint */
+		foreach ( $issues as [ $issueType, $severity, $relevantSinkTaint ] ) {
+			$relevantRHSTaint = $rhsTaint->withOnly( $relevantSinkTaint->asExecToYesTaint()->get() );
 			$curMsgParams = [];
 			foreach ( $msgParams as $i => $par ) {
-				$curMsgParams[$i] = $par instanceof CausedByLines
-					? $par->toStringForIssue( $relevantTaint )
-					: $par;
+				if ( is_array( $par ) ) {
+					assert( isset( $par['lines'] ) && $par['lines'] instanceof CausedByLines );
+					$curMsgParams[$i] = $par['lines']->toStringForIssue(
+						$relevantSinkTaint,
+						$relevantRHSTaint,
+						$par['sink']
+					);
+				} else {
+					$curMsgParams[$i] = $par;
+				}
 			}
 			SecurityCheckPlugin::emitIssue(
 				$this->code_base,
@@ -1928,8 +1936,8 @@ trait TaintednessBaseVisitor {
 					$funcName,
 					$this->getCurrentMethod(),
 					$taintedArg,
-					$paramSinkError,
-					$baseArgError,
+					[ 'lines' => $paramSinkError, 'sink' => true ],
+					[ 'lines' => $baseArgError, 'sink' => false ],
 				];
 			};
 

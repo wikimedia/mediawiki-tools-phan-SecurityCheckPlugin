@@ -506,11 +506,13 @@ class CausedByLines {
 	 *   doing so would make phan emit a new issue for the same line whenever new caused-by
 	 *   lines are added to the array.
 	 *
-	 * @param Taintedness $taint Must have EXEC flags only.
+	 * @param Taintedness $sinkTaint Must have EXEC flags only.
+	 * @param Taintedness $exprTaint Must have normal flags only.
+	 * @param bool $isSinkError Whether this object refers to a sink (and not the expr)
 	 * @return string
 	 */
-	public function toStringForIssue( Taintedness $taint ): string {
-		$filteredLines = $this->getRelevantLinesForTaintedness( $taint );
+	public function toStringForIssue( Taintedness $sinkTaint, Taintedness $exprTaint, bool $isSinkError ): string {
+		$filteredLines = $this->getRelevantLinesForTaintedness( $sinkTaint, $exprTaint, $isSinkError );
 		if ( !$filteredLines ) {
 			return '';
 		}
@@ -524,13 +526,21 @@ class CausedByLines {
 	}
 
 	/**
-	 * @param Taintedness $taintedness With EXEC flags only.
+	 * @param Taintedness $sinkTaint With EXEC flags only.
+	 * @param Taintedness $exprTaint With normal flags only.
+	 * @param bool $isSinkError
 	 * @return string[]
 	 */
-	private function getRelevantLinesForTaintedness( Taintedness $taintedness ): array {
+	private function getRelevantLinesForTaintedness(
+		Taintedness $sinkTaint,
+		Taintedness $exprTaint,
+		bool $isSinkError
+	): array {
 		$ret = [];
 		foreach ( $this->lines as [ $lineTaint, $lineText ] ) {
-			$intersection = Taintedness::intersectForSink( $taintedness, $lineTaint );
+			$intersection = $isSinkError
+				? Taintedness::intersectForSink( $lineTaint->asYesToExecTaint(), $exprTaint )
+				: Taintedness::intersectForSink( $sinkTaint, $lineTaint );
 			if ( !$intersection->isSafe() ) {
 				$ret[] = $lineText;
 			}
