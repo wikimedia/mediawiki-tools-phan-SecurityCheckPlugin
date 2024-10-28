@@ -8,14 +8,14 @@ function taintArg( &$arg2 ) { // Note: `taint` is the name of an internal PHP fu
 }
 function taintEchoAndEscape( &$arg3 ) {
 	taintArg( $arg3 );
-	echo $arg3; // Unsafe caused by lines 10 and 7 (TODO: in this order!), because $arg3 can be seen as a local var
+	echo $arg3; // Unsafe caused by lines 10 and 7 (in this order), because $arg3 can be seen as a local var
 	escapeArg( $arg3 );
 }
 function maybeTaintEchoAndEscape( &$arg3 ) {
 	if ( rand() ) {
 		taintArg( $arg3 );
 	}
-	echo $arg3; // Unsafe caused by lines 16 and 7 (TODO: in this order!), because $arg3 can be seen as a local var
+	echo $arg3; // Unsafe caused by lines 16 and 7 (in this order), because $arg3 can be seen as a local var
 	escapeArg( $arg3 );
 }
 function escapeEchoAndTaint( &$arg4 ) {
@@ -56,25 +56,25 @@ function test4() {
 }
 
 function test5() {
-	$var5 = $_GET['unsafe']; // TODO This must not be in caused-by
+	$var5 = $_GET['unsafe']; // This must NOT be in caused-by
 	escapeEchoAndTaint( $var5 ); // Safe
-	echo $var5; // Unsafe, caused by lines 60, 24 and 7 (TODO: in this order!)
+	echo $var5; // Unsafe, caused by lines 60, 24 and 7 (in this order)
 }
 
 function test6() {
 	$var6 = 'x';
 	escapeEchoAndTaint( $var6 );
-	echo $var6; // Unsafe, caused by lines 66, 24 and 7 (TODO: in this order!)
+	echo $var6; // Unsafe, caused by lines 66, 24 and 7 (in this order)
 }
 
 function test7() {
-	$var7 = $_GET['unsafe'];
+	$var7 = $_GET['unsafe']; // This must NOT be in caused-by (the function always overwrites the previous value)
 	maybeEscapeEchoAndTaint( $var7 ); // Unsafe, caused by lines 71 and 30
-	echo $var7; // Unsafe, caused by lines 72, 31 and 7 (TODO: in this order!), and (TODO) NOT line 71
+	echo $var7; // Unsafe, caused by lines 72, 31 and 7 (in this order), and NOT line 71
 }
 
 function test8() {
 	$var8 = 'x';
 	maybeEscapeEchoAndTaint( $var8 ); // Safe
-	echo $var8; // Unsafe, caused by lines 78, 31 and 7 (TODO: in this order!)
+	echo $var8; // Unsafe, caused by lines 78, 31 and 7 (in this order)
 }

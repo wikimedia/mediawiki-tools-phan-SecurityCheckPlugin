@@ -1,2 +1,2 @@
-integration/hook-order2/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hook-order2/test.php +12; integration/hook-order2/test.php +21; integration/hook-order2/test.php +10)
-integration/hook-order2/test.php:14 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$output`). (Caused by: integration/hook-order2/test.php +18; integration/hook-order2/test.php +12)
+integration/hook-order2/test.php:13 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hook-order2/test.php +10; integration/hook-order2/test.php +12; integration/hook-order2/test.php +21)
+integration/hook-order2/test.php:14 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$output`). (Caused by: integration/hook-order2/test.php +12; integration/hook-order2/test.php +18)

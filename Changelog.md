@@ -8,6 +8,7 @@
 
 ### Bug fixes
 * Fixed a host of bugs affecting backpropagation of taintedness, resulting in anything between false positives, false negatives, inaccurate error reporting, and OOM.
+* Made error reporting more accurate for arguments passed by reference.
 
 ### Internal changes
 * Bumped phan/phan to 5.4.5

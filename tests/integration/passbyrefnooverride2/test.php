@@ -41,7 +41,7 @@ echo $safe2; // Unsafe
 
 $unsafe2 = $_GET['y'];
 alwaysTaint( $unsafe2 );
-echo $unsafe2; // Unsafe TODO: Should NOT have line 42 in the caused-by
+echo $unsafe2; // Unsafe, must NOT have line 42 in the caused-by
 
 $unsafe3 = $_GET['foo'];
 maybeEscape( $unsafe3 );

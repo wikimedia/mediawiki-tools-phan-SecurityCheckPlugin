@@ -13,4 +13,4 @@ function outerFunc( &$ref ) {
 
 $globVar = 'safe';
 outerFunc( $globVar );
-echo $globVar;
+echo $globVar; // TODO: Should have line 9 in the caused-by

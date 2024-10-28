@@ -22,7 +22,6 @@ use Phan\Language\Context;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\GlobalVariable;
 use Phan\Language\Element\Method;
-use Phan\Language\Element\PassByReferenceVariable;
 use Phan\Language\Element\Property;
 use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\Variable;
@@ -1246,20 +1245,13 @@ trait TaintednessBaseVisitor {
 		// on them in markAllDependentVarsYes would have no effect. Additionally, since phan creates a new
 		// Parameter object for each analysis, we will end up with duplicated links that do nothing but
 		// eating memory.
-		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable || $lhs instanceof PassByReferenceVariable ) {
-			$elForVarLinks = $lhs;
-			while ( $elForVarLinks instanceof PassByReferenceVariable ) {
-				// Unwrap pass-by-refs now, so that we don't attach links twice for the same variable (phan clones
-				// PassByReferenceVariable objects when analyzing methods, but the underlying element remains the same).
-				// TODO This should become unnecessary once the TODO in handleMethodCall about postponing
-				// handlePassByRef is resolved.
-				$elForVarLinks = $elForVarLinks->getElement();
-			}
+		// Also unnecessary to attach PassByReferenceVariable, as that receives special handling in handlePassByRef.
+		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable ) {
 			foreach ( $newLinks->getMethodAndParamTuples() as [ $method, $index ] ) {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof VarLinksSet );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				$varLinks->attach( $elForVarLinks, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
+				$varLinks->attach( $lhs, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
 			}
 		}
 
@@ -1916,10 +1908,6 @@ trait TaintednessBaseVisitor {
 			$param = $func->getParameterForCaller( $i );
 			// @todo Internal funcs that pass by reference. Should we assume that their variables are tainted? Most
 			// common example is probably preg_match, which may very well be tainted much of the time.
-			// TODO: Ideally this should happen after all args have been processed, so it would account for any
-			// last-minute modification of the dependent elements (e.g. markAllDependentVarsYes) and would see the
-			// "final" value for refTaint. Right now this is not possible because links tracked by
-			// markAllDependentVarsYes are imprecise and would introduce false positives.
 			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
 				$this->handlePassByRef( $func, $argument, $args, $i, $isHookHandler );
 			}
@@ -2181,8 +2169,8 @@ trait TaintednessBaseVisitor {
 	 * entry for the line of the function call.
 	 * Hence, instead of adding taintedness to the underlying argument, we put it in a separate prop, which is only
 	 * written but never read inside the function body. Then after the call was analyzed, this method moves
-	 * the taintedness from the "special" prop onto the normal taintedness prop. We do the same thing for links,
-	 * so as to infer which taintedness from the argument is preserved by the function.
+	 * the taintedness from the "special" prop onto the normal taintedness prop. We do the same thing for links
+	 * (so as to infer which taintedness from the argument is preserved by the function) and caused-by lines.
 	 * TODO In the future we might want to really copy phan's approach, as that would allow us to delete some hacks,
 	 *   and handle conditionals inside the function body more accurately.
 	 *
@@ -2216,11 +2204,13 @@ trait TaintednessBaseVisitor {
 		// Note: We assume that the order in which hook handlers are called is nondeterministic, thus
 		// we never override arg taint for reference params in this case.
 		$overrideTaint = !( $argObj instanceof Property || $globalVarObj || $isHookHandler );
-		// Note, the call itself is only responsible if it adds some taintedness
-		$errTaint = $refTaint;
+		$newTaint = $refTaint;
 		$refLinks = self::getMethodLinksRef( $argObj );
+		$refError = self::getCausedByRef( $argObj ) ?? CausedByLines::emptySingleton();
+		$addedError = CausedByLines::emptySingleton();
+
+		// Merge any taintedness from links, indicating that (part of) the original argument "survived" the call.
 		if ( $refLinks ) {
-			// Merge any taintedness from links, indicating that (part of) the original argument "survived" the call.
 			$linkedParameters = array_column(
 				array_filter(
 					$refLinks->getMethodAndParamTuples(),
@@ -2229,24 +2219,53 @@ trait TaintednessBaseVisitor {
 				),
 				1
 			);
-			foreach ( $linkedParameters as $paramIdx ) {
-				if ( !isset( $arguments[$paramIdx] ) || !$arguments[$paramIdx] instanceof Node ) {
-					// Optional parameter not passed here, or untainted literal.
-					continue;
-				}
-				$argTaintFull = $this->getTaintedness( $arguments[$paramIdx] );
-				$argTaint = $argTaintFull->getTaintedness();
-				$preservedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $paramIdx )
-					->asTaintednessForArgument( $argTaint );
-				$refTaint = $preservedTaint->asMergedWith( $refTaint );
-			}
+		} else {
+			$linkedParameters = [];
 		}
 
-		$this->setTaintedness( $argObj, $refTaint, $overrideTaint );
-		$this->addTaintError( $argObj, $errTaint, null );
+		if ( in_array( $refArgIndex, $linkedParameters, true ) ) {
+			// Special handling for the original by-ref variable: process it first for proper caused-by ordering.
+			$linkedParameters = array_diff( $linkedParameters, [ $refArgIndex ] );
+			array_unshift( $linkedParameters, $refArgIndex );
+		} else {
+			$addedError = $addedError->withAddedLines( $this->getCausedByLinesToAdd( $refTaint, null ), $refTaint );
+		}
+
+		foreach ( $linkedParameters as $paramIdx ) {
+			if ( !isset( $arguments[$paramIdx] ) || !$arguments[$paramIdx] instanceof Node ) {
+				// Optional parameter not passed here, or untainted literal.
+				continue;
+			}
+			assert( $refLinks !== null );
+			$argTaintFull = $this->getTaintedness( $arguments[$paramIdx] );
+			$argTaint = $argTaintFull->getTaintedness();
+			$argError = $argTaintFull->getError();
+
+			$preservedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $paramIdx )
+				->asTaintednessForArgument( $argTaint );
+			$newTaint = $preservedTaint->asMergedWith( $newTaint );
+			$curLineErrorTaint = $paramIdx === $refArgIndex ? $refTaint : $preservedTaint;
+			$curCallLine = $this->getCausedByLinesToAdd( $curLineErrorTaint, null );
+			$curAddedError = $argError->withAddedLines( $curCallLine, $curLineErrorTaint )
+				->asMergedWith( $refError )
+				->asPreservedForParameter( $argTaint, $refLinks, $func, $paramIdx );
+			$addedError = $addedError->asMergedWith( $curAddedError );
+		}
+
+		$newAddedError = $addedError->asMergedWith( $refError );
+		if ( $overrideTaint ) {
+			$newError = $newAddedError;
+		} else {
+			$prevError = self::getCausedByRaw( $argObj ) ?? CausedByLines::emptySingleton();
+			$newError = $prevError->asMergedWith( $newAddedError );
+		}
+
+		$this->setTaintedness( $argObj, $newTaint, $overrideTaint );
+		self::setCausedByRaw( $argObj, $newError );
 		if ( $globalVarObj ) {
-			$this->setTaintedness( $globalVarObj, $refTaint, false );
-			$this->addTaintError( $globalVarObj, $errTaint, null );
+			$this->setTaintedness( $globalVarObj, $newTaint, false );
+			$curGlobalError = self::getCausedByRaw( $globalVarObj ) ?? CausedByLines::emptySingleton();
+			self::setCausedByRaw( $globalVarObj, $curGlobalError->asMergedWith( $newError ) );
 		}
 		// We clear method links since the by-ref call might have modified them, and precise tracking is not
 		// trivial to implement, and most probably not worth the effort.

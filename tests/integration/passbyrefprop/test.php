@@ -14,5 +14,5 @@ class MyClass {
 $obj = new MyClass();
 $obj->setAndPrint( MyClass::$staticProp, $_GET['baz'] );
 $obj->setAndPrint( $obj->prop, $_GET['baz'] );
-echo MyClass::$staticProp;
-echo $obj->prop;
+echo MyClass::$staticProp; // XSS caused by 15, 9 in this order (and NOT 16)
+echo $obj->prop; // XSS caused by 16, 9 in this order (and NOT 15)

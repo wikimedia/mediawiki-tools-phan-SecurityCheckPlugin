@@ -1,0 +1,2 @@
+integration/passbyref-globalcausedby/test.php:15 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyref-globalcausedby/test.php +13; integration/passbyref-globalcausedby/test.php +14; integration/passbyref-globalcausedby/test.php +7)
+integration/passbyref-globalcausedby/test.php:21 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/passbyref-globalcausedby/test.php +19; integration/passbyref-globalcausedby/test.php +20; integration/passbyref-globalcausedby/test.php +7)

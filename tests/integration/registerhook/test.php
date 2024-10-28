@@ -27,7 +27,7 @@ $output = '';
 $out2 = '';
 Hooks::run( 'Something', [ $tainted, &$output, &$out2 ] );
 echo $out2;
-echo $output;
+echo $output; // XSS caused by 25, 28, 44 (in this order)
 
 function wfSomeGlobal( $arg1, &$arg2, $extraArg = '' ) {
 }

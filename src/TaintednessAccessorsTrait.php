@@ -41,6 +41,14 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
+	 * @param TypedElementInterface $element
+	 * @return CausedByLines|null
+	 */
+	protected static function getCausedByRef( TypedElementInterface $element ): ?CausedByLines {
+		return $element->taintedOriginalErrorRef ?? null;
+	}
+
+	/**
 	 * @param FunctionInterface $func
 	 * @return FunctionCausedByLines|null
 	 */
@@ -55,10 +63,16 @@ trait TaintednessAccessorsTrait {
 	protected static function setCausedByRaw( TypedElementInterface $element, CausedByLines $lines ): void {
 		$element->taintedOriginalError = $lines;
 		if ( $element instanceof PassByReferenceVariable ) {
-			$curCausedBy = self::getCausedByRaw( $element->getElement() );
-			$newCausedBy = $curCausedBy ? $curCausedBy->asMergedWith( $lines ) : $lines;
-			self::setCausedByRaw( $element->getElement(), $newCausedBy );
+			self::setCausedByRef( $element->getElement(), $lines );
 		}
+	}
+
+	/**
+	 * @param TypedElementInterface $element
+	 * @param CausedByLines $lines
+	 */
+	protected static function setCausedByRef( TypedElementInterface $element, CausedByLines $lines ): void {
+		$element->taintedOriginalErrorRef = $lines;
 	}
 
 	/**
@@ -134,7 +148,7 @@ trait TaintednessAccessorsTrait {
 	 * @param TypedElementInterface $element
 	 */
 	protected static function clearRefData( TypedElementInterface $element ): void {
-		unset( $element->taintednessRef, $element->taintedMethodLinksRef );
+		unset( $element->taintednessRef, $element->taintedMethodLinksRef, $element->taintedOriginalErrorRef );
 	}
 
 	/**
