@@ -1928,7 +1928,7 @@ trait TaintednessBaseVisitor {
 			// "final" value for refTaint. Right now this is not possible because links tracked by
 			// markAllDependentVarsYes are imprecise and would introduce false positives.
 			if ( $param && $param->isPassByReference() && !$func->isPHPInternal() ) {
-				$this->handlePassByRef( $func, $argument, $i, $isHookHandler );
+				$this->handlePassByRef( $func, $argument, $args, $i, $isHookHandler );
 			}
 
 			/** @phan-return list */
@@ -2194,15 +2194,17 @@ trait TaintednessBaseVisitor {
 	 *   and handle conditionals inside the function body more accurately.
 	 *
 	 * @param FunctionInterface $func
-	 * @param Node $argument
-	 * @param int $i Position of the param
+	 * @param Node $argument The argument being passed by-ref
+	 * @param array<Node|mixed> $arguments The full list of arguments for this function call
+	 * @param int $refArgIndex @phan-unused-param
 	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
 	 *   FIXME This is MW-specific
 	 */
 	private function handlePassByRef(
 		FunctionInterface $func,
 		Node $argument,
-		int $i,
+		array $arguments,
+		int $refArgIndex,
 		bool $isHookHandler
 	): void {
 		$argObj = $this->getPassByRefObjFromNode( $argument );
@@ -2224,10 +2226,27 @@ trait TaintednessBaseVisitor {
 		// Note, the call itself is only responsible if it adds some taintedness
 		$errTaint = $refTaint;
 		$refLinks = self::getMethodLinksRef( $argObj );
-		if ( $refLinks && $refLinks->hasDataForFuncAndParam( $func, $i ) ) {
-			$addedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $i )
-				->asTaintednessForArgument( $this->getTaintednessPhanObj( $argObj ) );
-			$refTaint = $refTaint->asMergedWith( $addedTaint );
+		if ( $refLinks ) {
+			// Merge any taintedness from links, indicating that (part of) the original argument "survived" the call.
+			$linkedParameters = array_column(
+				array_filter(
+					$refLinks->getMethodAndParamTuples(),
+					/** @phan-param array{0:FunctionInterface,1:int} $tuple */
+					static fn ( array $tuple ): bool => $tuple[0] === $func
+				),
+				1
+			);
+			foreach ( $linkedParameters as $paramIdx ) {
+				if ( !isset( $arguments[$paramIdx] ) || !$arguments[$paramIdx] instanceof Node ) {
+					// Optional parameter not passed here, or untainted literal.
+					continue;
+				}
+				$argTaintFull = $this->getTaintedness( $arguments[$paramIdx] );
+				$argTaint = $argTaintFull->getTaintedness();
+				$preservedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $paramIdx )
+					->asTaintednessForArgument( $argTaint );
+				$refTaint = $preservedTaint->asMergedWith( $refTaint );
+			}
 		}
 
 		$this->setTaintedness( $argObj, $refTaint, $overrideTaint );
