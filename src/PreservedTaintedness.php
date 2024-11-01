@@ -111,8 +111,9 @@ class PreservedTaintedness {
 	 * @return Taintedness
 	 */
 	public function asTaintednessForArgument( Taintedness $argTaint ): Taintedness {
-		if ( $this === self::emptySingleton() ) {
-			return Taintedness::safeSingleton();
+		$safeTaint = Taintedness::safeSingleton();
+		if ( $argTaint === $safeTaint || $this === self::emptySingleton() ) {
+			return $safeTaint;
 		}
 
 		$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
@@ -133,8 +134,9 @@ class PreservedTaintedness {
 	}
 
 	public function asTaintednessForBackpropError( Taintedness $sinkTaint ): Taintedness {
-		if ( $this === self::emptySingleton() ) {
-			return Taintedness::safeSingleton();
+		$safeTaint = Taintedness::safeSingleton();
+		if ( $sinkTaint === $safeTaint || $this === self::emptySingleton() ) {
+			return $safeTaint;
 		}
 
 		$ret = $this->ownOffsets->appliedToTaintednessForBackprop( $sinkTaint );
@@ -156,8 +158,9 @@ class PreservedTaintedness {
 	}
 
 	public function asTaintednessForVarBackpropError( Taintedness $newTaint ): Taintedness {
-		if ( $this === self::emptySingleton() ) {
-			return Taintedness::safeSingleton();
+		$safeTaint = Taintedness::safeSingleton();
+		if ( $newTaint === $safeTaint || $this === self::emptySingleton() ) {
+			return $safeTaint;
 		}
 
 		$ret = $this->ownOffsets->appliedToTaintednessForBackprop( $newTaint );

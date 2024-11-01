@@ -38,6 +38,10 @@ class CausedByLines {
 		if ( $links && $links->isEmpty() ) {
 			$links = null;
 		}
+		if ( !$links && $taintedness->isSafe() ) {
+			return $this;
+		}
+
 		$ret = new self();
 
 		if ( !$this->lines ) {
@@ -126,6 +130,7 @@ class CausedByLines {
 	/**
 	 * @param Taintedness $taintedness
 	 * @return self
+	 * @todo Migrate callers to asPreservedForArgument and drop this.
 	 */
 	public function asIntersectedWithTaintedness( Taintedness $taintedness ): self {
 		if ( !$this->lines ) {
