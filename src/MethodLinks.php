@@ -493,6 +493,28 @@ class MethodLinks {
 	}
 
 	/**
+	 * If $taintFlags are the taintedness flags of a sink, and $this are the links passed to that sink, return a
+	 * Taintedness object representing the backpropagated exec taintedness to be added to the given function parameter.
+	 */
+	public function asTaintednessForBackprop( int $taintFlags, FunctionInterface $func, int $param ): Taintedness {
+		$ret = Taintedness::safeSingleton();
+		if ( !$taintFlags ) {
+			return $ret;
+		}
+		$allLinks = $this->getLinksCollapsing();
+		if ( $allLinks->contains( $func ) ) {
+			$paramInfo = $allLinks[$func];
+			if ( $paramInfo->hasParam( $param ) ) {
+				$paramOffsets = $paramInfo->getParamOffsets( $param );
+				$taintAsYes = new Taintedness( Taintedness::flagsAsExecToYesTaint( $taintFlags ) );
+				$ret = $paramOffsets->appliedToTaintednessForBackprop( $taintAsYes )->asYesToExecTaint();
+			}
+		}
+
+		return $ret;
+	}
+
+	/**
 	 * @param FunctionInterface $func
 	 * @param int $param
 	 * @return self

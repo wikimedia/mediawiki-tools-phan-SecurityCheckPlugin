@@ -217,6 +217,20 @@ class CausedByLines {
 		return $ret;
 	}
 
+	public function forSinkBackprop( MethodLinks $links, FunctionInterface $func, int $param ): self {
+		if ( !$this->lines ) {
+			return $this;
+		}
+		$ret = new self;
+		foreach ( $this->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+			$newTaint = $lineTaint->asYesToExecTaint()->appliedToLinksForBackprop( $links, $func, $param );
+			if ( !$newTaint->isSafe() ) {
+				$ret->lines[] = [ $newTaint->asExecToYesTaint(), $lineLine, $lineLinks ];
+			}
+		}
+		return $ret;
+	}
+
 	/**
 	 * Returns a copy of $this with all taintedness and links moved at the given offset.
 	 * @param Node|mixed $offset

@@ -3,6 +3,7 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
+use Phan\Language\Element\FunctionInterface;
 
 /**
  * Value object used to store taintedness. This should always be used to manipulate taintedness values,
@@ -618,37 +619,6 @@ class Taintedness {
 	}
 
 	/**
-	 * @param ParamLinksOffsets $offsets
-	 * @return self
-	 */
-	public function asMovedAtRelevantOffsetsForBackprop( ParamLinksOffsets $offsets ): self {
-		$offsetsFlags = $offsets->getFlags();
-		$ret = $offsetsFlags ?
-			$this->withOnly( ( $offsetsFlags & SecurityCheckPlugin::ALL_TAINT ) << 1 )
-			: new self( SecurityCheckPlugin::NO_TAINT );
-		foreach ( $offsets->getDims() as $k => $val ) {
-			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $val );
-			if ( isset( $ret->dimTaint[$k] ) ) {
-				$ret->dimTaint[$k] = $ret->dimTaint[$k]->asMergedWith( $newVal );
-			} else {
-				$ret->dimTaint[$k] = $newVal;
-			}
-		}
-		$unknownOffs = $offsets->getUnknown();
-		if ( $unknownOffs ) {
-			$newVal = $this->asMovedAtRelevantOffsetsForBackprop( $unknownOffs );
-			if ( $ret->unknownDimsTaint ) {
-				$ret->unknownDimsTaint = $ret->unknownDimsTaint->asMergedWith( $newVal );
-			} else {
-				$ret->unknownDimsTaint = $newVal;
-			}
-		}
-		$ret->keysTaint |= ( $this->flags | $this->keysTaint ) &
-			( ( $offsets->getKeysFlags() & SecurityCheckPlugin::ALL_TAINT ) << 1 );
-		return $ret;
-	}
-
-	/**
 	 * Utility method to convert some flags from EXEC to YES. Note that this is not used internally
 	 * to avoid the unnecessary overhead of a function call in hot code.
 	 *
@@ -689,59 +659,30 @@ class Taintedness {
 	}
 
 	/**
-	 * Given some method links, returns a list of tuples of LinksSet, Taintedness, and CausedByLines objects, where the
-	 * values in each tuple should be backpropagated together.
-	 *
-	 * @param MethodLinks $links
-	 * @param CausedByLines $varError
-	 * @param CausedByLines $sinkError
-	 * @return array<array<LinksSet|Taintedness|CausedByLines>>
-	 * @phan-return array<array{0:LinksSet,1:Taintedness,2:CausedByLines,3:CausedByLines}> The first CausedByLines
-	 * object is for the argument error, the second is for the sink error.
+	 * If this object represents the taintedness of a sink, and $links are the method links of the expression passed
+	 * to the sink, return the exec taintedness that should be added to the given function parameter that the
+	 * expression is linked to.
 	 */
-	public function decomposeForLinks( MethodLinks $links, CausedByLines $varError, CausedByLines $sinkError ): array {
-		$tuples = [];
-
-		if ( $this->flags !== SecurityCheckPlugin::NO_TAINT ) {
-			$tuples[] = [
-				$links->getLinksCollapsing(),
-				new self( $this->flags ),
-				$varError,
-				$sinkError
-			];
-		}
-
-		if ( $this->keysTaint !== SecurityCheckPlugin::NO_TAINT ) {
-			$tuples[] = [
-				$links->asKeyForForeach()->getLinksCollapsing(),
-				$this->asKeyForForeach(),
-				$varError->asAllKeyForForeach(),
-				$sinkError->asAllKeyForForeach()
-			];
-		}
-
+	public function appliedToLinksForBackprop( MethodLinks $links, FunctionInterface $func, int $param ): self {
+		$ret = $links->asTaintednessForBackprop( $this->flags, $func, $param );
 		foreach ( $this->dimTaint as $k => $dimTaint ) {
-			$tuples = array_merge(
-				$tuples,
-				$dimTaint->decomposeForLinks(
-					$links->getForDim( $k ),
-					$varError->getForDim( $k, false ),
-					$sinkError->getForDim( $k, false )
-				)
-			);
+			$ret = $ret->asMergedWith( $dimTaint->appliedToLinksForBackprop( $links->getForDim( $k ), $func, $param ) );
 		}
-
 		if ( $this->unknownDimsTaint ) {
-			$tuples = array_merge(
-				$tuples,
-				$this->unknownDimsTaint->decomposeForLinks(
+			$ret = $ret->asMergedWith(
+				$this->unknownDimsTaint->appliedToLinksForBackprop(
 					$links->getForDim( null ),
-					$varError->getForDim( null, false ),
-					$sinkError->getForDim( null, false )
+					$func,
+					$param
 				)
 			);
 		}
-		return $tuples;
+		if ( $this->keysTaint ) {
+			$ret = $ret->asMergedWith(
+				$links->asKeyForForeach()->asTaintednessForBackprop( $this->keysTaint, $func, $param )
+			);
+		}
+		return $ret;
 	}
 
 	/**
