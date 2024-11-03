@@ -27,56 +27,66 @@ class ParamLinksOffsets {
 		$this->ownFlags = $flags;
 	}
 
-	/**
-	 * @return self
-	 */
-	public static function newEmpty(): self {
-		return new self( SecurityCheckPlugin::NO_TAINT );
+	public static function getInstance( int $flags ): self {
+		static $singletons = [];
+		if ( !isset( $singletons[$flags] ) ) {
+			$singletons[$flags] = new self( $flags );
+		}
+		return $singletons[$flags];
 	}
 
-	/**
-	 * @param self $other
-	 */
-	public function mergeWith( self $other ): void {
-		$this->ownFlags |= $other->ownFlags;
-		if ( $other->unknown && !$this->unknown ) {
-			$this->unknown = $other->unknown;
+	public function asMergedWith( self $other ): self {
+		if ( $this === $other ) {
+			return $this;
+		}
+
+		$ret = clone $this;
+
+		$ret->ownFlags |= $other->ownFlags;
+		if ( $other->unknown && !$ret->unknown ) {
+			$ret->unknown = $other->unknown;
 		} elseif ( $other->unknown ) {
-			$this->unknown->mergeWith( $other->unknown );
+			$ret->unknown = $ret->unknown->asMergedWith( $other->unknown );
 		}
 		foreach ( $other->dims as $key => $val ) {
-			if ( !isset( $this->dims[$key] ) ) {
-				$this->dims[$key] = clone $val;
+			if ( !isset( $ret->dims[$key] ) ) {
+				$ret->dims[$key] = $val;
 			} else {
-				$this->dims[$key]->mergeWith( $val );
+				$ret->dims[$key] = $ret->dims[$key]->asMergedWith( $val );
 			}
 		}
-		$this->keysFlags |= $other->keysFlags;
+		$ret->keysFlags |= $other->keysFlags;
+
+		return $ret;
 	}
 
 	/**
 	 * Pushes $offsets to all leaves.
 	 * @param Node|string|int|null $offset
 	 */
-	public function pushOffset( $offset ): void {
-		foreach ( $this->dims as $val ) {
-			$val->pushOffset( $offset );
+	public function withOffsetPushed( $offset ): self {
+		$ret = clone $this;
+
+		foreach ( $ret->dims as $key => $val ) {
+			$ret->dims[$key] = $val->withOffsetPushed( $offset );
 		}
-		if ( $this->unknown ) {
-			$this->unknown->pushOffset( $offset );
+		if ( $ret->unknown ) {
+			$ret->unknown = $ret->unknown->withOffsetPushed( $offset );
 		}
 
-		if ( $this->ownFlags === SecurityCheckPlugin::NO_TAINT ) {
-			return;
+		if ( $ret->ownFlags === SecurityCheckPlugin::NO_TAINT ) {
+			return $ret;
 		}
 
-		$ownFlags = $this->ownFlags;
-		$this->ownFlags = SecurityCheckPlugin::NO_TAINT;
-		if ( is_scalar( $offset ) && !isset( $this->dims[$offset] ) ) {
-			$this->dims[$offset] = new self( $ownFlags );
-		} elseif ( !is_scalar( $offset ) && !$this->unknown ) {
-			$this->unknown = new self( $ownFlags );
+		$ownFlags = $ret->ownFlags;
+		$ret->ownFlags = SecurityCheckPlugin::NO_TAINT;
+		if ( is_scalar( $offset ) && !isset( $ret->dims[$offset] ) ) {
+			$ret->dims[$offset] = self::getInstance( $ownFlags );
+		} elseif ( !is_scalar( $offset ) && !$ret->unknown ) {
+			$ret->unknown = self::getInstance( $ownFlags );
 		}
+
+		return $ret;
 	}
 
 	/**
@@ -95,15 +105,6 @@ class ParamLinksOffsets {
 		$ret->keysFlags = $this->ownFlags;
 
 		return $ret;
-	}
-
-	public function __clone() {
-		foreach ( $this->dims as $k => $v ) {
-			$this->dims[$k] = clone $v;
-		}
-		if ( $this->unknown ) {
-			$this->unknown = clone $this->unknown;
-		}
 	}
 
 	/**
