@@ -3,6 +3,8 @@
 use Phan\AST\Parser;
 use Phan\AST\Visitor\Element;
 use Phan\CLIBuilder;
+use Phan\CodeBase;
+use Phan\Language\Type;
 use Phan\Output\Printer\PlainTextPrinter;
 use Phan\Phan;
 use Phan\Plugin\ConfigPluginSet;
@@ -16,11 +18,20 @@ use Symfony\Component\Console\Output\BufferedOutput;
  * phpcs:disable MediaWiki.Commenting.MissingCovers.MissingCovers
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
+	private ?CodeBase $codeBase = null;
+
 	/**
 	 * Taken from phan's BaseTest class
 	 * @inheritDoc
 	 */
 	protected $backupStaticAttributesExcludeList = [
+		'Phan\AST\PhanAnnotationAdder' => [
+			'closures_for_kind',
+		],
+		'Phan\AST\ASTReverter' => [
+			'closure_map',
+			'noop',
+		],
 		'Phan\Language\Type' => [
 			'canonical_object_map',
 			'internal_fn_cache',
@@ -61,6 +72,33 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	];
 
 	/**
+	 * Copied from phan's {@see \Phan\Tests\CodeBaseAwareTest}
+	 */
+	public function setUp(): void {
+		static $code_base = null;
+		if ( !$code_base ) {
+			global $internal_class_name_list;
+			global $internal_interface_name_list;
+			global $internal_trait_name_list;
+			global $internal_function_name_list;
+			if ( !isset( $internal_class_name_list ) ) {
+				require_once __DIR__ . '/../vendor/phan/phan/src/codebase.php';
+			}
+
+			$code_base = new CodeBase(
+				$internal_class_name_list,
+				$internal_interface_name_list,
+				$internal_trait_name_list,
+				CodeBase::getPHPInternalConstantNameList(),
+				$internal_function_name_list
+			);
+		}
+
+		Type::clearAllMemoizations();
+		$this->codeBase = $code_base->shallowClone();
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	public function tearDown(): void {
@@ -86,7 +124,6 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		putenv( "SECURITY_CHECK_EXT_PATH=" . __DIR__ . "/$folderName" );
 		// Useful when debugging weird test failures
 		// putenv( 'SECCHECK_DEBUG=-' );
-		$codeBase = require __DIR__ . '/../vendor/phan/phan/src/codebase.php';
 		$cliBuilder = new CLIBuilder();
 		$cliBuilder->setOption( 'project-root-directory', __DIR__ );
 		$cliBuilder->setOption( 'config-file', "./$cfgFile" );
@@ -105,7 +142,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$printer->configureOutput( $stream );
 		Phan::setPrinter( $printer );
 
-		Phan::analyzeFileList( $codeBase, static function () use ( $cli ) {
+		Phan::analyzeFileList( $this->codeBase, static function () use ( $cli ) {
 			// Replace \\ by / for windows machine
 			return str_replace( '\\', '/', $cli->getFileList() );
 		} );
