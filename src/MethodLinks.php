@@ -213,6 +213,24 @@ class MethodLinks {
 		return $ret;
 	}
 
+	public function withoutShape( self $other ): self {
+		$ret = clone $this;
+
+		$ret->links = $ret->links->withoutShape( $other->links );
+		foreach ( $other->dimLinks as $key => $val ) {
+			if ( isset( $ret->dimLinks[$key] ) ) {
+				$ret->dimLinks[$key] = $ret->dimLinks[$key]->withoutShape( $val );
+			}
+		}
+		if ( $ret->unknownDimLinks && $other->unknownDimLinks ) {
+			$ret->unknownDimLinks = $ret->unknownDimLinks->withoutShape( $other->unknownDimLinks );
+		}
+		if ( $ret->keysLinks && $other->keysLinks ) {
+			$ret->keysLinks = $ret->keysLinks->withoutShape( $other->keysLinks );
+		}
+		return $ret;
+	}
+
 	/**
 	 * @param Node|mixed $offset
 	 * @return self

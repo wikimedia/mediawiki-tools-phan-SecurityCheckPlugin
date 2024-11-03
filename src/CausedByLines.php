@@ -29,6 +29,7 @@ class CausedByLines {
 	}
 
 	/**
+	 * Adds the given lines to this object. For assignment statements, use {@see self::withAddedAssignmentLines}
 	 * @param string[] $lines
 	 * @param Taintedness $taintedness
 	 * @param MethodLinks|null $links
@@ -73,6 +74,51 @@ class CausedByLines {
 		}
 
 		return $ret;
+	}
+
+	/**
+	 * Merge caused-by lines from the RHS, and add the given additional lines to this object, as part of an assignment
+	 * statement.
+	 *
+	 * @param CausedByLines $rightLines For the RHS expression
+	 * @param string[] $lines
+	 * @param Taintedness $taintedness
+	 * @param MethodLinks|null $links
+	 * @return self
+	 */
+	public function asMergedForAssignment(
+		self $rightLines,
+		array $lines,
+		Taintedness $taintedness,
+		?MethodLinks $links = null
+	): self {
+		if ( $links && $links->isEmpty() ) {
+			$links = null;
+		}
+		if ( !$links && $taintedness->isSafe() ) {
+			return $this->asMergedWith( $rightLines );
+		}
+
+		$ret = clone $this;
+
+		foreach ( $lines as $line ) {
+			if ( count( $ret->lines ) >= self::LINES_HARD_LIMIT ) {
+				break;
+			}
+			$remainingTaint = $taintedness;
+			$remainingLinks = $links ?: MethodLinks::emptySingleton();
+			foreach ( $ret->lines as [ $lineTaint, $lineLine, $lineLinks ] ) {
+				if ( $lineLine === $line ) {
+					$remainingTaint = $remainingTaint->withoutShape( $lineTaint );
+					$remainingLinks = $lineLinks ? $remainingLinks->withoutShape( $lineLinks ) : $remainingLinks;
+				}
+			}
+			if ( !$remainingTaint->isSafe() || !$remainingLinks->isEmpty() ) {
+				$ret->lines[] = [ $remainingTaint, $line, $remainingLinks ];
+			}
+		}
+
+		return $ret->asMergedWith( $rightLines );
 	}
 
 	/**

@@ -39,6 +39,21 @@ class LinksSet extends Set {
 		return $ret;
 	}
 
+	public function withoutShape( self $other ): self {
+		$ret = clone $this;
+		foreach ( $other as $func ) {
+			if ( $ret->contains( $func ) ) {
+				$newFuncData = $ret[$func]->withoutShape( $other[$func] );
+				if ( $newFuncData->getParams() ) {
+					$ret[$func] = $newFuncData;
+				} else {
+					unset( $ret[$func] );
+				}
+			}
+		}
+		return $ret;
+	}
+
 	/**
 	 * @return self
 	 */

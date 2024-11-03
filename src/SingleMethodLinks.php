@@ -40,6 +40,21 @@ class SingleMethodLinks {
 		return $ret;
 	}
 
+	public function withoutShape( self $other ): self {
+		$ret = clone $this;
+		foreach ( $other->params as $i => $otherParam ) {
+			if ( isset( $ret->params[$i] ) ) {
+				$newParamData = $ret->params[$i]->withoutShape( $otherParam );
+				if ( !$newParamData->isEmpty() ) {
+					$ret->params[$i] = $newParamData;
+				} else {
+					unset( $ret->params[$i] );
+				}
+			}
+		}
+		return $ret;
+	}
+
 	/**
 	 * @param Node|string|int|null $offset
 	 */

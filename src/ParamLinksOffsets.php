@@ -60,6 +60,22 @@ class ParamLinksOffsets {
 		return $ret;
 	}
 
+	public function withoutShape( self $other ): self {
+		$ret = clone $this;
+
+		$ret->ownFlags &= ~$other->ownFlags;
+		foreach ( $other->dims as $key => $val ) {
+			if ( isset( $ret->dims[$key] ) ) {
+				$ret->dims[$key] = $ret->dims[$key]->withoutShape( $val );
+			}
+		}
+		if ( $other->unknown && $ret->unknown ) {
+			$ret->unknown = $ret->unknown->withoutShape( $other->unknown );
+		}
+		$ret->keysFlags &= ~$other->keysFlags;
+		return $ret;
+	}
+
 	/**
 	 * Pushes $offsets to all leaves.
 	 * @param Node|string|int|null $offset

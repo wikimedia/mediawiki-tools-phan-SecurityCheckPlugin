@@ -298,8 +298,8 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$curError = $overrideError
 			? CausedByLines::emptySingleton()
 			: self::getCausedByRaw( $variableObj ) ?? CausedByLines::emptySingleton();
-		$newOverallError = $curError->withAddedLines( $curLineCausedBy, $this->errorTaint, $this->errorLinks )
-			->asMergedWith( $newError );
+		$newOverallError = $curError
+			->asMergedForAssignment( $newError, $curLineCausedBy, $this->errorTaint, $this->errorLinks );
 		self::setCausedByRaw( $variableObj, $newOverallError );
 
 		if ( $globalVarObj ) {
@@ -317,8 +317,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 				? CausedByLines::emptySingleton()
 				: self::getCausedByRaw( $globalVarObj ) ?? CausedByLines::emptySingleton();
 			$newOverallGlobalError = $curGlobalError
-				->withAddedLines( $curLineCausedBy, $this->errorTaint, $this->errorLinks )
-				->asMergedWith( $newGlobalError );
+				->asMergedForAssignment( $newGlobalError, $curLineCausedBy, $this->errorTaint, $this->errorLinks );
 			self::setCausedByRaw( $globalVarObj, $newOverallGlobalError );
 		}
 	}
