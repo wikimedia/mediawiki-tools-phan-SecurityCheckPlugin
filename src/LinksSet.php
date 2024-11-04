@@ -22,7 +22,7 @@ class LinksSet extends Set {
 	public function mergeWith( self $other ): void {
 		foreach ( $other as $method ) {
 			if ( $this->contains( $method ) ) {
-				$this[$method]->mergeWith( $other[$method] );
+				$this[$method] = $this[$method]->asMergedWith( $other[$method] );
 			} else {
 				$this->attach( $method, $other[$method] );
 			}
@@ -59,11 +59,5 @@ class LinksSet extends Set {
 			$children[] = $func->getFQSEN()->__toString() . ': ' . $this[$func]->__toString();
 		}
 		return '{ ' . implode( ',', $children ) . ' }';
-	}
-
-	public function __clone() {
-		foreach ( $this as $func ) {
-			$this[$func] = clone $this[$func];
-		}
 	}
 }

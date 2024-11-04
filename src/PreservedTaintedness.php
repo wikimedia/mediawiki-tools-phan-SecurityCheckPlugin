@@ -35,7 +35,7 @@ class PreservedTaintedness {
 	public static function emptySingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
-			$singleton = new self( ParamLinksOffsets::newEmpty() );
+			$singleton = new self( ParamLinksOffsets::getInstance( SecurityCheckPlugin::NO_TAINT ) );
 		}
 		return $singleton;
 	}
@@ -80,14 +80,12 @@ class PreservedTaintedness {
 		}
 
 		$ret = clone $this;
-		$ret->ownOffsets = clone $ret->ownOffsets;
-		$ret->ownOffsets->mergeWith( $other->ownOffsets );
+		$ret->ownOffsets = $ret->ownOffsets->asMergedWith( $other->ownOffsets );
 
 		if ( $other->keysOffsets && !$ret->keysOffsets ) {
 			$ret->keysOffsets = $other->keysOffsets;
 		} elseif ( $other->keysOffsets ) {
-			$ret->keysOffsets = clone $ret->keysOffsets;
-			$ret->keysOffsets->mergeWith( $other->keysOffsets );
+			$ret->keysOffsets = $ret->keysOffsets->asMergedWith( $other->keysOffsets );
 		}
 
 		if ( $other->unknownDimsTaint && !$ret->unknownDimsTaint ) {

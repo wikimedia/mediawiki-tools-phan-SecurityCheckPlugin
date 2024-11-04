@@ -292,7 +292,7 @@ class Taintedness {
 		$ret->keysTaint |= $other->keysTaint;
 		foreach ( $other->dimTaint as $key => $val ) {
 			if ( !isset( $ret->dimTaint[$key] ) ) {
-				$ret->dimTaint[$key] = clone $val;
+				$ret->dimTaint[$key] = $val;
 			} else {
 				$ret->dimTaint[$key] = $ret->dimTaint[$key]->asMergedWith( $val );
 			}
@@ -422,9 +422,9 @@ class Taintedness {
 			$ret->keysTaint = $offsetTaint;
 		}
 		if ( $offset instanceof Node || $offset === null ) {
-			$ret->unknownDimsTaint = clone $this;
+			$ret->unknownDimsTaint = $this;
 		} else {
-			$ret->dimTaint[$offset] = clone $this;
+			$ret->dimTaint[$offset] = $this;
 		}
 		return $ret;
 	}
@@ -646,7 +646,7 @@ class Taintedness {
 	 */
 	public function asPreservedTaintedness(): PreservedTaintedness {
 		$ret = $this->flags
-			? new PreservedTaintedness( new ParamLinksOffsets( $this->flags ) )
+			? new PreservedTaintedness( ParamLinksOffsets::getInstance( $this->flags ) )
 			: PreservedTaintedness::emptySingleton();
 
 		foreach ( $this->dimTaint as $k => $val ) {
