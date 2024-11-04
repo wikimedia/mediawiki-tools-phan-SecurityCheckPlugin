@@ -35,14 +35,6 @@ class ParamLinksOffsets {
 	}
 
 	/**
-	 * @note This method should be avoided where possible
-	 * @return int
-	 */
-	public function getFlags(): int {
-		return $this->ownFlags;
-	}
-
-	/**
 	 * @param self $other
 	 */
 	public function mergeWith( self $other ): void {
@@ -112,30 +104,6 @@ class ParamLinksOffsets {
 		if ( $this->unknown ) {
 			$this->unknown = clone $this->unknown;
 		}
-	}
-
-	/**
-	 * Should only be used in Taintedness::asMovedAtRelevantOffsets
-	 * @return ParamLinksOffsets[]
-	 */
-	public function getDims(): array {
-		return $this->dims;
-	}
-
-	/**
-	 * Should only be used in Taintedness::asMovedAtRelevantOffsetsForBackprop
-	 * @return ParamLinksOffsets|null
-	 */
-	public function getUnknown(): ?ParamLinksOffsets {
-		return $this->unknown;
-	}
-
-	/**
-	 * Should only be used in Taintedness::asMovedAtRelevantOffsetsForBackprop
-	 * @return int
-	 */
-	public function getKeysFlags(): int {
-		return $this->keysFlags;
 	}
 
 	/**
