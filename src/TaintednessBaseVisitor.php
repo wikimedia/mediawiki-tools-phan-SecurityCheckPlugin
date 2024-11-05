@@ -2228,14 +2228,14 @@ trait TaintednessBaseVisitor {
 			$argTaint = $argTaintFull->getTaintedness();
 			$argError = $argTaintFull->getError();
 
-			$preservedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $paramIdx )
-				->asTaintednessForArgument( $argTaint );
+			$paramPreservedTaint = $refLinks->asPreservedTaintednessForFuncParam( $func, $paramIdx );
+			$preservedTaint = $paramPreservedTaint->asTaintednessForArgument( $argTaint );
 			$newTaint = $preservedTaint->asMergedWith( $newTaint );
 			$curLineErrorTaint = $paramIdx === $refArgIndex ? $refTaint : $preservedTaint;
 			$curCallLine = $this->getCausedByLinesToAdd( $curLineErrorTaint, null );
-			$curAddedError = $argError->withAddedLines( $curCallLine, $curLineErrorTaint )
-				->asMergedWith( $refError )
-				->asPreservedForParameter( $argTaint, $refLinks, $func, $paramIdx );
+			$curAddedError = $argError->asPreservedForArgument( $paramPreservedTaint )
+				->withAddedLines( $curCallLine, $curLineErrorTaint )
+				->asMergedWith( $refError->asPreservedForParameter( $argTaint, $refLinks, $func, $paramIdx ) );
 			$addedError = $addedError->asMergedWith( $curAddedError );
 		}
 
