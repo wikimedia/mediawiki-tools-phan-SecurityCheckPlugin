@@ -157,9 +157,10 @@ class CausedByLines {
 			return $this;
 		}
 		$ret = new self;
-		foreach ( $this->lines as $line ) {
-			if ( $line[2] && $line[2]->hasDataForFuncAndParam( $func, $param ) ) {
-				$ret->lines[] = $line;
+		$safeTaint = Taintedness::safeSingleton();
+		foreach ( $this->lines as [ $_, $lineLine, $lineLinks ] ) {
+			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $param ) ) {
+				$ret->lines[] = [ $safeTaint, $lineLine, $lineLinks ];
 			}
 		}
 		return $ret;
