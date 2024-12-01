@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v6.1.0
 ### New features
 * Improved accuracy of error reporting ("caused-by lines") by tracking array shapes in more places.
 * Added support for analyzing `call_user_func` and `call_user_func_array`.
