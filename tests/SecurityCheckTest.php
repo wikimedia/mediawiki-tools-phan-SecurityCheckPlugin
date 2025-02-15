@@ -15,7 +15,7 @@ use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * Regression tests to check that the plugin keeps working as intended
- * phpcs:disable MediaWiki.Commenting.MissingCovers.MissingCovers
+ * @coversNothing
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	private ?CodeBase $codeBase = null;
