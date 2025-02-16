@@ -1,2 +1,0 @@
-integration/exit/test.php:4 SecurityCheck-XSS Echoing expression that was not html escaped
-integration/exit/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped

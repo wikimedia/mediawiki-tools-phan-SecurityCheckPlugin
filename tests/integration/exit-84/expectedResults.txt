@@ -1,0 +1,2 @@
+integration/exit-84/test.php:4 SecurityCheck-XSS Calling method \exit() in \exit1 that outputs using tainted argument #1 (`$_GET['baz']`).
+integration/exit-84/test.php:14 SecurityCheck-XSS Calling method \exit() in \die1 that outputs using tainted argument #1 (`$_GET['baz']`).

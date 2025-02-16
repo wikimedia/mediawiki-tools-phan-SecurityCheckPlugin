@@ -1010,6 +1010,15 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			// exit() and die() became ordinary functions in PHP 8.4
+			'\exit' => [
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\die' => [
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
 		];
 	}
 

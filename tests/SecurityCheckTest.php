@@ -63,12 +63,17 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		'arrowfunc' => 70400,
 		'assignop' => 70400,
 		'constructorpromotion' => 80000,
+		'exit-84' => 80400,
 		'match' => 80000,
 		'namedargs' => 80000,
 		'nullsafemethod' => 80000,
 		'nullsafeprop' => 80000,
 		'throwexpression' => 80000,
 		'typedprops' => 70400,
+	];
+
+	private const TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION = [
+		'exit-pre84' => 80400,
 	];
 
 	/**
@@ -187,7 +192,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration_Polyfill( $name, $expected ) {
-		if ( $name === 'namedargs' ) {
+		if ( $name === 'namedargs' || $name === 'exit-84' ) {
 			$this->markTestSkipped( 'Analyzing named arguments with the polyfill parser is not yet supported' );
 		}
 		$this->checkSkipTest( $name );
@@ -227,6 +232,12 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 			$version = self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName];
 			if ( PHP_VERSION_ID < $version ) {
 				$this->markTestSkipped( "This test requires PHP >= $version" );
+			}
+		}
+		if ( isset( self::TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION[$testName] ) ) {
+			$version = self::TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION[$testName];
+			if ( PHP_VERSION_ID >= $version ) {
+				$this->markTestSkipped( "This test requires PHP < $version" );
 			}
 		}
 	}
