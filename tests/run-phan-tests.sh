@@ -101,7 +101,7 @@ sed -r -i "s/^return \[/\0 'plugins' => [ '.\/MediaWikiSecurityCheckPlugin.php' 
 sed -r -i "s/'suppress_issue_types' => \[/\0 $SECCHECK_ISSUES/" $TESTDIR/.phan_for_test/config.php
 
 # Some are different...
-BASE_TESTS='PHP70Test PHP72Test PHP73Test PHP74Test PHP80Test'
+BASE_TESTS='PHP70Test PHP72Test PHP73Test PHP74Test PHP80Test PHP81Test PHP82Test PHP83Test'
 for BASE_TEST in $BASE_TESTS ; do
     if grep -q "'plugins' =>" $TESTDIR/Phan/$BASE_TEST.php; then
         sed -r -i "s/'plugins' => \[/\0'.\/MediaWikiSecurityCheckPlugin.php',/" $TESTDIR/Phan/$BASE_TEST.php
