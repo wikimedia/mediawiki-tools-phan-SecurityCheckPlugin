@@ -1010,6 +1010,20 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\hash' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\hash_hmac' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			// exit() and die() became ordinary functions in PHP 8.4
 			'\exit' => [
 				self::HTML_EXEC_TAINT,
