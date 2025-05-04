@@ -160,7 +160,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @param string $folder
 	 * @return Generator
 	 */
-	private function extractTestCases( string $folder ) {
+	private static function extractTestCases( string $folder ) {
 		$iterator = new DirectoryIterator( __DIR__ . "/$folder" );
 
 		foreach ( $iterator as $dir ) {
@@ -247,15 +247,15 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 *
 	 * @return Generator
 	 */
-	public function provideIntegrationTests() {
-		return $this->extractTestCases( 'integration' );
+	public static function provideIntegrationTests() {
+		return self::extractTestCases( 'integration' );
 	}
 
 	/**
 	 * @return Generator
 	 */
-	public function provideAnalyzeTwiceTests() {
-		return $this->extractTestCases( 'analyze-twice' );
+	public static function provideAnalyzeTwiceTests() {
+		return self::extractTestCases( 'analyze-twice' );
 	}
 
 	/**
@@ -282,8 +282,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$this->assertEquals( $expected, $res );
 	}
 
-	public function provideNumkeyTests(): Generator {
-		return $this->extractTestCases( 'numkey' );
+	public static function provideNumkeyTests(): Generator {
+		return self::extractTestCases( 'numkey' );
 	}
 
 	/**
@@ -311,8 +311,8 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 *
 	 * @return Generator
 	 */
-	public function providePhanInteractionTests() {
-		return $this->extractTestCases( 'phan-interaction' );
+	public static function providePhanInteractionTests() {
+		return self::extractTestCases( 'phan-interaction' );
 	}
 
 	/**
@@ -360,7 +360,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$this->assertNotEquals( TaintednessVisitor::class, $reflMethod->class );
 	}
 
-	public function provideInapplicableNodesWithoutVisitor(): Generator {
+	public static function provideInapplicableNodesWithoutVisitor(): Generator {
 		foreach ( TaintednessVisitor::INAPPLICABLE_NODES_WITHOUT_VISITOR as $kind => $_ ) {
 			yield Parser::getKindName( $kind ) => [ $kind ];
 		}
@@ -375,7 +375,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( TaintednessVisitor::class, $reflMethod->class );
 	}
 
-	public function provideInapplicableNodesWithVisitor(): Generator {
+	public static function provideInapplicableNodesWithVisitor(): Generator {
 		foreach ( TaintednessVisitor::INAPPLICABLE_NODES_WITH_VISITOR as $kind => $_ ) {
 			yield Parser::getKindName( $kind ) => [ $kind ];
 		}
