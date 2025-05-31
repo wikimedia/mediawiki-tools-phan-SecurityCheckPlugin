@@ -25,11 +25,3 @@ function annotatedCorrect( $p1, ...$p ) {
 
 annotatedCorrect( $_GET['x'], '' );
 annotatedCorrect( 1, 2, 3, 4, $_GET['a'] );
-
-class Message {
-	function rawParams(){}
-}
-
-$m = new Message();
-$m->rawParams( $_GET['a'] );
-$m->rawParams( 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, $_GET['a'] );

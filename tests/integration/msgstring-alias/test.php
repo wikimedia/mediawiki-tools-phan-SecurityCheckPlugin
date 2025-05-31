@@ -1,8 +1,5 @@
-<?php
-
-use MediaWiki\Message\Message;
-
-class MsgString {
+<?php // TODO: Drop this test when the \Message alias is dropped from MW core.
+class MsgStringAlias {
 
 	/**
 	 * @param Message|string $f
@@ -50,17 +47,17 @@ class MsgString {
 }
 
 // Good
-MsgString::a( 'safe' );
-MsgString::giveWarning( 'safe' );
-MsgString::b( 'safe' );
+MsgStringAlias::a( 'safe' );
+MsgStringAlias::giveWarning( 'safe' );
+MsgStringAlias::b( 'safe' );
 $msg = new Message;
-MsgString::a( $msg ); // safe. This is what test is primarily about.
-MsgString::giveWarning( $msg ); // This should give a false positive warning.
-MsgString::b( $msg );
-MsgString::evil1( $msg ); // This is unsafe, but should trigger at line 30
-MsgString::justEcho( $msg ); // unsafe double escape.
+MsgStringAlias::a( $msg ); // safe. This is what test is primarily about.
+MsgStringAlias::giveWarning( $msg ); // This should give a false positive warning.
+MsgStringAlias::b( $msg );
+MsgStringAlias::evil1( $msg ); // This is unsafe, but should trigger at line 30
+MsgStringAlias::justEcho( $msg ); // unsafe double escape.
 
-MsgString::a( $_GET['d'] ); // safe
-MsgString::giveWarning( $_GET['d'] ); // safe
-MsgString::b( $_GET['d'] ); // unsafe
-MsgString::notExist( $msg ); // This should not give warning
+MsgStringAlias::a( $_GET['d'] ); // safe
+MsgStringAlias::giveWarning( $_GET['d'] ); // safe
+MsgStringAlias::b( $_GET['d'] ); // unsafe
+MsgStringAlias::notExist( $msg ); // This should not give warning

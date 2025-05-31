@@ -8,7 +8,7 @@ class CentralAuthHooks {
 	}
 
 	public static function getBlockLogLink() {
-		Html::rawElement( 'span', [], wfMessage( 'centralauth-block-already-locked' )->parse() );
+		Html::rawElement( 'span', [], getEscaped() );
 	}
 
 }
@@ -22,11 +22,11 @@ class GlobalUserMergeLogger {
 
 class SpecialMergeAccount {
 	private function doDryRunMerge() {
-		Html::rawElement( 'p', [], Html::element( 'i', wfMessage( 'centralauth-merge-step3-submit' )->text() ) );
+		Html::rawElement( 'p', [], Html::element( 'i', getUnsafe() ) );
 	}
 
 	private function doAttachMerge( OutputPage $out ) {
-		$out->addHTML( Html::rawElement( 'div', [], wfMessage( 'wrongpassword' )->parse() ) );
+		$out->addHTML( Html::rawElement( 'div', [], getEscaped() ) );
 	}
 }
 

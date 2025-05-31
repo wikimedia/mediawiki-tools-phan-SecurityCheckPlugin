@@ -83,16 +83,9 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
-			'\Message::plain' => [ 'overall' => self::YES_TAINT ],
-			'\Message::text' => [ 'overall' => self::YES_TAINT ],
-			'\Message::parseAsBlock' => [ 'overall' => self::ESCAPED_TAINT ],
-			'\Message::parse' => [ 'overall' => self::ESCAPED_TAINT ],
-			'\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
-			'\Message::escaped' => [ 'overall' => self::ESCAPED_TAINT ],
-			'\Message::rawParams' => [
-				self::HTML_EXEC_TAINT | self::VARIADIC_PARAM,
-				'overall' => self::HTML_TAINT
-			],
+			'\MediaWiki\Message\Message::text' => [ 'overall' => self::YES_TAINT ],
+			'\MediaWiki\Message\Message::parse' => [ 'overall' => self::ESCAPED_TAINT ],
+			'\MediaWiki\Message\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\HtmlArmor::__construct' => [
 				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT
@@ -115,6 +108,12 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				'overall' => self::NO_TAINT
 			],
 			'\TestSinkShape::sinkKeysOfUnknown' => $sinkKeysOfUnknownDimTaint,
+
+			'\HardcodedEscapedToString::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
+			'\HardcodedVariadicExec::doTest' => [
+				self::HTML_EXEC_TAINT | self::VARIADIC_PARAM,
+				'overall' => self::NO_TAINT
+			],
 		];
 	}
 }

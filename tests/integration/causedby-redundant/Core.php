@@ -1,7 +1,7 @@
 <?php
 
 // NOTE: This file should be analyzed AFTER CentralAuth.php, so don't rename it
-
+use MediaWiki\Message\Message;
 class MapCacheLRU {
 	private $cache = [];
 	public function get( $key ) {
@@ -12,21 +12,21 @@ class MapCacheLRU {
 	}
 }
 
-function wfMessage( $key, ...$params ) : Message {
+/** @return-taint tainted */
+function getUnsafe(): string {
+	return 'tainted';
+}
+/** @return-taint escaped */
+function getEscaped(): string {
+	return 'escaped';
 }
 
 class LogEventsList  {
 	public static function showLogExtract( &$out ) {
-		Html::rawElement( 'div', [ 'class' => 'mw-warning-logempty' ], wfMessage( 'logempty' )->parse() );
+		Html::rawElement( 'div', [ 'class' => 'mw-warning-logempty' ], getEscaped() );
 	}
 }
 
-
-class Message {
-	public function parse() {
-	}
-	public function text() {}
-}
 
 class OutputPage {
 	public function addHTML( $text ) {
