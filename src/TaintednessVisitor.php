@@ -861,9 +861,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 					'error' => Taintedness::safeSingleton(),
 					'size' => Taintedness::safeSingleton(),
 				] );
-				return Taintedness::safeSingleton()->withAddedKeysTaintedness( SecurityCheckPlugin::YES_TAINT )
-					// Use 'null' as fake offset to set unknownDims
-					->withAddedOffsetTaintedness( null, $elTaint );
+				return Taintedness::newFromShape( [], $elTaint, SecurityCheckPlugin::YES_TAINT );
 			case 'GLOBALS':
 				// Ideally this would recurse properly, but hopefully nobody is using $GLOBALS in complex ways
 				// that wouldn't be covered by this approximation.

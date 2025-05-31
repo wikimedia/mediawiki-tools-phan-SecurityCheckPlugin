@@ -154,20 +154,19 @@ class ParamLinksOffsets {
 			$ret = Taintedness::safeSingleton();
 		}
 
+		$dimTaint = [];
 		foreach ( $this->dims as $k => $val ) {
-			$ret = $ret->withAddedOffsetTaintedness(
-				$k,
-				$val->appliedToTaintednessForBackprop( $taintedness->getTaintednessForOffsetOrWhole( $k ) )
-			);
+			$dimTaint[$k] = $val->appliedToTaintednessForBackprop( $taintedness->getTaintednessForOffsetOrWhole( $k ) );
 		}
+		$unknownDimsTaint = null;
 		if ( $this->unknown ) {
-			$ret = $ret->withAddedOffsetTaintedness(
-				null,
-				$this->unknown->appliedToTaintednessForBackprop( $taintedness->getTaintednessForOffsetOrWhole( null ) )
+			$unknownDimsTaint = $this->unknown->appliedToTaintednessForBackprop(
+				$taintedness->getTaintednessForOffsetOrWhole( null )
 			);
 		}
-		$ret = $ret->withAddedKeysTaintedness( $taintedness->asKeyForForeach()->withOnly( $this->keysFlags )->get() );
-		return $ret;
+		$keysTaint = $taintedness->asKeyForForeach()->withOnly( $this->keysFlags )->get();
+
+		return $ret->asMergedWith( Taintedness::newFromShape( $dimTaint, $unknownDimsTaint, $keysTaint ) );
 	}
 
 	public function isEmpty(): bool {

@@ -2422,7 +2422,7 @@ trait TaintednessBaseVisitor {
 				}
 				$preservedArgTaint = $preserveArgumentsData[2][0];
 				// TODO: We may actually be able to infer the actual keys, instead of setting as unknown
-				$taint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, $preservedArgTaint );
+				$taint = Taintedness::newFromShape( [], $preservedArgTaint );
 				$links = MethodLinks::emptySingleton();
 				// TODO: We should also add numkey if the argument has sql.
 				$error = $preserveArgumentsData[2][2]->asAllCollapsed()
@@ -2760,8 +2760,7 @@ trait TaintednessBaseVisitor {
 				}
 				// TODO: Check value of $preserve_keys to determine the key taintedness more accurately.
 				// For now, we just assume that keys are preserved.
-				$taint = Taintedness::safeSingleton()
-					->withAddedOffsetTaintedness( null, $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown() );
+				$taint = Taintedness::newFromShape( [], $preserveArgumentsData[0][0]->asKnownKeysMadeUnknown() );
 				$links = MethodLinks::emptySingleton();
 				$error = $preserveArgumentsData[0][2]->asAllCollapsed()->asIntersectedWithTaintedness( $taint );
 				return new TaintednessWithError( $taint, $error, $links );

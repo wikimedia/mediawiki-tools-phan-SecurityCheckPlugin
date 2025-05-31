@@ -116,19 +116,18 @@ class PreservedTaintedness {
 
 		$ret = $this->ownOffsets->appliedToTaintedness( $argTaint );
 
+		$dimTaint = [];
 		foreach ( $this->dimTaint as $k => $val ) {
-			$ret = $ret->withAddedOffsetTaintedness( $k, $val->asTaintednessForArgument( $argTaint ) );
+			$dimTaint[$k] = $val->asTaintednessForArgument( $argTaint );
 		}
+		$unknownDimsTaint = null;
 		if ( $this->unknownDimsTaint ) {
-			$ret = $ret->withAddedOffsetTaintedness(
-				null,
-				$this->unknownDimsTaint->asTaintednessForArgument( $argTaint )
-			);
+			$unknownDimsTaint = $this->unknownDimsTaint->asTaintednessForArgument( $argTaint );
 		}
-		if ( $this->keysOffsets ) {
-			$ret = $ret->withAddedKeysTaintedness( $this->keysOffsets->appliedToTaintedness( $argTaint )->get() );
-		}
-		return $ret;
+		$keysTaint = $this->keysOffsets
+			? $this->keysOffsets->appliedToTaintedness( $argTaint )->get()
+			: SecurityCheckPlugin::NO_TAINT;
+		return $ret->asMergedWith( Taintedness::newFromShape( $dimTaint, $unknownDimsTaint, $keysTaint ) );
 	}
 
 	public function asTaintednessForBackpropError( Taintedness $sinkTaint ): Taintedness {
@@ -163,26 +162,22 @@ class PreservedTaintedness {
 
 		$ret = $this->ownOffsets->appliedToTaintednessForBackprop( $newTaint );
 
+		$dimTaint = [];
 		foreach ( $this->dimTaint as $key => $val ) {
-			$ret = $ret->withAddedOffsetTaintedness(
-				$key,
-				$val->asTaintednessForVarBackpropError( $newTaint->getTaintednessForOffsetOrWhole( $key ) )
+			$dimTaint[$key] = $val->asTaintednessForVarBackpropError(
+				$newTaint->getTaintednessForOffsetOrWhole( $key )
 			);
 		}
+		$unknownDimsTaint = null;
 		if ( $this->unknownDimsTaint ) {
-			$ret = $ret->withAddedOffsetTaintedness(
-				null,
-				$this->unknownDimsTaint->asTaintednessForVarBackpropError(
-					$newTaint->getTaintednessForOffsetOrWhole( null )
-				)
+			$unknownDimsTaint = $this->unknownDimsTaint->asTaintednessForVarBackpropError(
+				$newTaint->getTaintednessForOffsetOrWhole( null )
 			);
 		}
-		if ( $this->keysOffsets ) {
-			$ret = $ret->withAddedKeysTaintedness(
-				$this->keysOffsets->appliedToTaintednessForBackprop( $newTaint )->get()
-			);
-		}
-		return $ret;
+		$keysTaint = $this->keysOffsets
+			? $this->keysOffsets->appliedToTaintednessForBackprop( $newTaint )->get()
+			: SecurityCheckPlugin::NO_TAINT;
+		return $ret->asMergedWith( Taintedness::newFromShape( $dimTaint, $unknownDimsTaint, $keysTaint ) );
 	}
 
 	public function isEmpty(): bool {

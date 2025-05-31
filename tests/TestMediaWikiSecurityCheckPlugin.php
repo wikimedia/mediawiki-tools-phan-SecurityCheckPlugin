@@ -28,7 +28,7 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertTaint = $insertTaint->withParamSinkTaint( 0, $sqlExecTaint, self::NO_OVERRIDE );
 		// Insert values. The keys names are unsafe. The argument can be either a single row or an array of rows.
 		// Note, here we are assuming the single row case. The multiple rows case is handled in modifyParamSinkTaint.
-		$sqlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::SQL_EXEC_TAINT );
+		$sqlExecKeysTaint = Taintedness::newFromShape( [], null, self::SQL_EXEC_TAINT );
 		$insertTaint = $insertTaint->withParamSinkTaint( 1, $sqlExecKeysTaint, self::NO_OVERRIDE );
 		// method name
 		$insertTaint = $insertTaint->withParamSinkTaint( 2, $sqlExecTaint, self::NO_OVERRIDE );
@@ -39,17 +39,16 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 		$insertQBRowTaint = $insertQBRowTaint->withParamSinkTaint( 0, clone $sqlExecKeysTaint, self::NO_OVERRIDE );
 
 		$insertQBRowsTaint = FunctionTaintedness::emptySingleton();
-		$multiRowsTaint = Taintedness::safeSingleton()->withAddedOffsetTaintedness( null, clone $sqlExecKeysTaint );
+		$multiRowsTaint = Taintedness::newFromShape( [], clone $sqlExecKeysTaint );
 		$insertQBRowsTaint = $insertQBRowsTaint->withParamSinkTaint( 0, $multiRowsTaint, self::NO_OVERRIDE );
 
-		$htmlExecKeysTaint = Taintedness::safeSingleton()->withAddedKeysTaintedness( self::HTML_EXEC_TAINT );
+		$htmlExecKeysTaint = Taintedness::newFromShape( [], null, self::HTML_EXEC_TAINT );
 
 		$sinkKeysTaint = FunctionTaintedness::emptySingleton();
 		$sinkKeysTaint = $sinkKeysTaint->withParamSinkTaint( 0, $htmlExecKeysTaint, self::NO_OVERRIDE );
 
 		$sinkKeysOfUnknownDimTaint = FunctionTaintedness::emptySingleton();
-		$htmlExecKeysOfUnknownTaint = Taintedness::safeSingleton()
-			->withAddedOffsetTaintedness( null, clone $htmlExecKeysTaint );
+		$htmlExecKeysOfUnknownTaint = Taintedness::newFromShape( [], clone $htmlExecKeysTaint );
 		$sinkKeysOfUnknownDimTaint = $sinkKeysOfUnknownDimTaint
 			->withParamSinkTaint( 0, $htmlExecKeysOfUnknownTaint, self::NO_OVERRIDE );
 

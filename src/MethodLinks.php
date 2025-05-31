@@ -572,20 +572,21 @@ class MethodLinks {
 			$retLinks->attach( $func, $this->links[$func] );
 		}
 		$ret = new self( $retLinks );
+
+		$dimLinksShape = [];
 		foreach ( $this->dimLinks as $dim => $dimLinks ) {
-			$ret = $ret->withLinksAtDim( $dim, $dimLinks->asFilteredForFuncAndParam( $func, $param ) );
+			$dimLinksShape[$dim] = $dimLinks->asFilteredForFuncAndParam( $func, $param );
 		}
+		$unknownDimLinks = null;
 		if ( $this->unknownDimLinks ) {
-			$ret = $ret->withLinksAtDim(
-				null,
-				$this->unknownDimLinks->asFilteredForFuncAndParam( $func, $param )
-			);
+			$unknownDimLinks = $this->unknownDimLinks->asFilteredForFuncAndParam( $func, $param );
 		}
+		$keysLinks = new LinksSet();
 		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
-			$ret->keysLinks = new LinksSet();
-			$ret->keysLinks->attach( $func, $this->keysLinks[$func] );
+			$keysLinks->attach( $func, $this->keysLinks[$func] );
 		}
-		return $ret;
+
+		return $ret->asMergedWith( self::newFromShape( $dimLinksShape, $unknownDimLinks, $keysLinks ) );
 	}
 
 	/**
