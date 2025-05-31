@@ -424,6 +424,8 @@ trait TaintednessBaseVisitor {
 		if ( !$isPHPInternalFunc ) {
 			// If we haven't seen this function before, first of all check the return type. If it
 			// returns a safe type (like int), it's safe.
+			// TODO Should we remove UNKNOWN_TAINT here? Strictly speaking it *is* unknown, but that's treated as if
+			// it were unsafe. This can be seen, for example, when the maximum analysis depth is reached.
 			$taint = new FunctionTaintedness( $taintFromReturnType );
 			self::doSetFuncTaint( $func, $taint );
 			$this->maybeAddFuncError( $func, null, $taint, $taint );
@@ -774,6 +776,7 @@ trait TaintednessBaseVisitor {
 						$isPossiblyUnknown = true;
 						break;
 					}
+					// TODO: This should add caused-by lines also.
 					$toString = $this->code_base->getMethodByFQSEN( $toStringFQSEN );
 					$toStringTaint = $this->getTaintOfFunction( $toString );
 					$taint = $taint->asMergedWith( $toStringTaint->getOverall()->without(

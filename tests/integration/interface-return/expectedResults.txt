@@ -1,0 +1,2 @@
+integration/interface-return/test.php:20 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/interface-return/test.php +10)
+integration/interface-return/test.php:24 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/interface-return/test.php +15; integration/interface-return/test.php +5)

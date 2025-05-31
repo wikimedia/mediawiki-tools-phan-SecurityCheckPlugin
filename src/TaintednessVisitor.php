@@ -235,15 +235,20 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function analyzeFunctionLike( FunctionInterface $func ): void {
 		if ( self::getFuncTaint( $func ) === null ) {
-			// If we still have no data, presumably the function doesn't return anything, so mark as safe.
 			if ( $func->hasReturn() || $func->hasYield() ) {
 				$this->debug( __METHOD__, "TODO: $func returns something but has no taint after analysis" );
 			}
 
+			// If we still have no data, it means that the function doesn't return anything, or it doesn't have a body
+			// that can be analyzed (e.g., if it's an interface method).
 			// NOTE: If the method stores its arg to a class prop, and that class prop gets output later,
 			// the exec status of this won't be detected until the output is analyzed, we might miss some issues
 			// in the inbetween period.
-			self::doSetFuncTaint( $func, FunctionTaintedness::emptySingleton() );
+			$taintFromReturnType = $this->getTaintByType( $func->getUnionType() )
+				->without( SecurityCheckPlugin::UNKNOWN_TAINT );
+			$funcTaint = new FunctionTaintedness( $taintFromReturnType );
+			self::doSetFuncTaint( $func, $funcTaint );
+			$this->maybeAddFuncError( $func, null, $funcTaint, $funcTaint );
 		}
 	}
 
