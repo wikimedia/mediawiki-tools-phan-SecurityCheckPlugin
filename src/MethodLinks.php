@@ -41,6 +41,35 @@ class MethodLinks {
 	}
 
 	/**
+	 * @param self[] $dimLinks
+	 * @param self|null $unknownDimLinks Pass null for performance
+	 * @param LinksSet|null $keysLinks
+	 * @return self
+	 */
+	public static function newFromShape(
+		array $dimLinks,
+		?self $unknownDimLinks = null,
+		?LinksSet $keysLinks = null
+	): self {
+		// Don't add empty link sets, for performance
+		if ( $keysLinks && !count( $keysLinks ) ) {
+			$keysLinks = null;
+		}
+		if ( !$dimLinks && !$unknownDimLinks && !$keysLinks ) {
+			return self::emptySingleton();
+		}
+
+		$ret = new self();
+		foreach ( $dimLinks as $key => $value ) {
+			assert( $value instanceof self );
+			$ret->dimLinks[$key] = $value;
+		}
+		$ret->unknownDimLinks = $unknownDimLinks;
+		$ret->keysLinks = $keysLinks;
+		return $ret;
+	}
+
+	/**
 	 * @note This returns a clone
 	 * @param mixed $dim
 	 * @param bool $pushOffsets

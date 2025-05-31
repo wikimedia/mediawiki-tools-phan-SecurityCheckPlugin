@@ -854,7 +854,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			case '_SERVER':
 				return Taintedness::newTainted();
 			case '_FILES':
-				$elTaint = Taintedness::newFromArray( [
+				$elTaint = Taintedness::newFromShape( [
 					'name' => Taintedness::newTainted(),
 					'type' => Taintedness::newTainted(),
 					'tmp_name' => Taintedness::safeSingleton(),
@@ -870,7 +870,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 				$filesTaintedness = $this->getHardcodedTaintednessForVar( '_FILES' );
 				assert( $filesTaintedness !== null );
-				return Taintedness::newFromArray( [
+				return Taintedness::newFromShape( [
 					'_GET' => Taintedness::newTainted(),
 					'_POST' => Taintedness::newTainted(),
 					'_SERVER' => Taintedness::newTainted(),
@@ -1007,9 +1007,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Node $node
 	 */
 	public function visitArray( Node $node ): void {
-		$curTaint = Taintedness::safeSingleton();
 		$curError = CausedByLines::emptySingleton();
-		$links = MethodLinks::emptySingleton();
+
+		$totalTaintShape = [];
+		$totalTaintUnknownKeys = Taintedness::safeSingleton();
+		$totalKeyTaint = SecurityCheckPlugin::NO_TAINT;
+
+		$totalLinkShape = [];
+		$totalLinksUnknownKeys = MethodLinks::emptySingleton();
+		$totalKeyLinks = new LinksSet();
+
+		$needsNumkeyTaint = false;
+		$foundUnknownKey = false;
 		// Current numeric key in the array
 		$curNumKey = 0;
 		foreach ( $node->children as $child ) {
@@ -1032,28 +1041,60 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$sqlTaint = SecurityCheckPlugin::SQL_TAINT;
 
 			if (
-				( $keyTaint->has( $sqlTaint ) ) || (
-					( $key === null || $this->nodeCanBeIntKey( $key ) )
-					&& $valTaint->has( $sqlTaint )
-					&& $this->nodeCanBeString( $value )
+				!$needsNumkeyTaint && (
+					$keyTaint->has( $sqlTaint ) || (
+						( $key === null || $this->nodeCanBeIntKey( $key ) )
+						&& $valTaint->has( $sqlTaint )
+						&& $this->nodeCanBeString( $value )
+					)
 				)
 			) {
-				$curTaint = $curTaint->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+				$needsNumkeyTaint = true;
 			}
 			// FIXME This will fail with in-place spread and when some numeric keys are specified
 			//  explicitly (at least).
 			$offset = $key ?? $curNumKey++;
 			$offset = $this->resolveOffset( $offset );
-			$curTaint = $curTaint->withAddedOffsetTaintedness( $offset, $valTaint )
-				->withAddedKeysTaintedness( $keyTaint->get() );
+			if ( !is_scalar( $offset ) ) {
+				$foundUnknownKey = true;
+			}
+
+			if ( is_scalar( $offset ) ) {
+				$totalTaintShape[$offset] = $valTaint;
+			} else {
+				$totalTaintUnknownKeys = $totalTaintUnknownKeys->asMergedWith( $valTaint );
+			}
+			$totalKeyTaint |= $keyTaint->get();
+
 			$valError = $valTaintAll->getError()->asAllMaybeMovedAtOffset( $offset );
 			$keyError = $keyTaintAll->getError()->asAllMovedToKeys();
-			$curError = $curError->asMergedWith( $keyError )
-				->asMergedWith( $valError );
-			$links = $links->withKeysLinks( $keyTaintAll->getMethodLinks()->getLinksCollapsing() )
-				->withLinksAtDim( $offset, $valTaintAll->getMethodLinks() );
+			$curError = $curError->asMergedWith( $keyError )->asMergedWith( $valError );
+
+			$valLinks = $valTaintAll->getMethodLinks();
+			if ( is_scalar( $offset ) ) {
+				$totalLinkShape[$offset] = $valLinks;
+			} else {
+				$totalLinksUnknownKeys = $totalLinksUnknownKeys->asMergedWith( $valLinks );
+			}
+			$totalKeyLinks = $totalKeyLinks->asMergedWith( $keyTaintAll->getMethodLinks()->getLinksCollapsing() );
 		}
-		$this->curTaintWithError = new TaintednessWithError( $curTaint, $curError, $links );
+
+		$curTaint = Taintedness::newFromShape(
+			$totalTaintShape,
+			$foundUnknownKey ? $totalTaintUnknownKeys : null,
+			$totalKeyTaint
+		);
+		if ( $needsNumkeyTaint ) {
+			$curTaint = $curTaint->with( SecurityCheckPlugin::SQL_NUMKEY_TAINT );
+		}
+
+		$curLinks = MethodLinks::newFromShape(
+			$totalLinkShape,
+			$foundUnknownKey ? $totalLinksUnknownKeys : null,
+			$totalKeyLinks
+		);
+
+		$this->curTaintWithError = new TaintednessWithError( $curTaint, $curError, $curLinks );
 		$this->setCachedData( $node );
 	}
 

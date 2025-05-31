@@ -66,15 +66,27 @@ class Taintedness {
 	}
 
 	/**
-	 * @param Taintedness[] $values
+	 * @param self[] $dimTaint
+	 * @param self|null $unknownDimsTaint Pass null for performance
+	 * @param int $keysTaint
 	 * @return self
 	 */
-	public static function newFromArray( array $values ): self {
-		$ret = self::safeSingleton();
-		foreach ( $values as $key => $value ) {
-			assert( $value instanceof self );
-			$ret = $ret->withAddedOffsetTaintedness( $key, $value );
+	public static function newFromShape(
+		array $dimTaint,
+		?self $unknownDimsTaint = null,
+		int $keysTaint = SecurityCheckPlugin::NO_TAINT
+	): self {
+		if ( !$dimTaint && !$unknownDimsTaint && !$keysTaint ) {
+			return self::safeSingleton();
 		}
+
+		$ret = new self( SecurityCheckPlugin::NO_TAINT );
+		foreach ( $dimTaint as $key => $value ) {
+			assert( $value instanceof self );
+			$ret->dimTaint[$key] = $value;
+		}
+		$ret->unknownDimsTaint = $unknownDimsTaint;
+		$ret->keysTaint = $keysTaint;
 		return $ret;
 	}
 
