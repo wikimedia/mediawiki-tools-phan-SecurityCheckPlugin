@@ -76,11 +76,6 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		'exit-pre84' => 80400,
 	];
 
-	public static function setUpBeforeClass(): void {
-		parent::setUpBeforeClass();
-		gc_disable();
-	}
-
 	/**
 	 * Copied from phan's {@see \Phan\Tests\CodeBaseAwareTest}
 	 */
