@@ -1,5 +1,18 @@
 # MediaWiki Security Check Plugin changelog
 
+## v6.2.0
+### New features
+* Support running in PHP 8.4 (fixed spurious errors seen when analyzing `exit`)
+* For interface methods returning an instance of a class with a `__toString()` method, make the taintedness returned by `__toString()` propagate to the interface method.
+
+### Bug fixes
+* Mark hash and hash_hmac outputs as untainted
+* Improve performance when analyzing really large arrays
+* (MW) Also check the new `\MediaWiki\Message\Message` FQSEN when trying to determine if a DoubleEscaped issue involving `Message|string` is a false positive.
+
+### Internal changes
+* Bumped phan/phan to 5.4.6
+
 ## v6.1.0
 ### New features
 * Improved accuracy of error reporting ("caused-by lines") by tracking array shapes in more places.
