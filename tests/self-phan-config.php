@@ -23,7 +23,10 @@ return [
 		// As noted in phan's own cfg file: "The types of ast\Node->children are all possibly unset"
 		'PhanTypePossiblyInvalidDimOffset',
 		// Used for function taintedness
-		'PhanPluginMixedKeyNoKey'
+		'PhanPluginMixedKeyNoKey',
+		// TODO: Fix
+		'PhanPluginCanUseUnionParamType',
+		'PhanPluginCanUseUnionReturnType',
 	],
 	'plugins' => [
 		'AlwaysReturnPlugin',

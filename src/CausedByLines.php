@@ -277,7 +277,7 @@ class CausedByLines {
 	 * Returns a copy of $this with all taintedness and links moved at the given offset.
 	 * @param Node|mixed $offset
 	 */
-	public function asAllMaybeMovedAtOffset( $offset ): self {
+	public function asAllMaybeMovedAtOffset( mixed $offset ): self {
 		if ( !$this->lines ) {
 			return $this;
 		}
@@ -314,7 +314,7 @@ class CausedByLines {
 	 * @param Node|mixed $dim
 	 * @param bool $pushOffsetsInLinks
 	 */
-	public function getForDim( $dim, bool $pushOffsetsInLinks = true ): self {
+	public function getForDim( mixed $dim, bool $pushOffsetsInLinks = true ): self {
 		if ( !$this->lines ) {
 			return $this;
 		}

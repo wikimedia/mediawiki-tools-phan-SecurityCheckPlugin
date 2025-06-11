@@ -64,10 +64,8 @@ class MethodLinks {
 
 	/**
 	 * @note This returns a clone
-	 * @param mixed $dim
-	 * @param bool $pushOffsets
 	 */
-	public function getForDim( $dim, bool $pushOffsets = true ): self {
+	public function getForDim( mixed $dim, bool $pushOffsets = true ): self {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
 		}
@@ -143,11 +141,7 @@ class MethodLinks {
 		return new self( $newLinks );
 	}
 
-	/**
-	 * @param mixed $dim
-	 * @param MethodLinks $links
-	 */
-	public function withLinksAtDim( $dim, self $links ): self {
+	public function withLinksAtDim( mixed $dim, self $links ): self {
 		$ret = clone $this;
 		if ( is_scalar( $dim ) ) {
 			$ret->dimLinks[$dim] = $links;
@@ -242,7 +236,7 @@ class MethodLinks {
 	/**
 	 * @param Node|mixed $offset
 	 */
-	public function withAddedOffset( $offset ): self {
+	public function withAddedOffset( mixed $offset ): self {
 		$ret = clone $this;
 		$ret->links = clone $ret->links;
 		foreach ( $ret->links as $func ) {

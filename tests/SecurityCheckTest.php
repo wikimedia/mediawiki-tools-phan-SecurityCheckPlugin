@@ -60,16 +60,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	];
 
 	private const TESTS_WITH_MINIMUM_PHP_VERSION = [
-		'arrowfunc' => 70400,
-		'assignop' => 70400,
-		'constructorpromotion' => 80000,
 		'exit-84' => 80400,
-		'match' => 80000,
-		'namedargs' => 80000,
-		'nullsafemethod' => 80000,
-		'nullsafeprop' => 80000,
-		'throwexpression' => 80000,
-		'typedprops' => 70400,
 	];
 
 	private const TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION = [

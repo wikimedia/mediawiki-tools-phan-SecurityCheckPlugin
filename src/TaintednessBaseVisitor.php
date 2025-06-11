@@ -828,7 +828,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param mixed $expr An expression from the AST tree.
 	 */
-	protected function getTaintedness( $expr ): TaintednessWithError {
+	protected function getTaintedness( mixed $expr ): TaintednessWithError {
 		if ( $expr instanceof Node ) {
 			return $this->getTaintednessNode( $expr );
 		}
@@ -893,14 +893,14 @@ trait TaintednessBaseVisitor {
 	 *    for sure what the offset will be, and this method would return null (interpreted as offset 0), which is
 	 *    most likely wrong.
 	 *  - Casting floats to integers, since using a float as array key raises a warning (and crashes taint-check)
-	 *    in PHP 8.1 (T307504)
+	 *    (T307504)
 	 *  - Letting nodes that represent resources (e.g. `STDIN`) pass through, since they're not scalar and certainly
 	 *    not valid offsets (see https://github.com/phan/phan/issues/4659).
 	 *
 	 * @param Node|mixed $rawOffset
 	 * @return Node|mixed
 	 */
-	protected function resolveOffset( $rawOffset ) {
+	protected function resolveOffset( mixed $rawOffset ): mixed {
 		assert( $rawOffset !== null );
 		$resolved = $this->resolveValue( $rawOffset );
 		// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.is_resource
@@ -917,7 +917,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $value A Node or a scalar value from the AST
 	 * @return Node|mixed An equivalent scalar PHP value, or $value if it cannot be resolved
 	 */
-	protected function resolveValue( $value ) {
+	protected function resolveValue( mixed $value ): mixed {
 		if ( !$value instanceof Node ) {
 			return $value;
 		}
@@ -940,7 +940,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Node|mixed $node
 	 */
-	protected function getCtxN( $node ): ContextNode {
+	protected function getCtxN( mixed $node ): ContextNode {
 		return new ContextNode(
 			$this->code_base,
 			$this->context,
@@ -1446,7 +1446,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Node|mixed $node The thingy from AST expected to be a Callable
 	 */
-	protected function getCallableFromNode( $node ): ?FunctionInterface {
+	protected function getCallableFromNode( mixed $node ): ?FunctionInterface {
 		if ( is_string( $node ) ) {
 			// Easy case, 'Foo::Bar'
 			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
@@ -1600,7 +1600,7 @@ trait TaintednessBaseVisitor {
 	 */
 	public function maybeEmitIssueSimplified(
 		Taintedness $lhsTaint,
-		$rhsElement,
+		mixed $rhsElement,
 		string $msg,
 		array $params = []
 	): void {
@@ -2046,7 +2046,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $argArrayNode
 	 * @return array<Node|mixed>|null
 	 */
-	private static function extractArrayArgs( $argArrayNode ): ?array {
+	private static function extractArrayArgs( mixed $argArrayNode ): ?array {
 		if ( !( $argArrayNode instanceof Node ) || $argArrayNode->kind !== \ast\AST_ARRAY ) {
 			return null;
 		}
@@ -2340,9 +2340,8 @@ trait TaintednessBaseVisitor {
 				// This function can be called in three different ways:
 				// - implode( $string, $array ) -> joins elements in $array using $string
 				// - implode( $array ) -> joins elements in $array using the empty string
-				// - implode( $array, $string ) -> same as the first one but inverted params, deprecated in PHP 7.4,
-				//   removed in PHP 8
-				// TODO: Right now we don't support the deprecated syntax; should we?
+				// - implode( $array, $string ) -> same as the first one but inverted params, removed in PHP 8,
+				// not supported here
 				if ( isset( $preserveArgumentsData[0] ) ) {
 					$joinerTaint = $preserveArgumentsData[0][0]->asCollapsed();
 					$joinerLinks = MethodLinks::emptySingleton();
@@ -2731,7 +2730,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $lhs Either a Node or a scalar
 	 * @param Node|mixed $rhs Either a Node or a scalar
 	 */
-	protected function getBinOpTaintMask( Node $opNode, $lhs, $rhs ): int {
+	protected function getBinOpTaintMask( Node $opNode, mixed $lhs, mixed $rhs ): int {
 		static $safeBinOps = [
 			\ast\flags\BINARY_BOOL_XOR,
 			\ast\flags\BINARY_DIV,
@@ -2821,7 +2820,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it an array?
 	 */
-	protected function nodeIsArray( $node ): bool {
+	protected function nodeIsArray( mixed $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return false;
@@ -2840,7 +2839,7 @@ trait TaintednessBaseVisitor {
 	 *
 	 * @param Node|mixed $node
 	 */
-	protected function nodeCanBeArray( $node ): bool {
+	protected function nodeCanBeArray( mixed $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			return is_array( $node );
 		}
@@ -2860,7 +2859,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node|mixed $node A node object or simple value from AST tree
 	 * @return bool Is it a string?
 	 */
-	protected function nodeCanBeString( $node ): bool {
+	protected function nodeCanBeString( mixed $node ): bool {
 		if ( !( $node instanceof Node ) ) {
 			// simple literal
 			return is_string( $node );
@@ -2902,9 +2901,9 @@ trait TaintednessBaseVisitor {
 	 * @return bool Is it an int?
 	 * @fixme A lot of duplication with other similar methods...
 	 */
-	protected function nodeCanBeIntKey( $node ): bool {
+	protected function nodeCanBeIntKey( mixed $node ): bool {
 		if ( !( $node instanceof Node ) ) {
-			// simple number; make sure to include float here for PHP 8.1 compat: T307504
+			// simple number; floats are autocast to integers (with a warning)
 			if ( is_int( $node ) || is_float( $node ) ) {
 				return true;
 			}

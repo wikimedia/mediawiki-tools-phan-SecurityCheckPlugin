@@ -292,7 +292,7 @@ class Taintedness {
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param Taintedness $value
 	 */
-	public function withAddedOffsetTaintedness( $offset, self $value ): self {
+	public function withAddedOffsetTaintedness( mixed $offset, self $value ): self {
 		$ret = clone $this;
 
 		if ( is_scalar( $offset ) ) {

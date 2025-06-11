@@ -242,9 +242,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @note AST_THROW is an expression since PHP 8
-	 */
 	public function visitThrow( Node $node ): void {
 		$this->setCurTaintSafe();
 		$this->setCachedData( $node );
@@ -408,7 +405,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 */
 	private function doVisitAssign(
 		Node $lhs,
-		$rhs,
+		mixed $rhs,
 		Taintedness $rhsTaint,
 		CausedByLines $rhsError,
 		MethodLinks $rhsLinks,

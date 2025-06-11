@@ -378,7 +378,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *  statement is an array literal.
 	 * @param Node|mixed $node Node from ast tree
 	 */
-	private function handleGetQueryInfoReturn( $node ): void {
+	private function handleGetQueryInfoReturn( mixed $node ): void {
 		if (
 			!( $node instanceof Node ) ||
 			$node->kind !== \ast\AST_ARRAY
@@ -539,7 +539,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *  IGNORE INDEX ditto
 	 * @param Node|mixed $node The node from the AST tree
 	 */
-	private function checkSQLOptions( $node ): void {
+	private function checkSQLOptions( mixed $node ): void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -588,7 +588,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node|mixed $node
 	 */
-	private function checkJoinCond( $node ): void {
+	private function checkJoinCond( mixed $node ): void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -713,7 +713,7 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Node|mixed $node
 	 * @param string $hookName
 	 */
-	private function getCallableFromHookRegistration( $node, string $hookName ): ?FunctionInterface {
+	private function getCallableFromHookRegistration( mixed $node, string $hookName ): ?FunctionInterface {
 		// "wfSomething", "Class::Method", closure
 		if ( !$node instanceof Node || $node->kind === \ast\AST_CLOSURE ) {
 			return $this->getCallableFromNode( $node );
