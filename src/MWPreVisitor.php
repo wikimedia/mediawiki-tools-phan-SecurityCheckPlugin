@@ -147,9 +147,6 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitAssign( Node $node ): void {
 		parent::visitAssign( $node );
 

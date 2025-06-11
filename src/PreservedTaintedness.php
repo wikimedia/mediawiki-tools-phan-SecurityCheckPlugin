@@ -22,16 +22,10 @@ class PreservedTaintedness {
 	 */
 	private $unknownDimsTaint;
 
-	/**
-	 * @param ParamLinksOffsets $offsets
-	 */
 	public function __construct( ParamLinksOffsets $offsets ) {
 		$this->ownOffsets = $offsets;
 	}
 
-	/**
-	 * @return self
-	 */
 	public static function emptySingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
@@ -45,7 +39,6 @@ class PreservedTaintedness {
 	 *
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param self $value
-	 * @return self
 	 */
 	public function withOffsetTaintedness( $offset, self $value ): self {
 		$ret = clone $this;
@@ -67,7 +60,6 @@ class PreservedTaintedness {
 
 	/**
 	 * @param self $other
-	 * @return self
 	 * @suppress PhanUnreferencedPublicMethod Kept for consistency
 	 */
 	public function asMergedWith( self $other ): self {
@@ -104,10 +96,6 @@ class PreservedTaintedness {
 		return $ret;
 	}
 
-	/**
-	 * @param Taintedness $argTaint
-	 * @return Taintedness
-	 */
 	public function asTaintednessForArgument( Taintedness $argTaint ): Taintedness {
 		$safeTaint = Taintedness::safeSingleton();
 		if ( $argTaint === $safeTaint || $this === self::emptySingleton() ) {

@@ -125,10 +125,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/** @var TaintednessWithError|null */
 	private $curTaintWithError;
 
-	/**
-	 * @param Node $node
-	 * @return TaintednessWithError
-	 */
 	public function analyzeNodeAndGetTaintedness( Node $node ): TaintednessWithError {
 		assert(
 			!isset( self::INAPPLICABLE_NODES[$node->kind] ),
@@ -184,9 +180,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCurTaintUnknown();
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitClosure( Node $node ): void {
 		// We cannot use getFunctionLikeInScope for closures
 		$closureFQSEN = FullyQualifiedFunctionName::fromClosureInContext( $this->context, $node );
@@ -203,9 +196,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitFuncDecl( Node $node ): void {
 		$func = $this->context->getFunctionLikeInScope( $this->code_base );
 		$this->analyzeFunctionLike( $func );
@@ -221,9 +211,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->analyzeFunctionLike( $method );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitArrowFunc( Node $node ): void {
 		$this->visitClosure( $node );
 	}
@@ -271,9 +258,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitUnset( Node $node ): void {
 		$varNode = $node->children['var'];
 		if ( $varNode instanceof Node && $varNode->kind === \ast\AST_DIM ) {
@@ -285,7 +269,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * Analyzes expressions like unset( $arr['foo'] ) to infer shape mutations.
 	 * @param Node $node
-	 * @return void
 	 */
 	private function handleUnsetDim( Node $node ): void {
 		$expr = $node->children['expr'];
@@ -325,9 +308,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		self::setTaintednessRaw( $var, $curTaint->withoutKey( $key ) );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitClone( Node $node ): void {
 		$this->curTaintWithError = $this->getTaintedness( $node->children['expr'] );
 		$this->setCachedData( $node );
@@ -397,16 +377,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->ensureTaintednessIsSet( $var );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitAssignRef( Node $node ): void {
 		$this->visitAssign( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitAssign( Node $node ): void {
 		$lhs = $node->children['var'];
 		if ( !$lhs instanceof Node ) {
@@ -443,7 +417,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param MethodLinks $rhsLinks
 	 * @param Taintedness $errorTaint
 	 * @param MethodLinks $errorLinks
-	 * @return Taintedness
 	 */
 	private function doVisitAssign(
 		Node $lhs,
@@ -470,9 +443,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		return $rhsTaint;
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitBinaryOp( Node $node ): void {
 		$lhs = $node->children['left'];
 		$rhs = $node->children['right'];
@@ -506,7 +476,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * @param Taintedness $rightTaint
 	 * @param int $op Represented by a flags in \ast\flags
 	 * @param int $mask
-	 * @return Taintedness
 	 */
 	private function getBinOpTaint(
 		Taintedness $leftTaint,
@@ -524,9 +493,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		return $leftTaint->asMergedWith( $rightTaint )->asCollapsed()->withOnly( $mask );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitDim( Node $node ): void {
 		$varNode = $node->children['expr'];
 		if ( !$varNode instanceof Node ) {
@@ -552,9 +518,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitPrint( Node $node ): void {
 		$this->visitEcho( $node );
 	}
@@ -587,9 +550,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitIncludeOrEval( Node $node ): void {
 		if ( $node->flags === \ast\flags\EXEC_EVAL ) {
 			$taintValue = SecurityCheckPlugin::CODE_EXEC_TAINT;
@@ -625,11 +585,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 * @param int $sinkTaintInt
-	 * @param string $issueMsg
-	 */
 	private function visitSimpleSinkAndPropagate( Node $node, int $sinkTaintInt, string $issueMsg ): void {
 		if ( !isset( $node->children['expr'] ) ) {
 			return;
@@ -651,16 +606,10 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitStaticCall( Node $node ): void {
 		$this->visitMethodCall( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitNew( Node $node ): void {
 		$ctxNode = $this->getCtxN( $node );
 		if ( !$node->children['class'] instanceof Node ) {
@@ -730,9 +679,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitMethodCall( Node $node ): void {
 		$methodName = $node->children['method'];
 		$isStatic = $node->kind === \ast\AST_STATIC_CALL;
@@ -769,9 +715,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitNullsafeMethodCall( Node $node ): void {
 		$this->visitMethodCall( $node );
 	}
@@ -841,7 +784,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * taintedness (see test closure2).
 	 *
 	 * @param string $varName
-	 * @return Taintedness|null
 	 */
 	private function getHardcodedTaintednessForVar( string $varName ): ?Taintedness {
 		switch ( $varName ) {
@@ -941,10 +883,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 * @param FunctionInterface $func
-	 */
 	private function setFuncTaintFromReturn( Node $node, FunctionInterface $func ): void {
 		assert( $node->kind === \ast\AST_RETURN );
 		$retExpr = $node->children['expr'];
@@ -1006,9 +944,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitArray( Node $node ): void {
 		$curError = CausedByLines::emptySingleton();
 
@@ -1101,17 +1036,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitClassConst( Node $node ): void {
 		$this->setCurTaintSafe();
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitConst( Node $node ): void {
 		// We are going to assume nobody is doing stupid stuff like
 		// define( "foo", $_GET['bar'] );
@@ -1193,9 +1122,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitNullsafeProp( Node $node ): void {
 		$this->visitProp( $node );
 	}
@@ -1216,9 +1142,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitName( Node $node ): void {
 		$this->setCurTaintSafe();
 	}
@@ -1232,9 +1155,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCurTaintSafe();
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitUnaryOp( Node $node ): void {
 		// ~ and @ are the only two unary ops
 		// that can preserve taint (others cast bool or int)
@@ -1250,30 +1170,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitPostInc( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitPreInc( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitPostDec( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitPreDec( Node $node ): void {
 		$this->analyzeIncOrDec( $node );
 	}
@@ -1289,9 +1197,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCachedData( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitCast( Node $node ): void {
 		// Casting between an array and object maintains
 		// taint. Casting an object to a string calls __toString().
@@ -1365,9 +1270,6 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		$this->setCurTaintSafe();
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitMatch( Node $node ): void {
 		$this->curTaintWithError = TaintednessWithError::emptySingleton();
 		// Based on UnionTypeVisitor

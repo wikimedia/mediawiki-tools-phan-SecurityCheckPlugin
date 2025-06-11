@@ -66,9 +66,6 @@ class SingleMethodLinks {
 		return $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function asAllParamsMovedToKeys(): self {
 		$ret = new self;
 		foreach ( $this->params as $i => $offsets ) {
@@ -85,10 +82,6 @@ class SingleMethodLinks {
 		return $this->params;
 	}
 
-	/**
-	 * @param int $x
-	 * @return bool
-	 */
 	public function hasParam( int $x ): bool {
 		return isset( $this->params[$x] );
 	}
@@ -96,7 +89,6 @@ class SingleMethodLinks {
 	/**
 	 * @note This will fail hard if unset.
 	 * @param int $x
-	 * @return ParamLinksOffsets
 	 */
 	public function getParamOffsets( int $x ): ParamLinksOffsets {
 		return $this->params[$x];

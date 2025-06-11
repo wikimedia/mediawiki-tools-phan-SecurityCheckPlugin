@@ -209,9 +209,6 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->handleCall( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	private function handleCall( Node $node ): void {
 		$ctxNode = $this->getCtxN( $node );
 		// @todo Future todo might be to still return arguments when catching an exception.
@@ -275,9 +272,6 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->handleIncOrDec( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	private function handleIncOrDec( Node $node ): void {
 		$children = $node->children;
 		assert( count( $children ) === 1 );

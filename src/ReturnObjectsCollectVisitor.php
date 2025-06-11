@@ -67,9 +67,6 @@ class ReturnObjectsCollectVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->handleVarNode( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	private function handleVarNode( Node $node ): void {
 		$cn = $this->getCtxN( $node );
 		if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
@@ -235,18 +232,12 @@ class ReturnObjectsCollectVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->handleIncOrDec( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	private function handleIncOrDec( Node $node ): void {
 		$children = $node->children;
 		assert( count( $children ) === 1 );
 		$this( reset( $children ) );
 	}
 
-	/**
-	 * @param TypedElementInterface|null $el
-	 */
 	private function handleReturnedObject( ?TypedElementInterface $el ): void {
 		if ( $el ) {
 			$this->buffer[] = $el;

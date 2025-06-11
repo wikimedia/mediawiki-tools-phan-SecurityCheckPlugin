@@ -48,9 +48,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 		$this->visitMethod( $node );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitArrowFunc( Node $node ): void {
 		$this->visitMethod( $node );
 	}

@@ -88,9 +88,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		return $this->rhsIsArray;
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitArray( Node $node ): void {
 		$numKey = 0;
 		foreach ( $node->children as $child ) {
@@ -124,9 +121,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitVar( Node $node ): void {
 		try {
 			$var = $this->getCtxN( $node )->getVariable();
@@ -136,9 +130,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->doAssignmentSingleElement( $var );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitProp( Node $node ): void {
 		try {
 			$prop = $this->getCtxN( $node )->getProperty( false );
@@ -148,9 +139,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this->doAssignmentSingleElement( $prop );
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitStaticProp( Node $node ): void {
 		try {
 			$prop = $this->getCtxN( $node )->getProperty( true );
@@ -183,9 +171,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function visitDim( Node $node ): void {
 		if ( !$node->children['expr'] instanceof Node ) {
 			// Invalid syntax.
@@ -211,9 +196,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 		$this( $node->children['expr'] );
 	}
 
-	/**
-	 * @param TypedElementInterface $variableObj
-	 */
 	private function doAssignmentSingleElement(
 		TypedElementInterface $variableObj
 	): void {

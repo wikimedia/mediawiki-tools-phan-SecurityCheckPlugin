@@ -13,18 +13,10 @@ use Phan\Language\Element\TypedElementInterface;
  * @phan-file-suppress PhanUndeclaredProperty
  */
 trait TaintednessAccessorsTrait {
-	/**
-	 * @param TypedElementInterface $element
-	 * @return Taintedness|null
-	 */
 	protected static function getTaintednessRaw( TypedElementInterface $element ): ?Taintedness {
 		return $element->taintedness ?? null;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @param Taintedness $taintedness
-	 */
 	protected static function setTaintednessRaw( TypedElementInterface $element, Taintedness $taintedness ): void {
 		$element->taintedness = $taintedness;
 		if ( $element instanceof PassByReferenceVariable ) {
@@ -32,34 +24,18 @@ trait TaintednessAccessorsTrait {
 		}
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @return CausedByLines|null
-	 */
 	protected static function getCausedByRaw( TypedElementInterface $element ): ?CausedByLines {
 		return $element->taintedOriginalError ?? null;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @return CausedByLines|null
-	 */
 	protected static function getCausedByRef( TypedElementInterface $element ): ?CausedByLines {
 		return $element->taintedOriginalErrorRef ?? null;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @return FunctionCausedByLines|null
-	 */
 	protected static function getFuncCausedByRaw( FunctionInterface $func ): ?FunctionCausedByLines {
 		return $func->funcTaintedOriginalError ?? null;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @param CausedByLines $lines
-	 */
 	protected static function setCausedByRaw( TypedElementInterface $element, CausedByLines $lines ): void {
 		$element->taintedOriginalError = $lines;
 		if ( $element instanceof PassByReferenceVariable ) {
@@ -67,34 +43,18 @@ trait TaintednessAccessorsTrait {
 		}
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @param CausedByLines $lines
-	 */
 	protected static function setCausedByRef( TypedElementInterface $element, CausedByLines $lines ): void {
 		$element->taintedOriginalErrorRef = $lines;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param FunctionCausedByLines $lines
-	 */
 	protected static function setFuncCausedByRaw( FunctionInterface $func, FunctionCausedByLines $lines ): void {
 		$func->funcTaintedOriginalError = $lines;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @return MethodLinks|null
-	 */
 	protected static function getMethodLinks( TypedElementInterface $element ): ?MethodLinks {
 		return $element->taintedMethodLinks ?? null;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @param MethodLinks $links
-	 */
 	protected static function setMethodLinks( TypedElementInterface $element, MethodLinks $links ): void {
 		$element->taintedMethodLinks = $links;
 		if ( $element instanceof PassByReferenceVariable ) {
@@ -102,51 +62,27 @@ trait TaintednessAccessorsTrait {
 		}
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @return MethodLinks|null
-	 */
 	protected static function getMethodLinksRef( TypedElementInterface $element ): ?MethodLinks {
 		return $element->taintedMethodLinksRef ?? null;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param int $index
-	 * @return VarLinksSet|null
-	 */
 	protected static function getVarLinks( FunctionInterface $func, int $index ): ?VarLinksSet {
 		return $func->taintedVarLinks[$index] ?? null;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @param int $arg
-	 */
 	protected static function ensureVarLinksForArgExist( TypedElementInterface $element, int $arg ): void {
 		$element->taintedVarLinks ??= [];
 		$element->taintedVarLinks[$arg] ??= new VarLinksSet;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @return Taintedness|null
-	 */
 	protected static function getTaintednessRef( TypedElementInterface $element ): ?Taintedness {
 		return $element->taintednessRef ?? null;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 * @param Taintedness $taintedness
-	 */
 	protected static function setTaintednessRef( TypedElementInterface $element, Taintedness $taintedness ): void {
 		$element->taintednessRef = $taintedness;
 	}
 
-	/**
-	 * @param TypedElementInterface $element
-	 */
 	protected static function clearRefData( TypedElementInterface $element ): void {
 		unset( $element->taintednessRef, $element->taintedMethodLinksRef, $element->taintedOriginalErrorRef );
 	}
@@ -155,16 +91,11 @@ trait TaintednessAccessorsTrait {
 	 * Get $func's taint, or null if not set.
 	 *
 	 * @param FunctionInterface $func
-	 * @return FunctionTaintedness|null
 	 */
 	protected static function getFuncTaint( FunctionInterface $func ): ?FunctionTaintedness {
 		return $func->funcTaint ?? null;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param FunctionTaintedness $funcTaint
-	 */
 	protected static function doSetFuncTaint( FunctionInterface $func, FunctionTaintedness $funcTaint ): void {
 		$func->funcTaint = $funcTaint;
 	}
@@ -197,9 +128,6 @@ trait TaintednessAccessorsTrait {
 		}
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 */
 	protected static function initRetObjs( FunctionInterface $func ): void {
 		$funcNode = $func->getNode();
 		if ( $funcNode ) {

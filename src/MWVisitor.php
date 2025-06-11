@@ -238,7 +238,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * Check whether any argument to (inside an array) is a reference.
 	 *
 	 * @param Node $argArrayNode
-	 * @return bool
 	 */
 	private static function hookArgsContainReference( Node $argArrayNode ): bool {
 		foreach ( $argArrayNode->children as $child ) {
@@ -329,10 +328,6 @@ class MWVisitor extends TaintednessVisitor {
 		}
 	}
 
-	/**
-	 * @param string $hookType
-	 * @param FunctionInterface $callback
-	 */
 	private function registerHook( string $hookType, FunctionInterface $callback ): void {
 		$fqsen = $callback->getFQSEN();
 		$alreadyRegistered = MediaWikiHooksHelper::getInstance()->registerHook( $hookType, $fqsen );
@@ -517,7 +512,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * This method can obviously break very easily if the values are changed.
 	 *
 	 * @param int $value
-	 * @return string
 	 */
 	private function literalListConstToName( int $value ): string {
 		switch ( $value ) {
@@ -727,7 +721,6 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node|mixed $node
 	 * @param string $hookName
-	 * @return FunctionInterface|null
 	 */
 	private function getCallableFromHookRegistration( $node, string $hookName ): ?FunctionInterface {
 		// "wfSomething", "Class::Method", closure
@@ -772,11 +765,6 @@ class MWVisitor extends TaintednessVisitor {
 		return null;
 	}
 
-	/**
-	 * @param Node $node
-	 * @param string $methodName
-	 * @return FunctionInterface|null
-	 */
 	private function getSingleCallable( Node $node, string $methodName ): ?FunctionInterface {
 		if ( $node->kind === \ast\AST_VAR && is_string( $node->children['name'] ) ) {
 			return $this->getCallbackForVar( $node, $methodName );
@@ -799,9 +787,8 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node $node The variable
 	 * @param string $defaultMethod If the var is an object, what method to use
-	 * @return FunctionInterface|null
 	 */
-	private function getCallbackForVar( Node $node, $defaultMethod = '' ): ?FunctionInterface {
+	private function getCallbackForVar( Node $node, string $defaultMethod = '' ): ?FunctionInterface {
 		assert( $node->kind === \ast\AST_VAR );
 		$cnode = $this->getCtxN( $node );
 		// Try the class case first, because the callable case might emit issues (about missing __invoke) if executed

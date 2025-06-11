@@ -36,9 +36,6 @@ class Taintedness {
 
 	// Common creation shortcuts
 
-	/**
-	 * @return self
-	 */
 	public static function safeSingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
@@ -47,9 +44,6 @@ class Taintedness {
 		return $singleton;
 	}
 
-	/**
-	 * @return self
-	 */
 	public static function unknownSingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
@@ -58,9 +52,6 @@ class Taintedness {
 		return $singleton;
 	}
 
-	/**
-	 * @return self
-	 */
 	public static function newTainted(): self {
 		return new self( SecurityCheckPlugin::YES_TAINT );
 	}
@@ -69,7 +60,6 @@ class Taintedness {
 	 * @param self[] $dimTaint
 	 * @param self|null $unknownDimsTaint Pass null for performance
 	 * @param int $keysTaint
-	 * @return self
 	 */
 	public static function newFromShape(
 		array $dimTaint,
@@ -94,8 +84,6 @@ class Taintedness {
 	 * Get a numeric representation of the taint stored in this object. This includes own taint,
 	 * array keys and whatnot.
 	 * @note This should almost NEVER be used outside of this class! Use accessors as much as possible!
-	 *
-	 * @return int
 	 */
 	public function get(): int {
 		$ret = $this->flags | $this->getAllKeysTaint() | $this->keysTaint;
@@ -113,7 +101,6 @@ class Taintedness {
 	/**
 	 * Returns a copy of this object where the taintedness of every known key has been reassigned
 	 * to unknown keys.
-	 * @return self
 	 */
 	public function asKnownKeysMadeUnknown(): self {
 		$ret = new self( $this->flags );
@@ -130,8 +117,6 @@ class Taintedness {
 
 	/**
 	 * Recursively extract the taintedness from each key.
-	 *
-	 * @return int
 	 */
 	private function getAllKeysTaint(): int {
 		$ret = SecurityCheckPlugin::NO_TAINT;
@@ -172,7 +157,6 @@ class Taintedness {
 	 * @note If $taint has more than one flag, this will check for at least one, not all.
 	 *
 	 * @param int $taint
-	 * @return bool
 	 */
 	public function has( int $taint ): bool {
 		// Avoid using get() for performance
@@ -224,7 +208,6 @@ class Taintedness {
 	 *
 	 * @param Taintedness $sink
 	 * @param Taintedness $value
-	 * @return self
 	 */
 	public static function intersectForSink( self $sink, self $value ): self {
 		$intersect = new self( SecurityCheckPlugin::NO_TAINT );
@@ -267,7 +250,6 @@ class Taintedness {
 	 * Returns a copy of $this without offset data from all known offsets of $other.
 	 *
 	 * @param Taintedness $other
-	 * @return self
 	 */
 	public function withoutKnownKeysFrom( self $other ): self {
 		$ret = clone $this;
@@ -320,7 +302,6 @@ class Taintedness {
 	 *
 	 * @param Node|mixed $offset Node or a scalar value, already resolved
 	 * @param Taintedness $value
-	 * @return self
 	 */
 	public function withAddedOffsetTaintedness( $offset, self $value ): self {
 		$ret = clone $this;
@@ -338,7 +319,6 @@ class Taintedness {
 	/**
 	 * Returns a copy of $this with the bits in $value added to the taintedness of the keys
 	 * @param int $value
-	 * @return self
 	 */
 	public function withAddedKeysTaintedness( int $value ): self {
 		$ret = clone $this;
@@ -346,11 +326,6 @@ class Taintedness {
 		return $ret;
 	}
 
-	/**
-	 * @param self $other
-	 * @param int $depth
-	 * @return self
-	 */
 	public function asMergedForAssignment( self $other, int $depth ): self {
 		if ( $depth === 0 ) {
 			return $other;
@@ -516,7 +491,6 @@ class Taintedness {
 	 * Returns a copy of $this, array_replace'd with $other.
 	 *
 	 * @param Taintedness $other
-	 * @return self
 	 */
 	public function asArrayReplaceWith( self $other ): self {
 		$ret = clone $this;
@@ -538,7 +512,6 @@ class Taintedness {
 	 * Returns a copy of $this, array_merge'd with $other.
 	 *
 	 * @param Taintedness $other
-	 * @return self
 	 */
 	public function asArrayMergeWith( self $other ): self {
 		$ret = clone $this;
@@ -565,8 +538,6 @@ class Taintedness {
 
 	/**
 	 * Check whether this object has no taintedness.
-	 *
-	 * @return bool
 	 */
 	public function isSafe(): bool {
 		// Don't use get() for performance
@@ -593,8 +564,6 @@ class Taintedness {
 	 * original object. The shape is preserved.
 	 *
 	 * @warning This function is nilpotent: f^2(x) = 0
-	 *
-	 * @return self
 	 */
 	public function asExecToYesTaint(): self {
 		$ret = new self( ( $this->flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1 );
@@ -614,8 +583,6 @@ class Taintedness {
 	 * original object. The shape is preserved.
 	 *
 	 * @warning This function is nilpotent: f^2(x) = 0
-	 *
-	 * @return self
 	 * @suppress PhanUnreferencedPublicMethod For consistency
 	 */
 	public function asYesToExecTaint(): self {
@@ -635,7 +602,6 @@ class Taintedness {
 	 * to avoid the unnecessary overhead of a function call in hot code.
 	 *
 	 * @param int $flags
-	 * @return int
 	 */
 	public static function flagsAsExecToYesTaint( int $flags ): int {
 		return ( $flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
@@ -646,7 +612,6 @@ class Taintedness {
 	 * to avoid the unnecessary overhead of a function call in hot code.
 	 *
 	 * @param int $flags
-	 * @return int
 	 */
 	public static function flagsAsYesToExecTaint( int $flags ): int {
 		return ( $flags & SecurityCheckPlugin::ALL_TAINT ) << 1;
@@ -654,7 +619,6 @@ class Taintedness {
 
 	/**
 	 * @todo This method shouldn't be necessary (ideally)
-	 * @return PreservedTaintedness
 	 */
 	public function asPreservedTaintedness(): PreservedTaintedness {
 		$ret = $this->flags
@@ -699,7 +663,6 @@ class Taintedness {
 
 	/**
 	 * Return a copy of this object with SQL taint added to every SQL_NUMKEY element.
-	 * @return self
 	 */
 	public function withSQLExecAddedToNumkeyExec(): self {
 		$ret = clone $this;
@@ -750,8 +713,6 @@ EOT;
 
 	/**
 	 * Get a stringified representation of this taintedness suitable for the debug annotation
-	 *
-	 * @return string
 	 */
 	public function toShortString(): string {
 		$flags = SecurityCheckPlugin::taintToString( $this->flags );

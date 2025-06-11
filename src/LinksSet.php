@@ -16,9 +16,6 @@ use Phan\Library\Set;
  * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class LinksSet extends Set {
-	/**
-	 * @param self $other
-	 */
 	public function mergeWith( self $other ): void {
 		foreach ( $other as $method ) {
 			if ( $this->contains( $method ) ) {
@@ -29,10 +26,6 @@ class LinksSet extends Set {
 		}
 	}
 
-	/**
-	 * @param LinksSet $other
-	 * @return self
-	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
 		$ret->mergeWith( $other );
@@ -54,9 +47,6 @@ class LinksSet extends Set {
 		return $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function asAllMovedToKeys(): self {
 		$ret = new self;
 		foreach ( $this as $func ) {

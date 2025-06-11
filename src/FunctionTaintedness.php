@@ -36,9 +36,6 @@ class FunctionTaintedness {
 	/** @var int */
 	private $variadicParamFlags = 0;
 
-	/**
-	 * @param Taintedness $overall
-	 */
 	public function __construct( Taintedness $overall, int $overallFlags = 0 ) {
 		$this->overall = $overall;
 		$this->overallFlags = $overallFlags;
@@ -61,16 +58,11 @@ class FunctionTaintedness {
 
 	/**
 	 * Get the overall taint (NOT a clone)
-	 *
-	 * @return Taintedness
 	 */
 	public function getOverall(): Taintedness {
 		return $this->overall;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function canOverrideOverall(): bool {
 		return ( $this->overallFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0;
 	}
@@ -81,7 +73,6 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @param Taintedness $taint
 	 * @param int $flags
-	 * @return self
 	 */
 	public function withParamSinkTaint( int $param, Taintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
@@ -97,7 +88,6 @@ class FunctionTaintedness {
 	 * @param int $param
 	 * @param PreservedTaintedness $taint
 	 * @param int $flags
-	 * @return self
 	 */
 	public function withParamPreservedTaint( int $param, PreservedTaintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
@@ -129,7 +119,6 @@ class FunctionTaintedness {
 	 * Get the sink taintedness of the given param (NOT a clone), and NO_TAINT if not set.
 	 *
 	 * @param int $param
-	 * @return Taintedness
 	 */
 	public function getParamSinkTaint( int $param ): Taintedness {
 		if ( isset( $this->paramSinkTaints[$param] ) ) {
@@ -148,7 +137,6 @@ class FunctionTaintedness {
 	 * Get the preserved taintedness of the given param (NOT a clone), and NO_TAINT if not set.
 	 *
 	 * @param int $param
-	 * @return PreservedTaintedness
 	 */
 	public function getParamPreservedTaint( int $param ): PreservedTaintedness {
 		if ( isset( $this->paramPreserveTaints[$param] ) ) {
@@ -163,10 +151,6 @@ class FunctionTaintedness {
 		return PreservedTaintedness::emptySingleton();
 	}
 
-	/**
-	 * @param int $param
-	 * @return int
-	 */
 	public function getParamFlags( int $param ): int {
 		if ( isset( $this->paramFlags[$param] ) ) {
 			return $this->paramFlags[$param];
@@ -177,39 +161,25 @@ class FunctionTaintedness {
 		return 0;
 	}
 
-	/**
-	 * @param int $param
-	 * @return bool
-	 */
 	public function canOverrideNonVariadicParam( int $param ): bool {
 		return ( ( $this->paramFlags[$param] ?? 0 ) & SecurityCheckPlugin::NO_OVERRIDE ) === 0;
 	}
 
-	/**
-	 * @return Taintedness|null
-	 */
 	public function getVariadicParamSinkTaint(): ?Taintedness {
 		return $this->variadicParamSinkTaint;
 	}
 
 	/**
-	 * @return PreservedTaintedness|null
 	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function getVariadicParamPreservedTaint(): ?PreservedTaintedness {
 		return $this->variadicParamPreserveTaint;
 	}
 
-	/**
-	 * @return int|null
-	 */
 	public function getVariadicParamIndex(): ?int {
 		return $this->variadicParamIndex;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function canOverrideVariadicParam(): bool {
 		return ( $this->variadicParamFlags & SecurityCheckPlugin::NO_OVERRIDE ) === 0;
 	}
@@ -236,7 +206,6 @@ class FunctionTaintedness {
 	 * Check whether we have preserve taint data for the given param
 	 *
 	 * @param int $param
-	 * @return bool
 	 */
 	public function hasParamPreserve( int $param ): bool {
 		if ( isset( $this->paramPreserveTaints[$param] ) ) {
@@ -253,7 +222,6 @@ class FunctionTaintedness {
 	 * where it's set. If the overall taint has UNKNOWN, it's cleared if we're setting it now.
 	 *
 	 * @param self $other
-	 * @return self
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;

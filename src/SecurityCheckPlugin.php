@@ -213,7 +213,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		 * @param bool $varExistsInAllScopes @phan-unused-param
 		 * @suppress PhanUnreferencedClosure, PhanUndeclaredProperty, UnusedSuppression
 		 */
-		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ) {
+		return static function ( Variable $variable, array $scopeList, bool $varExistsInAllScopes ): void {
 			$varName = $variable->getName();
 
 			$vars = [];
@@ -352,7 +352,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * The prefix * means the EXEC version of the taint.
 	 *
 	 * @param int $taint
-	 * @return string
 	 */
 	public static function taintToString( int $taint ): string {
 		if ( $taint === self::NO_TAINT ) {
@@ -417,10 +416,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 		return implode( ', ', $types );
 	}
 
-	/**
-	 * @param FullyQualifiedFunctionLikeName $fqsen
-	 * @return bool
-	 */
 	public function builtinFuncHasTaint( FullyQualifiedFunctionLikeName $fqsen ): bool {
 		return $this->getBuiltinFuncTaint( $fqsen ) !== null;
 	}

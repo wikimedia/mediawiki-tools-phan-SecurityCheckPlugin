@@ -38,7 +38,6 @@ class FunctionCausedByLines {
 	}
 
 	/**
-	 * @return CausedByLines
 	 * @suppress PhanUnreferencedPublicMethod
 	 */
 	public function getGenericLines(): CausedByLines {
@@ -49,7 +48,6 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 * @param ?MethodLinks $links
-	 * @return self
 	 */
 	public function withAddedGenericLines( array $lines, Taintedness $taint, ?MethodLinks $links = null ): self {
 		$ret = clone $this;
@@ -67,7 +65,6 @@ class FunctionCausedByLines {
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @return self
 	 */
 	public function withAddedParamSinkLines( int $param, array $lines, Taintedness $taint ): self {
 		assert( $param !== $this->variadicParamIndex );
@@ -84,7 +81,6 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 * @param ?MethodLinks $links
-	 * @return self
 	 */
 	public function withAddedParamPreservedLines(
 		int $param,
@@ -132,7 +128,6 @@ class FunctionCausedByLines {
 	 * @param int $param
 	 * @param string[] $lines
 	 * @param Taintedness $taint
-	 * @return self
 	 */
 	public function withAddedVariadicParamSinkLines(
 		int $param,
@@ -154,7 +149,6 @@ class FunctionCausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taint
 	 * @param ?MethodLinks $links
-	 * @return self
 	 */
 	public function withAddedVariadicParamPreservedLines(
 		int $param,
@@ -173,10 +167,6 @@ class FunctionCausedByLines {
 		return $ret;
 	}
 
-	/**
-	 * @param int $param
-	 * @return CausedByLines
-	 */
 	public function getParamSinkLines( int $param ): CausedByLines {
 		if ( isset( $this->paramSinkLines[$param] ) ) {
 			return $this->paramSinkLines[$param];
@@ -190,10 +180,6 @@ class FunctionCausedByLines {
 		return CausedByLines::emptySingleton();
 	}
 
-	/**
-	 * @param int $param
-	 * @return CausedByLines
-	 */
 	public function getParamPreservedLines( int $param ): CausedByLines {
 		if ( isset( $this->paramPreservedLines[$param] ) ) {
 			return $this->paramPreservedLines[$param];
@@ -210,7 +196,6 @@ class FunctionCausedByLines {
 	/**
 	 * @param FunctionCausedByLines $other
 	 * @param FunctionTaintedness $funcTaint To check NO_OVERRIDE
-	 * @return self
 	 */
 	public function asMergedWith( self $other, FunctionTaintedness $funcTaint ): self {
 		$ret = clone $this;

@@ -43,9 +43,6 @@ class MediaWikiHooksHelper {
 	/** @var self|null */
 	private static $instance;
 
-	/**
-	 * @return self
-	 */
 	public static function getInstance(): self {
 		if ( !self::$instance ) {
 			self::$instance = new self;
@@ -107,9 +104,6 @@ class MediaWikiHooksHelper {
 		$this->extensionJsonLoaded = true;
 	}
 
-	/**
-	 * @param string $jsonPath
-	 */
 	private function readJsonFile( string $jsonPath ): void {
 		$json = json_decode( file_get_contents( $jsonPath ), true );
 		if ( !is_array( $json ) || !isset( $json['Hooks'] ) || !is_array( $json['Hooks'] ) ) {

@@ -16,11 +16,6 @@ class TaintednessWithError {
 	/** @var MethodLinks */
 	private $methodLinks;
 
-	/**
-	 * @param Taintedness $taintedness
-	 * @param CausedByLines $error
-	 * @param MethodLinks $methodLinks
-	 */
 	public function __construct( Taintedness $taintedness, CausedByLines $error, MethodLinks $methodLinks ) {
 		$this->taintedness = $taintedness;
 		$this->error = $error;
@@ -51,31 +46,18 @@ class TaintednessWithError {
 		return $singleton;
 	}
 
-	/**
-	 * @return Taintedness
-	 */
 	public function getTaintedness(): Taintedness {
 		return $this->taintedness;
 	}
 
-	/**
-	 * @return CausedByLines
-	 */
 	public function getError(): CausedByLines {
 		return $this->error;
 	}
 
-	/**
-	 * @return MethodLinks
-	 */
 	public function getMethodLinks(): MethodLinks {
 		return $this->methodLinks;
 	}
 
-	/**
-	 * @param self $other
-	 * @return self
-	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
 		$ret->taintedness = $ret->taintedness->asMergedWith( $other->taintedness );

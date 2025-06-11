@@ -20,9 +20,6 @@ class ParamLinksOffsets {
 	/** @var int */
 	private $keysFlags = SecurityCheckPlugin::NO_TAINT;
 
-	/**
-	 * @param int $flags
-	 */
 	public function __construct( int $flags ) {
 		$this->ownFlags = $flags;
 	}
@@ -105,9 +102,6 @@ class ParamLinksOffsets {
 		return $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function asMovedToKeys(): self {
 		$ret = new self( SecurityCheckPlugin::NO_TAINT );
 
@@ -123,10 +117,6 @@ class ParamLinksOffsets {
 		return $ret;
 	}
 
-	/**
-	 * @param Taintedness $taintedness
-	 * @return Taintedness
-	 */
 	public function appliedToTaintedness( Taintedness $taintedness ): Taintedness {
 		if ( $this->ownFlags ) {
 			$ret = $taintedness->withOnly( $this->ownFlags );

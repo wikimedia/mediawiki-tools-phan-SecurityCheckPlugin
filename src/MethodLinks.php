@@ -22,16 +22,10 @@ class MethodLinks {
 	/** @var LinksSet|null */
 	private $keysLinks;
 
-	/**
-	 * @param LinksSet|null $links
-	 */
 	public function __construct( ?LinksSet $links = null ) {
 		$this->links = $links ?? new LinksSet();
 	}
 
-	/**
-	 * @return self
-	 */
 	public static function emptySingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
@@ -44,7 +38,6 @@ class MethodLinks {
 	 * @param self[] $dimLinks
 	 * @param self|null $unknownDimLinks Pass null for performance
 	 * @param LinksSet|null $keysLinks
-	 * @return self
 	 */
 	public static function newFromShape(
 		array $dimLinks,
@@ -73,7 +66,6 @@ class MethodLinks {
 	 * @note This returns a clone
 	 * @param mixed $dim
 	 * @param bool $pushOffsets
-	 * @return self
 	 */
 	public function getForDim( $dim, bool $pushOffsets = true ): self {
 		if ( $this === self::emptySingleton() ) {
@@ -114,9 +106,6 @@ class MethodLinks {
 		return $pushOffsets ? $ret->withAddedOffset( $dim ) : $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function asValueFirstLevel(): self {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
@@ -131,9 +120,6 @@ class MethodLinks {
 		return $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function asKeyForForeach(): self {
 		$emptySingleton = self::emptySingleton();
 		if ( $this === $emptySingleton ) {
@@ -160,7 +146,6 @@ class MethodLinks {
 	/**
 	 * @param mixed $dim
 	 * @param MethodLinks $links
-	 * @return self
 	 */
 	public function withLinksAtDim( $dim, self $links ): self {
 		$ret = clone $this;
@@ -187,9 +172,6 @@ class MethodLinks {
 		return $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function asCollapsed(): self {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
@@ -208,7 +190,6 @@ class MethodLinks {
 	 * Merge this object with $other, recursively, creating a copy.
 	 *
 	 * @param self $other
-	 * @return self
 	 */
 	public function asMergedWith( self $other ): self {
 		$emptySingleton = self::emptySingleton();
@@ -262,7 +243,6 @@ class MethodLinks {
 
 	/**
 	 * @param Node|mixed $offset
-	 * @return self
 	 */
 	public function withAddedOffset( $offset ): self {
 		$ret = clone $this;
@@ -297,11 +277,6 @@ class MethodLinks {
 		return $ret;
 	}
 
-	/**
-	 * @param self $other
-	 * @param int $depth
-	 * @return self
-	 */
 	public function asMergedForAssignment( self $other, int $depth ): self {
 		if ( $depth === 0 ) {
 			return $other;
@@ -391,8 +366,6 @@ class MethodLinks {
 	/**
 	 * Returns all the links stored in this object as a single LinkSet object, destroying the shape. This should only
 	 * be used when the shape is not relevant.
-	 *
-	 * @return LinksSet
 	 */
 	public function getLinksCollapsing(): LinksSet {
 		$ret = clone $this->links;
@@ -435,9 +408,6 @@ class MethodLinks {
 		return array_unique( $ret, SORT_REGULAR );
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function isEmpty(): bool {
 		if ( count( $this->links ) ) {
 			return false;
@@ -456,11 +426,6 @@ class MethodLinks {
 		return true;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param int $i
-	 * @return bool
-	 */
 	public function hasDataForFuncAndParam( FunctionInterface $func, int $i ): bool {
 		if ( $this->links->contains( $func ) && $this->links[$func]->hasParam( $i ) ) {
 			return true;
@@ -502,11 +467,6 @@ class MethodLinks {
 		return $ret;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param int $param
-	 * @return PreservedTaintedness
-	 */
 	public function asPreservedTaintednessForFuncParam( FunctionInterface $func, int $param ): PreservedTaintedness {
 		$ret = null;
 		if ( $this->links->contains( $func ) ) {
@@ -558,11 +518,6 @@ class MethodLinks {
 		return $ret;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param int $param
-	 * @return self
-	 */
 	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
 		if ( $this === self::emptySingleton() ) {
 			return $this;

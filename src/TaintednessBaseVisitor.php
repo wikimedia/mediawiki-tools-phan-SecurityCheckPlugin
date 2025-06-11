@@ -304,7 +304,6 @@ trait TaintednessBaseVisitor {
 	 * Given a func, if it has a defining func different from itself, return that defining func. Returns null otherwise.
 	 *
 	 * @param FunctionInterface $func
-	 * @return FunctionInterface|null
 	 */
 	private function getDefiningFuncIfDifferent( FunctionInterface $func ): ?FunctionInterface {
 		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
@@ -447,7 +446,6 @@ trait TaintednessBaseVisitor {
 	 * In particular, this does NOT cause $func to be analyzed.
 	 *
 	 * @param FunctionInterface $func
-	 * @return FunctionTaintedness|null
 	 */
 	private function getSetKnownTaintOfFunctionWithoutAnalysis( FunctionInterface $func ): ?FunctionTaintedness {
 		$funcsToTry = $this->getPossibleFuncDefinitions( $func );
@@ -698,7 +696,6 @@ trait TaintednessBaseVisitor {
 	 *
 	 * Only use as a fallback
 	 * @param UnionType $types The types
-	 * @return Taintedness
 	 */
 	protected function getTaintByType( UnionType $types ): Taintedness {
 		// NOTE: This flattens intersection types
@@ -851,7 +848,6 @@ trait TaintednessBaseVisitor {
 	 * Get the taintedness of something from the AST tree.
 	 *
 	 * @param mixed $expr An expression from the AST tree.
-	 * @return TaintednessWithError
 	 */
 	protected function getTaintedness( $expr ): TaintednessWithError {
 		if ( $expr instanceof Node ) {
@@ -866,7 +862,6 @@ trait TaintednessBaseVisitor {
 	 * Give an AST node, find its taint. This always returns a copy.
 	 *
 	 * @param Node $node
-	 * @return TaintednessWithError
 	 * @suppress PhanUndeclaredProperty
 	 */
 	protected function getTaintednessNode( Node $node ): TaintednessWithError {
@@ -898,7 +893,6 @@ trait TaintednessBaseVisitor {
 	 * for existing objects.
 	 *
 	 * @param TypedElementInterface $variableObj
-	 * @return Taintedness
 	 */
 	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ): Taintedness {
 		assert( !$variableObj instanceof FunctionInterface, "This method cannot be used with methods" );
@@ -956,7 +950,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get a property by name in the current scope, failing hard if it cannot be found.
 	 * @param string $propName
-	 * @return Property
 	 */
 	private function getPropInCurrentScopeByName( string $propName ): Property {
 		assert( $this->context->isInClassScope() );
@@ -970,7 +963,6 @@ trait TaintednessBaseVisitor {
 	 * Quick wrapper to get the ContextNode for a node
 	 *
 	 * @param Node|mixed $node
-	 * @return ContextNode
 	 */
 	protected function getCtxN( $node ): ContextNode {
 		return new ContextNode(
@@ -1141,10 +1133,6 @@ trait TaintednessBaseVisitor {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 * @return Property|null
-	 */
 	protected function getPropFromNode( Node $node ): ?Property {
 		try {
 			return $this->getCtxN( $node )->getProperty( $node->kind === \ast\AST_STATIC_PROP );
@@ -1160,7 +1148,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Extract some useful debug data from an exception
 	 * @param Exception $e
-	 * @return string
 	 */
 	protected function getDebugInfo( Exception $e ): string {
 		return $e instanceof IssueException
@@ -1431,7 +1418,6 @@ trait TaintednessBaseVisitor {
 	 * Get the original cause of taint for the given func
 	 *
 	 * @param FunctionInterface $element
-	 * @return FunctionCausedByLines
 	 */
 	private function getCausedByLinesForFunc( FunctionInterface $element ): FunctionCausedByLines {
 		$element = $this->getActualFuncWithCausedBy( $element );
@@ -1443,7 +1429,6 @@ trait TaintednessBaseVisitor {
 	 * returns the defining methods.
 	 *
 	 * @param FunctionInterface $element
-	 * @return FunctionInterface
 	 */
 	private function getActualFuncWithCausedBy( FunctionInterface $element ): FunctionInterface {
 		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $element->getFQSEN() ) ) {
@@ -1460,7 +1445,7 @@ trait TaintednessBaseVisitor {
 	 * @param string $msg debug message
 	 * @codeCoverageIgnore
 	 */
-	public function debug( $method, $msg ): void {
+	public function debug( string $method, string $msg ): void {
 		if ( $this->debugOutput === null ) {
 			$errorOutput = getenv( "SECCHECK_DEBUG" );
 			if ( $errorOutput && $errorOutput !== '-' ) {
@@ -1489,7 +1474,6 @@ trait TaintednessBaseVisitor {
 	 * This is intended for functions that register callbacks.
 	 *
 	 * @param Node|mixed $node The thingy from AST expected to be a Callable
-	 * @return FunctionInterface|null
 	 */
 	protected function getCallableFromNode( $node ): ?FunctionInterface {
 		if ( is_string( $node ) ) {
@@ -1759,7 +1743,6 @@ trait TaintednessBaseVisitor {
 	 * addition to the warning.
 	 *
 	 * @param Taintedness $lhsTaint Must have at least one EXEC flag set
-	 * @return bool
 	 */
 	public function isIssueSuppressedOrFalsePositive( Taintedness $lhsTaint ): bool {
 		assert( $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) );
@@ -2015,7 +1998,6 @@ trait TaintednessBaseVisitor {
 	 * @phan-param array<Node|mixed> $args
 	 * @param bool $computePreserve
 	 * @param TaintednessWithError|null &$result
-	 * @return bool
 	 */
 	private function maybeHandleSpecialCall(
 		FunctionInterface $func,
@@ -2281,7 +2263,6 @@ trait TaintednessBaseVisitor {
 	 * corresponding to that node.
 	 *
 	 * @param Node $node
-	 * @return TypedElementInterface|null
 	 */
 	private function getPassByRefObjFromNode( Node $node ): ?TypedElementInterface {
 		$cn = $this->getCtxN( $node );
@@ -2317,7 +2298,6 @@ trait TaintednessBaseVisitor {
 	 * @param array<array<Taintedness|MethodLinks|CausedByLines>> $preserveArgumentsData Actual taintedness, links and
 	 * caused-by lines of each argument. Literal arguments aren't included here.
 	 * @phan-param array<int,array{0:Taintedness,1:MethodLinks,2:CausedByLines}> $preserveArgumentsData
-	 * @return TaintednessWithError|null
 	 * @suppress PhanUnusedVariable
 	 */
 	private function getHardcodedPreservedTaintForFunc(
@@ -2783,7 +2763,6 @@ trait TaintednessBaseVisitor {
 	 * @param Node $opNode
 	 * @param Node|mixed $lhs Either a Node or a scalar
 	 * @param Node|mixed $rhs Either a Node or a scalar
-	 * @return int
 	 */
 	protected function getBinOpTaintMask( Node $opNode, $lhs, $rhs ): int {
 		static $safeBinOps = [
@@ -2849,7 +2828,6 @@ trait TaintednessBaseVisitor {
 	 * Get the possible UnionType of a node, without emitting issues.
 	 *
 	 * @param Node $node
-	 * @return UnionType|null
 	 */
 	protected function getNodeType( Node $node ): ?UnionType {
 		// Don't emit issues, as this method might be called e.g. on a LHS (see T249647).
@@ -2896,7 +2874,6 @@ trait TaintednessBaseVisitor {
 	 * Can $node potentially be an array?
 	 *
 	 * @param Node|mixed $node
-	 * @return bool
 	 */
 	protected function nodeCanBeArray( $node ): bool {
 		if ( !( $node instanceof Node ) ) {
@@ -2931,7 +2908,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @param TypedElementInterface $el
 	 * @param bool $definitely Whether $el is *definitely* numkey, not just possibly
-	 * @return bool
 	 */
 	protected function elementCanBeNumkey( TypedElementInterface $el, bool $definitely ): bool {
 		$type = $el->getUnionType()->getRealUnionType();
@@ -3035,7 +3011,6 @@ trait TaintednessBaseVisitor {
 	 * @param FullyQualifiedClassName $child
 	 * @param FullyQualifiedClassName $parent
 	 * @param CodeBase $codeBase
-	 * @return bool
 	 */
 	public static function isSubclassOf(
 		FullyQualifiedClassName $child,

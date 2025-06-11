@@ -33,7 +33,6 @@ class CausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taintedness
 	 * @param MethodLinks|null $links
-	 * @return self
 	 */
 	public function withAddedLines( array $lines, Taintedness $taintedness, ?MethodLinks $links = null ): self {
 		if ( $links && $links->isEmpty() ) {
@@ -84,7 +83,6 @@ class CausedByLines {
 	 * @param string[] $lines
 	 * @param Taintedness $taintedness
 	 * @param MethodLinks|null $links
-	 * @return self
 	 */
 	public function asMergedForAssignment(
 		self $rightLines,
@@ -182,7 +180,6 @@ class CausedByLines {
 
 	/**
 	 * @param Taintedness $taintedness
-	 * @return self
 	 * @todo Migrate callers to asPreservedForArgument and drop this.
 	 */
 	public function asIntersectedWithTaintedness( Taintedness $taintedness ): self {
@@ -200,11 +197,6 @@ class CausedByLines {
 		return $ret;
 	}
 
-	/**
-	 * @param FunctionInterface $func
-	 * @param int $param
-	 * @return self
-	 */
 	public function asFilteredForFuncAndParam( FunctionInterface $func, int $param ): self {
 		if ( !$this->lines ) {
 			return $this;
@@ -219,9 +211,6 @@ class CausedByLines {
 		return $ret;
 	}
 
-	/**
-	 * @return self
-	 */
 	public function getLinesForGenericReturn(): self {
 		if ( !$this->lines ) {
 			return $this;
@@ -245,7 +234,6 @@ class CausedByLines {
 	 * @param int $i Parameter index
 	 * @param bool $isSink True when backpropagating method links for a sink (and $taintedness is the taintedness of the
 	 * sink); false when backpropagating variable links (and $taintedness is the new taintedness of the variable).
-	 * @return self
 	 */
 	public function withTaintAddedToMethodArgLinks(
 		Taintedness $taintedness,
@@ -288,7 +276,6 @@ class CausedByLines {
 	/**
 	 * Returns a copy of $this with all taintedness and links moved at the given offset.
 	 * @param Node|mixed $offset
-	 * @return self
 	 */
 	public function asAllMaybeMovedAtOffset( $offset ): self {
 		if ( !$this->lines ) {
@@ -307,7 +294,6 @@ class CausedByLines {
 
 	/**
 	 * Returns a copy of $this with all taintedness and links moved inside keys.
-	 * @return self
 	 */
 	public function asAllMovedToKeys(): self {
 		if ( !$this->lines ) {
@@ -327,7 +313,6 @@ class CausedByLines {
 	/**
 	 * @param Node|mixed $dim
 	 * @param bool $pushOffsetsInLinks
-	 * @return self
 	 */
 	public function getForDim( $dim, bool $pushOffsetsInLinks = true ): self {
 		if ( !$this->lines ) {
@@ -427,7 +412,6 @@ class CausedByLines {
 	 *
 	 * @param self $other
 	 * @param int $dimDepth Only used for assignments; depth of the array index access on the LHS.
-	 * @return self
 	 */
 	public function asMergedWith( self $other, int $dimDepth = 0 ): self {
 		$emptySingleton = self::emptySingleton();
@@ -576,7 +560,6 @@ class CausedByLines {
 	 * @param Taintedness $sinkTaint Must have EXEC flags only.
 	 * @param Taintedness $exprTaint Must have normal flags only.
 	 * @param bool $isSinkError Whether this object refers to a sink (and not the expr)
-	 * @return string
 	 */
 	public function toStringForIssue( Taintedness $sinkTaint, Taintedness $exprTaint, bool $isSinkError ): string {
 		$filteredLines = $this->getRelevantLinesForTaintedness( $sinkTaint, $exprTaint, $isSinkError );
