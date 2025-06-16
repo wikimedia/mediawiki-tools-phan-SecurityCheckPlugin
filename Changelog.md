@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## v6.2.1
+### Internal changes
+* Bumped phan/phan to 5.5.0
+
 ## v6.2.0
 ### New features
 * Support running in PHP 8.4 (fixed spurious errors seen when analyzing `exit`)
