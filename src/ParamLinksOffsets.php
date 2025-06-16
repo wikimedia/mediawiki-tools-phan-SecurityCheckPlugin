@@ -75,9 +75,9 @@ class ParamLinksOffsets {
 
 	/**
 	 * Pushes $offsets to all leaves.
-	 * @param Node|string|int|null $offset
+	 * @param Node|string|int|bool|float|null $offset
 	 */
-	public function withOffsetPushed( $offset ): self {
+	public function withOffsetPushed( mixed $offset ): self {
 		$ret = clone $this;
 
 		foreach ( $ret->dims as $key => $val ) {

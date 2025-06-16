@@ -364,7 +364,7 @@ class Taintedness {
 	 * @param Node|string|int|bool|float|null $offset
 	 * @return self Always a copy
 	 */
-	public function getTaintednessForOffsetOrWhole( $offset ): self {
+	public function getTaintednessForOffsetOrWhole( mixed $offset ): self {
 		if ( !is_scalar( $offset ) ) {
 			return $this->asValueFirstLevel();
 		}
@@ -390,7 +390,7 @@ class Taintedness {
 	 * @param ?int $offsetTaint If available, will be used as key taint
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset, ?int $offsetTaint = null ): self {
+	public function asMaybeMovedAtOffset( mixed $offset, ?int $offsetTaint = null ): self {
 		$ret = new self( SecurityCheckPlugin::NO_TAINT );
 		if ( $offsetTaint !== null ) {
 			$ret->keysTaint = $offsetTaint;
@@ -429,10 +429,10 @@ class Taintedness {
 
 	/**
 	 * Creates a copy of this object without the given key
-	 * @param string|int|bool|float $key
+	 * @param string|int|bool|float|null $key
 	 * @return $this
 	 */
-	public function withoutKey( $key ): self {
+	public function withoutKey( mixed $key ): self {
 		$ret = clone $this;
 		unset( $ret->dimTaint[$key] );
 		if (

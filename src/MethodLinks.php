@@ -252,7 +252,7 @@ class MethodLinks {
 	 * @param LinksSet|null $keyLinks
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( $offset, ?LinksSet $keyLinks = null ): self {
+	public function asMaybeMovedAtOffset( mixed $offset, ?LinksSet $keyLinks = null ): self {
 		$ret = new self;
 		if ( $offset instanceof Node || $offset === null ) {
 			$ret->unknownDimLinks = $this;

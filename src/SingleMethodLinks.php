@@ -56,9 +56,9 @@ class SingleMethodLinks {
 	}
 
 	/**
-	 * @param Node|string|int|null $offset
+	 * @param Node|string|int|bool|float|null $offset
 	 */
-	public function withOffsetPushedToAll( $offset ): self {
+	public function withOffsetPushedToAll( mixed $offset ): self {
 		$ret = clone $this;
 		foreach ( $ret->params as $i => $_ ) {
 			$ret->params[$i] = $ret->params[$i]->withOffsetPushed( $offset );

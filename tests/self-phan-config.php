@@ -24,9 +24,6 @@ return [
 		'PhanTypePossiblyInvalidDimOffset',
 		// Used for function taintedness
 		'PhanPluginMixedKeyNoKey',
-		// TODO: Fix
-		'PhanPluginCanUseUnionParamType',
-		'PhanPluginCanUseUnionReturnType',
 	],
 	'plugins' => [
 		'AlwaysReturnPlugin',

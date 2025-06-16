@@ -525,7 +525,7 @@ class CausedByLines {
 	 * @return false|int False if not a subset, the starting index if it is.
 	 * @note Use strict comparisons with the return value!
 	 */
-	private static function getArraySubsetIdx( array $haystack, array $needle ) {
+	private static function getArraySubsetIdx( array $haystack, array $needle ): bool|int {
 		if ( !$needle || !$haystack ) {
 			// For our needs, the empty array is not a subset of anything
 			return false;

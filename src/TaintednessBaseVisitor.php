@@ -110,7 +110,7 @@ trait TaintednessBaseVisitor {
 	 */
 	private function maybeAddFuncError(
 		FunctionInterface $func,
-		$reason,
+		Context|string|null $reason,
 		FunctionTaintedness $addedTaint,
 		FunctionTaintedness $allNewTaint,
 		?MethodLinks $returnLinks = null
@@ -1632,7 +1632,7 @@ trait TaintednessBaseVisitor {
 		Taintedness $lhsTaint,
 		Taintedness $rhsTaint,
 		string $msg,
-		$msgParamsOrGetter
+		array|Closure $msgParamsOrGetter
 	): void {
 		$rhsIsUnknown = $rhsTaint->has( SecurityCheckPlugin::UNKNOWN_TAINT );
 		if ( $rhsIsUnknown && $lhsTaint->has( SecurityCheckPlugin::ALL_EXEC_TAINT ) ) {
