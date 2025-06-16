@@ -8,6 +8,7 @@ use Phan\AST\ContextNode;
 use Phan\Exception\CodeBaseException;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Exception\IssueException;
+use Phan\Exception\NodeException;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
@@ -765,7 +766,7 @@ class MWVisitor extends TaintednessVisitor {
 			try {
 				$ctor = $cxn->getMethod( '__construct', false, false, true );
 				return $ctor->getClass( $this->code_base )->getMethodByName( $this->code_base, $methodName );
-			} catch ( CodeBaseException $e ) {
+			} catch ( CodeBaseException | NodeException $e ) {
 				// @todo Should probably emit a non-security issue
 				$this->debug( __METHOD__, "Missing hook handle: " . $this->getDebugInfo( $e ) );
 			}

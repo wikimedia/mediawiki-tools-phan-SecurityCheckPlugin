@@ -277,10 +277,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 	): Taintedness {
 		if ( $curArgTaintedness->has( self::ESCAPED_TAINT ) ) {
 			$argumentIsMaybeAMsg = false;
-			/** @var \Phan\Language\Element\Clazz[] $classes */
-			$classes = UnionTypeVisitor::unionTypeFromNode( $code_base, $context, $argument )
-				->asClassList( $code_base, $context );
 			try {
+				/** @var \Phan\Language\Element\Clazz[] $classes */
+				$classes = UnionTypeVisitor::unionTypeFromNode( $code_base, $context, $argument )
+					->asClassList( $code_base, $context );
 				foreach ( $classes as $cl ) {
 					$classFQSEN = $cl->getFQSEN()->__toString();
 					// TODO: drop first check when the `\Message` alias is dropped from MW core.
@@ -298,9 +298,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			if ( !$argumentIsMaybeAMsg || !$param || !$param->getUnionType()->hasStringType() ) {
 				return $curArgTaintedness;
 			}
-			/** @var \Phan\Language\Element\Clazz[] $classesParam */
-			$classesParam = $param->getUnionType()->asClassList( $code_base, $context );
 			try {
+				/** @var \Phan\Language\Element\Clazz[] $classesParam */
+				$classesParam = $param->getUnionType()->asClassList( $code_base, $context );
 				foreach ( $classesParam as $cl ) {
 					$classFQSEN = $cl->getFQSEN()->__toString();
 					// TODO: drop first check when the `\Message` alias is dropped from MW core.

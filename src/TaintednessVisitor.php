@@ -358,7 +358,11 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	 * (upstream has the same limitation with union types).
 	 */
 	public function visitStatic( Node $node ): void {
-		$var = $this->getCtxN( $node->children['var'] )->getVariable();
+		try {
+			$var = $this->getCtxN( $node->children['var'] )->getVariable();
+		} catch ( NodeException $e ) {
+			$this->debug( __METHOD__, "Can't figure out static variable: " . $this->getDebugInfo( $e ) );
+		}
 		$this->ensureTaintednessIsSet( $var );
 	}
 

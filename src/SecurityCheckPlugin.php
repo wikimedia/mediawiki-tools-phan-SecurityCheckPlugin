@@ -24,8 +24,8 @@ namespace SecurityCheckPlugin;
 
 use ast\Node;
 use Closure;
-use Error;
 use InvalidArgumentException;
+use LogicException;
 use Phan\CodeBase;
 use Phan\Config;
 use Phan\Language\Context;
@@ -490,18 +490,18 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 */
 	private static function assertFunctionTaintArrayWellFormed( array $taint ): void {
 		if ( !isset( $taint['overall'] ) ) {
-			throw new Error( 'Overall taint must be set' );
+			throw new LogicException( 'Overall taint must be set' );
 		}
 
 		foreach ( $taint as $i => $t ) {
 			if ( !is_int( $i ) && $i !== 'overall' ) {
-				throw new Error( "Taint indexes must be int or 'overall', got '$i'" );
+				throw new LogicException( "Taint indexes must be int or 'overall', got '$i'" );
 			}
 			if ( !is_int( $t ) || ( $t & ~self::ALL_TAINT_FLAGS ) ) {
-				throw new Error( "Wrong taint index $i, got: " . var_export( $t, true ) );
+				throw new LogicException( "Wrong taint index $i, got: " . var_export( $t, true ) );
 			}
 			if ( $t & ~self::ALL_TAINT_FLAGS ) {
-				throw new Error( "Taint index $i has unknown flags: " . decbin( $t ) );
+				throw new LogicException( "Taint index $i has unknown flags: " . decbin( $t ) );
 			}
 		}
 	}

@@ -34,6 +34,7 @@ use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
 use Phan\Library\Set;
+use RuntimeException;
 
 /**
  * Trait for the Tainedness visitor subclasses. Mostly contains
@@ -346,7 +347,14 @@ trait TaintednessBaseVisitor {
 						// TODO Assuming this is a direct invocation, but it doesn't always make sense
 						$directInvocation = true;
 						if ( $nonParent->hasMethodWithName( $this->code_base, $func->getName(), $directInvocation ) ) {
-							yield $nonParent->getMethodByName( $this->code_base, $func->getName() );
+							try {
+								yield $nonParent->getMethodByName( $this->code_base, $func->getName() );
+							} catch ( CodeBaseException $e ) {
+								$this->debug(
+									__METHOD__,
+									"Can't find func definition for $func in $nonParent: " . $this->getDebugInfo( $e )
+								);
+							}
 						}
 					}
 				}
@@ -929,7 +937,11 @@ trait TaintednessBaseVisitor {
 	 */
 	private function getPropInCurrentScopeByName( string $propName ): Property {
 		assert( $this->context->isInClassScope() );
-		$clazz = $this->context->getClassInScope( $this->code_base );
+		try {
+			$clazz = $this->context->getClassInScope( $this->code_base );
+		} catch ( CodeBaseException $e ) {
+			throw new RuntimeException( 'Cannot find class in scope: ' . $this->getDebugInfo( $e ) );
+		}
 
 		assert( $clazz->hasPropertyWithName( $this->code_base, $propName ) );
 		return $clazz->getPropertyByName( $this->code_base, $propName );

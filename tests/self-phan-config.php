@@ -44,5 +44,16 @@ return [
 		'UnusedSuppressionPlugin',
 		'UseReturnValuePlugin',
 	],
-	'redundant_condition_detection' => true
+	'redundant_condition_detection' => true,
+	'warn_about_undocumented_throw_statements' => true,
+	'warn_about_undocumented_exceptions_thrown_by_invoked_functions' => true,
+	'exception_classes_with_optional_throws_phpdoc' => [
+		// Taken from phan's own config.php
+		'LogicException',
+		'RuntimeException',
+		'AssertionError',
+		'Phan\Exception\IssueException',
+		// We create a few known FQSENs manually in MW mode.
+		'Phan\Exception\FQSENException',
+	],
 ];
