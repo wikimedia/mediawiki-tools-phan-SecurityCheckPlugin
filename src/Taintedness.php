@@ -92,7 +92,6 @@ class Taintedness {
 
 	/**
 	 * Get a flattened version of this object, with any taint from keys etc. collapsed into flags
-	 * @return $this
 	 */
 	public function asCollapsed(): self {
 		return new self( $this->get() );
@@ -131,8 +130,6 @@ class Taintedness {
 	/**
 	 * Returns a copy of this object, with the bits in $other added to flags.
 	 * @see Taintedness::asMergedWith() if you want to preserve the whole shape
-	 *
-	 * @return $this
 	 */
 	public function with( int $other ): self {
 		$ret = clone $this;
@@ -143,8 +140,6 @@ class Taintedness {
 
 	/**
 	 * Returns a copy of this object, with the bits in $other removed recursively.
-	 *
-	 * @return $this
 	 */
 	public function without( int $other ): self {
 		return $this->withOnly( ~$other );
@@ -175,8 +170,6 @@ class Taintedness {
 
 	/**
 	 * Returns a copy of this object, with only the taint in $taint kept (recursively, preserving the shape)
-	 *
-	 * @return $this
 	 */
 	public function withOnly( int $other ): self {
 		$ret = clone $this;
@@ -260,8 +253,6 @@ class Taintedness {
 
 	/**
 	 * Merge this object with $other, recursively, creating a copy.
-	 *
-	 * @return $this
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;
@@ -336,8 +327,6 @@ class Taintedness {
 
 	/**
 	 * Apply the effect of array addition and return a clone of $this
-	 *
-	 * @return $this
 	 */
 	public function asArrayPlusWith( self $other ): self {
 		$ret = clone $this;
@@ -413,8 +402,6 @@ class Taintedness {
 	 * Get a representation of this taint at the first depth level. For instance, this can be used in a foreach
 	 * assignment for the value. Own taint and unknown keys taint are preserved, and then we merge in recursively
 	 * all the current keys.
-	 *
-	 * @return $this
 	 */
 	public function asValueFirstLevel(): self {
 		$ret = new self( $this->flags & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
@@ -430,7 +417,6 @@ class Taintedness {
 	/**
 	 * Creates a copy of this object without the given key
 	 * @param string|int|bool|float|null $key
-	 * @return $this
 	 */
 	public function withoutKey( mixed $key ): self {
 		$ret = clone $this;
@@ -449,7 +435,6 @@ class Taintedness {
 
 	/**
 	 * Creates a copy of this object without known offsets, and without keysTaint
-	 * @return $this
 	 */
 	public function withoutKeys(): self {
 		$ret = clone $this;
@@ -467,8 +452,6 @@ class Taintedness {
 
 	/**
 	 * Get a representation of this taint to be used in a foreach assignment for the key
-	 *
-	 * @return $this
 	 */
 	public function asKeyForForeach(): self {
 		return new self( ( $this->keysTaint | $this->flags ) & ~SecurityCheckPlugin::SQL_NUMKEY_TAINT );
