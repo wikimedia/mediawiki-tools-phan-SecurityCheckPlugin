@@ -69,10 +69,6 @@ class FunctionTaintedness {
 
 	/**
 	 * Set the sink taint for a given param
-	 *
-	 * @param int $param
-	 * @param Taintedness $taint
-	 * @param int $flags
 	 */
 	public function withParamSinkTaint( int $param, Taintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
@@ -84,10 +80,6 @@ class FunctionTaintedness {
 
 	/**
 	 * Set the preserved taint for a given param
-	 *
-	 * @param int $param
-	 * @param PreservedTaintedness $taint
-	 * @param int $flags
 	 */
 	public function withParamPreservedTaint( int $param, PreservedTaintedness $taint, int $flags = 0 ): self {
 		$ret = clone $this;
@@ -117,8 +109,6 @@ class FunctionTaintedness {
 
 	/**
 	 * Get the sink taintedness of the given param (NOT a clone), and NO_TAINT if not set.
-	 *
-	 * @param int $param
 	 */
 	public function getParamSinkTaint( int $param ): Taintedness {
 		if ( isset( $this->paramSinkTaints[$param] ) ) {
@@ -135,8 +125,6 @@ class FunctionTaintedness {
 
 	/**
 	 * Get the preserved taintedness of the given param (NOT a clone), and NO_TAINT if not set.
-	 *
-	 * @param int $param
 	 */
 	public function getParamPreservedTaint( int $param ): PreservedTaintedness {
 		if ( isset( $this->paramPreserveTaints[$param] ) ) {
@@ -204,8 +192,6 @@ class FunctionTaintedness {
 
 	/**
 	 * Check whether we have preserve taint data for the given param
-	 *
-	 * @param int $param
 	 */
 	public function hasParamPreserve( int $param ): bool {
 		if ( isset( $this->paramPreserveTaints[$param] ) ) {
@@ -220,8 +206,6 @@ class FunctionTaintedness {
 	/**
 	 * Merge this object with another. This respects NO_OVERRIDE, since it doesn't touch any element
 	 * where it's set. If the overall taint has UNKNOWN, it's cleared if we're setting it now.
-	 *
-	 * @param self $other
 	 */
 	public function asMergedWith( self $other ): self {
 		$ret = clone $this;

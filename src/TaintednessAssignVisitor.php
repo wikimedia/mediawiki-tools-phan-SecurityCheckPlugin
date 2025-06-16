@@ -151,8 +151,6 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	/**
 	 * If we're assigning an SQL tainted value as an array key
 	 * or as the value of a numeric key, then set NUMKEY taint.
-	 *
-	 * @param Node $dimLHS
 	 */
 	private function maybeAddNumkeyOnAssignmentLHS( Node $dimLHS ): void {
 		if ( $this->rightTaint->has( SecurityCheckPlugin::SQL_NUMKEY_TAINT ) ) {

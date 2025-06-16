@@ -34,7 +34,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 
 	/**
 	 * @see visitMethod
-	 * @param Node $node
 	 */
 	public function visitFuncDecl( Node $node ): void {
 		$this->visitMethod( $node );
@@ -42,7 +41,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 
 	/**
 	 * @see visitMethod
-	 * @param Node $node
 	 */
 	public function visitClosure( Node $node ): void {
 		$this->visitMethod( $node );
@@ -63,7 +61,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * to output a warning.
 	 *
 	 * Also handles FuncDecl and Closure
-	 * @param Node $node
 	 */
 	public function visitMethod( Node $node ): void {
 		// var_dump( __METHOD__ ); Debug::printNode( $node );
@@ -121,8 +118,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 	 * in preorder because phan infers types from operators, e.g. from `$a += $b` phan will infer
 	 * that they're both numbers. We need to use the types of the operands *before* inferring
 	 * types from the operator.
-	 *
-	 * @param Node $node
 	 */
 	public function visitAssignOp( Node $node ): void {
 		$lhs = $node->children['var'];
@@ -133,7 +128,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 
 	/**
 	 * When a class property is declared
-	 * @param Node $node
 	 */
 	public function visitPropElem( Node $node ): void {
 		$prop = $this->getPropInCurrentScopeByName( $node->children['name'] );

@@ -188,8 +188,6 @@ class MethodLinks {
 
 	/**
 	 * Merge this object with $other, recursively, creating a copy.
-	 *
-	 * @param self $other
 	 */
 	public function asMergedWith( self $other ): self {
 		$emptySingleton = self::emptySingleton();

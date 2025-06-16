@@ -80,9 +80,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Merge taintedness of a function/method
-	 *
-	 * @param FunctionInterface $func
-	 * @param FunctionTaintedness $taint
 	 */
 	protected function addFuncTaint( FunctionInterface $func, FunctionTaintedness $taint ): void {
 		$curTaint = self::getFuncTaint( $func );
@@ -96,8 +93,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Ensure a function-like has its taintedness set and not unknown
-	 *
-	 * @param FunctionInterface $func
 	 */
 	protected function ensureFuncTaintIsSet( FunctionInterface $func ): void {
 		if ( !self::getFuncTaint( $func ) ) {
@@ -244,8 +239,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Ensures that the given variable obj has some taintedness set, initializing to safe if it doesn't.
-	 *
-	 * @param TypedElementInterface $varObj
 	 */
 	protected function ensureTaintednessIsSet( TypedElementInterface $varObj ): void {
 		if ( !self::getTaintednessRaw( $varObj ) ) {
@@ -261,10 +254,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Change the taintedness of $variableObj.
-	 *
-	 * @param TypedElementInterface $variableObj
-	 * @param Taintedness $taintedness
-	 * @param bool $override
 	 */
 	private function setTaintedness(
 		TypedElementInterface $variableObj,
@@ -302,8 +291,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Given a func, if it has a defining func different from itself, return that defining func. Returns null otherwise.
-	 *
-	 * @param FunctionInterface $func
 	 */
 	private function getDefiningFuncIfDifferent( FunctionInterface $func ): ?FunctionInterface {
 		if ( $func instanceof Method && $func->hasDefiningFQSEN() ) {
@@ -319,7 +306,6 @@ trait TaintednessBaseVisitor {
 	 * Get a list of places to look for function taint info
 	 *
 	 * @todo How to handle multiple function definitions (phan "alternates")
-	 * @param FunctionInterface $func
 	 * @return Generator<FunctionInterface>
 	 */
 	private function getPossibleFuncDefinitions( FunctionInterface $func ): Generator {
@@ -444,8 +430,6 @@ trait TaintednessBaseVisitor {
 	 * Given a function, find out if it has any hardcoded/annotated taint, or whether it should inherit its taint
 	 * from an alternate definition. If anything was found, set that taintedness in the func object and return it.
 	 * In particular, this does NOT cause $func to be analyzed.
-	 *
-	 * @param FunctionInterface $func
 	 */
 	private function getSetKnownTaintOfFunctionWithoutAnalysis( FunctionInterface $func ): ?FunctionTaintedness {
 		$funcsToTry = $this->getPossibleFuncDefinitions( $func );
@@ -495,8 +479,6 @@ trait TaintednessBaseVisitor {
 	 * @todo We should implement our own perf checks, e.g. if the method as already called with
 	 * the same taintedness, taint links, etc. for all params.
 	 * @see \Phan\Analysis\Analyzable::analyze()
-	 *
-	 * @param FunctionInterface $func
 	 */
 	public function analyzeFunc( FunctionInterface $func ): void {
 		$fqsenStr = $func->getFQSEN()->__toString();
@@ -791,7 +773,6 @@ trait TaintednessBaseVisitor {
 	 * Get what taint types are allowed on a typed element (i.e. use its type to rule out
 	 * impossible taint types).
 	 *
-	 * @param TypedElementInterface $var
 	 * @return Taintedness|null Null means all taints, checking for null is faster than ORing
 	 */
 	protected function getTaintMaskForTypedElement( TypedElementInterface $var ): ?Taintedness {
@@ -810,7 +791,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Get what taint types are allowed on an element with the given type.
 	 *
-	 * @param UnionType $type
 	 * @return Taintedness|null Null for all flags
 	 */
 	protected function getTaintMaskForType( UnionType $type ): ?Taintedness {
@@ -827,7 +807,6 @@ trait TaintednessBaseVisitor {
 	 * have no taint, but it may become tainted depending on the argument.
 	 * @todo Ensure this won't miss any case (aside from when phan infers a wrong real type)
 	 *
-	 * @param TypedElementInterface $el
 	 * @return Taintedness|null Null for all taints
 	 */
 	protected function getPossibleFutureTaintOfElement( TypedElementInterface $el ): ?Taintedness {
@@ -891,8 +870,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given a phan object (not method/function) find its taint. This always returns a copy
 	 * for existing objects.
-	 *
-	 * @param TypedElementInterface $variableObj
 	 */
 	protected function getTaintednessPhanObj( TypedElementInterface $variableObj ): Taintedness {
 		assert( !$variableObj instanceof FunctionInterface, "This method cannot be used with methods" );
@@ -949,7 +926,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Get a property by name in the current scope, failing hard if it cannot be found.
-	 * @param string $propName
 	 */
 	private function getPropInCurrentScopeByName( string $propName ): Property {
 		assert( $this->context->isInClassScope() );
@@ -1147,7 +1123,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Extract some useful debug data from an exception
-	 * @param Exception $e
 	 */
 	protected function getDebugInfo( Exception $e ): string {
 		return $e instanceof IssueException
@@ -1416,8 +1391,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Get the original cause of taint for the given func
-	 *
-	 * @param FunctionInterface $element
 	 */
 	private function getCausedByLinesForFunc( FunctionInterface $element ): FunctionCausedByLines {
 		$element = $this->getActualFuncWithCausedBy( $element );
@@ -1427,8 +1400,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given a phan element, get the actual element where caused-by data is stored. For instance, for methods, this
 	 * returns the defining methods.
-	 *
-	 * @param FunctionInterface $element
 	 */
 	private function getActualFuncWithCausedBy( FunctionInterface $element ): FunctionInterface {
 		if ( SecurityCheckPlugin::$pluginInstance->builtinFuncHasTaint( $element->getFQSEN() ) ) {
@@ -2092,8 +2063,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @todo This should possibly be part of the public interface upstream
 	 * @see \Phan\Analysis\ArgumentType::analyzeParameterListForCallback
-	 * @param Node $argument
-	 * @param FunctionInterface $func
 	 * @return array
 	 * @phan-return array{0:int|null,1:Node|mixed,2:?string}
 	 */
@@ -2261,8 +2230,6 @@ trait TaintednessBaseVisitor {
 	/**
 	 * Given the node of an argument that is passed by reference, return a list of phan objects
 	 * corresponding to that node.
-	 *
-	 * @param Node $node
 	 */
 	private function getPassByRefObjFromNode( Node $node ): ?TypedElementInterface {
 		$cn = $this->getCtxN( $node );
@@ -2826,8 +2793,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Get the possible UnionType of a node, without emitting issues.
-	 *
-	 * @param Node $node
 	 */
 	protected function getNodeType( Node $node ): ?UnionType {
 		// Don't emit issues, as this method might be called e.g. on a LHS (see T249647).
@@ -3007,10 +2972,6 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Shorthand to check if $child is subclass of $parent.
-	 *
-	 * @param FullyQualifiedClassName $child
-	 * @param FullyQualifiedClassName $parent
-	 * @param CodeBase $codeBase
 	 */
 	public static function isSubclassOf(
 		FullyQualifiedClassName $child,

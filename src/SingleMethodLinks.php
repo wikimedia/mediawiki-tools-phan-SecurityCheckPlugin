@@ -88,7 +88,6 @@ class SingleMethodLinks {
 
 	/**
 	 * @note This will fail hard if unset.
-	 * @param int $x
 	 */
 	public function getParamOffsets( int $x ): ParamLinksOffsets {
 		return $this->params[$x];

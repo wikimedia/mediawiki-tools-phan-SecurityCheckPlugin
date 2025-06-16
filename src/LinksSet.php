@@ -8,6 +8,7 @@ use Phan\Library\Set;
 /**
  * Convenience class for better type inference.
  *
+ * @inherits Set<\Phan\Language\Element\FunctionInterface>
  * @method SingleMethodLinks offsetGet( \Phan\Language\Element\FunctionInterface $object )
  * @method offsetSet( \Phan\Language\Element\FunctionInterface $object, SingleMethodLinks $data )
  * @method void attach(FunctionInterface $object, SingleMethodLinks $data)

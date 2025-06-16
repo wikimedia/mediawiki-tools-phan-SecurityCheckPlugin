@@ -89,8 +89,6 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * Linker::makeExternalLink escaping depends on third argument
-	 *
-	 * @param Node $node
 	 */
 	private function checkExternalLink( Node $node ): void {
 		$escapeArg = $this->resolveValue( $node->children['args']->children[2] ?? true );
@@ -236,8 +234,6 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * Check whether any argument to (inside an array) is a reference.
-	 *
-	 * @param Node $argArrayNode
 	 */
 	private static function hookArgsContainReference( Node $argArrayNode ): bool {
 		foreach ( $argArrayNode->children as $child ) {
@@ -253,7 +249,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * ClosureReturnTypeOverridePlugin::extractArrayArgs (which is private)
 	 * and simplified for our use case.
 	 *
-	 * @param Node $argArrayNode
 	 * @return Node[]
 	 */
 	private function extractHookArgs( Node $argArrayNode ): array {
@@ -343,7 +338,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * For special hooks, check their return value
 	 *
 	 * e.g. A tag hook's return value is output as html.
-	 * @param Node $node
 	 */
 	public function visitReturn( Node $node ): void {
 		parent::visitReturn( $node );
@@ -438,7 +432,6 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * Special cased because the second arg totally changes
 	 * how this function is interpreted.
-	 * @param Node $node
 	 */
 	private function checkMakeList( Node $node ): void {
 		$args = $node->children['args'];
@@ -510,8 +503,6 @@ class MWVisitor extends TaintednessVisitor {
 	 * Convert a literal int value for a LIST_* constant to its name. This is a horrible hack for crappy code
 	 * that uses the constants literally rather than by name. Such code shouldn't deserve taint analysis.
 	 * This method can obviously break very easily if the values are changed.
-	 *
-	 * @param int $value
 	 */
 	private function literalListConstToName( int $value ): string {
 		switch ( $value ) {
@@ -865,8 +856,6 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * Special implementation of visitArray to detect HTMLForm specifiers
-	 *
-	 * @param Node $node
 	 */
 	private function detectHTMLForm( Node $node ): void {
 		// Try to immediately filter out things that certainly aren't HTMLForms
@@ -1141,8 +1130,6 @@ class MWVisitor extends TaintednessVisitor {
 
 	/**
 	 * Try to detect HTMLForm specifiers
-	 *
-	 * @param Node $node
 	 */
 	public function visitArray( Node $node ): void {
 		parent::visitArray( $node );

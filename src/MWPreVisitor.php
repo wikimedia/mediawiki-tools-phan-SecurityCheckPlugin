@@ -29,7 +29,6 @@ class MWPreVisitor extends PreTaintednessVisitor {
 	 * Set taint for certain hook types.
 	 *
 	 * Also handles FuncDecl
-	 * @param Node $node
 	 */
 	public function visitMethod( Node $node ): void {
 		parent::visitMethod( $node );

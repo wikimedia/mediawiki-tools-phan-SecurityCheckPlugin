@@ -89,8 +89,6 @@ trait TaintednessAccessorsTrait {
 
 	/**
 	 * Get $func's taint, or null if not set.
-	 *
-	 * @param FunctionInterface $func
 	 */
 	protected static function getFuncTaint( FunctionInterface $func ): ?FunctionTaintedness {
 		return $func->funcTaint ?? null;
@@ -101,7 +99,6 @@ trait TaintednessAccessorsTrait {
 	}
 
 	/**
-	 * @param FunctionInterface $func
 	 * @return TypedElementInterface[]|null
 	 */
 	protected static function getRetObjs( FunctionInterface $func ): ?array {

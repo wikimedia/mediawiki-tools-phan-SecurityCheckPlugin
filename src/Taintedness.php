@@ -132,7 +132,6 @@ class Taintedness {
 	 * Returns a copy of this object, with the bits in $other added to flags.
 	 * @see Taintedness::asMergedWith() if you want to preserve the whole shape
 	 *
-	 * @param int $other
 	 * @return $this
 	 */
 	public function with( int $other ): self {
@@ -145,7 +144,6 @@ class Taintedness {
 	/**
 	 * Returns a copy of this object, with the bits in $other removed recursively.
 	 *
-	 * @param int $other
 	 * @return $this
 	 */
 	public function without( int $other ): self {
@@ -155,8 +153,6 @@ class Taintedness {
 	/**
 	 * Check whether this object has the given flag, recursively.
 	 * @note If $taint has more than one flag, this will check for at least one, not all.
-	 *
-	 * @param int $taint
 	 */
 	public function has( int $taint ): bool {
 		// Avoid using get() for performance
@@ -180,7 +176,6 @@ class Taintedness {
 	/**
 	 * Returns a copy of this object, with only the taint in $taint kept (recursively, preserving the shape)
 	 *
-	 * @param int $other
 	 * @return $this
 	 */
 	public function withOnly( int $other ): self {
@@ -205,9 +200,6 @@ class Taintedness {
 	 * @note The order of the arguments is important! This method preserves the shape of $sink, not $value.
 	 *
 	 * @note The order of the arguments is important! This method preserves the shape of $sink, not $value.
-	 *
-	 * @param Taintedness $sink
-	 * @param Taintedness $value
 	 */
 	public static function intersectForSink( self $sink, self $value ): self {
 		$intersect = new self( SecurityCheckPlugin::NO_TAINT );
@@ -248,8 +240,6 @@ class Taintedness {
 
 	/**
 	 * Returns a copy of $this without offset data from all known offsets of $other.
-	 *
-	 * @param Taintedness $other
 	 */
 	public function withoutKnownKeysFrom( self $other ): self {
 		$ret = clone $this;
@@ -271,7 +261,6 @@ class Taintedness {
 	/**
 	 * Merge this object with $other, recursively, creating a copy.
 	 *
-	 * @param Taintedness $other
 	 * @return $this
 	 */
 	public function asMergedWith( self $other ): self {
@@ -318,7 +307,6 @@ class Taintedness {
 
 	/**
 	 * Returns a copy of $this with the bits in $value added to the taintedness of the keys
-	 * @param int $value
 	 */
 	public function withAddedKeysTaintedness( int $value ): self {
 		$ret = clone $this;
@@ -349,7 +337,6 @@ class Taintedness {
 	/**
 	 * Apply the effect of array addition and return a clone of $this
 	 *
-	 * @param Taintedness $other
 	 * @return $this
 	 */
 	public function asArrayPlusWith( self $other ): self {
@@ -489,8 +476,6 @@ class Taintedness {
 
 	/**
 	 * Returns a copy of $this, array_replace'd with $other.
-	 *
-	 * @param Taintedness $other
 	 */
 	public function asArrayReplaceWith( self $other ): self {
 		$ret = clone $this;
@@ -510,8 +495,6 @@ class Taintedness {
 
 	/**
 	 * Returns a copy of $this, array_merge'd with $other.
-	 *
-	 * @param Taintedness $other
 	 */
 	public function asArrayMergeWith( self $other ): self {
 		$ret = clone $this;
@@ -600,8 +583,6 @@ class Taintedness {
 	/**
 	 * Utility method to convert some flags from EXEC to YES. Note that this is not used internally
 	 * to avoid the unnecessary overhead of a function call in hot code.
-	 *
-	 * @param int $flags
 	 */
 	public static function flagsAsExecToYesTaint( int $flags ): int {
 		return ( $flags & SecurityCheckPlugin::ALL_EXEC_TAINT ) >> 1;
@@ -610,8 +591,6 @@ class Taintedness {
 	/**
 	 * Utility method to convert some flags from YES to EXEC. Note that this is not used internally
 	 * to avoid the unnecessary overhead of a function call in hot code.
-	 *
-	 * @param int $flags
 	 */
 	public static function flagsAsYesToExecTaint( int $flags ): int {
 		return ( $flags & SecurityCheckPlugin::ALL_TAINT ) << 1;

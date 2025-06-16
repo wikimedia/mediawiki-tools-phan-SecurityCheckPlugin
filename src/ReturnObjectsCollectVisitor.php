@@ -21,7 +21,6 @@ class ReturnObjectsCollectVisitor extends PluginAwareBaseAnalysisVisitor {
 	private $buffer = [];
 
 	/**
-	 * @param Node $node
 	 * @return TypedElementInterface[]
 	 */
 	public function collectFromNode( Node $node ): array {

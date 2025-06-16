@@ -8,6 +8,7 @@ use Phan\Library\Set;
 /**
  * Convenience class for better type inference.
  *
+ * @inherits Set<\Phan\Language\Element\TypedElementInterface>
  * @method PreservedTaintedness offsetGet( \Phan\Language\Element\TypedElementInterface $object )
  * @method offsetSet( \Phan\Language\Element\TypedElementInterface $object, PreservedTaintedness $data )
  * @method void attach(TypedElementInterface $object, PreservedTaintedness $data)

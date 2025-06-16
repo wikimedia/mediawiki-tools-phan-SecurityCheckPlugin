@@ -350,8 +350,6 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 *
 	 * The prefix ~ means all input taints except the letter given.
 	 * The prefix * means the EXEC version of the taint.
-	 *
-	 * @param int $taint
 	 */
 	public static function taintToString( int $taint ): string {
 		if ( $taint === self::NO_TAINT ) {

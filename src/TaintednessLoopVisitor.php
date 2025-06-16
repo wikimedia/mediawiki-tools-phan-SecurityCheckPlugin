@@ -14,8 +14,6 @@ class TaintednessLoopVisitor extends BeforeLoopBodyAnalysisVisitor {
 	 * We do that in this visitor so that we can handle the loop condition prior to
 	 * determine the taint of the loop variable, prior to evaluating the loop body.
 	 * See https://github.com/phan/phan/issues/3936
-	 *
-	 * @param Node $node
 	 */
 	public function visitForeach( Node $node ): void {
 		$expr = $node->children['expr'];
