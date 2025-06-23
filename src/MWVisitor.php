@@ -353,8 +353,14 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 		$funcFQSEN = $this->context->getFunctionLikeFQSEN();
+		$funcFQSENStr = $funcFQSEN->__toString();
 
-		if ( strpos( (string)$funcFQSEN, '::getQueryInfo' ) !== false ) {
+		if (
+			// The one in SelectQueryBuilder is generic, don't bother. The stuff it returns is analyzed separately when
+			// we find calls to SelectQueryBuilder methods.
+			$funcFQSENStr !== '\\Wikimedia\\Rdbms\\SelectQueryBuilder::getQueryInfo' &&
+			str_ends_with( $funcFQSENStr, '::getQueryInfo' )
+		) {
 			$this->handleGetQueryInfoReturn( $node->children['expr'] );
 		}
 
