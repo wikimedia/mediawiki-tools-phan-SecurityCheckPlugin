@@ -4,6 +4,9 @@
 ### Breaking changes
 * Drop support for PHP < 8.1
 
+### Bug fixes
+* (MW) Fix SQLi detection for `$options` and `$join_conds` arguments to `SELECT` DB functions
+
 ## v6.2.1
 ### Internal changes
 * Bumped phan/phan to 5.5.0

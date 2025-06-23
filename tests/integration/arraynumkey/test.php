@@ -68,7 +68,7 @@ $db->select( 't', 'f', '', __METHOD__, [],
 );
 
 // unsafe
-$db->select( 't', 'f', '', __METHOD__, [],
+$db->select( 't', 'f', '', __METHOD__,
 	[
 		'HAVING' => $where5
 	]

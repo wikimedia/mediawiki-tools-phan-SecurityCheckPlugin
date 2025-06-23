@@ -201,7 +201,7 @@ class Taintedness {
 		if ( $sink->flags & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) {
 			// Special case: NUMKEY is only for the outer array
 			$rightFlags = $value->flags | $value->keysTaint;
-			if ( $value->keysTaint & SecurityCheckPlugin::SQL_TAINT ) {
+			if ( $rightFlags & SecurityCheckPlugin::SQL_TAINT ) {
 				// FIXME HACK: If keys are tainted, add numkey. This assumes that numkey is really only used for
 				// Database methods, where keys are never escaped.
 				$rightFlags |= SecurityCheckPlugin::SQL_NUMKEY_TAINT;
