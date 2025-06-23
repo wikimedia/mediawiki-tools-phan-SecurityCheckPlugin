@@ -19,7 +19,7 @@ class Foo {
 
 	// Note: The parameter name here is the same as the variable name above,
 	// which is required to trigger issue.
-	private function getUsedEntityIdStringsMySql( $subQueries2 ) {
+	private function getUsedEntityIdStringsMySql( $subQueries ) {
 	}
 
 }

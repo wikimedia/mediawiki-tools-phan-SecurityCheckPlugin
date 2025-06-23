@@ -114,26 +114,30 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param Method $method
 	 */
 	private function doSelectWrapperSpecialHandling( Node $node, Method $method ): void {
-		$relevantMethods = [
-			'makeList' => true,
-			'select' => true,
-			'selectField' => true,
-			'selectFieldValues' => true,
-			'selectSQLText' => true,
-			'selectRowCount' => true,
-			'selectRow' => true,
-		];
+		static $relevantMethods;
+		if ( !$relevantMethods ) {
+			$makeFQSEN = [ FullyQualifiedClassName::class, 'fromFullyQualifiedString' ];
+			$relevantMethods = [
+				'makeList' => $makeFQSEN( '\\Wikimedia\\Rdbms\\Platform\\ISQLPlatform' ),
+				'select' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
+				'selectField' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
+				'selectFieldValues' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
+				'selectSQLText' => $makeFQSEN( '\\Wikimedia\\Rdbms\\Platform\\ISQLPlatform' ),
+				'selectRowCount' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
+				'selectRow' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
+			];
+		}
 
-		if ( !isset( $relevantMethods[$method->getName()] ) ) {
+		$name = $method->getName();
+		if ( !isset( $relevantMethods[$name] ) ) {
 			return;
 		}
 
-		$idbFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( '\\Wikimedia\\Rdbms\\IDatabase' );
-		if ( !self::isSubclassOf( $method->getClassFQSEN(), $idbFQSEN, $this->code_base ) ) {
+		if ( !self::isSubclassOf( $method->getClassFQSEN(), $relevantMethods[$name], $this->code_base ) ) {
 			return;
 		}
 
-		if ( $method->getName() === 'makeList' ) {
+		if ( $name === 'makeList' ) {
 			$this->checkMakeList( $node );
 			return;
 		}

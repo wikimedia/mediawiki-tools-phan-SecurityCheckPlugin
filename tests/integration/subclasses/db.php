@@ -14,7 +14,4 @@ class Database implements IDatabase {
 }
 
 class MysqlDatabase extends Database {
-	public function getType() {
-		return 'mysql';
-	}
 }

@@ -6,6 +6,7 @@
 
 ### Bug fixes
 * (MW) Fix SQLi detection for `$options` and `$join_conds` arguments to `SELECT` DB functions
+* (MW) Make special handling of database functions check the newer RDBMS interfaces (`IReadableDatabase` and `ISQLPlatform`)
 
 ## v6.2.1
 ### Internal changes

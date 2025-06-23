@@ -43,13 +43,6 @@ class MainClass {
 		// $id will be null here, so it's safe
 		$val = self::fromName( 'foo' )->getId();
 
-		$dbr = new MysqlDatabase;
-
-		$dbr->selectRow(
-			"foo",
-			'',
-			[ "field = $val" ],
-			__METHOD__
-		);
+		echo $val;
 	}
 }
