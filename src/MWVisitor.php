@@ -16,6 +16,7 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\UnionType;
+use UnexpectedValueException;
 
 /**
  * MediaWiki specific node visitor
@@ -125,6 +126,8 @@ class MWVisitor extends TaintednessVisitor {
 				'selectSQLText' => $makeFQSEN( '\\Wikimedia\\Rdbms\\Platform\\ISQLPlatform' ),
 				'selectRowCount' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
 				'selectRow' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
+				'option' => $makeFQSEN( '\\Wikimedia\\Rdbms\\SelectQueryBuilder' ),
+				'options' => $makeFQSEN( '\\Wikimedia\\Rdbms\\SelectQueryBuilder' ),
 			];
 		}
 
@@ -137,17 +140,36 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 
-		if ( $name === 'makeList' ) {
-			$this->checkMakeList( $node );
-			return;
-		}
-
 		$args = $node->children['args']->children;
-		if ( isset( $args[4] ) ) {
-			$this->checkSQLOptions( $args[4] );
-		}
-		if ( isset( $args[5] ) ) {
-			$this->checkJoinCond( $args[5] );
+		switch ( $name ) {
+			case 'select':
+			case 'selectField':
+			case 'selectFieldValues':
+			case 'selectSQLText':
+			case 'selectRowCount':
+			case 'selectRow':
+				if ( isset( $args[4] ) ) {
+					$this->checkSQLOptions( $args[4] );
+				}
+				if ( isset( $args[5] ) ) {
+					$this->checkJoinCond( $args[5] );
+				}
+				return;
+			case 'option':
+				if ( count( $args ) >= 2 ) {
+					$this->checkSQLOption( $args[0], $args[1], $node );
+				}
+				return;
+			case 'options':
+				if ( $args ) {
+					$this->checkSQLOptions( $args[0] );
+				}
+				return;
+			case 'makeList':
+				$this->checkMakeList( $node );
+				return;
+			default:
+				throw new UnexpectedValueException( "Should be unreachable, got $name" );
 		}
 	}
 
@@ -542,18 +564,34 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * This only works if its specified as an array literal.
 	 *
-	 * Relevant options:
-	 *  GROUP BY is put directly in the query (array gets imploded)
-	 *  HAVING is treated like a WHERE clause
-	 *  ORDER BY is put directly in the query (array gets imploded)
-	 *  USE INDEX is directly put in string (both array and string version)
-	 *  IGNORE INDEX ditto
 	 * @param Node|mixed $node The node from the AST tree
 	 */
 	private function checkSQLOptions( mixed $node ): void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
+
+		foreach ( $node->children as $arrayElm ) {
+			assert( $arrayElm->kind === \ast\AST_ARRAY_ELEM );
+			$val = $arrayElm->children['value'];
+			$key = $arrayElm->children['key'];
+			$this->checkSQLOption( $key, $val, $node );
+		}
+	}
+
+	/**
+	 *  Relevant options:
+	 *   GROUP BY is put directly in the query (array gets imploded)
+	 *   HAVING is treated like a WHERE clause
+	 *   ORDER BY is put directly in the query (array gets imploded)
+	 *   USE INDEX is directly put in string (both array and string version)
+	 *   IGNORE INDEX ditto
+	 *
+	 * @param Node|mixed $option
+	 * @param Node|mixed $value
+	 * @param Node $callNode
+	 */
+	private function checkSQLOption( mixed $option, mixed $value, Node $callNode ): void {
 		$relevant = [
 			'GROUP BY' => true,
 			'ORDER BY' => true,
@@ -561,31 +599,29 @@ class MWVisitor extends TaintednessVisitor {
 			'USE INDEX' => true,
 			'IGNORE INDEX' => true,
 		];
-		foreach ( $node->children as $arrayElm ) {
-			assert( $arrayElm->kind === \ast\AST_ARRAY_ELEM );
-			$val = $arrayElm->children['value'];
-			$key = $arrayElm->children['key'];
 
-			if ( isset( $relevant[$key] ) ) {
-				$taintType = ( $key === 'HAVING' && $this->nodeIsArray( $val ) ) ?
-					SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
-					SecurityCheckPlugin::SQL_EXEC_TAINT;
-				$taintType = new Taintedness( $taintType );
-
-				$this->backpropagateArgTaint( $node, $taintType );
-				$ctx = clone $this->context;
-				$this->overrideContext = $ctx->withLineNumberStart(
-					$val->lineno ?? $ctx->getLineNumberStart()
-				);
-				$this->maybeEmitIssueSimplified(
-					$taintType,
-					$val,
-					"{STRING_LITERAL} clause is user controlled",
-					[ $key ]
-				);
-				$this->overrideContext = null;
-			}
+		if ( !is_string( $option ) || !isset( $relevant[$option] ) ) {
+			return;
 		}
+		$taintType = ( $option === 'HAVING' && $this->nodeIsArray( $value ) ) ?
+			SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT :
+			SecurityCheckPlugin::SQL_EXEC_TAINT;
+		$taintType = new Taintedness( $taintType );
+
+		$this->backpropagateArgTaint( $callNode, $taintType );
+		if ( $value->lineno !== $this->context->getLineNumberStart() ) {
+			$ctx = clone $this->context;
+			$this->overrideContext = $ctx->withLineNumberStart(
+				$value->lineno ?? $ctx->getLineNumberStart()
+			);
+		}
+		$this->maybeEmitIssueSimplified(
+			$taintType,
+			$value,
+			"{STRING_LITERAL} clause is user controlled",
+			[ $option ]
+		);
+		$this->overrideContext = null;
 	}
 
 	/**

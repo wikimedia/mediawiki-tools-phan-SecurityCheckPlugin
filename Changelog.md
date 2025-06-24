@@ -4,6 +4,9 @@
 ### Breaking changes
 * Drop support for PHP < 8.1
 
+### New features
+* (MW) Check SQL `$options` passed to `SelectQueryBuilder::options` and `::option`
+
 ### Bug fixes
 * (MW) Fix SQLi detection for `$options` and `$join_conds` arguments to `SELECT` DB functions
 * (MW) Make special handling of database functions check the newer RDBMS interfaces (`IReadableDatabase` and `ISQLPlatform`)

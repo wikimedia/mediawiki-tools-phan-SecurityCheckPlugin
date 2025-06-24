@@ -1,0 +1,12 @@
+integration/selectquerybuilder/test.php:9 SecurityCheck-SQLInjection GROUP BY clause is user controlled
+integration/selectquerybuilder/test.php:10 SecurityCheck-SQLInjection ORDER BY clause is user controlled
+integration/selectquerybuilder/test.php:11 SecurityCheck-SQLInjection HAVING clause is user controlled
+integration/selectquerybuilder/test.php:12 SecurityCheck-SQLInjection HAVING clause is user controlled
+integration/selectquerybuilder/test.php:14 SecurityCheck-SQLInjection USE INDEX clause is user controlled
+integration/selectquerybuilder/test.php:15 SecurityCheck-SQLInjection IGNORE INDEX clause is user controlled
+integration/selectquerybuilder/test.php:19 SecurityCheck-SQLInjection GROUP BY clause is user controlled
+integration/selectquerybuilder/test.php:20 SecurityCheck-SQLInjection ORDER BY clause is user controlled
+integration/selectquerybuilder/test.php:21 SecurityCheck-SQLInjection HAVING clause is user controlled
+integration/selectquerybuilder/test.php:22 SecurityCheck-SQLInjection HAVING clause is user controlled
+integration/selectquerybuilder/test.php:24 SecurityCheck-SQLInjection USE INDEX clause is user controlled
+integration/selectquerybuilder/test.php:25 SecurityCheck-SQLInjection IGNORE INDEX clause is user controlled
