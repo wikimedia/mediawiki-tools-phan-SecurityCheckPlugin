@@ -128,6 +128,7 @@ class MWVisitor extends TaintednessVisitor {
 				'selectRow' => $makeFQSEN( '\\Wikimedia\\Rdbms\\IReadableDatabase' ),
 				'option' => $makeFQSEN( '\\Wikimedia\\Rdbms\\SelectQueryBuilder' ),
 				'options' => $makeFQSEN( '\\Wikimedia\\Rdbms\\SelectQueryBuilder' ),
+				'joinConds' => $makeFQSEN( '\\Wikimedia\\Rdbms\\SelectQueryBuilder' ),
 			];
 		}
 
@@ -152,7 +153,7 @@ class MWVisitor extends TaintednessVisitor {
 					$this->checkSQLOptions( $args[4] );
 				}
 				if ( isset( $args[5] ) ) {
-					$this->checkJoinCond( $args[5] );
+					$this->checkJoinConds( $args[5] );
 				}
 				return;
 			case 'option':
@@ -163,6 +164,11 @@ class MWVisitor extends TaintednessVisitor {
 			case 'options':
 				if ( $args ) {
 					$this->checkSQLOptions( $args[0] );
+				}
+				return;
+			case 'joinConds':
+				if ( $args ) {
+					$this->checkJoinConds( $args[0] );
 				}
 				return;
 			case 'makeList':
@@ -456,7 +462,7 @@ class MWVisitor extends TaintednessVisitor {
 			$this->checkSQLOptions( $args[4] );
 		}
 		if ( isset( $args[5] ) ) {
-			$this->checkJoinCond( $args[5] );
+			$this->checkJoinConds( $args[5] );
 		}
 	}
 
@@ -635,7 +641,7 @@ class MWVisitor extends TaintednessVisitor {
 	 *
 	 * @param Node|mixed $node
 	 */
-	private function checkJoinCond( mixed $node ): void {
+	private function checkJoinConds( mixed $node ): void {
 		if ( !( $node instanceof Node ) || $node->kind !== \ast\AST_ARRAY ) {
 			return;
 		}
@@ -678,10 +684,12 @@ class MWVisitor extends TaintednessVisitor {
 					continue;
 				}
 				$onCond = $joinInfo->children[1]->children['value'];
-				$ctx = clone $this->context;
-				$this->overrideContext = $ctx->withLineNumberStart(
-					$onCond->lineno ?? $ctx->getLineNumberStart()
-				);
+				if ( ( $onCond->lineno ?? null ) !== $this->context->getLineNumberStart() ) {
+					$ctx = clone $this->context;
+					$this->overrideContext = $ctx->withLineNumberStart(
+						$onCond->lineno ?? $ctx->getLineNumberStart()
+					);
+				}
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),
 					$onCond,

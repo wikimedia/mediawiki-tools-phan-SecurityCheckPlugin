@@ -10,3 +10,6 @@ integration/selectquerybuilder/test.php:21 SecurityCheck-SQLInjection HAVING cla
 integration/selectquerybuilder/test.php:22 SecurityCheck-SQLInjection HAVING clause is user controlled
 integration/selectquerybuilder/test.php:24 SecurityCheck-SQLInjection USE INDEX clause is user controlled
 integration/selectquerybuilder/test.php:25 SecurityCheck-SQLInjection IGNORE INDEX clause is user controlled
+integration/selectquerybuilder/test.php:28 SecurityCheck-SQLInjection Join type for sometable is user controlled
+integration/selectquerybuilder/test.php:29 SecurityCheck-SQLInjection The ON conditions are not properly escaped for the join to `sometable`
+integration/selectquerybuilder/test.php:30 SecurityCheck-SQLInjection The ON conditions are not properly escaped for the join to `sometable`

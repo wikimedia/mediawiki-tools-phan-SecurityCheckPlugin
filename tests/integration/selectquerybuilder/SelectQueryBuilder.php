@@ -10,4 +10,8 @@ class SelectQueryBuilder {
 	public function options( array $options ) {
 		// Placeholder
 	}
+
+	public function joinConds( array $joinConds ) {
+		// Placeholder
+	}
 }
