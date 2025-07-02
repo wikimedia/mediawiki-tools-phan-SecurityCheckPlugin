@@ -42,6 +42,7 @@ sed -r -i "s/tests\//$TESTDIR\//" phpunit.xml
 sed -r -i "s/.\/tests\//.\/$TESTDIR\//" "$TESTDIR/bootstrap.php"
 sed -r -i "s/\/src\/Phan/\/vendor\/phan\/phan\/src\/Phan/" "$TESTDIR/bootstrap.php"
 sed -r -i "s/'\/src/'\/vendor\/phan\/phan\/src/" $TESTDIR/Phan/Language/UnionTypeTest.php
+sed -r -i "s/tests\/.phan_for_test/$TESTDIR\/.phan_for_test/" "$TESTDIR/Phan/PHP82Test.php"
 
 # Enable verbose output, e.g. to know what tests were skipped
 sed -i 's/verbose="false"/verbose="true"/' phpunit.xml

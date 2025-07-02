@@ -16,6 +16,9 @@
 * (MW) Fix various crashes when using array unpack in database function calls, `getQueryInfo()` methods, or parser function hook returns
 * (MW) Restore exclusion of `Status::newGood()`, `Status::getValue()`, and `Status::setResult()` from analysis using the namespaced FQSEN.
 
+### Internal changes
+* Bumped phan/phan to 5.5.1
+
 ## v6.2.1
 ### Internal changes
 * Bumped phan/phan to 5.5.0
