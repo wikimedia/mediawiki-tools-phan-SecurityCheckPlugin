@@ -8,6 +8,11 @@ if ! php -m | grep -q "^ast$"; then
     exit 0
 fi
 
+# XXX: Temporary until the v6 upgrade
+if vendor/bin/phpunit --version | grep -q "PHPUnit 10"; then
+    composer require --dev "phpunit/phpunit: 9.6.21" -W
+fi
+
 if [[ ! -d vendor/phan/phan/tests ]]; then
     rm -rf vendor/phan
     composer update --prefer-source --quiet #Suppress composer output, rely on the exit below
@@ -21,7 +26,10 @@ function restoreEverything() {
     rm -rf $TESTDIR ./phan .phan phpunit.xml
     mv phpunit-OLD.xml phpunit.xml.dist
     mv composer-OLD.json composer.json
-    composer dump-autoload
+    # XXX: Restore the next line and delete the rest when upgrading to v6
+    # composer dump-autoload
+    git checkout -- composer.json
+    composer update
 }
 trap "restoreEverything" exit
 

@@ -1,19 +1,25 @@
 <?xml version="1.0"?>
 <phpunit
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
-	convertErrorsToExceptions="true"
-	convertNoticesToExceptions="true"
-	convertWarningsToExceptions="true"
-	bootstrap="./tests/bootstrap.php">
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+	bootstrap="./tests/bootstrap.php"
+	cacheDirectory=".phpunit.cache"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	beStrictAboutOutputDuringTests="true"
+	displayDetailsOnTestsThatTriggerDeprecations="true"
+	displayDetailsOnTestsThatTriggerErrors="true"
+	displayDetailsOnTestsThatTriggerNotices="true"
+	displayDetailsOnTestsThatTriggerWarnings="true"
+	displayDetailsOnPhpunitDeprecations="true">
 	<testsuites>
 		<testsuite name="SecurityCheckPlugin Tests">
 			<directory>./tests</directory>
 		</testsuite>
 	</testsuites>
-	<coverage>
+	<source>
 		<include>
 			<directory suffix=".php">src/</directory>
 		</include>
-	</coverage>
+	</source>
 </phpunit>
