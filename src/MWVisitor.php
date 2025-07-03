@@ -9,6 +9,7 @@ use Phan\Exception\CodeBaseException;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Exception\IssueException;
 use Phan\Exception\NodeException;
+use Phan\Language\Element\ClassAliasRecord;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
@@ -978,56 +979,70 @@ class MWVisitor extends TaintednessVisitor {
 		// are many ways to construct htmlform specifiers this
 		// won't catch, and it may also have some false positives.
 
-		static $validHTMLFormTypes = [
-			'api',
-			'text',
-			'textwithbutton',
-			'textarea',
-			'select',
-			'combobox',
-			'radio',
-			'multiselect',
-			'limitselect',
-			'check',
-			'toggle',
-			'int',
-			'float',
-			'info',
-			'selectorother',
-			'selectandother',
-			'namespaceselect',
-			'namespaceselectwithbutton',
-			'tagfilter',
-			'sizefilter',
-			'submit',
-			'hidden',
-			'edittools',
-			'checkmatrix',
-			'cloner',
-			'autocompleteselect',
-			'date',
-			'time',
-			'datetime',
-			'email',
-			'password',
-			'url',
-			'title',
-			'user',
-			'usersmultiselect',
+		static $HTMLFormTypesToClasses = null;
+		if ( !$HTMLFormTypesToClasses ) {
+			$makeFQSEN = FullyQualifiedClassName::fromFullyQualifiedString( ... );
+			$HTMLFormTypesToClasses = [
+				'api' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLApiField' ),
+				'text' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTextField' ),
+				'textwithbutton' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTextFieldWithButton' ),
+				'textarea' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTextAreaField' ),
+				'select' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectField' ),
+				'combobox' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLComboboxField' ),
+				'radio' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLRadioField' ),
+				'multiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLMultiSelectField' ),
+				'limitselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectLimitField' ),
+				'check' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLCheckField' ),
+				'toggle' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLCheckField' ),
+				'int' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLIntField' ),
+				'file' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLFileField' ),
+				'float' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLFloatField' ),
+				'info' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLInfoField' ),
+				'selectorother' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectOrOtherField' ),
+				'selectandother' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectAndOtherField' ),
+				'namespaceselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectNamespace' ),
+				'namespaceselectwithbutton' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectNamespaceWithButton' ),
+				'tagfilter' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTagFilter' ),
+				'sizefilter' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSizeFilterField' ),
+				'submit' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSubmitField' ),
+				'hidden' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLHiddenField' ),
+				'edittools' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLEditTools' ),
+				'checkmatrix' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLCheckMatrix' ),
+				'cloner' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLFormFieldCloner' ),
+				'autocompleteselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLAutoCompleteSelectField' ),
+				'language' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLSelectLanguageField' ),
+				'date' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLDateTimeField' ),
+				'time' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLDateTimeField' ),
+				'datetime' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLDateTimeField' ),
+				'expiry' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLExpiryField' ),
+				'timezone' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTimezoneField' ),
+				'email' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTextField' ),
+				'password' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTextField' ),
+				'url' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTextField' ),
+				'title' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTitleTextField' ),
+				'user' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLUserTextField' ),
+				'tagmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTagMultiselectField' ),
+				'orderedmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLOrderedMultiselectField' ),
+				'usersmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLUsersMultiselectField' ),
+				'titlesmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTitlesMultiselectField' ),
+				'namespacesmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLNamespacesMultiselectField' ),
+			];
+		}
+		static $propsToResolve = [
+			'type',
+			'class',
+			'label',
+			'options',
+			'default',
+			'label-raw',
+			'raw',
+			'rawrow',
+			'help',
+			// TODO: remove help key case when back compat is no longer needed (T356971)
+			'help-raw',
 		];
 
-		$type = null;
-		$raw = null;
-		$class = null;
-		$rawLabel = null;
-		$help = null;
-		$help_raw = null;
-		$label = null;
-		$default = null;
-		$options = null;
-		$isInfo = false;
-		// options key is really messed up with escaping.
-		$isOptionsSafe = true;
+		$fieldProps = [];
 		foreach ( $node->children as $child ) {
 			if ( $child === null || $child->kind === \ast\AST_UNPACK ) {
 				// If we have list( , $x ) = foo(), or an in-place unpack, chances are this is not an HTMLForm.
@@ -1043,78 +1058,26 @@ class MWVisitor extends TaintednessVisitor {
 				// Either not resolvable (so nothing we can say) or a non-string literal, skip.
 				return;
 			}
-			switch ( $key ) {
-				case 'type':
-					$type = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'class':
-					$class = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'label':
-					$label = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'options':
-					$options = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'default':
-					$default = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'label-raw':
-					$rawLabel = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'raw':
-				case 'rawrow':
-					$raw = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'help':
-					// TODO: remove help key case when back compat is no longer needed
-					$help = $this->resolveValue( $child->children['value'] );
-					break;
-				case 'help-raw':
-					$help_raw = $this->resolveValue( $child->children['value'] );
-					break;
+			if ( in_array( $key, $propsToResolve, true ) ) {
+				$fieldProps[$key] = $this->resolveValue( $child->children['value'] );
 			}
 		}
+		// Special case
+		$raw = $fieldProps['raw'] ?? $fieldProps['rawrow'] ?? null;
 
-		if ( !$class && !$type ) {
-			// Definitely not an HTMLForm
-			// Also important to reject empty string, not just
-			// null, otherwise 9e409c781015 of Wikibase causes
-			// this to fatal
-			return;
-		}
-
-		if (
-			$raw === null && $label === null && $rawLabel === null && $help == null
-			&& $help_raw === null && $default === null && $options === null
-		) {
-			// e.g. [ 'class' => 'someCssClass' ] appears a lot
-			// in the code base. If we don't have any of the html
-			// fields, skip out early.
-			return;
-		}
-
-		if ( $type !== null && !in_array( $type, $validHTMLFormTypes, true ) ) {
-			// Not a valid HTMLForm field
-			// (Or someone just added a new field type)
-			return;
-		}
-
-		if ( $type === 'info' ) {
-			$isInfo = true;
-		}
-
-		if ( in_array( $type, [ 'radio', 'multiselect' ], true ) ) {
-			$isOptionsSafe = false;
-		}
-
-		if ( $class !== null ) {
-			if ( !is_string( $class ) ) {
+		// Also important to reject empty string, not just
+		// null, otherwise 9e409c781015 of Wikibase causes
+		// this to fatal
+		if ( !empty( $fieldProps['type'] ) && is_string( $fieldProps['type'] ) ) {
+			$type = $fieldProps['type'];
+			if ( !isset( $HTMLFormTypesToClasses[$type] ) ) {
+				// Not a valid HTMLForm field (or a new field type we don't recognize)
 				return;
 			}
+		} elseif ( !empty( $fieldProps['class'] ) && is_string( $fieldProps['class'] ) ) {
 			try {
 				$fqsen = FullyQualifiedClassName::fromStringInContext(
-					$class,
+					$fieldProps['class'],
 					$this->context
 				);
 			} catch ( InvalidFQSENException $_ ) {
@@ -1122,87 +1085,90 @@ class MWVisitor extends TaintednessVisitor {
 				// an HTMLForm
 				return;
 			}
-			if ( !$this->code_base->hasClassWithFQSEN( $fqsen ) ) {
-				return;
-			}
-			$fqsenString = (string)$fqsen;
-			if ( $fqsenString === '\HTMLInfoField' ||
-				$fqsenString === '\MediaWiki\HTMLForm\Field\HTMLInfoField'
-			) {
-				$isInfo = true;
-			}
-			if (
-				$fqsenString === '\HTMLMultiSelectField' ||
-				$fqsenString === '\MediaWiki\HTMLForm\Field\HTMLMultiSelectField' ||
-				$fqsenString === '\HTMLRadioField' ||
-				$fqsenString === '\MediaWiki\HTMLForm\Field\HTMLRadioField'
-			) {
-				$isOptionsSafe = false;
-			}
 
-			$fqsenBase = FullyQualifiedClassName::fromFullyQualifiedString(
-				'\MediaWiki\HTMLForm\Field\HTMLFormField'
-			);
-			if ( !$this->code_base->hasClassWithFQSEN( $fqsenBase ) ) {
-				$fqsenBase = FullyQualifiedClassName::fromFullyQualifiedString(
-					'\HTMLFormField'
+			$type = null;
+			foreach ( $HTMLFormTypesToClasses as $curType => $fieldFQSEN ) {
+				if ( $fqsen === $fieldFQSEN ) {
+					$type = $curType;
+					break;
+				}
+				// Note, this assumes that the list above uses the canonical FQSENs
+				$fieldAliasFQSENs = array_map(
+					static fn ( ClassAliasRecord $car ): FullyQualifiedClassName => $car->alias_fqsen,
+					$this->code_base->getClassAliasesByFQSEN( $fieldFQSEN )
 				);
-				if ( !$this->code_base->hasClassWithFQSEN( $fqsenBase ) ) {
-					$this->debug( __METHOD__, "Missing HTMLFormField base class?!" );
-					return;
+				if ( in_array( $fqsen, $fieldAliasFQSENs, true ) ) {
+					$type = $curType;
+					break;
 				}
 			}
-
-			$isAField = self::isSubclassOf( $fqsen, $fqsenBase, $this->code_base );
-
-			if ( !$isAField ) {
+			if ( !$type ) {
+				// Not a valid HTMLForm field (or a new field type we don't recognize)
 				return;
 			}
+		} else {
+			// Definitely not an HTMLForm
+			return;
 		}
 
-		if ( $label !== null ) {
+		$fieldPropsToCheck = array_diff_key( $fieldProps, [ 'class' => 1, 'type' => 1 ] );
+		if ( !$fieldPropsToCheck ) {
+			// e.g. [ 'class' => 'someCssClass' ] appears a lot
+			// in the code base. If we don't have any of the interesting
+			// fields, skip out early.
+			return;
+		}
+
+		if ( $fieldPropsToCheck['label'] ?? null ) {
 			// double escape check for label.
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::ESCAPED_EXEC_TAINT ),
-				$label,
+				$fieldPropsToCheck['label'],
 				'HTMLForm label key escapes its input'
 			);
 		}
-		if ( $rawLabel !== null ) {
+		if ( $fieldPropsToCheck['label-raw'] ?? null ) {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$rawLabel,
+				$fieldPropsToCheck['label-raw'],
 				'HTMLForm label-raw needs to escape input'
 			);
 		}
-		if ( $help !== null ) {
+		if ( $fieldPropsToCheck['help'] ?? null ) {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$help,
+				$fieldPropsToCheck['help'],
 				'HTMLForm help needs to escape input'
 			);
 		}
-		if ( $help_raw !== null ) {
+		if ( $fieldPropsToCheck['help-raw'] ?? null ) {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$help_raw,
+				$fieldPropsToCheck['help-raw'],
 				'HTMLForm help-raw needs to escape input'
 			);
 		}
-		if ( $isInfo && $raw === true ) {
-			$this->maybeEmitIssueSimplified(
-				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$default,
-				'HTMLForm info field in raw mode needs to escape default key'
-			);
+
+		if ( $type === 'info' && ( $fieldPropsToCheck['default'] ?? null ) ) {
+			if ( $raw === true ) {
+				$this->maybeEmitIssueSimplified(
+					new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+					$fieldPropsToCheck['default'],
+					'HTMLForm info field in raw mode needs to escape default key'
+				);
+			}
+			if ( $raw === false || $raw === null ) {
+				$this->maybeEmitIssueSimplified(
+					new Taintedness( SecurityCheckPlugin::ESCAPED_EXEC_TAINT ),
+					$fieldPropsToCheck['default'],
+					'HTMLForm info field (non-raw) escapes default key already'
+				);
+			}
 		}
-		if ( $isInfo && ( $raw === false || $raw === null ) ) {
-			$this->maybeEmitIssueSimplified(
-				new Taintedness( SecurityCheckPlugin::ESCAPED_EXEC_TAINT ),
-				$default,
-				'HTMLForm info field (non-raw) escapes default key already'
-			);
-		}
+
+		// options key is really messed up with escaping.
+		$isOptionsSafe = !in_array( $type, [ 'radio', 'multiselect' ], true );
+		$options = $fieldProps['options'] ?? null;
 		if ( !$isOptionsSafe && $options instanceof Node ) {
 			$htmlExecTaint = new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT );
 			$optTaint = $this->getTaintedness( $options );
