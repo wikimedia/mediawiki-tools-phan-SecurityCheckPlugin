@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class TestProp {
 
 	/** @var string $myProp */
 	public $myProp = '';

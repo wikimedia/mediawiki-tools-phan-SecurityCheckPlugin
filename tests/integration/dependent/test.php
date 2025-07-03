@@ -4,10 +4,10 @@
 // value, all taint types were being backpropagated instead of
 // just the correct taints.
 
-class Fred {
+class DependentClass1 {
 	private $somePrivVar;
 
-	public function bar( $val ) {
+	public function setProp( $val ) {
 		$this->somePrivVar = $val;
 	}
 
@@ -15,5 +15,5 @@ class Fred {
 		echo $this->somePrivVar;
 	}
 }
-$a = new Fred;
-$a->bar( htmlspecialchars( $_GET['foo'] ) );
+$a = new DependentClass1;
+$a->setProp( htmlspecialchars( $_GET['foo'] ) );

@@ -22,7 +22,7 @@ foo( $_GET['a'] );
  * What follows is a complicated way to have an empty union type but non-empty taint data.
  * Note that it doesn't work with a simple function (i.e. it must be a method).
  */
-class A {
+class TestAddition {
 	/**
 	 * @return-taint tainted
 	 */
@@ -30,7 +30,7 @@ class A {
 	}
 }
 
-$a = new A;
+$a = new TestAddition;
 $unknownType = $a->foo();
 '@phan-debug-var $unknownType'; // If a future version of phan doesn't infer an empty union type here, the test becomes useless /wrong
 $var = $unknownType + $unknownType;

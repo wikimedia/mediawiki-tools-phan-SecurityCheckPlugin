@@ -1,6 +1,6 @@
 <?php
 
-class Baz {
+class DifferentInstancePropExt {
 	public function foo() {
 		MainClass::fromId( $_GET['baz'] );
 	}

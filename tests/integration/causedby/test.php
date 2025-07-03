@@ -15,7 +15,7 @@ function inFunctionScope() {
 	echo $res2;
 }
 
-class FooBar {
+class CausedByClassScope {
 	private $foo;
 	public function setEvil1() {
 		$this->foo = $_GET['baz']; // This shouldn't be in caused-by, but we're not smart enough yet

@@ -1,20 +1,20 @@
-<?php
+<?php namespace TypeMask2;
 
-class Foo {
+class PropWithUnknownType {
 	public $unknownType;
 }
 
-class Bar {
+class TestMethods {
 	public $localProp;
 
 	function certainlyUnsafe() {
-		$f = new Foo;
+		$f = new PropWithUnknownType;
 		$f->unknownType = $_GET['baz'];
 		echo $f->unknownType;
 	}
 
 	function potentiallyUnsafe() {
-		$f = new Foo;
+		$f = new PropWithUnknownType;
 		$f->unknownType = $_GET['baz'];
 		if ( is_int( $f->unknownType ) ) {
 			// Phan doesn't infer the real type here, because it might change again.
@@ -45,8 +45,8 @@ class ModifyGlobal {
 	}
 }
 
-class Baz {
-	function echoGlobal() {
+class EchoGlobal {
+	function main() {
 		global $globalVar;
 		echo $globalVar;
 	}

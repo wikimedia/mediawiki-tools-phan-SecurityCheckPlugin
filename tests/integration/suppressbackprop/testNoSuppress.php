@@ -1,6 +1,6 @@
 <?php
 
-class Foo2 {
+class SuppressBackpropTestNoSuppress {
 
 	public $msg;
 
@@ -35,5 +35,5 @@ class Foo2 {
 }
 
 $c = $_GET['foo'];
-$d = new Foo2( $c );
+$d = new SuppressBackpropTestNoSuppress( $c );
 $d->out();

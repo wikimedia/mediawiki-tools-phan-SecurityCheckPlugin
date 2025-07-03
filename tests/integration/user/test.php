@@ -1,9 +1,9 @@
 <?php
 
-// Note that it's vital that the param to User::newFromId and the local variable inside Foo::execute
+// Note that it's vital that the param to User::newFromId and the local variable inside TestUser::execute
 // have the same name.
 
-class Foo {
+class TestUser {
 	public function execute() {
 		$sameName = $_GET['baz'];
 		if ( rand() ) {

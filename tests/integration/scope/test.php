@@ -3,7 +3,7 @@
 $g1 = '';
 $g2 = $_GET['evil'];
 
-class Foo {
+class TestScope {
 	public $m1;
 
 	public function unsafe1() {

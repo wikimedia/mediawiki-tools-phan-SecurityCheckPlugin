@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class TestUser2 {
 	public function output( $msg ) {
 		echo $msg;
 	}

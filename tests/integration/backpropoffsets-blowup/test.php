@@ -1,5 +1,7 @@
 <?php
 
+namespace BackpropOffsetsBlowup;
+
 // In these tests, the offset from the RHS of the assignments should only be added once. Failing to do so
 // would be wrong, and would probably lead to memory exhaustion on large codebases.
 // Unfortunately we need to use a hacky annotation to ensure that this bug doesn't happen: if we set HTML_EXEC

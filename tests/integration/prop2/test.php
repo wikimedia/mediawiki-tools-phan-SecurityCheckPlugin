@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class TestProp2 {
 	public $f = '';
 
 	/** @var Context */
@@ -30,5 +30,5 @@ class OutputPage {
 	}
 }
 
-$foo = new Foo;
-$foo->bar();
+$test = new TestProp2;
+$test->bar();

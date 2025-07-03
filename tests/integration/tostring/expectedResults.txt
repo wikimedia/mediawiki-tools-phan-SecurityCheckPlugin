@@ -1,4 +1,4 @@
-integration/tostring/test.php:16 SecurityCheck-LikelyFalsePositive Calling method \htmlspecialchars() in \SafeFoo::__toString that outputs using tainted argument #1 (`$this->value`).
+integration/tostring/test.php:16 SecurityCheck-LikelyFalsePositive Calling method \htmlspecialchars() in \SafeTestToStringChild::__toString that outputs using tainted argument #1 (`$this->value`).
 integration/tostring/test.php:40 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/tostring/test.php +22)
 integration/tostring/test.php:42 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/tostring/test.php +41; integration/tostring/test.php +22)
 integration/tostring/test.php:73 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/tostring/test.php +72; integration/tostring/test.php +62)

@@ -2,7 +2,7 @@
 class Maintenance {
 }
 
-class Foo3 extends Maintenance {
+class SuppressBackpropMaintenance extends Maintenance {
 
 	public $msg;
 
@@ -17,5 +17,5 @@ class Foo3 extends Maintenance {
 }
 
 $b = $_GET['foo'];
-$a = new Foo3( $b );
+$a = new SuppressBackpropMaintenance( $b );
 $a->out();

@@ -1,47 +1,47 @@
 <?php
 
-$foo = new Foo;
+$obj = new DocblockClass();
 
 // unsafe
-echo $foo->getUnsafeHTML();
+echo $obj->getUnsafeHTML();
 
 // safe
-echo $foo->escapeHTML( $foo->getUnsafeHTML() );
+echo $obj->escapeHTML( $obj->getUnsafeHTML() );
 
 // unsafe (double escape)
-echo $foo->escapeHTML( $foo->escapeHTML( 'foo' ) );
+echo $obj->escapeHTML( $obj->escapeHTML( 'foo' ) );
 
 // safe
-$foo->doQuery( $foo->getUnsafeHTML() );
+$obj->doQuery( $obj->getUnsafeHTML() );
 // unsafe
-$foo->doQuery( $foo->getUserInput() );
+$obj->doQuery( $obj->getUserInput() );
 
 // unsafe
-$foo->wfShellExec2( $foo->getUserInput() );
+$obj->wfShellExec2( $obj->getUserInput() );
 // safe
-$foo->wfShellExec2( [ $foo->getUserInput() ] );
+$obj->wfShellExec2( [ $obj->getUserInput() ] );
 // safe
-$foo->wfShellExec2( $foo->getUnsafeHTML() );
+$obj->wfShellExec2( $obj->getUnsafeHTML() );
 
 // Safe
-$foo->doQuery( $foo->getSomeSQL() );
+$obj->doQuery( $obj->getSomeSQL() );
 // unsafe
-echo $foo->getSomeSQL();
+echo $obj->getSomeSQL();
 // unsafe
-$foo->wfShellExec2( 'grep "' . $foo->getSomeSQL() . '" foo' );
+$obj->wfShellExec2( 'grep "' . $obj->getSomeSQL() . '" foo' );
 
 // safe
-$foo->safeOutput( $foo->getUserInput() );
+$obj->safeOutput( $obj->getUserInput() );
 // safe
-echo $foo->getSafeString();
+echo $obj->getSafeString();
 // safe
-echo $foo->invalidTaint();
+echo $obj->invalidTaint();
 
 // unsafe
-$foo->multiTaint( $foo->getUserInput() );
-$foo->multiTaint( $foo->getSomeSQL() );
-$foo->multiTaint( $foo->escapeHTML( $foo->getSomeSQL() ) ); // TODO Ideally caused by IFoo line 6
-$foo->multiTaint( $foo->getUnsafeHTML() );
+$obj->multiTaint( $obj->getUserInput() );
+$obj->multiTaint( $obj->getSomeSQL() );
+$obj->multiTaint( $obj->escapeHTML( $obj->getSomeSQL() ) ); // TODO Ideally caused by DocblockInterface line 6
+$obj->multiTaint( $obj->getUnsafeHTML() );
 $a = 'foo';
-$foo->passByRef( $foo->getUserInput(), $a );
-$a = $foo->getUnsafeHTML();
+$obj->passByRef( $obj->getUserInput(), $a );
+$a = $obj->getUnsafeHTML();

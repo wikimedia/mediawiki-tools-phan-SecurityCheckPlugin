@@ -3,7 +3,7 @@
 $globalFoo = '';
 $globalBar = '';
 
-class Foo {
+class MultiAssign {
 	private $bar;
 	private $bar2;
 
@@ -55,7 +55,7 @@ class Foo {
 	}
 }
 
-$f = new Foo;
+$f = new MultiAssign();
 
 $f->setEvil();
 $f->echoThing();

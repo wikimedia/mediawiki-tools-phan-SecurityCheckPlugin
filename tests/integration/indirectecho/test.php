@@ -1,5 +1,5 @@
 <?php
-class Foo {
+class IndirectEcho {
 
 	private $hold = '';
 

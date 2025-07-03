@@ -1,10 +1,10 @@
 <?php
 
-class Baz {
+class ErrorReportClass2 {
 	private $bazMember;
 
 	public function __construct( $valBaz ) {
-		$this->bazMember = new Foo;
+		$this->bazMember = new ErrorReportClass1;
 		$this->bazMember->setFooMember( $valBaz );
 	}
 
@@ -13,4 +13,4 @@ class Baz {
 	}
 }
 
-$b = new Baz( $_GET['evil'] );
+$b = new ErrorReportClass2( $_GET['evil'] );

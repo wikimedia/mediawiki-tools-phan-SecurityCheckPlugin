@@ -1,5 +1,5 @@
 <?php
-$a = new Foo;
+$a = new IndirectEcho;
 
 $a->appendHold( "42" );
 $a->appendHold( $_POST['foo'] );

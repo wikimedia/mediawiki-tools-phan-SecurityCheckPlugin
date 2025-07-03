@@ -1,6 +1,6 @@
 <?php
-class Foo implements IFoo {
 
+class DocblockClass implements DocblockInterface {
 	public function escapeHTML( $t ) {
 		return $t;
 	}

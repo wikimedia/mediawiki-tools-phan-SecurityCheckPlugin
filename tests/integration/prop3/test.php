@@ -1,8 +1,8 @@
 <?php
 
-$a = new Foo;
+$a = new Prop3;
 
-class Foo {
+class Prop3 {
 
 	/** @var string $myProp */
 	public $myProp = '';
@@ -20,7 +20,7 @@ class Foo {
 $a->setMyProp( $_GET['do'] );
 echo $a->echoMyProp();
 
-class Foo2 {
+class Prop3_Test2 {
 
 	/** @var string $myProp */
 	public $myProp = '';
@@ -36,7 +36,7 @@ class Foo2 {
 }
 
 // Ensure that code order doesn't matter.
-$b = new Foo2;
+$b = new Prop3_Test2;
 $cb = function () use ( $b ) {
 	echo $b->echoMyProp();
 };

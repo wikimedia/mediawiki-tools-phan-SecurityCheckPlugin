@@ -1,12 +1,12 @@
 <?php
 
-class Foo {
+class StaticProp {
 
 	/** @var string $myProp */
 	public static $myProp = '';
 
 }
 
-Foo::$myProp = $_GET['evil'];
-$a = Foo::$myProp;
+StaticProp::$myProp = $_GET['evil'];
+$a = StaticProp::$myProp;
 echo $a;

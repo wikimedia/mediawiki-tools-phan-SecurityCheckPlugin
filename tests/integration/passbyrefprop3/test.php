@@ -1,4 +1,4 @@
-<?php
+<?php namespace PassByRefProp3;
 
 function alwaysTaint( &$arg ) {
 	$arg = $_GET['baz'];
@@ -30,7 +30,7 @@ function noop( &$arg ) {
 // Lines commented as "Ideally safe" mean that the line in question is practically safe, but we
 // consider it unsafe because taint is never overridden for props.
 
-class Foo {
+class TestMethods {
 	public $myProp;
 
 	function test1() {

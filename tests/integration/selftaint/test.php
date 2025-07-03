@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class SelfTaint {
 
 	public $msg;
 
@@ -21,5 +21,5 @@ class Foo {
 }
 
 $b = $_GET['foo'];
-$a = new Foo( $b );
+$a = new SelfTaint( $b );
 $a->out();

@@ -1,1 +1,1 @@
-integration/errorreportnew/test.php:10 SecurityCheck-XSS Calling method \Foo::__construct() in [no method] that outputs using tainted argument #1 (`$evil`). (Caused by: integration/errorreportnew/test.php +5) (Caused by: integration/errorreportnew/test.php +9)
+integration/errorreportnew/test.php:10 SecurityCheck-XSS Calling method \ErrorReportNew::__construct() in [no method] that outputs using tainted argument #1 (`$evil`). (Caused by: integration/errorreportnew/test.php +5) (Caused by: integration/errorreportnew/test.php +9)

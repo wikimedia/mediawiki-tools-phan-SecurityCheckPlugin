@@ -2,7 +2,7 @@
 
 use Wikimedia\Rdbms\MysqlDatabase;
 
-class Foo {
+class DBSelectText {
 	/** @var MysqlDatabase */
 	private $readConnection;
 

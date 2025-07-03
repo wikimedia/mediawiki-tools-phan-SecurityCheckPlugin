@@ -6,7 +6,7 @@ class Html {
 	}
 }
 
-class A {
+class TestLongCausedBy {
 	public function main() {
 		$this->output(
 			Html::rawElement( 'div', [], Html::rawElement( 'ul', [], Html::rawElement( 'li', [], $_GET['baz'] ) ) )

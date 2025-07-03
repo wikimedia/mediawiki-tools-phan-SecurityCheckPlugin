@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class DoubleAssign {
 
 	public function doStuff( $s ) {
 		return $s;
@@ -23,7 +23,7 @@ class Foo {
 	}
 }
 
-$a = new Foo;
+$a = new DoubleAssign;
 echo $a->doStuff( $_GET['evil'] ); // Unsafe
 echo $a->doStuff2( $_GET['evil'] ); // Safe
 echo $a->doStuff3( $_GET['evil'] ); // Unsafe

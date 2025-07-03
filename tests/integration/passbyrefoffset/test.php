@@ -1,4 +1,4 @@
-<?php
+<?php namespace PassByRefOffset;
 
 /*
  * Test for passing array elements by ref. Phan doesn't use PassByReferenceVariable here, so we cannot properly handle them.
@@ -12,7 +12,7 @@ function safe( &$arg2 ) {
 	$arg2 = 'safe';
 }
 
-class Foo {
+class TestMethod {
 	public $baz;
 	function main() {
 		unsafe( $this->baz['foo'] );

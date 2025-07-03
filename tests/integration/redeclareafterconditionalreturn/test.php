@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class RedeclareAfterConditionalReturn {
 	public function show() {
 		echo $this->bar();
 	}

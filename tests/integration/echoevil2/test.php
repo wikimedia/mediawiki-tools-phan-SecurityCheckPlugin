@@ -1,5 +1,5 @@
 <?php
-class Foo {
+class EchoEvil2 {
 
 	private function doEvil() {
 		echo $_GET['baz'];

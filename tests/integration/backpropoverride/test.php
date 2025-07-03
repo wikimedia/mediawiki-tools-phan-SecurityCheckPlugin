@@ -1,10 +1,10 @@
 <?php
 
-$a = new Foo;
+$a = new BackpropOverride;
 $b = $_GET['evil'] . 'foo';
 $a->indirect( $b );
-class Foo {
 
+class BackpropOverride {
 	/**
 	 * @param-taint $val exec_sql_numkey
 	 */

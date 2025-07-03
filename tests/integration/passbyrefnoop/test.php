@@ -4,7 +4,7 @@
 // of a method was modified by a pass by reference method,
 // then the first method was treated as "unknown" which
 // resulted in its taint being derived from all it parameters.
-class Foo {
+class PassByRefNoOp {
 	public function funcThatTakesEvil( $evil ) {
 		$html = '';
 		$this->noOpWithRef( $html );
@@ -15,6 +15,6 @@ class Foo {
 	}
 }
 
-$f = new Foo;
+$f = new PassByRefNoOp;
 $evil = $_GET['evil'];
 echo $f->funcThatTakesEvil( $evil );

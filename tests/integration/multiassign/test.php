@@ -1,6 +1,6 @@
 <?php
 
-function test() {
+function testMultiassign1() {
 	$a = $_GET['d'];
 
 	$a = 'ok';
@@ -8,7 +8,7 @@ function test() {
 	echo $a;
 }
 
-function test2() {
+function testMultiassign2() {
 	$b = $_GET['d'];
 	if ( false ) {
 		$b = 'ok';

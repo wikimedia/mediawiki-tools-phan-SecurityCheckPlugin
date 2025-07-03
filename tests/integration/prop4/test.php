@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class Prop4 {
 
 	/** @var string $myProp */
 	public $myProp = '';
@@ -28,7 +28,7 @@ function out( array $in ) {
 	return true;
 }
 
-$a = new Foo;
+$a = new Prop4;
 $cb = function () use ( $a ) {
 	out( [ 'foo', 'fee', 'foe', 'hum', $a->echoMyProp(), 'baz' ] );
 };

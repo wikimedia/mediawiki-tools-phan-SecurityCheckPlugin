@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class ErrorReportClass1 {
 	private $fooMember;
 
 	public function setFooMember( $valFoo ) {

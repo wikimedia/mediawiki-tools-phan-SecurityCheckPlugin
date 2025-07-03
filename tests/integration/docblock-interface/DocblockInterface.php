@@ -1,5 +1,5 @@
 <?php
-interface IFoo {
+interface DocblockInterface {
 	/**
 	 * @param-taint $t escapes_html
 	 */

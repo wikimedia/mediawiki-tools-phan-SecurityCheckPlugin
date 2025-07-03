@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class RedeclareInBranch {
 	public function show() {
 		echo $this->bar();
 	}

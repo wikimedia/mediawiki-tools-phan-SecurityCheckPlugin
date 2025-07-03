@@ -1,6 +1,6 @@
 <?php
 
-class FooBar {
+class NestedCal {
 	public function execute() {
 		$this->show();
 	}
@@ -18,7 +18,7 @@ class FooBar {
 	}
 }
 
-class Baz {
+class NestedCalls2 {
 	public function a() {
 		$this->b();
 	}

@@ -1,6 +1,6 @@
 <?php
 
-class Foo {
+class TestToStringBase {
 	protected $value = null;
 	public function __construct( $value ) {
 		$this->value = $value;
@@ -11,19 +11,19 @@ class Foo {
 	}
 }
 
-class SafeFoo extends Foo {
-	public function __toString() {
+class SafeTestToStringChild extends TestToStringBase {
+	public function __toString(): string {
 		return htmlspecialchars( $this->value );
 	}
 }
 
-class DoEvil {
+class TestToStringEvil {
 	public function __toString(): string {
 		return $_GET['stuff'];
 	}
 }
 
-class Foo2 {
+class ToStringWithSetter {
 	private $val;
 	public function setVal( $a ) {
 		$this->val = $a;
@@ -33,19 +33,19 @@ class Foo2 {
 	}
 }
 
-$unsafe = new Foo( $_GET['bar'] );
+$unsafe = new TestToStringBase( $_GET['bar'] );
 echo "unsafe is $unsafe";
-echo ( new Foo( $_GET['bar'] ) );
+echo ( new TestToStringBase( $_GET['bar'] ) );
 
-echo ( new DoEvil() );
-$d = new DoEvil;
+echo ( new TestToStringEvil() );
+$d = new TestToStringEvil;
 echo $d;
-$a = new SafeFoo( "some safe var" );
+$a = new SafeTestToStringChild( "some safe var" );
 echo "A is $a";
-$b = new SafeFoo( $_GET['bar'] );
+$b = new SafeTestToStringChild( $_GET['bar'] );
 echo "B is $b";
 
-$f = new Foo2;
+$f = new ToStringWithSetter;
 $f->setVal( $_GET['d'] );
 $g = $f->toString();
 echo $g;
