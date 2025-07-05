@@ -108,10 +108,7 @@ class PreservedTaintedness {
 		foreach ( $this->dimTaint as $k => $val ) {
 			$dimTaint[$k] = $val->asTaintednessForArgument( $argTaint );
 		}
-		$unknownDimsTaint = null;
-		if ( $this->unknownDimsTaint ) {
-			$unknownDimsTaint = $this->unknownDimsTaint->asTaintednessForArgument( $argTaint );
-		}
+		$unknownDimsTaint = $this->unknownDimsTaint?->asTaintednessForArgument( $argTaint );
 		$keysTaint = $this->keysOffsets
 			? $this->keysOffsets->appliedToTaintedness( $argTaint )->get()
 			: SecurityCheckPlugin::NO_TAINT;
@@ -156,12 +153,9 @@ class PreservedTaintedness {
 				$newTaint->getTaintednessForOffsetOrWhole( $key )
 			);
 		}
-		$unknownDimsTaint = null;
-		if ( $this->unknownDimsTaint ) {
-			$unknownDimsTaint = $this->unknownDimsTaint->asTaintednessForVarBackpropError(
-				$newTaint->getTaintednessForOffsetOrWhole( null )
-			);
-		}
+		$unknownDimsTaint = $this->unknownDimsTaint?->asTaintednessForVarBackpropError(
+			$newTaint->getTaintednessForOffsetOrWhole( null )
+		);
 		$keysTaint = $this->keysOffsets
 			? $this->keysOffsets->appliedToTaintednessForBackprop( $newTaint )->get()
 			: SecurityCheckPlugin::NO_TAINT;

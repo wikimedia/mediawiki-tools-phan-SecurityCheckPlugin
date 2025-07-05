@@ -524,10 +524,7 @@ class MethodLinks {
 		foreach ( $this->dimLinks as $dim => $dimLinks ) {
 			$dimLinksShape[$dim] = $dimLinks->asFilteredForFuncAndParam( $func, $param );
 		}
-		$unknownDimLinks = null;
-		if ( $this->unknownDimLinks ) {
-			$unknownDimLinks = $this->unknownDimLinks->asFilteredForFuncAndParam( $func, $param );
-		}
+		$unknownDimLinks = $this->unknownDimLinks?->asFilteredForFuncAndParam( $func, $param );
 		$keysLinks = new LinksSet();
 		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
 			$keysLinks->attach( $func, $this->keysLinks[$func] );

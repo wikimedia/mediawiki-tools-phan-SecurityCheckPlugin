@@ -139,7 +139,7 @@ class MediaWikiHooksHelper {
 						continue;
 					}
 					$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $callbackString );
-				} elseif ( strpos( $cb, '::' ) === false ) {
+				} elseif ( !str_contains( $cb, '::' ) ) {
 					$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $cb );
 				} else {
 					$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $cb );

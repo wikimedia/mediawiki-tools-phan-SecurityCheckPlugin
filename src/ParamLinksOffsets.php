@@ -148,12 +148,9 @@ class ParamLinksOffsets {
 		foreach ( $this->dims as $k => $val ) {
 			$dimTaint[$k] = $val->appliedToTaintednessForBackprop( $taintedness->getTaintednessForOffsetOrWhole( $k ) );
 		}
-		$unknownDimsTaint = null;
-		if ( $this->unknown ) {
-			$unknownDimsTaint = $this->unknown->appliedToTaintednessForBackprop(
-				$taintedness->getTaintednessForOffsetOrWhole( null )
-			);
-		}
+		$unknownDimsTaint = $this->unknown?->appliedToTaintednessForBackprop(
+			$taintedness->getTaintednessForOffsetOrWhole( null )
+		);
 		$keysTaint = $taintedness->asKeyForForeach()->withOnly( $this->keysFlags )->get();
 
 		return $ret->asMergedWith( Taintedness::newFromShape( $dimTaint, $unknownDimsTaint, $keysTaint ) );

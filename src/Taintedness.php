@@ -634,7 +634,7 @@ class Taintedness {
 		foreach ( $ret->dimTaint as $k => $dimTaint ) {
 			$ret->dimTaint[$k] = $dimTaint->withSQLExecAddedToNumkeyExec();
 		}
-		$ret->unknownDimsTaint = $ret->unknownDimsTaint ? $ret->unknownDimsTaint->withSQLExecAddedToNumkeyExec() : null;
+		$ret->unknownDimsTaint = $ret->unknownDimsTaint?->withSQLExecAddedToNumkeyExec();
 		if ( $ret->keysTaint & SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ) {
 			$ret->keysTaint |= SecurityCheckPlugin::SQL_EXEC_TAINT;
 		}

@@ -557,7 +557,7 @@ trait TaintednessBaseVisitor {
 		if ( $docBlock === null ) {
 			return null;
 		}
-		if ( strpos( $docBlock, '-taint' ) === false ) {
+		if ( !str_contains( $docBlock, '-taint' ) ) {
 			// Lightweight check for methods that certainly aren't annotated
 			return null;
 		}
@@ -586,7 +586,7 @@ trait TaintednessBaseVisitor {
 		foreach ( $lines as $line ) {
 			$m = [];
 			$trimmedLine = ltrim( rtrim( $line ), "* \t/" );
-			if ( strpos( $trimmedLine, '@param-taint' ) === 0 ) {
+			if ( str_starts_with( $trimmedLine, '@param-taint' ) ) {
 				$matched = preg_match( SecurityCheckPlugin::PARAM_ANNOTATION_REGEX, $trimmedLine, $m );
 				if ( !$matched ) {
 					$invalidLineIssueEmitter( "Cannot parse taint line '{COMMENT}'", [ $trimmedLine ] );
@@ -650,7 +650,7 @@ trait TaintednessBaseVisitor {
 						$funcTaint->getOverall()->with( SecurityCheckPlugin::ESCAPED_TAINT )
 					);
 				}
-			} elseif ( strpos( $trimmedLine, '@return-taint' ) === 0 ) {
+			} elseif ( str_starts_with( $trimmedLine, '@return-taint' ) ) {
 				$taintLine = substr( $trimmedLine, strlen( '@return-taint' ) + 1 );
 				$taintData = SecurityCheckPlugin::parseTaintLine( $taintLine );
 				if ( $taintData === null ) {
@@ -1464,7 +1464,7 @@ trait TaintednessBaseVisitor {
 			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
 			// And also NOTE: 'self::methodname()' is not valid PHP.
 			// TODO: We should probably emit a non-security issue in the missing case
-			if ( strpos( $node, '::' ) === false ) {
+			if ( !str_contains( $node, '::' ) ) {
 				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
 				return $this->code_base->hasFunctionWithFQSEN( $callback )
 					? $this->code_base->getFunctionByFQSEN( $callback )

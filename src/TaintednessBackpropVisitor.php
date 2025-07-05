@@ -104,7 +104,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->recurse(
 				$key,
 				$this->taintedness->asKeyForForeach(),
-				$this->additionalError ? $this->additionalError->asAllKeyForForeach() : null
+				$this->additionalError?->asAllKeyForForeach()
 			);
 		}
 		$value = $node->children['value'];
@@ -112,7 +112,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->recurse(
 				$value,
 				$this->taintedness->getTaintednessForOffsetOrWhole( $key ),
-				$this->additionalError ? $this->additionalError->getForDim( $key ) : null
+				$this->additionalError?->getForDim( $key )
 			);
 		}
 	}
@@ -141,7 +141,7 @@ class TaintednessBackpropVisitor extends PluginAwareBaseAnalysisVisitor {
 			$this->recurse(
 				$node->children['expr'],
 				$this->taintedness->asMaybeMovedAtOffset( $realOffs ),
-				$this->additionalError ? $this->additionalError->asAllMaybeMovedAtOffset( $realOffs ) : null
+				$this->additionalError?->asAllMaybeMovedAtOffset( $realOffs )
 			);
 		}
 	}

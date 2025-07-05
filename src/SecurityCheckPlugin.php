@@ -320,7 +320,7 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 					$found = true;
 				}
 			}
-		} elseif ( strpos( $statement, '@taint-check-debug-method-first-arg' ) !== false ) {
+		} elseif ( str_contains( $statement, '@taint-check-debug-method-first-arg' ) ) {
 			// FIXME This is a hack. The annotation is INTERNAL, for use only in the backpropoffsets-blowup
 			// test. We should either find a better way to test that, or maybe add a public annotation
 			// for debugging taintedness of a method (probably unreadable on a single line).
@@ -710,39 +710,24 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	 * @return int One of the TAINT constants
 	 */
 	public static function convertTaintNameToConstant( string $name ): int {
-		switch ( $name ) {
-			case 'html':
-			case 'htmlnoent':
-				return self::HTML_TAINT;
-			case 'sql':
-				return self::SQL_TAINT;
-			case 'shell':
-				return self::SHELL_TAINT;
-			case 'serialize':
-				return self::SERIALIZE_TAINT;
-			case 'custom1':
-				return self::CUSTOM1_TAINT;
-			case 'custom2':
-				return self::CUSTOM2_TAINT;
-			case 'code':
-				return self::CODE_TAINT;
-			case 'path':
-				return self::PATH_TAINT;
-			case 'regex':
-				return self::REGEX_TAINT;
-			case 'sql_numkey':
-				return self::SQL_NUMKEY_TAINT;
-			case 'escaped':
-				return self::ESCAPED_TAINT;
-			case 'tainted':
-				return self::YES_TAINT;
-			case 'none':
-				return self::NO_TAINT;
-			default:
-				// @codeCoverageIgnoreStart
-				throw new InvalidArgumentException( "$name not valid taint" );
-				// @codeCoverageIgnoreEnd
-		}
+		return match ( $name ) {
+			'html', 'htmlnoent' => self::HTML_TAINT,
+			'sql' => self::SQL_TAINT,
+			'shell' => self::SHELL_TAINT,
+			'serialize' => self::SERIALIZE_TAINT,
+			'custom1' => self::CUSTOM1_TAINT,
+			'custom2' => self::CUSTOM2_TAINT,
+			'code' => self::CODE_TAINT,
+			'path' => self::PATH_TAINT,
+			'regex' => self::REGEX_TAINT,
+			'sql_numkey' => self::SQL_NUMKEY_TAINT,
+			'escaped' => self::ESCAPED_TAINT,
+			'tainted' => self::YES_TAINT,
+			'none' => self::NO_TAINT,
+			// @codeCoverageIgnoreStart
+			default => throw new InvalidArgumentException( "$name not valid taint" )
+			// @codeCoverageIgnoreEnd
+		};
 	}
 
 	/**
