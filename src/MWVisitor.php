@@ -106,7 +106,7 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Special casing for complex format of IDatabase::select
+	 * Special casing for complex format of IReadableDatabase::select
 	 *
 	 * This handles the $options, and $join_cond. Other args are
 	 * handled through normal means
@@ -436,6 +436,12 @@ class MWVisitor extends TaintednessVisitor {
 		];
 		$args = [ '', '', '', '' ];
 		foreach ( $node->children as $child ) {
+			// Can't have array destructuring in a return statement.
+			assert( $child !== null );
+			if ( $child->kind === \ast\AST_UNPACK ) {
+				// Can't analyze this, skip it.
+				continue;
+			}
 			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 			$key = $child->children['key'];
 			if ( $key instanceof Node ) {
@@ -448,7 +454,7 @@ class MWVisitor extends TaintednessVisitor {
 			$args[$keysToArg[$key]] = $child->children['value'];
 		}
 		$selectFQSEN = FullyQualifiedMethodName::fromFullyQualifiedString(
-			'\Wikimedia\Rdbms\IDatabase::select'
+			'\Wikimedia\Rdbms\IReadableDatabase::select'
 		);
 		if ( !$this->code_base->hasMethodWithFQSEN( $selectFQSEN ) ) {
 			// Huh. Core wasn't parsed. That's bad, but don't fail hard.
@@ -566,7 +572,7 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Check the options parameter to IDatabase::select
+	 * Check the options parameter to IReadableDatabase::select
 	 *
 	 * This only works if its specified as an array literal.
 	 *
@@ -578,6 +584,12 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		foreach ( $node->children as $arrayElm ) {
+			// Can't use array destructuring as an expression
+			assert( $arrayElm !== null );
+			if ( $arrayElm->kind === \ast\AST_UNPACK ) {
+				// Can't analyze this, skip it.
+				continue;
+			}
 			assert( $arrayElm->kind === \ast\AST_ARRAY_ELEM );
 			$val = $arrayElm->children['value'];
 			$key = $arrayElm->children['key'];
@@ -647,6 +659,12 @@ class MWVisitor extends TaintednessVisitor {
 		}
 
 		foreach ( $node->children as $table ) {
+			// Can't use array destructuring as an expression
+			assert( $table !== null );
+			if ( $table->kind === \ast\AST_UNPACK ) {
+				// Can't analyze this, skip it.
+				continue;
+			}
 			assert( $table->kind === \ast\AST_ARRAY_ELEM );
 
 			$tableName = is_string( $table->children['key'] ) ?
@@ -717,9 +735,25 @@ class MWVisitor extends TaintednessVisitor {
 		if ( $node->kind !== \ast\AST_ARRAY || count( $node->children ) < 2 ) {
 			return;
 		}
+
+		$arg = $node->children[0];
+		// Can't have array destructuring in a return statement.
+		assert( $arg instanceof Node );
+		if ( $arg->kind === \ast\AST_UNPACK ) {
+			// Can't analyze this.
+			return;
+		}
+		assert( $arg->kind === \ast\AST_ARRAY_ELEM );
+
 		$isHTML = false;
 		foreach ( $node->children as $child ) {
-			assert( $child instanceof Node && $child->kind === \ast\AST_ARRAY_ELEM );
+			// Can't have array destructuring in a return statement.
+			assert( $child instanceof Node );
+			if ( $child->kind === \ast\AST_UNPACK ) {
+				// Can't analyze this, skip it.
+				continue;
+			}
+			assert( $child->kind === \ast\AST_ARRAY_ELEM );
 
 			if (
 				$child->children['key'] === 'isHTML' &&
@@ -736,8 +770,6 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 
-		$arg = $node->children[0];
-		assert( $arg instanceof Node && $arg->kind === \ast\AST_ARRAY_ELEM );
 		$this->maybeEmitIssueSimplified(
 			new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
 			$arg->children['value'],

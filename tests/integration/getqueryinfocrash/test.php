@@ -1,6 +1,6 @@
 <?php
 
-class GetQueryInfoCrash {
+class GetQueryInfoCrashNonLiteral {
 	public function getQueryInfo() {
 		$joinsName = 'joins';
 		return [
@@ -9,6 +9,14 @@ class GetQueryInfoCrash {
 			'conds' => [],
 			'options' => [],
 			$joinsName => [], // This would cause a crash due to non-literal key
+		];
+	}
+}
+
+class GetQueryInfoCrashUnpack {
+	public function getQueryInfo() {
+		return [
+			...$GLOBALS['queryInfo']
 		];
 	}
 }

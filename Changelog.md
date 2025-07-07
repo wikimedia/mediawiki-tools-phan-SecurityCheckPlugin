@@ -11,6 +11,7 @@
 ### Bug fixes
 * (MW) Fix SQLi detection for `$options` and `$join_conds` arguments to `SELECT` DB functions
 * (MW) Make special handling of database functions check the newer RDBMS interfaces (`IReadableDatabase` and `ISQLPlatform`)
+* (MW) Fix various crashes when using array unpack in database function calls, `getQueryInfo()` methods, or parser function hook returns
 
 ## v6.2.1
 ### Internal changes

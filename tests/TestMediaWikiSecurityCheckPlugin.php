@@ -57,6 +57,7 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				self::SQL_EXEC_TAINT,
 				'overall' => self::YES_TAINT
 			],
+			'\Wikimedia\Rdbms\IReadableDatabase::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\IDatabase::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectSQLText' => [

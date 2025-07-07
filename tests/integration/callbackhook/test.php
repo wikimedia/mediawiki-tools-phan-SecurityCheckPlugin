@@ -31,6 +31,9 @@ class SomeClass {
 		$parser->setFunctionHook( 'unsafe3', [ $this, 'unsafeHook3' ] );
 		$this->ownInstance = $this;
 		$parser->setFunctionHook( 'unsafe4', [ $this->ownInstance, 'unsafeHook4' ] );
+
+		$parser->setFunctionHook( 'nocrash1', [ $this, 'testNoCrash1' ] );
+		$parser->setFunctionHook( 'nocrash2', [ $this, 'testNoCrash2' ] );
 	}
 
 	public function bar( Parser $parser, $arg1, $arg2 ) {
@@ -63,6 +66,15 @@ class SomeClass {
 
 	public function unsafeHook4( Parser $parser, $arg ) {
 		return [ $arg, 'isHTML' => true ];
+	}
+
+	public function testNoCrash1() {
+		// Make sure this doesn't crash due to the unpacking.
+		return [ ...$GLOBALS['return_data'], 'isHTML' => true ];
+	}
+	public function testNoCrash2() {
+		// Make sure this doesn't crash due to the unpacking.
+		return [ 'isHTML' => true, ...$GLOBALS['return_data'] ];
 	}
 }
 
