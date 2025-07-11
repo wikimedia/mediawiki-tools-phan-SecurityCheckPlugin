@@ -628,11 +628,9 @@ class MWVisitor extends TaintednessVisitor {
 		$taintType = new Taintedness( $taintType );
 
 		$this->backpropagateArgTaint( $callNode, $taintType );
-		if ( $value->lineno !== $this->context->getLineNumberStart() ) {
+		if ( $value instanceof Node && $value->lineno !== $this->context->getLineNumberStart() ) {
 			$ctx = clone $this->context;
-			$this->overrideContext = $ctx->withLineNumberStart(
-				$value->lineno ?? $ctx->getLineNumberStart()
-			);
+			$this->overrideContext = $ctx->withLineNumberStart( $value->lineno );
 		}
 		$this->maybeEmitIssueSimplified(
 			$taintType,
@@ -703,11 +701,9 @@ class MWVisitor extends TaintednessVisitor {
 					continue;
 				}
 				$onCond = $joinInfo->children[1]->children['value'];
-				if ( ( $onCond->lineno ?? null ) !== $this->context->getLineNumberStart() ) {
+				if ( $onCond instanceof Node && $onCond->lineno !== $this->context->getLineNumberStart() ) {
 					$ctx = clone $this->context;
-					$this->overrideContext = $ctx->withLineNumberStart(
-						$onCond->lineno ?? $ctx->getLineNumberStart()
-					);
+					$this->overrideContext = $ctx->withLineNumberStart( $onCond->lineno );
 				}
 				$this->maybeEmitIssueSimplified(
 					new Taintedness( SecurityCheckPlugin::SQL_NUMKEY_EXEC_TAINT ),

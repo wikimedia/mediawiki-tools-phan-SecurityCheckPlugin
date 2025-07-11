@@ -122,3 +122,9 @@ $safe2 = [
 	'f2' => [ $_GET['a'] ],
 ];
 $db->select( 't', '*', $safe2 ); // Safe (actually a LikelyFalsePositive)
+
+// Test literal join conditions (should not crash)
+$db->select( 't', 'f', '', __METHOD__, [], [ 't' => [ 'INNER JOIN', 'a=b' ] ] );
+
+// Test literal options (should not crash)
+$db->select( 't', 'f', '', __METHOD__, [ 'ORDER BY' => 'foo' ] );
