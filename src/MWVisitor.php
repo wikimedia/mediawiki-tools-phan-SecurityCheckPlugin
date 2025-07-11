@@ -82,7 +82,7 @@ class MWVisitor extends TaintednessVisitor {
 			case '\Hooks::runWithoutAbort':
 				$this->triggerHook( $node );
 				break;
-			case '\Linker::makeExternalLink':
+			case '\MediaWiki\Linker\Linker::makeExternalLink':
 				$this->checkExternalLink( $node );
 				break;
 			default:
@@ -91,7 +91,7 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Linker::makeExternalLink escaping depends on third argument
+	 * MediaWiki\Linker\Linker::makeExternalLink escaping depends on third argument
 	 */
 	private function checkExternalLink( Node $node ): void {
 		$escapeArg = $this->resolveValue( $node->children['args']->children[2] ?? true );

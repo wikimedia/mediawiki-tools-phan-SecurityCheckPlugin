@@ -1,5 +1,7 @@
 <?php
 
+namespace MediaWiki\Linker;
+
 class Linker {
 	public static function makeExternalLink( $url, $text, $escape = true,
 		$linktype = '', $attribs = [], $title = null
