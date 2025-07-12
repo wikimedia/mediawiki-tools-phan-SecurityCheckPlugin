@@ -5,6 +5,7 @@ namespace SecurityCheckPlugin;
 use ast\Node;
 use Phan\Analysis\PostOrderAnalysisVisitor;
 use Phan\AST\ContextNode;
+use Phan\AST\UnionTypeVisitor;
 use Phan\Exception\CodeBaseException;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Exception\IssueException;
@@ -712,10 +713,11 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param FullyQualifiedFunctionLikeName $funcName
 	 */
 	private function visitReturnOfFunctionHook( Node $node, FullyQualifiedFunctionLikeName $funcName ): void {
+		// XXX: we limit this to literal arrays because otherwise, we wouldn't be able to match the output taintedness
+		// and the `isHTML` value from different branches. See `safeHookIndirect1` test.
 		if ( $node->kind !== \ast\AST_ARRAY || count( $node->children ) < 2 ) {
 			return;
 		}
-
 		$arg = $node->children[0];
 		// Can't have array destructuring in a return statement.
 		assert( $arg instanceof Node );
@@ -725,28 +727,19 @@ class MWVisitor extends TaintednessVisitor {
 		}
 		assert( $arg->kind === \ast\AST_ARRAY_ELEM );
 
-		$isHTML = false;
-		foreach ( $node->children as $child ) {
-			// Can't have array destructuring in a return statement.
-			assert( $child instanceof Node );
-			if ( $child->kind === \ast\AST_UNPACK ) {
-				// Can't analyze this, skip it.
-				continue;
-			}
-			assert( $child->kind === \ast\AST_ARRAY_ELEM );
-
-			if (
-				$child->children['key'] === 'isHTML' &&
-				$child->children['value'] instanceof Node &&
-				$child->children['value']->kind === \ast\AST_CONST &&
-				$child->children['value']->children['name'] instanceof Node &&
-				$child->children['value']->children['name']->children['name'] === 'true'
-			) {
-				$isHTML = true;
-				break;
-			}
+		$retType = UnionTypeVisitor::unionTypeFromNode( $this->code_base, $this->context, $node );
+		$isHTMLElementType = UnionTypeVisitor::resolveArrayShapeElementTypesForOffset(
+			$retType,
+			'isHTML',
+			false,
+			$this->code_base
+		);
+		if ( !$isHTMLElementType instanceof UnionType ) {
+			// Can't be resolved statically.
+			return;
 		}
-		if ( !$isHTML ) {
+
+		if ( !$isHTMLElementType->containsTrue() ) {
 			return;
 		}
 

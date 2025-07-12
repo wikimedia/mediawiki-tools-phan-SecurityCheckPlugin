@@ -32,6 +32,13 @@ class SomeClass {
 		$this->ownInstance = $this;
 		$parser->setFunctionHook( 'unsafe4', [ $this->ownInstance, 'unsafeHook4' ] );
 
+		$parser->setFunctionHook( 'unsafeindirect1', [ $this, 'unsafeHookIndirect1' ] );
+		$parser->setFunctionHook( 'unsafeindirect2', [ $this, 'unsafeHookIndirect2' ] );
+		$parser->setFunctionHook( 'unsafeindirect3', [ $this, 'unsafeHookIndirect3' ] );
+		$parser->setFunctionHook( 'unsafeindirect4', [ $this, 'unsafeHookIndirect4' ] );
+		$parser->setFunctionHook( 'unsafeindirect5', [ $this, 'unsafeHookIndirect5' ] );
+		$parser->setFunctionHook( 'safeindirect1', [ $this, 'safeHookIndirect1' ] );
+
 		$parser->setFunctionHook( 'nocrash1', [ $this, 'testNoCrash1' ] );
 		$parser->setFunctionHook( 'nocrash2', [ $this, 'testNoCrash2' ] );
 	}
@@ -66,6 +73,50 @@ class SomeClass {
 
 	public function unsafeHook4( Parser $parser, $arg ) {
 		return [ $arg, 'isHTML' => true ];
+	}
+
+	public function unsafeHookIndirect1( Parser $parser, $arg ) {
+		$ret = [ $arg, 'isHTML' => true ];
+		return $ret; // TODO: Unsafe
+	}
+
+	public function unsafeHookIndirect2( Parser $parser, $arg ) {
+		if ( rand() ) {
+			$ret = [ $arg, 'isHTML' => true ];
+		} else {
+			$ret = [ $arg, 'isHTML' => false ];
+		}
+		return $ret; // TODO: Unsafe
+	}
+
+	public function unsafeHookIndirect3( Parser $parser, $arg ) {
+		$isHTML = rand() === 1;
+		return [ $arg, 'isHTML' => $isHTML ];
+	}
+
+	public function unsafeHookIndirect4( Parser $parser, $arg ) {
+		if ( rand() ) {
+			$ret = [ $arg, 'isHTML' => true ];
+		} else {
+			$ret = $GLOBALS['unresolvable'];
+		}
+		return $ret; // TODO: Unsafe
+	}
+
+	public function unsafeHookIndirect5( Parser $parser, $arg ) {
+		$unknown = (bool)$GLOBALS['unknown'];
+		// This is considered unsafe, in the spirit of favouring false positives.
+		return [ $arg, 'isHTML' => $unknown ];
+	}
+
+	public function safeHookIndirect1( Parser $parser, $arg ) {
+		if ( rand() ) {
+			$ret = [ $arg, 'isHTML' => false ];
+		} else {
+			$ret = [ 'safe', 'isHTML' => true ];
+		}
+		// This is safe, because individual branches are safe.
+		return $ret;
 	}
 
 	public function testNoCrash1() {
