@@ -279,7 +279,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		try {
 			$var = $this->getCtxN( $expr )->getVariable();
-		} catch ( NodeException | IssueException $_ ) {
+		} catch ( NodeException | IssueException ) {
 			return;
 		}
 
@@ -614,7 +614,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 				false,
 				true
 			);
-		} catch ( NodeException | CodeBaseException | IssueException $_ ) {
+		} catch ( NodeException | CodeBaseException | IssueException ) {
 			$constructor = null;
 		}
 
@@ -645,7 +645,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		foreach ( $clazzes as $clazz ) {
 			try {
 				$toString = $clazz->getMethodByName( $this->code_base, '__toString' );
-			} catch ( CodeBaseException $_ ) {
+			} catch ( CodeBaseException ) {
 				// No __toString() in this class
 				continue;
 			}

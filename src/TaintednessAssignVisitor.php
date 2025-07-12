@@ -124,7 +124,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	public function visitVar( Node $node ): void {
 		try {
 			$var = $this->getCtxN( $node )->getVariable();
-		} catch ( NodeException | IssueException $_ ) {
+		} catch ( NodeException | IssueException ) {
 			return;
 		}
 		$this->doAssignmentSingleElement( $var );
@@ -133,7 +133,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	public function visitProp( Node $node ): void {
 		try {
 			$prop = $this->getCtxN( $node )->getProperty( false );
-		} catch ( NodeException | IssueException | UnanalyzableException $_ ) {
+		} catch ( NodeException | IssueException | UnanalyzableException ) {
 			return;
 		}
 		$this->doAssignmentSingleElement( $prop );
@@ -142,7 +142,7 @@ class TaintednessAssignVisitor extends PluginAwareBaseAnalysisVisitor {
 	public function visitStaticProp( Node $node ): void {
 		try {
 			$prop = $this->getCtxN( $node )->getProperty( true );
-		} catch ( NodeException | IssueException | UnanalyzableException $_ ) {
+		} catch ( NodeException | IssueException | UnanalyzableException ) {
 			return;
 		}
 		$this->doAssignmentSingleElement( $prop );

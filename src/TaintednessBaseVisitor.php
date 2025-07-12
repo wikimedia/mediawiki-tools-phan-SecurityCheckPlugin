@@ -1922,7 +1922,7 @@ trait TaintednessBaseVisitor {
 		 * @var Taintedness $curArgTaintedness
 		 * @var CausedByLines $baseArgError
 		 */
-		foreach ( $preserveArgumentsData as $i => [ $curArgTaintedness, $_, $baseArgError ] ) {
+		foreach ( $preserveArgumentsData as $i => [ $curArgTaintedness, , $baseArgError ] ) {
 			if ( $taint->hasParamPreserve( $i ) ) {
 				$parTaint = $taint->getParamPreservedTaint( $i );
 				if ( $parTaint->isEmpty() ) {
@@ -2256,7 +2256,7 @@ trait TaintednessBaseVisitor {
 				}
 				try {
 					return $cn->getVariable();
-				} catch ( NodeException | IssueException $_ ) {
+				} catch ( NodeException | IssueException ) {
 					return null;
 				}
 			case \ast\AST_DIM:

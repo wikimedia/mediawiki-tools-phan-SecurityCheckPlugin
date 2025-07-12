@@ -112,7 +112,7 @@ class CausedByLines {
 				}
 
 				$remainingLinks = $links;
-				foreach ( $ret->lines as [ $_, $lineLine, $lineLinks ] ) {
+				foreach ( $ret->lines as [ , $lineLine, $lineLinks ] ) {
 					if ( $lineLine === $line ) {
 						$remainingLinks = $lineLinks ? $remainingLinks->withoutShape( $lineLinks ) : $remainingLinks;
 					}
@@ -167,7 +167,7 @@ class CausedByLines {
 			return $this;
 		}
 		$ret = new self;
-		foreach ( $this->lines as [ $eTaint, $eLine, $_ ] ) {
+		foreach ( $this->lines as [ $eTaint, $eLine, ] ) {
 			$newTaint = $preservedTaint->asTaintednessForArgument( $eTaint );
 			// TODO: Pass appropriate links through, see I1bd8ae302e91a2b6b951953bc321ea6ae89d5955
 			$newLinks = null;
@@ -203,7 +203,7 @@ class CausedByLines {
 		}
 		$ret = new self;
 		$safeTaint = Taintedness::safeSingleton();
-		foreach ( $this->lines as [ $_, $lineLine, $lineLinks ] ) {
+		foreach ( $this->lines as [ , $lineLine, $lineLinks ] ) {
 			if ( $lineLinks && $lineLinks->hasDataForFuncAndParam( $func, $param ) ) {
 				$ret->lines[] = [ $safeTaint, $lineLine, $lineLinks ];
 			}
@@ -216,7 +216,7 @@ class CausedByLines {
 			return $this;
 		}
 		$ret = new self;
-		foreach ( $this->lines as [ $lineTaint, $lineLine, $_ ] ) {
+		foreach ( $this->lines as [ $lineTaint, $lineLine, ] ) {
 			if ( !$lineTaint->isSafe() ) {
 				// For generic lines, links don't matter
 				$ret->lines[] = [ $lineTaint, $lineLine, null ];
@@ -390,7 +390,7 @@ class CausedByLines {
 		}
 		$ret = new self;
 		$safeTaint = Taintedness::safeSingleton();
-		foreach ( $this->lines as [ $_, $lineLine, $lineLinks ] ) {
+		foreach ( $this->lines as [ , $lineLine, $lineLinks ] ) {
 			if ( $lineLinks && !$lineLinks->isEmpty() ) {
 				$ret->lines[] = [ $safeTaint, $lineLine, $lineLinks ];
 			}

@@ -871,7 +871,7 @@ class MWVisitor extends TaintednessVisitor {
 		try {
 			// Don't warn if it's the wrong type, for it might be a callable and not a class.
 			$classes = $cnode->getClassList( true, ContextNode::CLASS_LIST_ACCEPT_ANY, null, false );
-		} catch ( CodeBaseException | IssueException $_ ) {
+		} catch ( CodeBaseException | IssueException ) {
 			$classes = [];
 		}
 		foreach ( $classes as $class ) {
@@ -881,7 +881,7 @@ class MWVisitor extends TaintednessVisitor {
 			}
 			try {
 				return $class->getMethodByName( $this->code_base, $defaultMethod );
-			} catch ( CodeBaseException $_ ) {
+			} catch ( CodeBaseException ) {
 				return null;
 			}
 		}
@@ -1076,7 +1076,7 @@ class MWVisitor extends TaintednessVisitor {
 					$fieldProps['class'],
 					$this->context
 				);
-			} catch ( InvalidFQSENException $_ ) {
+			} catch ( InvalidFQSENException ) {
 				// 'class' refers to something which is not a class, and this is probably not
 				// an HTMLForm
 				return;

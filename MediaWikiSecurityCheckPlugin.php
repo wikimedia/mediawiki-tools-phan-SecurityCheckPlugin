@@ -289,7 +289,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 						break;
 					}
 				}
-			} catch ( CodeBaseException $_ ) {
+			} catch ( CodeBaseException ) {
 				// A class that doesn't exist, don't crash.
 				return $curArgTaintedness;
 			}
@@ -310,7 +310,7 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 						return $curArgTaintedness->without( self::ESCAPED_TAINT );
 					}
 				}
-			} catch ( CodeBaseException $_ ) {
+			} catch ( CodeBaseException ) {
 				// A class that doesn't exist, don't crash.
 				return $curArgTaintedness;
 			}
