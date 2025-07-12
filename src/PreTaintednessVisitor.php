@@ -76,10 +76,12 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			}
 		}
 
+		$scope = $this->context->getScope();
+		// Initially, all variables starts off with no taint.
+		$startTaint = Taintedness::safeSingleton();
 		$params = $node->children['params']->children;
 		foreach ( $params as $i => $param ) {
 			$paramName = $param->children['name'];
-			$scope = $this->context->getScope();
 			if ( !$scope->hasVariableWithName( $paramName ) ) {
 				// @codeCoverageIgnoreStart
 				$this->debug( __METHOD__, "Missing variable for param \$" . $paramName );
@@ -89,8 +91,6 @@ class PreTaintednessVisitor extends PluginAwarePreAnalysisVisitor {
 			$varObj = $scope->getVariableByName( $paramName );
 
 			$paramTypeTaint = $this->getTaintByType( $varObj->getUnionType() );
-			// Initially, the variable starts off with no taint.
-			$startTaint = Taintedness::safeSingleton();
 			// No point in adding a caused-by line here.
 			self::setTaintednessRaw( $varObj, $startTaint );
 

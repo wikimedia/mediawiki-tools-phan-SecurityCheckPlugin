@@ -297,11 +297,12 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public function analyzeStringLiteralStatement( CodeBase $codeBase, Context $context, string $statement ): bool {
 		$found = false;
 		if ( preg_match_all( self::DEBUG_TAINTEDNESS_REGEXP, $statement, $matches, PREG_SET_ORDER ) ) {
+			$scope = $context->getScope();
 			foreach ( $matches as $group ) {
 				foreach ( explode( ',', $group[1] ) as $rawVar ) {
 					$varName = ltrim( trim( $rawVar ), '$' );
-					if ( $context->getScope()->hasVariableWithName( $varName ) ) {
-						$var = $context->getScope()->getVariableByName( $varName );
+					if ( $scope->hasVariableWithName( $varName ) ) {
+						$var = $scope->getVariableByName( $varName );
 						$taintOrNull = self::getTaintednessRaw( $var );
 						$taint = $taintOrNull ? $taintOrNull->toShortString() : 'unset';
 						$msg = "Variable {CODE} has taintedness: {DETAILS}";

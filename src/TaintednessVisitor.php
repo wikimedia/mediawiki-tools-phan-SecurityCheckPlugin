@@ -596,13 +596,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	public function visitNew( Node $node ): void {
-		$ctxNode = $this->getCtxN( $node );
 		if ( !$node->children['class'] instanceof Node ) {
 			// Syntax error, don't crash
 			$this->setCurTaintSafe();
 			return;
 		}
 
+		$ctxNode = $this->getCtxN( $node );
 		// We check the __construct() method first, but the
 		// final resulting taint is from the __toString()
 		// method. This is a little hacky.
@@ -742,14 +742,15 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$this->setCachedData( $node );
 			return;
 		}
-		if ( !$this->context->getScope()->hasVariableWithName( $varName ) ) {
+		$scope = $this->context->getScope();
+		if ( !$scope->hasVariableWithName( $varName ) ) {
 			// Probably the var just isn't in scope yet.
 			// $this->debug( __METHOD__, "No var with name \$$varName in scope (Setting Unknown taint)" );
 			$this->setCurTaintUnknown();
 			$this->setCachedData( $node );
 			return;
 		}
-		$variableObj = $this->context->getScope()->getVariableByName( $varName );
+		$variableObj = $scope->getVariableByName( $varName );
 		$this->curTaintWithError = new TaintednessWithError(
 			$this->getTaintednessPhanObj( $variableObj ),
 			self::getCausedByRaw( $variableObj ) ?? CausedByLines::emptySingleton(),
@@ -817,12 +818,13 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		assert( isset( $node->children['var'] ) && $node->children['var']->kind === \ast\AST_VAR );
 
 		$varName = $node->children['var']->children['name'];
-		if ( !is_string( $varName ) || !$this->context->getScope()->hasVariableWithName( $varName ) ) {
+		$scope = $this->context->getScope();
+		if ( !is_string( $varName ) || !$scope->hasVariableWithName( $varName ) ) {
 			// Something like global $$indirectReference; or the variable wasn't created somehow
 			return;
 		}
 		// Copy taintedness data from the actual global into the scoped clone
-		$gvar = $this->context->getScope()->getVariableByName( $varName );
+		$gvar = $scope->getVariableByName( $varName );
 		if ( !$gvar instanceof GlobalVariable ) {
 			// Likely a superglobal, nothing to do.
 			return;

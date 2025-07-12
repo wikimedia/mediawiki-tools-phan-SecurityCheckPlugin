@@ -970,8 +970,6 @@ trait TaintednessBaseVisitor {
 	 * @return TypedElementInterface[] Array of various phan objects corresponding to $node
 	 */
 	protected function getObjsForNodeForNumkeyBackprop( Node $node ): array {
-		$cn = $this->getCtxN( $node );
-
 		// TODO For now we only backprop in the simple case, to avoid tons of false positives, unless
 		// the env flag is set (chiefly for tests)
 		$definitelyNumkey = !getenv( 'SECCHECK_NUMKEY_SPERIMENTAL' );
@@ -984,6 +982,7 @@ trait TaintednessBaseVisitor {
 				return $prop && $this->elementCanBeNumkey( $prop, $definitelyNumkey ) ? [ $prop ] : [];
 			case \ast\AST_VAR:
 			case \ast\AST_CLOSURE_VAR:
+				$cn = $this->getCtxN( $node );
 				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 					return [];
 				}
@@ -1279,12 +1278,14 @@ trait TaintednessBaseVisitor {
 			$curData[] = $param;
 			$linkedParameters[$method] = $curData;
 		}
+		$emptyFunctionTaint = FunctionTaintedness::emptySingleton();
+		$emptyFunctionCausedByLines = FunctionCausedByLines::emptySingleton();
 		foreach ( $linkedParameters as $method ) {
 			$parameters = $linkedParameters[$method];
 			$calleeParamList = $method->getParameterList();
-			$funcTaint = FunctionTaintedness::emptySingleton();
-			$funcArgError = FunctionCausedByLines::emptySingleton();
-			$funcSinkError = FunctionCausedByLines::emptySingleton();
+			$funcTaint = $emptyFunctionTaint;
+			$funcArgError = $emptyFunctionCausedByLines;
+			$funcSinkError = $emptyFunctionCausedByLines;
 			foreach ( $parameters as $param ) {
 				$filteredLinks = $varLinks->asFilteredForFuncAndParam( $method, $param );
 				$newParamTaint = $sinkTaint->appliedToLinksForBackprop( $filteredLinks, $method, $param );
@@ -2244,13 +2245,12 @@ trait TaintednessBaseVisitor {
 	 * corresponding to that node.
 	 */
 	private function getPassByRefObjFromNode( Node $node ): ?TypedElementInterface {
-		$cn = $this->getCtxN( $node );
-
 		switch ( $node->kind ) {
 			case \ast\AST_PROP:
 			case \ast\AST_STATIC_PROP:
 				return $this->getPropFromNode( $node );
 			case \ast\AST_VAR:
+				$cn = $this->getCtxN( $node );
 				if ( Variable::isHardcodedGlobalVariableWithName( $cn->getVariableName() ) ) {
 					return null;
 				}
