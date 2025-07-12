@@ -8,92 +8,98 @@ class HookRegistration {
 	public function register() {
 		global $wgHooks;
 
-		$wgHooks['Hook1'][] = $this;
-		$wgHooks['Hook2'][] = [ $this, 'handler2' ];
-		$thirdHandler = [ $this, 'handler3' ];
-		$wgHooks['Hook3'][] = $thirdHandler;
-		$clos = function ( $x ) {
+		$wgHooks['ThisInstance'][] = $this;
+		$wgHooks['DirectArrayCallable'][] = [ $this, 'handlerForDirectArrayCallable' ];
+		$arrayCallableVar = [ $this, 'handlerForArrayCallableWithVar' ];
+		$wgHooks['ArrayCallableWithVar'][] = $arrayCallableVar;
+		$clos = function ( $x ) { // Unsafe handler
 			echo $x;
 		};
-		$wgHooks['Hook4'][] = $clos;
-		$wgHooks['Hook5'][] = function ( $x ) { echo $x; };
-		$wgHooks['Hook6'][] = '\HookRegistration\functionHandler';
-		$wgHooks['Hook7'][] = '\HookRegistration\HookRegistration::staticHandler';
-		$wgHooks['Hook8'][] = new self;
-		$wgHooks['Hook9'][] = new static;
-		$wgHooks['Hook10'][] = new HookRegistration;
-		$wgHooks['Hook11'][] = [ new HookRegistration, 'onHook11', $_GET['unsafe'] ];
-		$wgHooks['Hook12'][] = [ [ $this, 'myHook12Handler' ] ];
-		$wgHooks['Hook13'][] = [ [ $this, 'myHook13Handler' ], $_GET['unsafe'] ];
-		$wgHooks['Hook14'][] = [ '\HookRegistration\HookRegistration::staticHandler2' ];
-		$methodName = 'hook15Handler';
-		$wgHooks['Hook15'][] = [ $this, $methodName ];
+		$wgHooks['ClosureWithVal'][] = $clos;
+		$wgHooks['ClosureDirect'][] = function ( $x ) { echo $x; }; // Unsafe handler
+		$wgHooks['GlobalFunctionString'][] = '\HookRegistration\globalFunctionStringHandler';
+		$wgHooks['StaticMethodString'][] = '\HookRegistration\HookRegistration::handlerForStaticMethodString';
+		$wgHooks['NewSelf'][] = new self;
+		$wgHooks['NewStatic'][] = new static;
+		$wgHooks['NewClassName'][] = new HookRegistration;
+		$methodName = 'handlerForArrayCallableWithVarMethodName';
+		$wgHooks['ArrayCallableWithVarMethodName'][] = [ $this, $methodName ];
 		$thisClass = __CLASS__;
-		$wgHooks['Hook16'][] = new $thisClass;
+		$wgHooks['NewClassVar'][] = new $thisClass;
+		$wgHooks['ArrayCallableWithLateStaticBinding'][] = [ self::class, 'handlerForArrayCallableWithLateStaticBinding' ];
+		$wgHooks['ArrayCallableWithClassName'][] = [ '\HookRegistration\HookRegistration', 'handlerForArrayCallableWithClassName' ];
+		$wgHooks['FirstClassGlobalFunction'][] = firstClassGlobalFunctionHandler( ... );
+		$wgHooks['FirstClassNonstaticMethod'][] = $this->handlerForFirstClassNonstaticMethod( ... );
+		$wgHooks['FirstClassStaticMethod'][] = self::handlerForFirstClassStaticMethod( ... );
+		$wgHooks['Noop'][] = '*no-op*'; // Hardcoded value of `HookContainer::NOOP`.
 	}
 
-	public function onHook1( $x ) {
+	public function onThisInstance( $x ) {
 		echo $x;
 	}
-	public function handler2( $x ) {
+	public function handlerForDirectArrayCallable( $x ) {
 		echo $x;
 	}
-	public function handler3( $x ) {
+	public function handlerForArrayCallableWithVar( $x ) {
 		echo $x;
 	}
-	public static function staticHandler( $x ) {
+	public static function handlerForStaticMethodString( $x ) {
 		echo $x;
 	}
-	public function onHook8( $x ) {
+	public function onNewSelf( $x ) {
 		echo $x;
 	}
-	public function onHook9( $x ) {
+	public function onNewStatic( $x ) {
 		echo $x;
 	}
-	public function onHook10( $x ) {
+	public function onNewClassName( $x ) {
 		echo $x;
 	}
-	public function onHook11( $ourArg, $hookArg ) {
-		echo $ourArg;
-		echo $hookArg;
-	}
-	public function myHook12Handler( $x ) {
+	public function handlerForArrayCallableWithVarMethodName( $x ) {
 		echo $x;
 	}
-	public function myHook13Handler( $ourArg, $hookArg ) {
-		echo $ourArg;
-		echo $hookArg;
-	}
-	public static function staticHandler2( $x ) {
+	public function onNewClassVar( $x ) {
 		echo $x;
 	}
-	public function hook15Handler( $x ) {
+	public static function handlerForArrayCallableWithLateStaticBinding( $x ) {
 		echo $x;
 	}
-	public function onHook16( $x ) {
+	public function handlerForArrayCallableWithClassName( $x ) {
+		echo $x;
+	}
+	public function handlerForFirstClassNonstaticMethod( $x ) {
+		echo $x;
+	}
+	public static function handlerForFirstClassStaticMethod( $x ) {
 		echo $x;
 	}
 }
 
-function functionHandler( $x ) {
+function globalFunctionStringHandler( $x ) {
 	echo $x;
 }
+function firstClassGlobalFunctionHandler( $x ) {
+	echo $x;
+}
+
 // These are all unsafe.
-( new HookRunner )->onHook1( $_GET['foo'] );
-( new HookRunner )->onHook2( $_GET['foo'] );
-( new HookRunner )->onHook3( $_GET['foo'] );
-( new HookRunner )->onHook4( $_GET['foo'] );
-( new HookRunner )->onHook5( $_GET['foo'] );
-( new HookRunner )->onHook6( $_GET['foo'] );
-( new HookRunner )->onHook7( $_GET['foo'] );
-( new HookRunner )->onHook8( $_GET['foo'] );
-( new HookRunner )->onHook9( $_GET['foo'] );
-( new HookRunner )->onHook10( $_GET['foo'] );
-( new HookRunner )->onHook11( 'safe' ); // TODO Unsafe because of the extra arg registered in __construct
-( new HookRunner )->onHook11( $_GET['foo'] );
-( new HookRunner )->onHook12( $_GET['foo'] );
-( new HookRunner )->onHook13( 'safe' ); // TODO Unsafe because of the extra arg registered in __construct
-( new HookRunner )->onHook13( $_GET['foo'] );
-( new HookRunner )->onHook14( $_GET['foo'] );
-( new HookRunner )->onHook15( $_GET['foo'] );
-( new HookRunner )->onHook16( $_GET['foo'] );
+( new HookRunner )->onThisInstance( $_GET['foo'] );
+( new HookRunner )->onDirectArrayCallable( $_GET['foo'] );
+( new HookRunner )->onArrayCallableWithVar( $_GET['foo'] );
+( new HookRunner )->onClosureWithVal( $_GET['foo'] );
+( new HookRunner )->onClosureDirect( $_GET['foo'] );
+( new HookRunner )->onGlobalFunctionString( $_GET['foo'] );
+( new HookRunner )->onStaticMethodString( $_GET['foo'] );
+( new HookRunner )->onNewSelf( $_GET['foo'] );
+( new HookRunner )->onNewStatic( $_GET['foo'] );
+( new HookRunner )->onNewClassName( $_GET['foo'] );
+( new HookRunner )->onArrayCallableWithVarMethodName( $_GET['foo'] );
+( new HookRunner )->onNewClassVar( $_GET['foo'] );
+( new HookRunner )->onArrayCallableWithLateStaticBinding( $_GET['foo'] );
+( new HookRunner )->onArrayCallableWithClassName( $_GET['foo'] );
+( new HookRunner )->onFirstClassGlobalFunction( $_GET['foo'] );
+( new HookRunner )->onFirstClassNonstaticMethod( $_GET['foo'] );
+( new HookRunner )->onFirstClassStaticMethod( $_GET['foo'] );
+
+// This one is safe
+( new HookRunner )->onNoop( $_GET['foo'] );

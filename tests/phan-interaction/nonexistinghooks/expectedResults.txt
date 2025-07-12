@@ -1,0 +1,3 @@
+phan-interaction/nonexistinghooks/test.php:24 PhanUndeclaredFunction Call to undeclared function \globalFunctionThatDoesNotExist()
+phan-interaction/nonexistinghooks/test.php:25 PhanUndeclaredMethod Call to undeclared method \NonExistingHooks::doesNotExist
+phan-interaction/nonexistinghooks/test.php:26 PhanUndeclaredStaticMethod Static call to undeclared method \NonExistingHooks::doesNotExist

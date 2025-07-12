@@ -2,103 +2,119 @@
 
 namespace HookRegistration;
 
-interface Hook1Hook {
-	public function onHook1( $arg );
+interface ThisInstanceHook {
+	public function onThisInstance( $arg );
 }
-interface Hook2Hook {
-	public function onHook2( $arg );
+interface DirectArrayCallableHook {
+	public function onDirectArrayCallable( $arg );
 }
-interface Hook3Hook {
-	public function onHook3( $arg );
+interface ArrayCallableWithVarHook {
+	public function onArrayCallableWithVar( $arg );
 }
-interface Hook4Hook {
-	public function onHook4( $arg );
+interface ClosureWithValHook {
+	public function onClosureWithVal( $arg );
 }
-interface Hook5Hook {
-	public function onHook5( $arg );
+interface ClosureDirectHook {
+	public function onClosureDirect( $arg );
 }
-interface Hook6Hook {
-	public function onHook6( $arg );
+interface GlobalFunctionStringHook {
+	public function onGlobalFunctionString( $arg );
 }
-interface Hook7Hook {
-	public function onHook7( $arg );
+interface StaticMethodStringHook {
+	public function onStaticMethodString( $arg );
 }
-interface Hook8Hook {
-	public function onHook8( $arg );
+interface NewSelfHook {
+	public function onNewSelf( $arg );
 }
-interface Hook9Hook {
-	public function onHook9( $arg );
+interface NewStaticHook {
+	public function onNewStatic( $arg );
 }
-interface Hook10Hook {
-	public function onHook10( $arg );
+interface NewClassNameHook {
+	public function onNewClassName( $arg );
 }
-interface Hook11Hook {
-	public function onHook11( $arg );
+interface ArrayCallableWithVarMethodNameHook {
+	public function onArrayCallableWithVarMethodName( $arg );
 }
-interface Hook12Hook {
-	public function onHook12( $arg );
+interface NewClassVarHook {
+	public function onNewClassVar( $arg );
 }
-interface Hook13Hook {
-	public function onHook13( $arg );
+interface ArrayCallableWithLateStaticBindingHook {
+	public function onArrayCallableWithLateStaticBinding( $arg );
 }
-interface Hook14Hook {
-	public function onHook14( $arg );
+interface ArrayCallableWithClassNameHook {
+	public function onArrayCallableWithClassName( $arg );
 }
-interface Hook15Hook {
-	public function onHook15( $arg );
+interface FirstClassGlobalFunctionHook {
+	public function onFirstClassGlobalFunction( $arg );
 }
-interface Hook16Hook {
-	public function onHook16( $arg );
+interface FirstClassNonstaticMethodHook {
+	public function onFirstClassNonstaticMethod( $arg );
+}
+interface FirstClassStaticMethodHook {
+	public function onFirstClassStaticMethod( $arg );
+}
+interface NoopHook {
+	public function onNoop( $arg );
 }
 
-class HookRunner implements Hook1Hook, Hook2Hook, Hook3Hook, Hook4Hook,
-	Hook5Hook, Hook6Hook, Hook7Hook, Hook8Hook, Hook9Hook, Hook10Hook,
-	Hook11Hook, Hook12Hook, Hook13Hook, Hook14Hook, Hook15Hook, Hook16Hook {
-	public function onHook1( $arg ) {
+class HookRunner implements
+	ThisInstanceHook, DirectArrayCallableHook, ArrayCallableWithVarHook, ClosureWithValHook,
+	ClosureDirectHook, GlobalFunctionStringHook, StaticMethodStringHook, NewSelfHook, NewStaticHook, NewClassNameHook,
+	ArrayCallableWithVarMethodNameHook, NewClassVarHook, ArrayCallableWithLateStaticBindingHook,
+	ArrayCallableWithClassNameHook, FirstClassGlobalFunctionHook, FirstClassNonstaticMethodHook,
+	FirstClassStaticMethodHook, NoopHook
+{
+	public function onThisInstance( $arg ) {
 	}
 
-	public function onHook2( $arg ) {
+	public function onDirectArrayCallable( $arg ) {
 	}
 
-	public function onHook3( $arg ) {
+	public function onArrayCallableWithVar( $arg ) {
 	}
 
-	public function onHook4( $arg ) {
+	public function onClosureWithVal( $arg ) {
 	}
 
-	public function onHook5( $arg ) {
+	public function onClosureDirect( $arg ) {
 	}
 
-	public function onHook6( $arg ) {
+	public function onGlobalFunctionString( $arg ) {
 	}
 
-	public function onHook7( $arg ) {
+	public function onStaticMethodString( $arg ) {
 	}
 
-	public function onHook8( $arg ) {
+	public function onNewSelf( $arg ) {
 	}
 
-	public function onHook9( $arg ) {
+	public function onNewStatic( $arg ) {
 	}
 
-	public function onHook10( $arg ) {
+	public function onNewClassName( $arg ) {
 	}
 
-	public function onHook11( $arg ) {
+	public function onArrayCallableWithVarMethodName( $arg ) {
 	}
 
-	public function onHook12( $arg ) {
+	public function onNewClassVar( $arg ) {
 	}
 
-	public function onHook13( $arg ) {
+	public function onArrayCallableWithLateStaticBinding( $arg ) {
 	}
 
-	public function onHook14( $arg ) {
+	public function onArrayCallableWithClassName( $arg ) {
 	}
 
-	public function onHook15( $arg ) {
+	public function onFirstClassGlobalFunction( $arg ) {
 	}
 
-	public function onHook16( $arg ) {
+	public function onFirstClassNonstaticMethod( $arg ) {
+	}
+
+	public function onFirstClassStaticMethod( $arg ) {
+	}
+
+	public function onNoop( $arg ) {
 	}
 }

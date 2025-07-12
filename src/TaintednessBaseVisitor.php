@@ -35,6 +35,10 @@ use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
 use Phan\Library\Set;
 use RuntimeException;
+use const ast\AST_CALL;
+use const ast\AST_CALLABLE_CONVERT;
+use const ast\AST_METHOD_CALL;
+use const ast\AST_STATIC_CALL;
 
 /**
  * Trait for the Tainedness visitor subclasses. Mostly contains
@@ -1466,12 +1470,23 @@ trait TaintednessBaseVisitor {
 			// And also NOTE: 'self::methodname()' is not valid PHP.
 			// TODO: We should probably emit a non-security issue in the missing case
 			if ( !str_contains( $node, '::' ) ) {
-				$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
+				try {
+					$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
+				} catch ( FQSENException ) {
+					// String wasn't actually a callable.
+					return null;
+				}
 				return $this->code_base->hasFunctionWithFQSEN( $callback )
 					? $this->code_base->getFunctionByFQSEN( $callback )
 					: null;
 			}
-			$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $node );
+
+			try {
+				$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $node );
+			} catch ( FQSENException ) {
+				// String wasn't actually a callable.
+				return null;
+			}
 			return $this->code_base->hasMethodWithFQSEN( $callback )
 				? $this->code_base->getMethodByFQSEN( $callback )
 				: null;
@@ -1482,7 +1497,11 @@ trait TaintednessBaseVisitor {
 		if (
 			$node->kind === \ast\AST_CLOSURE ||
 			$node->kind === \ast\AST_VAR ||
-			( $node->kind === \ast\AST_ARRAY && count( $node->children ) === 2 )
+			( $node->kind === \ast\AST_ARRAY && count( $node->children ) === 2 ) ||
+			(
+				( $node->kind === AST_CALL || $node->kind === AST_METHOD_CALL || $node->kind === AST_STATIC_CALL ) &&
+				$node->children['args']->kind === AST_CALLABLE_CONVERT
+			)
 		) {
 			// Note: intentionally emitting any issues here.
 			$funcs = $this->getCtxN( $node )->getFunctionFromNode();

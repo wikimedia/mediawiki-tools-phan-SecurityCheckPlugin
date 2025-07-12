@@ -22,7 +22,10 @@ use Phan\Language\Type\BoolType;
 use Phan\Language\Type\TrueType;
 use Phan\Language\UnionType;
 use UnexpectedValueException;
+use const ast\AST_CALL;
+use const ast\AST_CALLABLE_CONVERT;
 use const ast\AST_METHOD_CALL;
+use const ast\AST_STATIC_CALL;
 
 /**
  * MediaWiki specific node visitor
@@ -765,25 +768,24 @@ class MWVisitor extends TaintednessVisitor {
 	 * @note This is a different format than Parser hooks use.
 	 *
 	 * Valid examples of callbacks:
-	 *  "wfSomeFunction"
-	 *  "SomeClass::SomeStaticMethod"
-	 *  A Closure
-	 *  $instanceOfSomeObject  (With implied method name based on hook name)
-	 *  new SomeClass
-	 *  [ <one of the above>, $extraArgsForCallback, ...]
-	 *  [ [<one of the above>], $extraArgsForCallback, ...]
-	 *  [ $instanceOfObj, 'methodName', $optionalArgForCallback, ... ]
-	 *  [ [ $instanceOfObj, 'methodName' ], $optionalArgForCallback, ...]
-	 *
-	 * Oddly enough, [ 'NameOfClass', 'NameOfStaticMethod' ] does not appear
-	 * to be valid, despite that being a valid callable.
+	 *  1) A normal callable (string, array, or first-class)
+	 *  2) A class instance with an `on$hook` method
+	 *  3) An extension hook handler spec (not handled here as we check extension.json instead)
+	 *  4) `HookContainer::NOOP` for no-op handlers
 	 *
 	 * @param Node|mixed $node
 	 * @param string $hookName
 	 */
 	private function getCallableFromHookRegistration( mixed $node, string $hookName ): ?FunctionInterface {
-		// "wfSomething", "Class::Method", closure
-		if ( !$node instanceof Node || $node->kind === \ast\AST_CLOSURE ) {
+		if (
+			!$node instanceof Node ||
+			$node->kind === \ast\AST_CLOSURE ||
+			$node->kind === \ast\AST_ARRAY ||
+			(
+				( $node->kind === AST_CALL || $node->kind === AST_METHOD_CALL || $node->kind === AST_STATIC_CALL ) &&
+				$node->children['args']->kind === AST_CALLABLE_CONVERT
+			)
+		) {
 			return $this->getCallableFromNode( $node );
 		}
 
@@ -792,35 +794,7 @@ class MWVisitor extends TaintednessVisitor {
 			return $cb;
 		}
 
-		if ( $node->kind === \ast\AST_ARRAY ) {
-			if ( count( $node->children ) === 0 ) {
-				return null;
-			}
-			$firstChild = $node->children[0]->children['value'];
-			if (
-				( $firstChild instanceof Node && $firstChild->kind === \ast\AST_ARRAY ) ||
-				!( $firstChild instanceof Node ) ||
-				count( $node->children ) === 1
-			) {
-				// One of:
-				// [ [ <callback> ], $optionalArgs, ... ]
-				// [ 'SomeClass::method', $optionalArgs, ... ]
-				// [ <callback> ]
-				// Important to note, this is safe because the
-				// [ 'SomeClass', 'MethodToCallStatically' ]
-				// syntax isn't supported by hooks.
-				return $this->getCallableFromHookRegistration( $firstChild, $hookName );
-			}
-			// Remaining case is: [ $someObject, 'methodToCall', 'arg', ... ]
-			$methodName = $this->resolveValue( $node->children[1]->children['value'] );
-			if ( !is_string( $methodName ) ) {
-				return null;
-			}
-			$cb = $this->getSingleCallable( $firstChild, $methodName );
-			if ( $cb ) {
-				return $cb;
-			}
-		}
+		// Either a callback we couldn't resolve, or extension hook handler spec. Ignore either way.
 		return null;
 	}
 

@@ -68,6 +68,17 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	];
 
 	/**
+	 * Maps test name to a human-readable description of the syntax used in that test
+	 * that is not supported by the polyfill.
+	 */
+	private const TESTS_SKIPPED_WITH_POLYFILL = [
+		'namedargs' => 'named arguments',
+		'exit-84' => '`exit()` as a normal function',
+		'hookregistration' => 'first-class callables',
+		'nonexistinghooks' => 'first-class callables',
+	];
+
+	/**
 	 * Copied from phan's {@see \Phan\Tests\CodeBaseAwareTest}
 	 */
 	public function setUp(): void {
@@ -172,7 +183,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration( $name, $expected ) {
-		$this->checkSkipTest( $name );
+		$this->checkSkipTest( $name, false );
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php' );
 		$this->assertEquals( $expected, $res );
 	}
@@ -183,10 +194,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideIntegrationTests
 	 */
 	public function testIntegration_Polyfill( $name, $expected ) {
-		if ( $name === 'namedargs' || $name === 'exit-84' ) {
-			$this->markTestSkipped( 'Analyzing named arguments with the polyfill parser is not yet supported' );
-		}
-		$this->checkSkipTest( $name );
+		$this->checkSkipTest( $name, true );
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', true );
 		$this->assertEquals( $expected, $res );
 	}
@@ -197,7 +205,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideAnalyzeTwiceTests
 	 */
 	public function testAnalyzeTwice( $name, $expected ) {
-		$this->checkSkipTest( $name );
+		$this->checkSkipTest( $name, false );
 		// Note: $expected is from the analyze-twice dir, but the source files are in integration/
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', false, true );
 		$this->assertEquals( $expected, $res );
@@ -209,16 +217,13 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider provideAnalyzeTwiceTests
 	 */
 	public function testAnalyzeTwice_Polyfill( $name, $expected ) {
-		$this->checkSkipTest( $name );
+		$this->checkSkipTest( $name, true );
 		// Note: $expected is from the analyze-twice dir, but the source files are in integration/
 		$res = $this->runPhan( "integration/$name", 'integration-test-config.php', true, true );
 		$this->assertEquals( $expected, $res );
 	}
 
-	/**
-	 * @param string $testName
-	 */
-	private function checkSkipTest( string $testName ): void {
+	private function checkSkipTest( string $testName, bool $usePolyfill ): void {
 		if ( isset( self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName] ) ) {
 			$version = self::TESTS_WITH_MINIMUM_PHP_VERSION[$testName];
 			if ( PHP_VERSION_ID < $version ) {
@@ -230,6 +235,13 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 			if ( PHP_VERSION_ID >= $version ) {
 				$this->markTestSkipped( "This test requires PHP < $version" );
 			}
+		}
+
+		if ( $usePolyfill && isset( self::TESTS_SKIPPED_WITH_POLYFILL[$testName] ) ) {
+			$this->markTestSkipped(
+				'Skip because the polyfill parser does not support the following: ' .
+				self::TESTS_SKIPPED_WITH_POLYFILL[$testName]
+			);
 		}
 	}
 
@@ -283,6 +295,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider providePhanInteractionTests
 	 */
 	public function testPhanInteraction( string $name, string $expected ) {
+		$this->checkSkipTest( $name, false );
 		$res = $this->runPhan( "phan-interaction/$name", 'phan-interaction-test-config.php' );
 		$this->assertEquals( $expected, $res );
 	}
@@ -293,6 +306,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * @dataProvider providePhanInteractionTests
 	 */
 	public function testPhanInteraction_Polyfill( string $name, string $expected ) {
+		$this->checkSkipTest( $name, true );
 		$res = $this->runPhan( "phan-interaction/$name", 'phan-interaction-test-config.php', true );
 		$this->assertEquals( $expected, $res );
 	}

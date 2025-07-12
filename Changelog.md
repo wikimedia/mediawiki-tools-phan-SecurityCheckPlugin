@@ -1,8 +1,12 @@
 # MediaWiki Security Check Plugin changelog
 
 ## UNRELEASED
+### Breaking changes
+* (MW) Dropped support for legacy hook handler styles (T401532)
+
 ### New features
 * Add taintedness info for `mysqli_result` functions and methods
+* (MW) Added support for first-class callables and other modern styles in hook handlers.
 
 ### Bug fixes
 * (MW) Fix false positives in parser function hooks with `isHTML` set to false
