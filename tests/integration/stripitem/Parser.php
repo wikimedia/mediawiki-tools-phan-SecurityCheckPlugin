@@ -1,7 +1,8 @@
 <?php
 
-class Parser {
+namespace MediaWiki\Parser;
 
+class Parser {
 	const MARKER_SUFFIX = "-QINU`\"'\x7f";
 	const MARKER_PREFIX = "\x7f'\"`UNIQ-";
 	/** @var int */
@@ -11,7 +12,6 @@ class Parser {
 	public function setFunctionHook( $id, callable $cb, $opts = 0 ) {
 	}
 
-	// extra newline to make line numbers line up with test
 	public function __construct() {
 		$this->mStripState = new StripState;
 	}

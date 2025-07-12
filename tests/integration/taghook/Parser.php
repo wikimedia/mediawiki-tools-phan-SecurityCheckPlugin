@@ -1,5 +1,7 @@
 <?php
 
+namespace MediaWiki\Parser;
+
 interface PPFrame {
 }
 

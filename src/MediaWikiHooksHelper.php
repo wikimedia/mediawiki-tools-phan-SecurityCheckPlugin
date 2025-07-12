@@ -18,9 +18,7 @@ namespace SecurityCheckPlugin;
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use Phan\CodeBase;
 use Phan\Config;
-use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
@@ -36,9 +34,6 @@ class MediaWikiHooksHelper {
 	 * @phan-var array<string,FullyQualifiedFunctionLikeName[]>
 	 */
 	private $hookSubscribers = [];
-
-	private ?FullyQualifiedClassName $parserFQSEN = null;
-	private ?FullyQualifiedClassName $ppFrameFQSEN = null;
 
 	/** @var self|null */
 	private static $instance;
@@ -186,38 +181,6 @@ class MediaWikiHooksHelper {
 			}
 		}
 		return null;
-	}
-
-	public function getMwParserClassFQSEN( CodeBase $codeBase ): FullyQualifiedClassName {
-		if ( !$this->parserFQSEN ) {
-			$namespacedFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
-				'\\MediaWiki\\Parser\\Parser'
-			);
-			if ( $codeBase->hasClassWithFQSEN( $namespacedFQSEN ) ) {
-				$this->parserFQSEN = $namespacedFQSEN;
-			} else {
-				$this->parserFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
-					'\\Parser'
-				);
-			}
-		}
-		return $this->parserFQSEN;
-	}
-
-	public function getPPFrameClassFQSEN( CodeBase $codeBase ): FullyQualifiedClassName {
-		if ( !$this->ppFrameFQSEN ) {
-			$namespacedFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
-				'\\MediaWiki\\Parser\\PPFrame'
-			);
-			if ( $codeBase->hasClassWithFQSEN( $namespacedFQSEN ) ) {
-				$this->ppFrameFQSEN = $namespacedFQSEN;
-			} else {
-				$this->ppFrameFQSEN = FullyQualifiedClassName::fromFullyQualifiedString(
-					'\\PPFrame'
-				);
-			}
-		}
-		return $this->ppFrameFQSEN;
 	}
 
 	/**

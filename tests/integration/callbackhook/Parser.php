@@ -1,5 +1,7 @@
 <?php
 
+namespace MediaWiki\Parser;
+
 class Parser {
 
 	const MARKER_SUFFIX = "-QINU`\"'\x7f";
@@ -33,8 +35,6 @@ class StripState {
 	protected $regex;
 
 	protected $tempType, $tempMergePrefix;
-	protected $circularRefGuard;
-	protected $recursionLevel = 0;
 
 	const UNSTRIP_RECURSION_LIMIT = 20;
 	protected function addItem( $type, $marker, $value ) {

@@ -1,7 +1,7 @@
 <?php
 namespace MyNS;
 
-use \Parser;
+use \MediaWiki\Parser\Parser;
 use Wikimedia\Rdbms\MysqlDatabase;
 
 class SomeClass {

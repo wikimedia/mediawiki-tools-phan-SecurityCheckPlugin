@@ -1,10 +1,12 @@
 <?php
 
+use MediaWiki\Parser\Parser;
+use MediaWiki\Parser\PPFrame;
+
 class SomeClass {
 	public function register() {
 		$parser = new Parser;
 
-		// Register hooks
 		$parser->setHook( 'something', [ __CLASS__, 'evil' ] );
 		$parser->setHook( 'something', [ 'SecondClass', 'evilAttribs' ] );
 		$parser->setHook( 'something', [ 'SecondClass', 'good' ] );

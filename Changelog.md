@@ -3,6 +3,7 @@
 ## v7.0.0 (UNRELEASED)
 ### Breaking changes
 * Drop support for PHP < 8.1
+* (MW) Dropped support for unnamespaced `Parser` and `PPFrame`.
 
 ### New features
 * (MW) Check SQL `$options` passed to `SelectQueryBuilder::options` and `::option`

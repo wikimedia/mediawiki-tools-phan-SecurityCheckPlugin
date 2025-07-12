@@ -3,7 +3,7 @@
 namespace SecurityCheckPlugin;
 
 use ast\Node;
-use Phan\Language\UnionType;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
 
 /**
  * Class for visiting any nodes we want to handle in pre-order.
@@ -81,12 +81,11 @@ class MWPreVisitor extends PreTaintednessVisitor {
 		}
 		// If there are no type hints, phan won't know that the parser
 		// is a parser as the hook isn't triggered from a real func call.
-		$hooksHelper = MediaWikiHooksHelper::getInstance();
-		$paramTypes = [
-			2 => $hooksHelper->getMwParserClassFQSEN( $this->code_base )->__toString(),
-			3 => $hooksHelper->getPPFrameClassFQSEN( $this->code_base )->__toString(),
+		$paramFQSENs = [
+			2 => FullyQualifiedClassName::fromFullyQualifiedString( '\\MediaWiki\\Parser\\Parser' ),
+			3 => FullyQualifiedClassName::fromFullyQualifiedString( '\\MediaWiki\\Parser\\PPFrame' ),
 		];
-		foreach ( $paramTypes as $i => $type ) {
+		foreach ( $paramFQSENs as $i => $fqsen ) {
 			if ( isset( $params[$i] ) ) {
 				$param = $params[$i];
 				if ( !$scope->hasVariableWithName( $param->children['name'] ) ) {
@@ -95,9 +94,7 @@ class MWPreVisitor extends PreTaintednessVisitor {
 					// @codeCoverageIgnoreEnd
 				} else {
 					$varObj = $scope->getVariableByName( $param->children['name'] );
-					$varObj->setUnionType(
-						UnionType::fromFullyQualifiedPHPDocString( $type )
-					);
+					$varObj->setUnionType( $fqsen->asPHPDocUnionType() );
 				}
 			}
 		}
@@ -124,7 +121,8 @@ class MWPreVisitor extends PreTaintednessVisitor {
 			} else {
 				$varObj = $scope->getVariableByName( $param->children['name'] );
 				$varObj->setUnionType(
-					MediaWikiHooksHelper::getInstance()->getMwParserClassFQSEN( $this->code_base )->asPHPDocUnionType()
+					FullyQualifiedClassName::fromFullyQualifiedString( '\\MediaWiki\\Parser\\Parser' )
+						->asPHPDocUnionType()
 				);
 			}
 		}

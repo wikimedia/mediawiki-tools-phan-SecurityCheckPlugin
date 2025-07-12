@@ -91,7 +91,7 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				self::HTML_EXEC_TAINT,
 				'overall' => self::NO_TAINT
 			],
-			'\StripState::addItem' => [
+			'\MediaWiki\Parser\StripState::addItem' => [
 				self::NO_TAINT,
 				self::NO_TAINT,
 				self::HTML_EXEC_TAINT,
