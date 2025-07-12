@@ -3,20 +3,23 @@
 namespace foo;
 
 use \Hooks;
+use MediaWiki\HookContainer\HookContainer;
 
 class SomeClass {
 	public function register() {
 		global $wgHooks;
-		Hooks::register( 'Something', 'foo\SecondClass::hook1' );
-		Hooks::register( 'Something', [ 'foo\SecondClass::hook2' ] );
-		Hooks::register( 'Something', [ [ 'foo\SecondClass::hook3' ] ] );
-		Hooks::register( 'Something', [ 'foo\SecondClass::hook4', 'someArg' ] );
-		Hooks::register( 'Something', [ '\foo\wfSomeGlobal', 'someArg' ] );
+		$hookContainer = new HookContainer();
+
+		$hookContainer->register( 'Something', 'foo\SecondClass::hook1' );
+		$hookContainer->register( 'Something', [ 'foo\SecondClass::hook2' ] );
+		$hookContainer->register( 'Something', [ [ 'foo\SecondClass::hook3' ] ] );
+		$hookContainer->register( 'Something', [ 'foo\SecondClass::hook4', 'someArg' ] );
+		$hookContainer->register( 'Something', [ '\foo\wfSomeGlobal', 'someArg' ] );
 
 		$something = new SecondClass;
-		Hooks::register( 'Something', [ $something, 'hook5' ] );
-		Hooks::register( 'Something', [ new SecondClass, 'hook6' ] );
-		Hooks::register( 'Something', new SecondClass );
+		$hookContainer->register( 'Something', [ $something, 'hook5' ] );
+		$hookContainer->register( 'Something', [ new SecondClass, 'hook6' ] );
+		$hookContainer->register( 'Something', new SecondClass );
 		$wgHooks['Something'][] = 'foo\SecondClass::hook7';
 		$GLOBALS['wgHooks']['Something'][] = [ new SecondClass, 'hook8' ];
 	}

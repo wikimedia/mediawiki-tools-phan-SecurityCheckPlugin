@@ -1,6 +1,6 @@
-integration/registerhook/test.php:29 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +28; integration/registerhook/test.php +40)
-integration/registerhook/test.php:30 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +25; integration/registerhook/test.php +28; integration/registerhook/test.php +44)
-integration/registerhook/test.php:52 SecurityCheck-XSS Echoing expression that was not html escaped
-integration/registerhook/test.php:61 SecurityCheck-XSS Echoing expression that was not html escaped
-integration/registerhook/test.php:65 SecurityCheck-PathTraversal The included path is user controlled
-integration/registerhook/test.php:69 SecurityCheck-RCE The code supplied to `eval` is user controlled
+integration/registerhook/test.php:32 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +31; integration/registerhook/test.php +43)
+integration/registerhook/test.php:33 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/registerhook/test.php +28; integration/registerhook/test.php +31; integration/registerhook/test.php +47)
+integration/registerhook/test.php:55 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/registerhook/test.php:64 SecurityCheck-XSS Echoing expression that was not html escaped
+integration/registerhook/test.php:68 SecurityCheck-PathTraversal The included path is user controlled
+integration/registerhook/test.php:72 SecurityCheck-RCE The code supplied to `eval` is user controlled

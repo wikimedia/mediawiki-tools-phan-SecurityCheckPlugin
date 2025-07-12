@@ -1,1 +1,1 @@
-integration/hook-order/test.php:16 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hook-order/test.php +15; integration/hook-order/test.php +21)
+integration/hook-order/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hook-order/test.php +18; integration/hook-order/test.php +24)

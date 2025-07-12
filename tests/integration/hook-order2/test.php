@@ -3,9 +3,12 @@
 namespace HookOrder2;
 
 use \Hooks;
+use MediaWiki\HookContainer\HookContainer;
 
-Hooks::register( 'Something', 'HookOrder2\SecondClass::hook1' );
-Hooks::register( 'Something', 'HookOrder2\SecondClass::hook2' );
+$hookContainer = new HookContainer();
+
+$hookContainer->register( 'Something', 'HookOrder2\SecondClass::hook1' );
+$hookContainer->register( 'Something', 'HookOrder2\SecondClass::hook2' );
 
 $tainted = $_GET['user'];
 $output = '';

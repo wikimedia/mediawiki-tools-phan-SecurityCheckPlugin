@@ -5,10 +5,13 @@
 namespace HookOrder;
 
 use \Hooks;
+use MediaWiki\HookContainer\HookContainer;
 
-Hooks::register( 'Something', 'HookOrder\SecondClass::hook1' );
-Hooks::register( 'Something', 'HookOrder\SecondClass::hook2' );
-Hooks::register( 'Something', 'HookOrder\SecondClass::hook3' );
+$hookContainer = new HookContainer();
+
+$hookContainer->register( 'Something', 'HookOrder\SecondClass::hook1' );
+$hookContainer->register( 'Something', 'HookOrder\SecondClass::hook2' );
+$hookContainer->register( 'Something', 'HookOrder\SecondClass::hook3' );
 
 $par1 = '';
 $par2 = '';

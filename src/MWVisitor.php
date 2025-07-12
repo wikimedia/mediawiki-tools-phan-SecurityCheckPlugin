@@ -75,7 +75,7 @@ class MWVisitor extends TaintednessVisitor {
 				// $this->debug( __METHOD__, "registering $methodName as $type" );
 				$this->handleParserHookRegistration( $node, $type );
 				break;
-			case '\Hooks::register':
+			case '\MediaWiki\HookContainer\HookContainer::register':
 				$this->handleNormalHookRegistration( $node );
 				break;
 			case '\Hooks::run':
@@ -232,7 +232,7 @@ class MWVisitor extends TaintednessVisitor {
 			// $this->debug( __METHOD__, "Dispatching $hookName to $subscriber" );
 			// This is hacky, but try to ensure that the associated line
 			// number for any issues is in the extension, and not the
-			// line where the Hooks::register() is in MW core.
+			// line where the HookContainer::register() is in MW core.
 			// FIXME: In the case of reference parameters, this is
 			// still reporting things being in MW core instead of extension.
 			$oldContext = $this->overrideContext;
@@ -315,15 +315,15 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Handle registering a normal hook from Hooks::register (Not from $wgHooks)
+	 * Handle registering a normal hook from HookContainer::register (Not from $wgHooks)
 	 *
-	 * @param Node $node The node representing the AST_STATIC_CALL
+	 * @param Node $node The node representing the AST_METHOD_CALL
 	 */
 	private function handleNormalHookRegistration( Node $node ): void {
-		assert( $node->kind === \ast\AST_STATIC_CALL );
+		assert( $node->kind === \ast\AST_METHOD_CALL );
 		$params = $node->children['args']->children;
 		if ( count( $params ) < 2 ) {
-			$this->debug( __METHOD__, "Could not understand Hooks::register" );
+			$this->debug( __METHOD__, "Could not understand HookContainer::register" );
 			return;
 		}
 		$hookName = $params[0];
