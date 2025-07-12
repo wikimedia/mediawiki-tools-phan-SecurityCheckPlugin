@@ -1764,7 +1764,7 @@ trait TaintednessBaseVisitor {
 	 * @param array $args Arguments to function/method
 	 * @phan-param array<Node|mixed> $args
 	 * @param bool $computePreserve Whether the caller wants to know which taintedness is preserved by this call
-	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
+	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a hook handler call.
 	 *   FIXME This is MW-specific
 	 * @return TaintednessWithError|null Taint The resulting taint of the expression, or null if
 	 *   $computePreserve is false
@@ -2145,7 +2145,7 @@ trait TaintednessBaseVisitor {
 	 * @param Node $argument The argument being passed by-ref
 	 * @param array<Node|mixed> $arguments The full list of arguments for this function call
 	 * @param int $refArgIndex @phan-unused-param
-	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a Hooks::run call.
+	 * @param bool $isHookHandler Whether we're analyzing a hook handler for a hook handler call.
 	 *   FIXME This is MW-specific
 	 */
 	private function handlePassByRef(

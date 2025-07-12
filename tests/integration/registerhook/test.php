@@ -1,8 +1,8 @@
 <?php
 
-namespace foo;
+namespace RegisterHook;
 
-use \Hooks;
+
 use MediaWiki\HookContainer\HookContainer;
 
 class SomeClass {
@@ -10,17 +10,17 @@ class SomeClass {
 		global $wgHooks;
 		$hookContainer = new HookContainer();
 
-		$hookContainer->register( 'Something', 'foo\SecondClass::hook1' );
-		$hookContainer->register( 'Something', [ 'foo\SecondClass::hook2' ] );
-		$hookContainer->register( 'Something', [ [ 'foo\SecondClass::hook3' ] ] );
-		$hookContainer->register( 'Something', [ 'foo\SecondClass::hook4', 'someArg' ] );
-		$hookContainer->register( 'Something', [ '\foo\wfSomeGlobal', 'someArg' ] );
+		$hookContainer->register( 'Something', 'RegisterHook\SecondClass::hook1' );
+		$hookContainer->register( 'Something', [ 'RegisterHook\SecondClass::hook2' ] );
+		$hookContainer->register( 'Something', [ [ 'RegisterHook\SecondClass::hook3' ] ] );
+		$hookContainer->register( 'Something', [ 'RegisterHook\SecondClass::hook4', 'someArg' ] );
+		$hookContainer->register( 'Something', [ '\RegisterHook\wfSomeGlobal', 'someArg' ] );
 
 		$something = new SecondClass;
 		$hookContainer->register( 'Something', [ $something, 'hook5' ] );
 		$hookContainer->register( 'Something', [ new SecondClass, 'hook6' ] );
 		$hookContainer->register( 'Something', new SecondClass );
-		$wgHooks['Something'][] = 'foo\SecondClass::hook7';
+		$wgHooks['Something'][] = 'RegisterHook\SecondClass::hook7';
 		$GLOBALS['wgHooks']['Something'][] = [ new SecondClass, 'hook8' ];
 	}
 }
@@ -28,7 +28,7 @@ class SomeClass {
 $tainted = $_GET['user'];
 $output = '';
 $out2 = '';
-Hooks::run( 'Something', [ $tainted, &$output, &$out2 ] );
+( new HookRunner() )->onSomething( $tainted, $output, $out2 );
 echo $out2;
 echo $output; // XSS caused by 25, 28, 44 (in this order)
 

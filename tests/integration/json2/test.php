@@ -1,10 +1,28 @@
 <?php
 
+namespace TestJson2;
+
+interface FirstHook {
+	public function onFirst( &$arg );
+}
+
+interface SecondHook {
+	public function onSecond( &$arg );
+}
+
+class MyHookRunner implements FirstHook, SecondHook {
+	public function onFirst( &$arg ) {
+	}
+
+	public function onSecond( &$arg ) {
+	}
+}
+
 class MyHookHandler {
-	public function onFirstHook( &$arg ) {
+	public function onFirst( &$arg ) {
 		$arg = $_GET['something'];
 	}
-	public function onSecondHook( $arg ) {
+	public function onSecond( $arg ) {
 		echo $arg;
 	}
 	public static function additionalSecondHookHandler( $arg ) {
@@ -18,14 +36,9 @@ class MyHookHandler {
 	}
 }
 
-function doStuff() {
+function doStuff( MyHookRunner $hookRunner ) {
 	$arg1 = '';
-	Hooks::run( 'FirstHook', [ &$arg1 ] );
+	$hookRunner->onFirst( $arg1 );
 	echo $arg1;
-	Hooks::run( 'SecondHook', [ $arg1 ] );
-}
-
-class Hooks {
-	public static function run( $hookName, $args ) {
-	}
+	$hookRunner->onSecond( $arg1 );
 }

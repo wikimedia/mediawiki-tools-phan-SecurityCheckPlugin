@@ -18,6 +18,7 @@ use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\UnionType;
 use UnexpectedValueException;
+use const ast\AST_METHOD_CALL;
 
 /**
  * MediaWiki specific node visitor
@@ -78,14 +79,13 @@ class MWVisitor extends TaintednessVisitor {
 			case '\MediaWiki\HookContainer\HookContainer::register':
 				$this->handleNormalHookRegistration( $node );
 				break;
-			case '\Hooks::run':
-			case '\Hooks::runWithoutAbort':
-				$this->triggerHook( $node );
-				break;
 			case '\MediaWiki\Linker\Linker::makeExternalLink':
 				$this->checkExternalLink( $node );
 				break;
 			default:
+				if ( str_starts_with( $method->getName(), 'on' ) ) {
+					$this->maybeTriggerHook( $node, $method );
+				}
 				$this->doSelectWrapperSpecialHandling( $node, $method );
 		}
 	}
@@ -181,38 +181,42 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Dispatch a hook (i.e. Handle Hooks::run)
-	 *
-	 * @param Node $node The Hooks::run AST_STATIC_CALL
+	 * Check if we are running a hook (i.e., calling a hook method on a HookRunner interface).
 	 */
-	private function triggerHook( Node $node ): void {
-		$argList = $node->children['args']->children;
-		if ( count( $argList ) === 0 ) {
-			$this->debug( __METHOD__, "Too few args to Hooks::run" );
+	private function maybeTriggerHook( Node $node, FunctionInterface $method ): void {
+		if ( $node->kind !== AST_METHOD_CALL || !$method instanceof Method ) {
 			return;
 		}
-		if ( !is_string( $argList[0] ) ) {
-			$this->debug( __METHOD__, "Cannot determine hook name" );
+
+		try {
+			$implementedInterfaces = $method->getClass( $this->code_base )->getInterfaceFQSENList();
+		} catch ( CodeBaseException $e ) {
+			$this->debug( __METHOD__, "Class not found for method $method: " . $this->getDebugInfo( $e ) );
 			return;
 		}
-		'@phan-var array{0:string,1?:Node} $argList';
-		$hookName = $argList[0];
-		if (
-			count( $argList ) < 2
-			|| $argList[1]->kind !== \ast\AST_ARRAY
-		) {
-			// @todo There are definitely cases where this
-			// will prevent us from running hooks
-			// e.g. EditPageGetPreviewContent
-			$this->debug( __METHOD__, "Could not run hook $hookName due to complex args" );
+
+		// We assume that for a hook called Foo, the interface is called FooHook and the handler onFoo, and that the
+		// hook runner (but not necessarily the handler) implements the hook interface.
+		$hookInterfaceName = preg_replace( '/^on/', '', $method->getName() ) . 'Hook';
+		$foundHookInterface = false;
+		foreach ( $implementedInterfaces as $implementedInterfaceFQSEN ) {
+			if ( $implementedInterfaceFQSEN->getName() === $hookInterfaceName ) {
+				$foundHookInterface = true;
+				break;
+			}
+		}
+
+		if ( !$foundHookInterface ) {
 			return;
 		}
-		$args = $this->extractHookArgs( $argList[1] );
-		$hasPassByRef = self::hookArgsContainReference( $argList[1] );
+
+		$args = $node->children['args']->children;
+
+		$hasPassByRef = self::hasPassByReferenceParameter( $method );
 		$analyzer = new PostOrderAnalysisVisitor( $this->code_base, $this->context, [] );
 		$argumentTypes = array_fill( 0, count( $args ), UnionType::empty() );
 
-		$subscribers = MediaWikiHooksHelper::getInstance()->getHookSubscribers( $hookName );
+		$subscribers = MediaWikiHooksHelper::getInstance()->getHookSubscribers( $method->getName() );
 		foreach ( $subscribers as $subscriber ) {
 			if ( $subscriber instanceof FullyQualifiedMethodName ) {
 				if ( !$this->code_base->hasMethodWithFQSEN( $subscriber ) ) {
@@ -255,8 +259,7 @@ class MWVisitor extends TaintednessVisitor {
 				// very very fragile.
 				// TODO 2: Someday we could write a generic-purpose MW plugin, which could (among other
 				// things) understand hook. It could share some code with taint-check, and at that
-				// point we'd likely want to use the correct types here (note that phan alone isn't
-				// able to analyze hooks at all).
+				// point we'd likely want to use the correct types here.
 				$analyzer->analyzeCallableWithArgumentTypes( $argumentTypes, $func, $args );
 			}
 			$this->handleMethodCall( $func, $subscriber, $args, false, true );
@@ -267,34 +270,16 @@ class MWVisitor extends TaintednessVisitor {
 	}
 
 	/**
-	 * Check whether any argument to (inside an array) is a reference.
+	 * Check whether a function takes a parameter by reference (copy of
+	 * {@link \Phan\Language\Element\FunctionTrait::hasPassByReferenceVariable()})
 	 */
-	private static function hookArgsContainReference( Node $argArrayNode ): bool {
-		foreach ( $argArrayNode->children as $child ) {
-			if ( $child instanceof Node && ( $child->flags & \ast\flags\ARRAY_ELEM_REF ) ) {
+	private static function hasPassByReferenceParameter( FunctionInterface $func ): bool {
+		foreach ( $func->getParameterList() as $param ) {
+			if ( $param->isPassByReference() ) {
 				return true;
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Convenience methods for extracting hooks arguments. Copied from
-	 * ClosureReturnTypeOverridePlugin::extractArrayArgs (which is private)
-	 * and simplified for our use case.
-	 *
-	 * @return Node[]
-	 */
-	private function extractHookArgs( Node $argArrayNode ): array {
-		assert( $argArrayNode->kind === \ast\AST_ARRAY );
-		$arguments = [];
-		foreach ( $argArrayNode->children as $child ) {
-			if ( !( $child instanceof Node ) ) {
-				continue;
-			}
-			$arguments[] = $child->children['value'];
-		}
-		return $arguments;
 	}
 
 	/**

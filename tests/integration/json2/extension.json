@@ -1,17 +1,17 @@
 {
 	"HookHandlers": {
 		"Not-A-Valid-Class-Name": {
-			"class": "MyHookHandler",
+			"class": "\\TestJson2\\MyHookHandler",
 			"services": [ "SomeIgnoredService" ]
 		}
 	},
 	"Hooks": {
-		"FirstHook": "Not-A-Valid-Class-Name",
-		"SecondHook": [
+		"First": "Not-A-Valid-Class-Name",
+		"Second": [
 			"Not-A-Valid-Class-Name",
-			"MyHookHandler::additionalSecondHookHandler"
+			"\\TestJson2\\MyHookHandler::additionalSecondHookHandler"
 		],
-		"ThirdHook::method": "Not-A-Valid-Class-Name",
-		"FourthHook-spec": "Not-A-Valid-Class-Name"
+		"Third::name": "Not-A-Valid-Class-Name",
+		"Fourth-name": "Not-A-Valid-Class-Name"
 	}
 }

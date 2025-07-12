@@ -32,7 +32,7 @@ class MediaWikiHooksHelper {
 	private $extensionJsonLoaded = false;
 
 	/**
-	 * @var FullyQualifiedFunctionLikeName[][] A mapping from hook names to FQSEN that implement it
+	 * @var FullyQualifiedFunctionLikeName[][] A mapping from normalized hook names to FQSEN that implement it
 	 * @phan-var array<string,FullyQualifiedFunctionLikeName[]>
 	 */
 	private $hookSubscribers = [];
@@ -70,13 +70,14 @@ class MediaWikiHooksHelper {
 	 * @return bool true if already registered, false otherwise
 	 */
 	public function registerHook( string $hookName, FullyQualifiedFunctionLikeName $fqsen ): bool {
-		if ( !isset( $this->hookSubscribers[$hookName] ) ) {
-			$this->hookSubscribers[$hookName] = [];
+		$normalizedHookName = self::normalizeHookName( $hookName );
+		if ( !isset( $this->hookSubscribers[$normalizedHookName] ) ) {
+			$this->hookSubscribers[$normalizedHookName] = [];
 		}
-		if ( in_array( $fqsen, $this->hookSubscribers[$hookName], true ) ) {
+		if ( in_array( $fqsen, $this->hookSubscribers[$normalizedHookName], true ) ) {
 			return true;
 		}
-		$this->hookSubscribers[$hookName][] = $fqsen;
+		$this->hookSubscribers[$normalizedHookName][] = $fqsen;
 		return false;
 	}
 
@@ -150,14 +151,14 @@ class MediaWikiHooksHelper {
 	}
 
 	/**
-	 * Get a list of subscribers for hook
+	 * Get a list of subscribers for a hook, given its handler method name.
 	 *
-	 * @param string $hookName Hook in question. Hooks starting with ! are special.
 	 * @return FullyQualifiedFunctionLikeName[]
 	 */
-	public function getHookSubscribers( string $hookName ): array {
+	public function getHookSubscribers( string $handlerMethodName ): array {
 		$this->loadExtensionJson();
-		return $this->hookSubscribers[$hookName] ?? [];
+		$normalizedHookName = self::normalizeHookName( preg_replace( '/^on/', '', $handlerMethodName ) );
+		return $this->hookSubscribers[$normalizedHookName] ?? [];
 	}
 
 	/**
@@ -217,5 +218,12 @@ class MediaWikiHooksHelper {
 			}
 		}
 		return $this->ppFrameFQSEN;
+	}
+
+	/**
+	 * Normalize hook names so that we can match them against handler names. See `HookContainer::getHookMethodName()`.
+	 */
+	private static function normalizeHookName( string $name ): string {
+		return strtr( $name, ':\\-', '___' );
 	}
 }

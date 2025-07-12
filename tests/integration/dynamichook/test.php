@@ -2,20 +2,26 @@
 
 // See T250371
 
-class Hooks {
-	public static function run( $event, array $args = [] ) {
+namespace DynamicHook;
+
+interface DynamicHook {
+	public function onDynamic( $x );
+}
+
+class HookRunner implements DynamicHook {
+	public function onDynamic( $x ) {
 	}
 }
 
 class CentralAuthTokenSessionProvider {
 	public function __construct() {
 		global $wgHooks;
-		$wgHooks['BeforePageDisplay'][] = $this;
+		$wgHooks['Dynamic'][] = $this;
 	}
 
-	public function onBeforePageDisplay( $x ) {
+	public function onDynamic( $x ) {
 		echo $x;
 	}
 }
 
-Hooks::run( 'BeforePageDisplay', [ $_GET['foo'] ] );
+( new HookRunner() )->onDynamic( $_GET['foo'] );

@@ -7,6 +7,7 @@
 ### New features
 * (MW) Check SQL `$options` passed to `SelectQueryBuilder::options` and `::option`
 * (MW) Check SQL `$join_conds` passed to `SelectQueryBuilder::joinConds`
+* (MW) Added support for checking hook interfaces, hooks run via HookRunner classes, and hooks registered via `HookContainer::register()`
 
 ### Bug fixes
 * (MW) Fix SQLi detection for `$options` and `$join_conds` arguments to `SELECT` DB functions

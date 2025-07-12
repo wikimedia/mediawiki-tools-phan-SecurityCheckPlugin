@@ -1,18 +1,14 @@
 <?php
 
+namespace SkinJson;
 
-class Hooks {
-	public static function run( $hookName, $args ) {
-	}
-}
-
-function wfRegister( Parser $parser, $taint, $ok ) {
+function wfRegister( $unused, $taint, $ok ) {
 	echo $ok;
 	echo $taint;
 }
 
 class SomeClass {
-	public static function onMediaWikiPerformAction(
+	public static function onHook2(
 		&$output,
 		$page,
 		$title,
@@ -25,9 +21,8 @@ class SomeClass {
 }
 
 function doStuff() {
-	$parser = new Parser;
-	Hooks::run( 'ParserFirstCallInit', [ $parser, $_GET['tainted'], 'foo' ] );
+	( new HookRunner() )->onHook1( 'unused', $_GET['tainted'], 'foo' );
 	$output = '';
-	Hooks::run( 'MediaWikiPerformAction', [ &$output ] );
+	( new HookRunner() )->onHook2( $output );
 	echo $output;
 }

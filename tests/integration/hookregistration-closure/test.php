@@ -1,9 +1,6 @@
 <?php
 
-class Hooks {
-	public static function run( $event, array $args = [] ) {
-	}
-}
+namespace HookRegistrationClosure;
 
 $wgHooks['Hook1'][] = function ( $arg ) {// XSS
 	echo $arg;
@@ -25,17 +22,17 @@ $wgHooks['Hook4'][] = function( &$arg ) use ( $unsafeGlobal ) {
 	$arg = $unsafeGlobal;
 };
 
-Hooks::run( 'Hook1', [ $_GET['foo'] ] );
+( new HookRunner() )->onHook1( $_GET['foo'] );
 
 $hookVar1 = '';
-Hooks::run( 'Hook2', [ &$hookVar1 ] );
+( new HookRunner() )->onHook2( $hookVar1 );
 echo $hookVar1; // XSS
 
 $hookVar2 = '';
-Hooks::run( 'Hook3', [ &$hookVar2 ] );
+( new HookRunner() )->onHook3( $hookVar2 );
 echo $hookVar2; // TODO: Ideally XSS, but closures with `use` cannot be reanalyzed
 
 $hookVar3 = '';
-Hooks::run( 'Hook4', [ &$hookVar3 ] );
+( new HookRunner() )->onHook4( $hookVar3 );
 echo $hookVar3; // TODO: Ideally XSS, but closures with `use` cannot be reanalyzed
 

@@ -5,15 +5,15 @@
 	],
 	"HookHandlers": {
 		"my_handler": {
-			"class": "SomeClass"
+			"class": "TestJson\\SomeClass"
 		}
 	},
 	"Hooks": {
-		"ParserFirstCallInit": [
-			"wfRegister"
+		"Hook1": [
+			"TestJson\\wfRegister"
 		],
-		"MediaWikiPerformAction": [
-			"SomeClass::onMediaWikiPerformAction"
+		"Hook2": [
+			"TestJson\\SomeClass::onHook2"
 		],
 		"ThisHookIsDeprecated": {
 			"handler": "my_handler",

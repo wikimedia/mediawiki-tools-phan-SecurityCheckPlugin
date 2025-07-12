@@ -1,5 +1,5 @@
 {
 	"Hooks": {
-		"MyHook": [ "MyClass::myHandler" ]
+		"PassByRef": [ "PassByRefHook\\MyClass::myHandler" ]
 	}
 }

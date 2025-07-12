@@ -4,7 +4,6 @@
 
 namespace HookOrder;
 
-use \Hooks;
 use MediaWiki\HookContainer\HookContainer;
 
 $hookContainer = new HookContainer();
@@ -15,7 +14,7 @@ $hookContainer->register( 'Something', 'HookOrder\SecondClass::hook3' );
 
 $par1 = '';
 $par2 = '';
-Hooks::run( 'Something', [ &$par1, &$par2 ] );
+( new HookRunner() )->onSomething( $par1, $par2 );
 echo $par1;
 echo $par2;
 

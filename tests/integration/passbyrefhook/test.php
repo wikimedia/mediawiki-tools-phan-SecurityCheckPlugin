@@ -1,7 +1,12 @@
 <?php
 
-class Hooks {
-	public static function run( $hookName, $args ) {
+namespace PassByRefHook;
+
+interface PassByRefHook {
+	public function onPassByRef( &$arg );
+}
+class HookRunner implements PassByRefHook {
+	public function onPassByRef( &$arg ) {
 	}
 }
 
@@ -13,6 +18,6 @@ class MyClass {
 
 function testEvil() {
 	$var1 = '';
-	Hooks::run( 'MyHook', [ &$var1 ] );
+	( new HookRunner() )->onPassByRef( $var1 );
 	echo $var1;
 }

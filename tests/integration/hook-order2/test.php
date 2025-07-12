@@ -2,7 +2,6 @@
 
 namespace HookOrder2;
 
-use \Hooks;
 use MediaWiki\HookContainer\HookContainer;
 
 $hookContainer = new HookContainer();
@@ -12,7 +11,7 @@ $hookContainer->register( 'Something', 'HookOrder2\SecondClass::hook2' );
 
 $tainted = $_GET['user'];
 $output = '';
-Hooks::run( 'Something', [ $tainted, &$output ] );
+( new HookRunner() )->onSomething( $tainted, $output );
 echo $output;// XSS caused by 10, 12, 21 (in this order)
 htmlspecialchars( $output ); // DoubleEscaped caused by 12, 18 (in this order)
 
