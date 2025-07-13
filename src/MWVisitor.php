@@ -917,11 +917,11 @@ class MWVisitor extends TaintednessVisitor {
 			/* The $wgHooks['SomeHook'][] case */
 			( ( $var->children['expr']->children['expr']->kind === \ast\AST_VAR &&
 			$var->children['expr']->children['expr']->children['name'] === 'wgHooks' ) ||
-			/* The $_GLOBALS['wgHooks']['SomeHook'][] case */
+			/* The $GLOBALS['wgHooks']['SomeHook'][] case */
 			( $var->children['expr']->children['expr']->kind === \ast\AST_DIM &&
 			$var->children['expr']->children['expr']->children['expr'] instanceof Node &&
 			$var->children['expr']->children['expr']->children['expr']->kind === \ast\AST_VAR &&
-			$var->children['expr']->children['expr']->children['expr']->children['name'] === '_GLOBALS' ) )
+			$var->children['expr']->children['expr']->children['expr']->children['name'] === 'GLOBALS' ) )
 		) {
 			$hookName = $var->children['expr']->children['dim'];
 		}

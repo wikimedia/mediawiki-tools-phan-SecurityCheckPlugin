@@ -18,7 +18,7 @@ class SomeClass {
 		Hooks::register( 'Something', [ new SecondClass, 'hook6' ] );
 		Hooks::register( 'Something', new SecondClass );
 		$wgHooks['Something'][] = 'foo\SecondClass::hook7';
-		$_GLOBALS['wgHooks']['Something'][] = [ new SecondClass, 'hook8' ];
+		$GLOBALS['wgHooks']['Something'][] = [ new SecondClass, 'hook8' ];
 	}
 }
 
