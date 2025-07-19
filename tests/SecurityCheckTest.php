@@ -332,7 +332,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		$cl = new ReflectionClass( SecurityCheckPlugin::class );
 		$constants = [];
 		foreach ( $cl->getConstants() as $name => $val ) {
-			if ( substr( $name, -strlen( '_TAINT' ) ) === '_TAINT' ) {
+			if ( str_ends_with( $name, '_TAINT' ) ) {
 				$constants[$name] = $val;
 			}
 		}

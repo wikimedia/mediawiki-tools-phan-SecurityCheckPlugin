@@ -175,8 +175,8 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		if ( $combinedTaint === self::HTML_TAINT ) {
 			$path = str_replace( '\\', '/', $context->getFile() );
 			if (
-				strpos( $path, 'maintenance/' ) === 0 ||
-				strpos( $path, '/maintenance/' ) !== false
+				str_starts_with( $path, 'maintenance/' ) ||
+				str_contains( $path, '/maintenance/' )
 			) {
 				// For classes not using Maintenance subclasses
 				$msg .= ' [Likely false positive because in maintenance subdirectory, thus probably CLI]';
