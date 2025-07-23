@@ -66,7 +66,7 @@ grep -rl assertRegExp $TESTDIR | xargs sed -r -i "s/>assertRegExp\(/>assertMatch
 grep -rl assertNotRegExp $TESTDIR | xargs sed -r -i "s/>assertNotRegExp\(/>assertDoesNotMatchRegularExpression\(/"
 
 # Phan uses autoload-dev for test classes
-sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\"/" composer.json
+sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\/\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\/\"/" composer.json
 composer dump-autoload
 
 SECCHECK_ISSUES="'SecurityCheck-DoubleEscaped', 'SecurityCheck-SQLInjection', 'SecurityCheck-XSS', "

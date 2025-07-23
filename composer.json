@@ -28,7 +28,7 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"SecurityCheckPlugin\\": "src"
+			"SecurityCheckPlugin\\": "src/"
 		}
 	},
 	"require": {
