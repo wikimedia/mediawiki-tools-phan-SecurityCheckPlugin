@@ -2,13 +2,6 @@
 
 namespace SecurityCheckPlugin;
 
-use Phan\CodeBase;
-use Phan\Config;
-use Phan\Language\FQSEN\FullyQualifiedClassName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionName;
-use Phan\Language\FQSEN\FullyQualifiedMethodName;
-
 /**
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +17,13 @@ use Phan\Language\FQSEN\FullyQualifiedMethodName;
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+use Phan\CodeBase;
+use Phan\Config;
+use Phan\Language\FQSEN\FullyQualifiedClassName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
+use Phan\Language\FQSEN\FullyQualifiedFunctionName;
+use Phan\Language\FQSEN\FullyQualifiedMethodName;
 
 class MediaWikiHooksHelper {
 	/**
