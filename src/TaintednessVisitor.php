@@ -1,4 +1,7 @@
 <?php declare( strict_types=1 );
+
+// @phan-file-suppress PhanUnusedPublicMethodParameter Many methods don't use $node
+
 /**
  * Copyright (C) 2017  Brian Wolff <bawolff@gmail.com>
  *
@@ -47,8 +50,6 @@ use Phan\PluginV3\PluginAwarePostAnalysisVisitor;
  *
  * This also maintains some other properties, such as where the error
  * originates, and dependencies in certain cases.
- *
- * @phan-file-suppress PhanUnusedPublicMethodParameter Many methods don't use $node
  */
 class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	use TaintednessBaseVisitor;

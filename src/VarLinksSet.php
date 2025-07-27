@@ -1,5 +1,8 @@
 <?php declare( strict_types=1 );
 
+// @phan-file-suppress PhanParamSignatureMismatch,PhanParamSignaturePHPDocMismatchParamType
+// @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
+
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\TypedElementInterface;
@@ -13,8 +16,6 @@ use Phan\Library\Set;
  * @method offsetSet( \Phan\Language\Element\TypedElementInterface $object, PreservedTaintedness $data )
  * @method void attach(TypedElementInterface $object, PreservedTaintedness $data)
  * @method TypedElementInterface current()
- * @phan-file-suppress PhanParamSignatureMismatch,PhanParamSignaturePHPDocMismatchParamType
- * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class VarLinksSet extends Set {
 	/**

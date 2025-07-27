@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 
+// @phan-file-suppress PhanUndeclaredProperty
+
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\FunctionInterface;
@@ -10,7 +12,6 @@ use Phan\Language\Element\TypedElementInterface;
  * Accessors to read and write taintedness props stored inside phan objects. This trait exists to avoid duplicating
  * dynamic property names, to have better type inference, to enable phan checks for undeclared props on the other
  * files, to keep track of props usage etc.
- * @phan-file-suppress PhanUndeclaredProperty
  */
 trait TaintednessAccessorsTrait {
 	protected static function getTaintednessRaw( TypedElementInterface $element ): ?Taintedness {

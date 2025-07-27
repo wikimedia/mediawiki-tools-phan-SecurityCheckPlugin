@@ -1,5 +1,8 @@
 <?php declare( strict_types=1 );
 
+// @phan-file-suppress PhanParamSignatureMismatch,PhanParamSignaturePHPDocMismatchParamType
+// @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
+
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\FunctionInterface;
@@ -13,8 +16,6 @@ use Phan\Library\Set;
  * @method offsetSet( \Phan\Language\Element\FunctionInterface $object, SingleMethodLinks $data )
  * @method void attach(FunctionInterface $object, SingleMethodLinks $data)
  * @method FunctionInterface current()
- * @phan-file-suppress PhanParamSignatureMismatch,PhanParamSignaturePHPDocMismatchParamType
- * @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
  */
 class LinksSet extends Set {
 	public function mergeWith( self $other ): void {
