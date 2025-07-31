@@ -20,3 +20,6 @@ $db->select(
 		...$joinConds
 	]
 );
+
+$rawSQLConds = [];
+$db->select( 'a', 'b', [ ...$rawSQLConds ] );

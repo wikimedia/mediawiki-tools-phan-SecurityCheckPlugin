@@ -1002,7 +1002,7 @@ trait TaintednessBaseVisitor {
 					}
 
 					if (
-						$node->kind === \ast\AST_ARRAY &&
+						$child->kind === \ast\AST_ARRAY_ELEM &&
 						$child->children['key'] !== null && !$this->nodeCanBeIntKey( $child->children['key'] )
 					) {
 						continue;
