@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## v7.0.0 (UNRELEASED)
+## v7.0.0
 ### Breaking changes
 * Drop support for PHP < 8.1
 * (MW) Dropped support for unnamespaced `Parser` and `PPFrame`.
