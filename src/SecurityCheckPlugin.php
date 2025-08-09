@@ -842,6 +842,42 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 				self::SQL_EXEC_TAINT,
 				'overall' => self::UNKNOWN_TAINT
 			],
+			'\mysqli_fetch_all' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_result::fetch' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_fetch_array' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_result::fetch_array' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_fetch_assoc' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_result::fetch_assoc' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_fetch_column' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_result::fetch_column' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_fetch_object' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_result::fetch_object' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_fetch_row' => [
+				'overall' => self::YES_TAINT,
+			],
+			'\mysqli_result::fetch_row' => [
+				'overall' => self::YES_TAINT,
+			],
 			'\sqlite_query' => [
 				self::NO_TAINT,
 				self::SQL_EXEC_TAINT,

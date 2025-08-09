@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### New features
+* Add taintedness info for `mysqli_result` functions and methods
+
 ## v7.0.0
 ### Breaking changes
 * Drop support for PHP < 8.1
