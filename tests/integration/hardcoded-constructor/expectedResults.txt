@@ -1,0 +1,1 @@
+integration/hardcoded-constructor/test.php:8 SecurityCheck-XSS Calling method \HardcodedXSSParamConstructor::__construct() in [no method] that outputs using tainted argument #1 (`$_GET['unsafe']`). (Caused by: Builtin-\HardcodedXSSParamConstructor::__construct)

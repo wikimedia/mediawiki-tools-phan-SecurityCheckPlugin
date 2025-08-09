@@ -12,16 +12,15 @@ $customPDO->query( $_GET['query'] ); // SQLi, using taint from parent class (bui
 echo $customPDO->setAttribute( $_GET['a'], $_GET['b'] ); // Safe
 
 
-// Here we assume that Html::rawElement is hardcoded in the plugin. We want to make sure that if a subclass method
-// has hardcoded taintedness, that takes precedence over the parent func body.
-class FakeHtmlParent {
-	public static function rawElement( $a, $b, $c ) : string {
-		return 'safe?';
+// Make sure that if a subclass method has hardcoded taintedness, that takes precedence over the parent func body.
+class HardcodedHtmlParent {
+	public static function yesArgReturnsEscaped( $arg ) {
+		return 'hardcoded';
 	}
 }
-class Html extends FakeHtmlParent {
-	// No declaration of rawElement here.
+class HardcodedSimpleTaint extends HardcodedHtmlParent {
+	// No declaration of yesArgReturnsEscaped here.
 }
 
-echo FakeHtmlParent::rawElement( $_GET['a'], $_GET['b'], $_GET['c'] ); // Safe
-echo Html::rawElement( $_GET['a'], $_GET['b'], $_GET['c'] ); // XSS
+echo HardcodedHtmlParent::yesArgReturnsEscaped( $_GET['a'] ); // Safe
+echo HardcodedSimpleTaint::yesArgReturnsEscaped( $_GET['a'] ); // XSS

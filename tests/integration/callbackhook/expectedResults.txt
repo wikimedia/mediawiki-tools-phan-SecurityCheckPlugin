@@ -1,4 +1,3 @@
-integration/callbackhook/Parser.php:41 SecurityCheck-LikelyFalsePositive Calling method \preg_match() in \MediaWiki\Parser\StripState::addItem that outputs using tainted argument #1 (`$this->regex`).
 integration/callbackhook/func.php:5 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \wfSomeFunc (Caused by: integration/callbackhook/func.php +3)
 integration/callbackhook/test.php:14 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \closure_e3dde7fe6c34 (Caused by: tainted argument to parser hook)
 integration/callbackhook/test.php:22 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \closure_637d2e38698e

@@ -1,6 +1,6 @@
 <?php
 
-class NestedCal {
+class NestedCalls {
 	public function execute() {
 		$this->show();
 	}
@@ -14,7 +14,7 @@ class NestedCal {
 	}
 
 	public static function bar( $text ) {
-		return Html::element( 'bar', [], $text );
+		return HardcodedSimpleTaint::escapesArgReturnsEscaped( $text );
 	}
 }
 

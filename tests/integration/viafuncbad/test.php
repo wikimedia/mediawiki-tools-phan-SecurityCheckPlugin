@@ -1,6 +1,6 @@
 <?php
 
 $text = $_POST['foo'];
-$html = Html::rawElement( 'div', [ 'class' => 'foo' ], $text );
+$html = HardcodedSimpleTaint::yesArgReturnsEscaped( $text );
 
 OutputClass::addHTML( $html );

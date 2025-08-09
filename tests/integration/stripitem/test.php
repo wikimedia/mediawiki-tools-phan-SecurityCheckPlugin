@@ -9,12 +9,12 @@ class SomeClass {
 	}
 
 	public function xyzzy( MediaWiki\Parser\Parser $parser, $arg1 ) {
-		$a = $parser->insertStripItem( $arg1 );
+		$a = $parser->printArgumentReturnSafe( $arg1 );
 		return $a;
 	}
 
 	public function xyzzy2( $parser, $arg1 ) {
-		$a = $parser->insertStripItem( $arg1 );
+		$a = $parser->printArgumentReturnSafe( $arg1 );
 		return $a;
 	}
 }

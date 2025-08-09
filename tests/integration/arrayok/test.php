@@ -1,16 +1,16 @@
 <?php
-function wfShellExec( $arg ) {
+function hardcodedArrayOkParam( $arg ) {
 	return "stdout";
 }
 
 function doStuff() {
 	// Unsafe
-	wfShellExec( $_GET['foo'] );
+	hardcodedArrayOkParam( $_GET['foo'] );
 	$command = "echo -n " . $_GET['a'] . ' ' . $_GET['b'];
-	wfShellExec( $command );
+	hardcodedArrayOkParam( $command );
 
 	// Safe
-	wfShellExec( [ $_GET['foo'] ] );
+	hardcodedArrayOkParam( [ $_GET['foo'] ] );
 	$args = [
 		'echo',
 		'-n',
@@ -18,5 +18,5 @@ function doStuff() {
 		$_GET['b']
 	];
 
-	wfShellExec( $args );
+	hardcodedArrayOkParam( $args );
 }

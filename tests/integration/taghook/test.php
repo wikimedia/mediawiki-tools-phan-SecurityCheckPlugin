@@ -39,10 +39,14 @@ class SecondClass {
 	}
 
 	public static function good( $content, array $attribs, Parser $parser, PPFrame $frame ) {
-		return '<div>' . $parser->recursiveTagParse( $content ) . '</div>';
+		return '<div>' . self::returnLiteral( $content ) . '</div>';
 	}
 
 	public static function good2( $content, $attribs, $parser, $frame ) {
-		return '<div>' . $parser->recursiveTagParse( $content ) . '</div>';
+		return '<div>' . self::returnLiteral( $content ) . '</div>';
+	}
+
+	private static function returnLiteral( $ignoredParam ) {
+		return 'safe';
 	}
 }

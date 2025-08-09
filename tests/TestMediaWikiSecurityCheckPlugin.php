@@ -72,35 +72,9 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 			],
 			'\Wikimedia\Rdbms\InsertQueryBuilder::row' => $insertQBRowTaint,
 			'\Wikimedia\Rdbms\InsertQueryBuilder::rows' => $insertQBRowsTaint,
-			'\Html::rawElement' => [
-				self::YES_TAINT,
-				self::ESCAPES_HTML,
-				self::YES_TAINT,
-				'overall' => self::ESCAPED_TAINT
-			],
-			'\Html::element' => [
-				self::YES_TAINT,
-				self::ESCAPES_HTML,
-				self::ESCAPES_HTML,
-				'overall' => self::ESCAPED_TAINT
-			],
 			'\MediaWiki\Message\Message::text' => [ 'overall' => self::YES_TAINT ],
 			'\MediaWiki\Message\Message::parse' => [ 'overall' => self::ESCAPED_TAINT ],
 			'\MediaWiki\Message\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
-			'\HtmlArmor::__construct' => [
-				self::HTML_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
-			'\MediaWiki\Parser\StripState::addItem' => [
-				self::NO_TAINT,
-				self::NO_TAINT,
-				self::HTML_EXEC_TAINT,
-				'overall' => self::NO_TAINT
-			],
-			'\wfShellExec' => [
-				self::SHELL_EXEC_TAINT | self::ARRAY_OK,
-				'overall' => self::YES_TAINT
-			],
 
 			// Misc testing stuff
 			'\TestSinkShape::sinkKeys' => $sinkKeysTaint,
@@ -114,6 +88,22 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 			'\HardcodedVariadicExec::doTest' => [
 				self::HTML_EXEC_TAINT | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
+			],
+			'\HardcodedXSSParamConstructor::__construct' => [
+				self::HTML_EXEC_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\hardcodedArrayOkParam' => [
+				self::SHELL_EXEC_TAINT | self::ARRAY_OK,
+				'overall' => self::YES_TAINT
+			],
+			'\HardcodedSimpleTaint::yesArgReturnsEscaped' => [
+				self::YES_TAINT,
+				'overall' => self::ESCAPED_TAINT
+			],
+			'\HardcodedSimpleTaint::escapesArgReturnsEscaped' => [
+				self::ESCAPES_HTML,
+				'overall' => self::ESCAPED_TAINT
 			],
 		];
 	}

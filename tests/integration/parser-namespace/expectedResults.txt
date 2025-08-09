@@ -1,4 +1,3 @@
-integration/parser-namespace/Parser.php:45 SecurityCheck-LikelyFalsePositive Calling method \preg_match() in \MediaWiki\Parser\StripState::addItem that outputs using tainted argument #1 (`$this->regex`).
-integration/parser-namespace/test.php:19 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: tainted argument to parser hook)
-integration/parser-namespace/test.php:24 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \TestNamespacedParser::unsafeHook (Caused by: tainted argument to parser hook)
-integration/parser-namespace/test.php:28 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \TestNamespacedParser::unsafeHook2 (Caused by: tainted argument to tag hook)
+integration/parser-namespace/test.php:14 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: tainted argument to parser hook)
+integration/parser-namespace/test.php:19 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \TestNamespacedParser::unsafeHook (Caused by: tainted argument to parser hook)
+integration/parser-namespace/test.php:23 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \TestNamespacedParser::unsafeHook2 (Caused by: tainted argument to tag hook)

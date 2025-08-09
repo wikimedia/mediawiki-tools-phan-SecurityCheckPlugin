@@ -1,15 +1,19 @@
 <?php
 
-class Html {
-	public static function rawElement( $a, $b, $c ) : string {
-		return $a . $b . $c;
+class HardcodedSimpleTaint {
+	public static function yesArgReturnsEscaped( $arg ) {
+		return 'hardcoded';
 	}
 }
 
 class TestLongCausedBy {
 	public function main() {
 		$this->output(
-			Html::rawElement( 'div', [], Html::rawElement( 'ul', [], Html::rawElement( 'li', [], $_GET['baz'] ) ) )
+			HardcodedSimpleTaint::yesArgReturnsEscaped(
+				HardcodedSimpleTaint::yesArgReturnsEscaped(
+					HardcodedSimpleTaint::yesArgReturnsEscaped( $_GET['baz'] )
+				)
+			)
 		);
 	}
 

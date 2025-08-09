@@ -36,12 +36,12 @@ function taintAndPassthrough( string $x ) : string {
 echo taintAndPassthrough( $_GET['a'] ); // Unsafe
 echo taintAndPassthrough( 'foo' ); // Unsafe
 
-class Html {
-	static function element( $x, $y, $z ) {
-		return $y . $z; // Shouldn't be seen as a passthrough because Html::element is annotated
+class HardcodedSimpleTaint {
+	public static function escapesArgReturnsEscaped( $arg ) {
+		return $arg; // Shouldn't be seen as a passthrough because the method is hardcoded
 	}
 }
-echo Html::element( 'foo', $_GET['A'] ); // Safe
+echo HardcodedSimpleTaint::escapesArgReturnsEscaped( $_GET['A'] ); // Safe
 
 $x = htmlspecialchars( $_GET['a'] );
 echo $x; // Safe

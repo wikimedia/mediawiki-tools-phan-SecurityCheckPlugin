@@ -8,7 +8,7 @@ class CentralAuthHooks {
 	}
 
 	public static function getBlockLogLink() {
-		Html::rawElement( 'span', [], getEscaped() );
+		HardcodedSimpleTaint::yesArgReturnsEscaped( getEscaped() );
 	}
 
 }
@@ -22,11 +22,13 @@ class GlobalUserMergeLogger {
 
 class SpecialMergeAccount {
 	private function doDryRunMerge() {
-		Html::rawElement( 'p', [], Html::element( 'i', getUnsafe() ) );
+		HardcodedSimpleTaint::yesArgReturnsEscaped(
+			HardcodedSimpleTaint::escapesArgReturnsEscaped( getUnsafe() )
+		);
 	}
 
 	private function doAttachMerge( OutputPage $out ) {
-		$out->addHTML( Html::rawElement( 'div', [], getEscaped() ) );
+		$out->addHTML( HardcodedSimpleTaint::yesArgReturnsEscaped( getEscaped() ) );
 	}
 }
 
@@ -38,7 +40,7 @@ class SpecialMultiLock {
 
 	private function showUserTable() {
 		$cache = new MapCacheLRU();
-		echo Html::rawElement( 'td', [], $cache->get( $_GET['a'] ) );// Must have Core line 11 in its caused-by
+		echo HardcodedSimpleTaint::yesArgReturnsEscaped( $cache->get( $_GET['a'] ) );// Must have Core line 11 in its caused-by
 	}
 
 	private function showLogExtract() {

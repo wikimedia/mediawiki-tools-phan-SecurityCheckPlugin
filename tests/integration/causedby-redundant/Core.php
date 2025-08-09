@@ -23,7 +23,7 @@ function getEscaped(): string {
 
 class LogEventsList  {
 	public static function showLogExtract( &$out ) {
-		Html::rawElement( 'div', [ 'class' => 'mw-warning-logempty' ], getEscaped() );
+		HardcodedSimpleTaint::yesArgReturnsEscaped( getEscaped() );
 	}
 }
 
@@ -34,28 +34,11 @@ class OutputPage {
 }
 
 
-class Html {
-
-	public static function rawElement( $element, $attribs = [], $contents = '' ) {
-		return self::openElement( $element, $attribs ) . $contents;
+class HardcodedSimpleTaint {
+	public static function yesArgReturnsEscaped( $arg ) {
+		return 'hardcoded';
 	}
-
-	public static function element( $element, $attribs = '' ) {
-		return self::rawElement( $element, $attribs );
-	}
-
-	public static function openElement( $element, $attribs = [] ) {
-		return "<$element" . self::expandAttributes( self::dropDefaults( $attribs ) );
-	}
-
-	private static function dropDefaults( array $attribs ) {
-		return $attribs;
-	}
-
-	public static function expandAttributes( array $attribs ) {
-		foreach ( $attribs as $key => $value ) {
-			htmlspecialchars( $value );
-		}
-		return htmlspecialchars( $attribs );
+	public static function escapesArgReturnsEscaped( $arg ) {
+		return 'hardcoded';
 	}
 }

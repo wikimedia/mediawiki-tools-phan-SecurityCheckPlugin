@@ -1,15 +1,13 @@
 <?php
 
-class Html {
-	// Rename in case we'll hardcode taintedness for openElement
-	public static function openElementXXX( $element, $attribs = [] ) {
-		return "<$element" . self::expandAttributesXXX( $attribs );
+class CausedByRedundant2 {
+	public static function concatFirstAndStringifiedSecond( $first, $second ) {
+		return "($first)" . self::stringify( $second );
 	}
 
-	// Rename in case we'll hardcode taintedness for expandAttributes
-	public static function expandAttributesXXX( array $attribs ) {
+	public static function stringify( array $arr ) {
 		$ret = '';
-		foreach ( $attribs as $key => $value ) {
+		foreach ( $arr as $key => $value ) {
 			if ( rand() ) {
 				$arrayValue = [];
 				foreach ( $value as $k => $v ) {

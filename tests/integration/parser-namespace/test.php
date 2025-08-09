@@ -2,11 +2,6 @@
 
 use \MediaWiki\Parser\Parser;
 
-class Hooks {
-	public static function run( $hookName, $args ) {
-	}
-}
-
 class TestNamespacedParser {
 	public function register() {
 		$parser = new Parser;
