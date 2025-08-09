@@ -7,9 +7,9 @@ class MsgString {
 	/**
 	 * @param Message|string $f
 	 */
-	public static function a( $f ) {
+	public static function escapeIfNotMessage( $f ) {
 		if ( $f instanceof Message ) {
-			$f = $f->text();
+			$f = 'literal';
 		}
 		echo htmlspecialchars( $f );
 	}
@@ -17,50 +17,32 @@ class MsgString {
 	/**
 	 * @param Message|string $f
 	 */
-	public static function b( $f ) {
+	public static function echoIfNotMessage( $f ) {
 		if ( $f instanceof Message ) {
-			echo $f->parse();
+			echo 'literal';
 		} else {
 			echo $f;
 		}
 	}
 
-	/**
-	 * @param Message|string $f
-	 */
-	public static function evil1( $f ) {
-		if ( $f instanceof Message ) {
-			echo $f->text();
-		} else {
-			echo htmlspecialchars( $f );
-		}
-	}
-
-	public static function justEcho( $f ) {
+	public static function alwaysEscape( $f ) {
 		echo htmlspecialchars( $f );
 	}
 
-	// Same as a() but no docblock so should still warn.
-	public static function giveWarning( $f ) {
+	// Same as escapeIfNotMessage() but no docblock so should still warn.
+	public static function escapeIfNotMessageWithoutDocblock( $f ) {
 		if ( $f instanceof Message ) {
-			$f = $f->text();
+			$f = 'literal';
 		}
 		echo htmlspecialchars( $f );
 	}
 }
 
 // Good
-MsgString::a( 'safe' );
-MsgString::giveWarning( 'safe' );
-MsgString::b( 'safe' );
 $msg = new Message;
-MsgString::a( $msg ); // safe. This is what test is primarily about.
-MsgString::giveWarning( $msg ); // This should give a false positive warning.
-MsgString::b( $msg );
-MsgString::evil1( $msg ); // This is unsafe, but should trigger at line 30
-MsgString::justEcho( $msg ); // unsafe double escape.
+MsgString::escapeIfNotMessage( $msg ); // This must NOT emit a DoubleEscaped warning
+MsgString::escapeIfNotMessageWithoutDocblock( $msg ); // This should give a false positive warning.
+MsgString::echoIfNotMessage( $_GET['a'] ); // XSS
+MsgString::alwaysEscape( $msg ); // Genuine DoubleEscaped warning
 
-MsgString::a( $_GET['d'] ); // safe
-MsgString::giveWarning( $_GET['d'] ); // safe
-MsgString::b( $_GET['d'] ); // unsafe
 MsgString::notExist( $msg ); // This should not give warning

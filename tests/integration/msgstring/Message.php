@@ -3,10 +3,7 @@
 namespace MediaWiki\Message;
 
 class Message {
-	public function text() {
-	}
-	public function parse() {
-	}
+	/** @return-taint escaped */
 	public function __toString() {
 		return 'd';
 	}

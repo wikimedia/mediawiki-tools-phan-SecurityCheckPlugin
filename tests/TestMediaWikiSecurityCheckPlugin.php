@@ -58,7 +58,6 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				'overall' => self::YES_TAINT
 			],
 			'\Wikimedia\Rdbms\IReadableDatabase::select' => $selectWrapper,
-			'\Wikimedia\Rdbms\IDatabase::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::select' => $selectWrapper,
 			'\Wikimedia\Rdbms\Database::selectSQLText' => [
 					'overall' => self::YES_TAINT & ~self::SQL_TAINT
@@ -72,9 +71,6 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 			],
 			'\Wikimedia\Rdbms\InsertQueryBuilder::row' => $insertQBRowTaint,
 			'\Wikimedia\Rdbms\InsertQueryBuilder::rows' => $insertQBRowsTaint,
-			'\MediaWiki\Message\Message::text' => [ 'overall' => self::YES_TAINT ],
-			'\MediaWiki\Message\Message::parse' => [ 'overall' => self::ESCAPED_TAINT ],
-			'\MediaWiki\Message\Message::__toString' => [ 'overall' => self::ESCAPED_TAINT ],
 
 			// Misc testing stuff
 			'\TestSinkShape::sinkKeys' => $sinkKeysTaint,
