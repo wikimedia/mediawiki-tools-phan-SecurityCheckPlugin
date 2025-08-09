@@ -101,6 +101,10 @@ class TestMediaWikiSecurityCheckPlugin extends MediaWikiSecurityCheckPlugin {
 				self::ESCAPES_HTML,
 				'overall' => self::ESCAPED_TAINT
 			],
+			'\HardcodedSimpleTaint::execNumkey' => [
+				self::SQL_NUMKEY_EXEC_TAINT,
+				'overall' => self::ESCAPED_TAINT
+			],
 		];
 	}
 }

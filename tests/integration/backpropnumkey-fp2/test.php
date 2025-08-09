@@ -1,26 +1,25 @@
 <?php
 
-class FileDeleteForm {
-	protected function addContentModelChangeLogEntry() {
-		( new RecentChange( 'foo' ) )->save();
+class BackpropNumkeyFP2Class1 {
+	protected function test() {
+		( new BackpropNumkeyFP2ValueObject( 'foo' ) )->save();
 	}
 }
-class FileDeleteForm2 {
+class BackpropNumkeyFP2Class2 {
 	public function execute() {
-		new RecentChange( $_GET['a'] );
+		new BackpropNumkeyFP2ValueObject( $_GET['a'] );
 	}
 }
 
 
-class RecentChange {
-	public $mAttribs;
+class BackpropNumkeyFP2ValueObject {
+	public $arrayProp;
 
 	public function save() {
-		$dbw = new \Wikimedia\Rdbms\Database();
-		$dbw->select( 'recentchanges', '*', $this->mAttribs );// Should not backpropagate NUMKEY
+		execNumkey( $this->arrayProp );// Should not backpropagate NUMKEY
 	}
 
-	public function __construct( $logComment ) {
-		$this->mAttribs = [ 'rc_comment' => $logComment ];
+	public function __construct( $safeVal ) {
+		$this->arrayProp = [ 'string' => $safeVal ];
 	}
 }

@@ -1,0 +1,4 @@
+integration/db-select/test.php:12 SecurityCheck-SQLInjection The ON conditions are not properly escaped for the join to `t` (Caused by: integration/db-select/test.php +7) (Originally at: integration/db-select/test.php:10)
+integration/db-select/test.php:19 SecurityCheck-SQLInjection The ON conditions are not properly escaped for the join to `t` (Originally at: integration/db-select/test.php:17)
+integration/db-select/test.php:26 SecurityCheck-SQLInjection HAVING clause is user controlled (Caused by: integration/db-select/test.php +7) (Originally at: integration/db-select/test.php:24)
+integration/db-select/test.php:33 SecurityCheck-SQLInjection HAVING clause is user controlled (Originally at: integration/db-select/test.php:31)

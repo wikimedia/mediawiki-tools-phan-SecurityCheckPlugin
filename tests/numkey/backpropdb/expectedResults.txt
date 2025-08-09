@@ -1,4 +1,2 @@
-numkey/backpropdb/test.php:10 SecurityCheck-SQLInjection Calling method \tableNameBackprop() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: numkey/backpropdb/test.php +8; Builtin-\Wikimedia\Rdbms\Database::select)
-numkey/backpropdb/test.php:19 SecurityCheck-SQLInjection Calling method \unsafeJoinConds() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: numkey/backpropdb/test.php +14; numkey/backpropdb/test.php +16)
-numkey/backpropdb/test.php:37 SecurityCheck-SQLInjection Calling method \unsafeOptions() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: numkey/backpropdb/test.php +32)
-numkey/backpropdb/test.php:53 SecurityCheck-SQLInjection Calling method \unsafeWhere() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: numkey/backpropdb/test.php +51; Builtin-\Wikimedia\Rdbms\Database::select)
+numkey/backpropdb/test.php:12 SecurityCheck-SQLInjection Calling method \unsafeJoinConds() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: numkey/backpropdb/test.php +7; numkey/backpropdb/test.php +9)
+numkey/backpropdb/test.php:30 SecurityCheck-SQLInjection Calling method \unsafeOptions() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: numkey/backpropdb/test.php +25)

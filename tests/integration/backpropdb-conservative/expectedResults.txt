@@ -1,2 +1,1 @@
-integration/backpropdb-conservative/test.php:10 SecurityCheck-SQLInjection Calling method \tableNameBackprop() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/backpropdb-conservative/test.php +8; Builtin-\Wikimedia\Rdbms\Database::select)
-integration/backpropdb-conservative/test.php:37 SecurityCheck-SQLInjection Calling method \unsafeOptions() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/backpropdb-conservative/test.php +32)
+integration/backpropdb-conservative/test.php:30 SecurityCheck-SQLInjection Calling method \unsafeOptions() in [no method] that outputs using tainted argument #1 (`$_GET['x']`). (Caused by: integration/backpropdb-conservative/test.php +25)

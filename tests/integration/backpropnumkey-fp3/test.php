@@ -2,7 +2,7 @@
 
 use Wikimedia\Rdbms\Database;
 
-class MyTestClass {
+class BackpropNumkeyFP3 {
 	private $someProp;
 
 	public static function newInstance( string $x ): self {
@@ -11,18 +11,13 @@ class MyTestClass {
 		return $ret;
 	}
 
-	public function getDBCond(): array {
-		return [ 'page_title' => $this->someProp ];
+	public function getStringKeyArray(): array {
+		return [ 'string' => $this->someProp ];
 	}
 
-	private function doQuery() {
-		$dbw = new Database();
-		$dbw->selectRow(
-			'mytable',
-			'*',
-			$this->getDBCond() // The returned array doesn't have num keys, so this is safe
-		);
+	private function doTest() {
+		execNumkey( $this->getStringKeyArray() ); // The returned array doesn't have num keys, so this is safe
 	}
 }
 
-MyTestClass::newInstance( $_GET['foo'] ); // Safe.
+BackpropNumkeyFP3::newInstance( $_GET['foo'] ); // Safe.

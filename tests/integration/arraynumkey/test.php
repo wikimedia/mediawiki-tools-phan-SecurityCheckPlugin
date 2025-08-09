@@ -1,130 +1,54 @@
 <?php
 
-use Wikimedia\Rdbms\MysqlDatabase;
+execNumkey( [ 'foo' => $_GET['bar'] ] ); // Safe
 
-$db = new MysqlDatabase;
+execNumkey( [ $_GET['bar'] ] ); // Unsafe
 
-// safe
-$db->select(
-	'table',
-	'field',
-	[ 'foo' => $_GET['bar'] ]
-);
+execNumkey( $_GET['bar'] ); // Unsafe
 
-// unsafe
-$db->select(
-	'table',
-	'field',
-	[ $_GET['bar'] ]
-);
+$append1 = [];
+$append1[] = $_GET['bar'];
+execNumkey( $append1 ); // Unsafe
+execNumkey( [ 'safe' => $append1 ] ); // Safe
 
-// unsafe
-$db->select(
-	'table',
-	'field',
-	$_GET['bar']
-);
+$append2 = [ $_GET['bar'] ];
+$append2[] = 'Something';
+execNumkey( $append2 ); // Unsafe
 
-$where = [];
-$where[] = $_GET['bar'];
+$arrayVar = [ $_GET['d'] => 'foo' ];
+execNumkey( $arrayVar ); // Unsafe
 
-// unsafe
-$db->select(
-	'table',
-	'field',
-	$where
-);
+$withUnsafeKey = [];
+$withUnsafeKey[$_GET['d']] = 'foo';
+execNumkey( $withUnsafeKey ); // unsafe because keys are not escaped
 
-$where2 = [ $_GET['bar'] ];
-$where2[] = 'Something';
-// unsafe
-$db->select( 't', 'f', $where2 );
-
-// unsafe
-$where3 = [ $_GET['d'] => 'foo' ];
-$db->select( 't', 'f', $where3 );
-
-$where4 = [];
-$where4[$_GET['d']] = 'foo';
-// unsafe because keys are not escaped
-$db->select( 't', 'f', $where4 );
-
-// unsafe
-$where5 = [ 1 => $_GET['d'] ];
-$db->select( 't', 'f', $where5 );
-
-// unsafe
-$db->select( 't', 'f', '', __METHOD__, [],
-	[
-		't' => [ 'INNER JOIN', $where5 ]
-	]
-);
-
-// unsafe
-$db->select( 't', 'f', '', __METHOD__, [],
-	[
-		't' => [ 'INNER JOIN', $_GET['string'] ]
-	]
-);
-
-// unsafe
-$db->select( 't', 'f', '', __METHOD__,
-	[
-		'HAVING' => $where5
-	]
-);
-
-// unsafe
-$db->select( 't', 'f', '', __METHOD__,
-	[
-		'HAVING' => $_GET['string']
-	]
-);
+$withLiteralIntKey = [ 1 => $_GET['d'] ];
+execNumkey( $withLiteralIntKey ); // Unsafe
 
 $b = (int)$_GET['b'];
-$db->select( 't', 'f', [ 'foo' => $_GET['a'], "bar > $b" ] );
+// Safe: the unsafe value has a string key, and the numeric key is guaranteed to use an integer
+execNumkey( [ 'foo' => $_GET['a'], "bar > $b" ] );
 
-$row = (object)[ 'foo' => $_GET['bar'] ];
-$db->selectRow( 't', 'f', [ 'foo2' => $row->foo ] );
-$whereRow = [ 'foo2' => $row->foo ];
-$db->selectRow( 't', 'f', $whereRow );
-
-$subquery = $db->selectSQLText(
-	'Foo',
-	'1',
-	[ 'value' => $_GET['val'], 'baz=red', 'foo' => '<script>' ],
-	__METHOD__,
-	[ 'LIMIT' => 1 ]
-);
-
-// safe
-$db->select(
-	'Bar',
-	'*',
-	[ 'NOT EXISTS( ' . $subquery . ')' ],
-	__METHOD__
-);
-
-// unsafe
-echo $subquery;
+$obj = (object)[ 'foo' => $_GET['bar'] ];
+execNumkey( [ 'foo2' => $obj->foo ] ); // Safe
+$tempVarWithObj = [ 'foo2' => $obj->foo ];
+execNumkey( $tempVarWithObj ); // Safe
 
 $safe = [ 'safe' => $_GET['baz'] ];// This line should appear in caused-by
 $unsafe = array_values( $safe );
-$db->select( 'foo', '*', $unsafe ); // SQLi
+execNumkey( $unsafe ); // SQLi
 
 $newSafe = [ 'safe' => 'safe' ];
 $alsoSafe = array_values( $newSafe );
-$db->select( 'foo', '*', $alsoSafe ); // Safe
+execNumkey( $alsoSafe ); // Safe
 
 
 $safe2 = [
 	'f1' => $thisVariableIsNotSet,
 	'f2' => [ $_GET['a'] ],
 ];
-$db->select( 't', '*', $safe2 ); // Safe (actually a LikelyFalsePositive)
+execNumkey( $safe2 ); // Safe (actually a LikelyFalsePositive)
 
-// Test literal join conditions (should not crash)
-$db->select( 't', 'f', '', __METHOD__, [], [ 't' => [ 'INNER JOIN', 'a=b' ] ] );
-
-// Test literal options (should not crash)
-$db->select( 't', 'f', '', __METHOD__, [ 'ORDER BY' => 'foo' ] );
+// Test hardcoded taintedness
+HardcodedSimpleTaint::execNumkey( [ 'foo' => $_GET['bar'] ] ); // Safe
+HardcodedSimpleTaint::execNumkey( [ $_GET['bar'] ] ); // Unsafe

@@ -1,52 +1,43 @@
 <?php
 
-use Wikimedia\Rdbms\Database;
-
-/**
- * @return-taint none
- */
-function getFieldName(): string {
-	return $_GET['unknown'];
-}
-
 function test1() {
-	$row = ( new Database )->selectRow( 'a', 'b' );
-	echo $row; // Unsafe
-	echo $row->foo; // Unsafe
+	$obj = getUnsafeStdClass();
+	echo $obj; // Unsafe
+	echo $obj->foo; // Unsafe
 	$fieldName = getFieldName();
-	echo $row->$fieldName; // Unsafe
+	echo $obj->$fieldName; // Unsafe
 }
 
 function test2() {
-	$row = (object)[ 'a' => $_GET['foo'] ];
-	echo $row; // Unsafe
-	echo $row->a; // Unsafe
+	$obj = (object)[ 'a' => $_GET['foo'] ];
+	echo $obj; // Unsafe
+	echo $obj->a; // Unsafe
 	$fieldName = getFieldName();
-	echo $row->$fieldName; // Unsafe
+	echo $obj->$fieldName; // Unsafe
 }
 
 function test3() {
-	$row = (object)[ 'a' => 'foo' ];
-	echo $row; // Safe
-	echo $row->a; // Safe
+	$obj = (object)[ 'a' => 'foo' ];
+	echo $obj; // Safe
+	echo $obj->a; // Safe
 	$fieldName = getFieldName();
-	echo $row->$fieldName; // Safe
+	echo $obj->$fieldName; // Safe
 }
 
 function test4() {
-	$row = (object)[ 'a' => 'foo', 'b' => $_GET['unsafe'] ];
-	echo $row; // Unsafe
-	echo $row->a; // TODO Safe
-	echo $row->b; // Unsafe
+	$obj = (object)[ 'a' => 'foo', 'b' => $_GET['unsafe'] ];
+	echo $obj; // Unsafe
+	echo $obj->a; // TODO Safe
+	echo $obj->b; // Unsafe
 	$fieldName = getFieldName();
-	echo $row->$fieldName; // Unsafe
+	echo $obj->$fieldName; // Unsafe
 }
 
-class TestDbRow {
+class TestStdClass {
 	private $prop1, $prop2, $prop3, $prop4;
 
 	function test1() {
-		$this->prop1 = ( new Database )->selectRow( 'a', 'b' );
+		$this->prop1 = getUnsafeStdClass();
 		echo $this->prop1; // Unsafe
 		echo $this->prop1->foo; // Unsafe
 		$fieldName = getFieldName();

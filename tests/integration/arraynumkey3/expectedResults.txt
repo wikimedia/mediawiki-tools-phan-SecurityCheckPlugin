@@ -1,4 +1,4 @@
-integration/arraynumkey3/test.php:10 SecurityCheckDebugTaintedness Variable $conds has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
-integration/arraynumkey3/test.php:17 SecurityCheckDebugTaintedness Variable $conds has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
-integration/arraynumkey3/test.php:34 SecurityCheckDebugTaintedness Variable $conds1 has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
-integration/arraynumkey3/test.php:37 SecurityCheckDebugTaintedness Variable $conds2 has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
+integration/arraynumkey3/test.php:7 SecurityCheckDebugTaintedness Variable $keyFromDocComment has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
+integration/arraynumkey3/test.php:13 SecurityCheckDebugTaintedness Variable $keyFromTypeDeclaration has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
+integration/arraynumkey3/test.php:29 SecurityCheckDebugTaintedness Variable $keyFromReturnDocComment has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}
+integration/arraynumkey3/test.php:32 SecurityCheckDebugTaintedness Variable $keyFromReturnTypeDeclaration has taintedness: {Own: NONE; Elements: {UNKNOWN => {Own: YES}}}

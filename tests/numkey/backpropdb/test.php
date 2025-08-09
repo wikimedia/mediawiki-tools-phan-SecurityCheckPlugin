@@ -2,13 +2,6 @@
 
 use Wikimedia\Rdbms\Database;
 
-function tableNameBackprop( $unsafe ) {
-	$db = new Database();
-	// First param is always backpropagated, this is a sanity check
-	$db->select( $unsafe, 'x', '' );
-}
-tableNameBackprop( $_GET['x'] );
-
 function unsafeJoinConds( $unsafe ) {
 	$db = new Database();
 	$db->select( 'x', 'x', '', __METHOD__, [],
@@ -44,16 +37,3 @@ function safeOptions( $unsafe ) {
 	);
 }
 safeOptions( $_GET['x'] );
-
-// Database::where is also tested in backpropnumkey
-function unsafeWhere( $unsafe ) {
-	$db = new Database();
-	$db->select( 'x', 'x', [ $unsafe ] );
-}
-unsafeWhere( $_GET['x'] );
-
-function safeWhere( $unsafe ) {
-	$db = new Database();
-	$db->select( 'x', 'x', [ 'safe' => $unsafe ] );
-}
-safeWhere( $_GET['x'] );

@@ -1,8 +1,6 @@
 <?php
 
-use Wikimedia\Rdbms\Database;
-
-class StatusValue {
+class BackpropNumkeyFPValueObject {
 	/** @var mixed */
 	public $value;
 
@@ -10,73 +8,67 @@ class StatusValue {
 		return $this->value;
 	}
 
-	public function setResult( $value ) {
+	public function setValue( $value ) {
 		$this->value = $value;
 	}
-	public static function wrap( StatusValue $sv ) {
+	public static function copyFromOther( self $other ) {
 		$result = new static();
-		$result->value =& $sv->value;
+		$result->value =& $other->value;
 
 		return $result;
 	}
 }
 
-class UploadStash {
-	protected $fileMetadata = [];
+class BackpropNumkeyFPClass1 {
+	protected $prop1 = [];
 
-	public function stashFile( $path, $sourceType = null ) {
-		$storeStatus = new \StatusValue();
-		$stashPath = $storeStatus->value;
+	public function method1( $path, $sourceType = null ) {
+		$valueObj = new \BackpropNumkeyFPValueObject();
+		$objValue = $valueObj->value;
 		$dbw = new Database;
-		$this->fileMetadata['foo'] = [
-			'us_path' => $stashPath,
+		$this->prop1['foo'] = [
+			'string' => $objValue,
 		];
-		$dbw->select( 'uploadstash', '*', $this->fileMetadata['foo'] ); // NOT an SQLi, and it should NOT backpropagate numkey on fileMetadata
+		$dbw->select( 'uploadstash', '*', $this->prop1['foo'] ); // NOT an SQLi, and it should NOT backpropagate numkey on prop1
 	}
 
 }
 
-class RevisionStore {
-	private function getSlotRowsForBatch() {
-		$result = new \StatusValue();
-		$result->setResult( $_GET['a'] ); // NOT an SQLi caused by lines 29-31-34
+class BackpropNumkeyFPClass2 {
+	private function method2() {
+		$result = new \BackpropNumkeyFPValueObject();
+		$result->setValue( $_GET['a'] ); // NOT an SQLi caused by lines 27-29-32
 		return $result;
 	}
 }
 
 
-class UserrightsPage {
-
-	public function fetchUser() {
-		$name = UserRightsProxy::whoIs();
-		$user = UserRightsProxy::newFromName( $name );
-		$status = new StatusValue();
-		$status->setResult( $user ); // NOT an SQLi caused by lines 29-31-34
+class BackpropNumkeyFPClass3 {
+	public function method3() {
+		$prop = BackpropNumkeyFPValueObject2::createAndGetProp();
+		$obj2 = BackpropNumkeyFPValueObject2::newFromString( $prop );
+		$status = new BackpropNumkeyFPValueObject();
+		$status->setValue( $obj2 ); // NOT an SQLi caused by lines 27-29-32
 	}
-
 }
 
-class UserRightsProxy {
-	private $name;
+class BackpropNumkeyFPValueObject2 {
+	private $stringProp;
 
-	private function __construct( string $name ) {
-		$this->name = $name;
+	private function __construct( string $val ) {
+		$this->stringProp = $val;
 	}
 
-	public static function whoIs() {
-		return self::newFromName( 'x' )->name;
+	public static function createAndGetProp() {
+		return self::newFromString( 'x' )->stringProp;
 	}
 
-	public static function newFromName( $name ) {
-		return self::newFromLookup( 'user_name', $name );
+	public static function newFromString( $val ) {
+		return self::newFromKV( 'string', $val );
 	}
 
-	private static function newFromLookup( $field, $value ) {
-		self::getDB()->selectRow( 'user', '', [ $field => $value ] ); // This should NOT backpropagate numkey on $value
-		return new UserRightsProxy( $_GET['a'] );
+	private static function newFromKV( $key, $value ) {
+		execNumkey( [ $key => $value ] ); // This should NOT backpropagate numkey on $value
+		return new self( $_GET['a'] );
 	}
-
-	public static function getDB() : Database {
-	}
-
 }
