@@ -1,34 +1,36 @@
 <?php
 
+namespace TestProp2;
+
 class TestProp2 {
 	public $f = '';
 
-	/** @var Context */
-	private $context;
+	/** @var SinkGetter */
+	private $sinkGetter;
 
 	public function __construct() {
-		$this->context = new Context;
+		$this->sinkGetter = new SinkGetter;
 	}
 
-	public function bar() {
-		$out = $this->context->getOutput();
-		$out->addHTML( $this->f );
+	public function main() {
+		$sink = $this->sinkGetter->getSink();
+		$sink->execHTML( $this->f );
 	}
 }
 
-class Context {
+class SinkGetter {
 	/**
-	 * @return OutputPage
+	 * @return SinkClass
 	 */
-	public function getOutput() {
-		return new OutputPage;
+	public function getSink() {
+		return new SinkClass;
 	}
 }
 
-class OutputPage {
-	public function addHTML( $html ) {
+class SinkClass {
+	public function execHTML( $html ) {
 	}
 }
 
 $test = new TestProp2;
-$test->bar();
+$test->main();

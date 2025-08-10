@@ -1,1 +1,0 @@
-integration/viafuncbad/test.php:6 SecurityCheck-XSS Calling method \OutputClass::addHTML() in [no method] that outputs using tainted argument #1 (`$html`). (Caused by: annotations in \OutputClass::addHTML) (Caused by: integration/viafuncbad/test.php +4; integration/viafuncbad/test.php +3)

@@ -1,0 +1,1 @@
+integration/hardcoded-functions/test.php:9 SecurityCheck-XSS Calling method \TestSinkShape::sinkAll() in [no method] that outputs using tainted argument #1 (`$unsafe`). (Caused by: Builtin-\TestSinkShape::sinkAll) (Caused by: integration/hardcoded-functions/test.php +8; integration/hardcoded-functions/test.php +3)
