@@ -1,0 +1,11 @@
+integration/parsertaghooks-registration/funcs.php:5 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration\parserTagHookGlobalFunctionNamespaced
+integration/parsertaghooks-registration/funcs.php:15 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \parserTagHookGlobalFunctionGlobalNamespace
+integration/parsertaghooks-registration/test.php:34 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \closure_94f9b3536edd
+integration/parsertaghooks-registration/test.php:38 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \closure_502f0176871a
+integration/parsertaghooks-registration/test.php:59 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::staticMethodForStringLiteral
+integration/parsertaghooks-registration/test.php:63 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::staticMethodForArrayClass
+integration/parsertaghooks-registration/test.php:67 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::staticMethodForArrayFull
+integration/parsertaghooks-registration/test.php:71 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::staticMethodForArraySelf
+integration/parsertaghooks-registration/test.php:75 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::staticMethodForArrayString
+integration/parsertaghooks-registration/test.php:79 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::nonstaticMethodForArrayDirect
+integration/parsertaghooks-registration/test.php:83 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooksRegistration::nonstaticMethodForArrayIndirect

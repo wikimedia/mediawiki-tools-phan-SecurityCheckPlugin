@@ -1,0 +1,7 @@
+integration/parserfunctionhooks/test.php:31 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooks::returnUnsafeHTML
+integration/parserfunctionhooks/test.php:35 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooks::returnArgHTML (Caused by: tainted argument to parser hook)
+integration/parserfunctionhooks/test.php:39 SecurityCheck-ShellInjection Calling method \shell_exec() in \ParserFunctionHooks::useArgInOtherSink that outputs using tainted argument #1 (`$arg`). (Caused by: tainted argument to parser hook)
+integration/parserfunctionhooks/test.php:59 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooks::unsafeHookIndirect3 (Caused by: tainted argument to parser hook)
+integration/parserfunctionhooks/test.php:74 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooks::unsafeHookIndirect5 (Caused by: tainted argument to parser hook)
+integration/parserfunctionhooks/test.php:85 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooks::returnUnsafeNotHTML
+integration/parserfunctionhooks/test.php:89 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooks::returnArgNotHTML (Caused by: tainted argument to parser hook)

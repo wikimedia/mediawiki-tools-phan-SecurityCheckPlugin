@@ -5,9 +5,4 @@ namespace MediaWiki\Parser;
 class Parser {
 	public function setFunctionHook( $id, callable $cb, $opts = 0 ) {
 	}
-
-	public function printArgumentReturnSafe( $argument ) {
-		echo $argument;
-		return 42;
-	}
 }

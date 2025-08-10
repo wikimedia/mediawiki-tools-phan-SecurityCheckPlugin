@@ -1,0 +1,5 @@
+integration/parsertaghooks/test.php:33 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooks::returnUnsafeDirect
+integration/parsertaghooks/test.php:37 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooks::returnUnsafeIndirect (Caused by: integration/parsertaghooks/test.php +27)
+integration/parsertaghooks/test.php:41 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooks::returnFirstArg (Caused by: tainted argument to tag hook)
+integration/parsertaghooks/test.php:46 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooks::returnFirstArgIndirect (Caused by: integration/parsertaghooks/test.php +45; tainted argument to tag hook)
+integration/parsertaghooks/test.php:55 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \ParserTagHooks::returnSecondArg (Caused by: integration/parsertaghooks/test.php +52; tainted argument to tag hook)

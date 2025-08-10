@@ -1,0 +1,2 @@
+integration/parsertaghooks-paramtypes/test.php:8 PhanDebugAnnotation @phan-debug-var requested for variable $parser - it has union type \MediaWiki\Parser\Parser
+integration/parsertaghooks-paramtypes/test.php:8 PhanDebugAnnotation @phan-debug-var requested for variable $ppframe - it has union type \MediaWiki\Parser\PPFrame

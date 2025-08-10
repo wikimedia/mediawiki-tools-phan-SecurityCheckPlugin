@@ -1,3 +1,0 @@
-integration/taghook/test.php:19 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SomeClass::evil (Caused by: integration/taghook/test.php +18; tainted argument to tag hook)
-integration/taghook/test.php:23 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SomeClass::wrapper (Caused by: integration/taghook/test.php +27)
-integration/taghook/test.php:38 SecurityCheck-XSS Outputting user controlled HTML from Parser tag hook \SecondClass::evilAttribs (Caused by: integration/taghook/test.php +35; tainted argument to tag hook)

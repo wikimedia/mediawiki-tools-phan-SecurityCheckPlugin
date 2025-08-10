@@ -1,0 +1,11 @@
+integration/parserfunctionhooks-registration/funcs.php:5 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration\parserFunctionHookGlobalFunctionNamespaced
+integration/parserfunctionhooks-registration/funcs.php:15 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \parserFunctionHookGlobalFunctionGlobalNamespace
+integration/parserfunctionhooks-registration/test.php:34 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \closure_5b7cf45a3b04
+integration/parserfunctionhooks-registration/test.php:38 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \closure_735c972672c9
+integration/parserfunctionhooks-registration/test.php:59 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::staticMethodForStringLiteral
+integration/parserfunctionhooks-registration/test.php:63 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::staticMethodForArrayClass
+integration/parserfunctionhooks-registration/test.php:67 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::staticMethodForArrayFull
+integration/parserfunctionhooks-registration/test.php:71 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::staticMethodForArraySelf
+integration/parserfunctionhooks-registration/test.php:75 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::staticMethodForArrayString
+integration/parserfunctionhooks-registration/test.php:79 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::nonstaticMethodForArrayDirect
+integration/parserfunctionhooks-registration/test.php:83 SecurityCheck-XSS Outputting user controlled HTML from Parser function hook \ParserFunctionHooksRegistration::nonstaticMethodForArrayIndirect

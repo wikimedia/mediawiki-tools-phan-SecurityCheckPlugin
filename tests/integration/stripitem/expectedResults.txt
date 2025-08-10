@@ -1,2 +1,0 @@
-integration/stripitem/test.php:12 SecurityCheck-XSS Calling method \MediaWiki\Parser\Parser::printArgumentReturnSafe() in \SomeClass::xyzzy that outputs using tainted argument #1 (`$arg1`). (Caused by: integration/stripitem/Parser.php +10) (Caused by: tainted argument to parser hook)
-integration/stripitem/test.php:17 SecurityCheck-XSS Calling method \MediaWiki\Parser\Parser::printArgumentReturnSafe() in \SomeClass::xyzzy2 that outputs using tainted argument #1 (`$arg1`). (Caused by: integration/stripitem/Parser.php +10) (Caused by: tainted argument to parser hook)
