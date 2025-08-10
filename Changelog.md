@@ -4,6 +4,9 @@
 ### New features
 * Add taintedness info for `mysqli_result` functions and methods
 
+### Bug fixes
+* (MW) Fix false positives in parser function hooks with `isHTML` set to false
+
 ## v7.0.0
 ### Breaking changes
 * Drop support for PHP < 8.1

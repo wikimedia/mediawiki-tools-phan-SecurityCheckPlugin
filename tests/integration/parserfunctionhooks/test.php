@@ -82,11 +82,11 @@ class ParserFunctionHooks {
 	}
 
 	public function returnUnsafeNotHTML( Parser $parser, $arg ) {
-		return [ $_GET['a'], 'isHTML' => false ]; // TODO: Safe
+		return [ $_GET['a'], 'isHTML' => false ];
 	}
 
 	public function returnArgNotHTML( Parser $parser, $arg ) {
-		return [ $arg, 'isHTML' => false ]; // TODO: Safe
+		return [ $arg, 'isHTML' => false ];
 	}
 
 	public function safeHookIndirect1( Parser $parser, $arg ) {

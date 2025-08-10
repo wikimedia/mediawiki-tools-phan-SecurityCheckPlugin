@@ -17,6 +17,9 @@ use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
+use Phan\Language\Type;
+use Phan\Language\Type\BoolType;
+use Phan\Language\Type\TrueType;
 use Phan\Language\UnionType;
 use UnexpectedValueException;
 use const ast\AST_METHOD_CALL;
@@ -739,7 +742,12 @@ class MWVisitor extends TaintednessVisitor {
 			return;
 		}
 
-		if ( !$isHTMLElementType->containsTrue() ) {
+		// NOTE: Cannot use `containsTrue` here, because it, huh, also returns true for `false`.
+		$containsTrue = $isHTMLElementType->hasRealTypeMatchingCallback(
+			// @phan-suppress-next-line PhanUnreferencedClosure WTF?
+			static fn ( Type $t ): bool => $t instanceof BoolType || $t instanceof TrueType
+		);
+		if ( !$containsTrue ) {
 			return;
 		}
 
