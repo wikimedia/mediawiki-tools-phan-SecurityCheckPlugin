@@ -1,2 +1,1 @@
-integration/hookregistration-closure/test.php:5 SecurityCheck-XSS Calling method \closure_e3a190ac24d1() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`). (Caused by: integration/hookregistration-closure/test.php +6) (Originally at: integration/hookregistration-closure/test.php:25)
-integration/hookregistration-closure/test.php:29 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hookregistration-closure/test.php +28; integration/hookregistration-closure/test.php +9)
+integration/hookregistration-closure/test.php:26 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hookregistration-closure/test.php +25; integration/hookregistration-closure/test.php +8)

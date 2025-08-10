@@ -1,2 +1,0 @@
-integration/json/test.php:5 SecurityCheck-XSS Calling method \TestJson\wfRegister() in \TestJson\doStuff that outputs using tainted argument #2 (`$_GET['tainted']`). (Caused by: integration/json/test.php +7) (Originally at: integration/json/test.php:24)
-integration/json/test.php:27 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/json/test.php +26; integration/json/test.php +19)

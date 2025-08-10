@@ -1,0 +1,33 @@
+{
+	"name": "testJsonFile",
+	"author": [
+		"Brian Wolff"
+	],
+	"HookHandlers": {
+		"This-Is-A-Handler-Not-A-Class-Name": {
+			"class": "HooksExtensionJson\\HandlerClass",
+			"services": [ "SomeIgnoredService" ]
+		},
+		"DeprecatedHookHandler": {
+			"class": "HooksExtensionJson\\HandlerClass"
+		}
+	},
+	"Hooks": {
+		"HookWithGlobalHandler": [
+			"HooksExtensionJson\\globalFunction"
+		],
+		"HookWithStaticHandler": [
+			"HooksExtensionJson\\HandlerClass::staticMethod"
+		],
+		"HookUsingHookHandlers": "This-Is-A-Handler-Not-A-Class-Name",
+		"HookUsingBothMethodNameAndHookHandlers": [
+			"This-Is-A-Handler-Not-A-Class-Name",
+			"HooksExtensionJson\\HandlerClass::additionalHandler"
+		],
+		"ThisHookIsDeprecated": {
+			"handler": "DeprecatedHookHandler",
+			"deprecated": true
+		},
+		"Name::With--Many__Symbols\\Really": "This-Is-A-Handler-Not-A-Class-Name"
+	}
+}

@@ -2,11 +2,17 @@
 
 namespace HookOrder;
 
-interface SomethingHook {
-	public function onSomething( &$arg1, &$arg2 );
+interface DoesNotClearPreviousTaintHook {
+	public function onDoesNotClearPreviousTaint( &$arg1, &$arg2 );
 }
 
-class HookRunner implements SomethingHook {
-	public function onSomething( &$arg1, &$arg2 ) {
+interface AllTaintTypesAreMergedHook {
+	public function onAllTaintTypesAreMerged( &$arg1, &$arg2 );
+}
+
+class HookRunner implements DoesNotClearPreviousTaintHook, AllTaintTypesAreMergedHook {
+	public function onDoesNotClearPreviousTaint( &$arg1, &$arg2 ) {
+	}
+	public function onAllTaintTypesAreMerged( &$arg1, &$arg2 ) {
 	}
 }

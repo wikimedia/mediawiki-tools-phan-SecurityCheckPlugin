@@ -1,1 +1,0 @@
-integration/dynamichook/test.php:22 SecurityCheck-XSS Calling method \DynamicHook\CentralAuthTokenSessionProvider::onDynamic() in [no method] that outputs using tainted argument #1 (`$_GET['foo']`). (Caused by: integration/dynamichook/test.php +23) (Originally at: integration/dynamichook/test.php:27)

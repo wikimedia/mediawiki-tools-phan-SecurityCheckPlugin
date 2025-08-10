@@ -1,0 +1,6 @@
+integration/hooks/test.php:16 SecurityCheck-XSS Calling method \TestHooks\Handlers::echoArg() in \TestHooks\testEchoArg that outputs using tainted argument #1 (`$_GET['a']`). (Caused by: integration/hooks/test.php +17) (Originally at: integration/hooks/test.php:48)
+integration/hooks/test.php:19 SecurityCheck-DoubleEscaped Calling method \TestHooks\Handlers::escapeArg() in \TestHooks\testEscapeEscapedArg that outputs using tainted argument #1 (`htmlspecialchars('foo')`). (Caused by: integration/hooks/test.php +20) (Originally at: integration/hooks/test.php:52)
+integration/hooks/test.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hooks/test.php +36; integration/hooks/test.php +11)
+integration/hooks/test.php:43 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hooks/test.php +41)
+integration/hooks/test.php:59 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hooks/test.php +57; integration/hooks/test.php +58; integration/hooks/test.php +23)
+integration/hooks/test.php:60 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/hooks/test.php +57; integration/hooks/test.php +23)

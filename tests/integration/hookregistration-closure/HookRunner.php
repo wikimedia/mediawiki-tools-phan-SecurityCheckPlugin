@@ -2,29 +2,23 @@
 
 namespace HookRegistrationClosure;
 
-interface Hook1Hook {
-	public function onHook1( $arg );
+interface ReplaceArgWithUnsafeHook {
+	public function onReplaceArgWithUnsafe( &$arg );
 }
-interface Hook2Hook {
-	public function onHook2( &$arg );
+interface ReplaceArgWithUsedLocalUnsafeHook {
+	public function onReplaceArgWithUsedLocalUnsafe( &$arg );
 }
-interface Hook3Hook {
-	public function onHook3( &$arg );
-}
-interface Hook4Hook {
-	public function onHook4( &$arg );
+interface ReplaceArgWithUsedGlobalUnsafeHook {
+	public function onReplaceArgWithUsedGlobalUnsafe( &$arg );
 }
 
-class HookRunner implements Hook1Hook, Hook2Hook, Hook3Hook, Hook4Hook {
-	public function onHook1( $arg ) {
+class HookRunner implements ReplaceArgWithUnsafeHook, ReplaceArgWithUsedLocalUnsafeHook, ReplaceArgWithUsedGlobalUnsafeHook {
+	public function onReplaceArgWithUnsafe( &$arg ) {
 	}
 
-	public function onHook2( &$arg ) {
+	public function onReplaceArgWithUsedLocalUnsafe( &$arg ) {
 	}
 
-	public function onHook3( &$arg ) {
-	}
-
-	public function onHook4( &$arg ) {
+	public function onReplaceArgWithUsedGlobalUnsafe( &$arg ) {
 	}
 }

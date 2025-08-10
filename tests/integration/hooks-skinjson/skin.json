@@ -1,0 +1,17 @@
+{
+	"name": "testJsonFile",
+	"author": [
+		"Brian Wolff"
+	],
+	"HookHandlers": {
+		"SkinHookHandler": {
+			"class": "HooksSkinJson\\HandlerClass"
+		}
+	},
+	"Hooks": {
+		"HookWithStaticHandler": [
+			"HooksSkinJson\\HandlerClass::staticMethod"
+		],
+		"HookUsingHookHandlers": "SkinHookHandler"
+	}
+}
