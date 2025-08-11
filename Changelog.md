@@ -10,6 +10,7 @@
 
 ### Bug fixes
 * (MW) Fix false positives in parser function hooks with `isHTML` set to false
+* (MW) Fixed edge case in analysis of hooks with names containing backslashes
 
 ## v7.0.0
 ### Breaking changes

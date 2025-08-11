@@ -124,8 +124,7 @@ class MediaWikiHooksHelper {
 					// TODO ObjectFactory not fully handled here. Would deserve some code in a general-purpose
 					// MediaWiki plugin, see T275742.
 					if ( isset( $namedHandlers[$cb]['class'] ) ) {
-						// Like core's HookContainer::run
-						$normalizedHookName = ucfirst( strtr( $hookName, ':-', '__' ) );
+						$normalizedHookName = ucfirst( self::normalizeHookName( $hookName ) );
 						$callbackString = $namedHandlers[$cb]['class'] . "::on$normalizedHookName";
 					} elseif ( isset( $namedHandlers[$cb]['factory'] ) ) {
 						// TODO: We'd need a CodeBase to retrieve the factory method and check its return value

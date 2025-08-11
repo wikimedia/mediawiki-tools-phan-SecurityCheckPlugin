@@ -29,7 +29,7 @@ class HandlerClass {
 		echo $unsafe;
 	}
 
-	public function onName__With__Many__Symbols_Really( $unsafe ) {//TODO: Unsafe
+	public function onName__With__Many__Symbols_Really( $unsafe ) {
 		echo $unsafe;
 	}
 }
