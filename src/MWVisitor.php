@@ -9,10 +9,10 @@ use ast\Node;
 use Phan\Analysis\PostOrderAnalysisVisitor;
 use Phan\AST\ContextNode;
 use Phan\AST\UnionTypeVisitor;
+use Phan\Debug;
 use Phan\Exception\CodeBaseException;
 use Phan\Exception\InvalidFQSENException;
 use Phan\Exception\IssueException;
-use Phan\Exception\NodeException;
 use Phan\Language\Element\ClassAliasRecord;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
@@ -25,10 +25,7 @@ use Phan\Language\Type\BoolType;
 use Phan\Language\Type\TrueType;
 use Phan\Language\UnionType;
 use UnexpectedValueException;
-use const ast\AST_CALL;
-use const ast\AST_CALLABLE_CONVERT;
 use const ast\AST_METHOD_CALL;
-use const ast\AST_STATIC_CALL;
 
 /**
  * MediaWiki specific node visitor
@@ -763,74 +760,30 @@ class MWVisitor extends TaintednessVisitor {
 	 * @param string $hookName
 	 */
 	private function getCallableFromHookRegistration( mixed $node, string $hookName ): ?FunctionInterface {
-		if (
-			!$node instanceof Node ||
-			$node->kind === \ast\AST_CLOSURE ||
-			$node->kind === \ast\AST_ARRAY ||
-			(
-				( $node->kind === AST_CALL || $node->kind === AST_METHOD_CALL || $node->kind === AST_STATIC_CALL ) &&
-				$node->children['args']->kind === AST_CALLABLE_CONVERT
-			)
-		) {
-			return $this->getCallableFromNode( $node );
-		}
-
-		$cb = $this->getSingleCallable( $node, 'on' . $hookName );
+		$cb = $this->getCallableFromNode( $node );
 		if ( $cb ) {
 			return $cb;
 		}
 
-		// Either a callback we couldn't resolve, or extension hook handler spec. Ignore either way.
-		return null;
-	}
+		$methodName = 'on' . $hookName;
 
-	private function getSingleCallable( Node $node, string $methodName ): ?FunctionInterface {
-		if ( $node->kind === \ast\AST_VAR && is_string( $node->children['name'] ) ) {
-			return $this->getCallbackForVar( $node, $methodName );
-		}
-		if ( $node->kind === \ast\AST_NEW ) {
-			$cxn = $this->getCtxN( $node );
-			try {
-				$ctor = $cxn->getMethod( '__construct', false, false, true );
-				return $ctor->getClass( $this->code_base )->getMethodByName( $this->code_base, $methodName );
-			} catch ( CodeBaseException | NodeException $e ) {
-				// @todo Should probably emit a non-security issue
-				$this->debug( __METHOD__, "Missing hook handle: " . $this->getDebugInfo( $e ) );
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Given an AST_VAR node, figure out what it represents as callback
-	 *
-	 * @param Node $node The variable
-	 * @param string $defaultMethod If the var is an object, what method to use
-	 */
-	private function getCallbackForVar( Node $node, string $defaultMethod = '' ): ?FunctionInterface {
-		assert( $node->kind === \ast\AST_VAR );
-		$cnode = $this->getCtxN( $node );
-		// Try the class case first, because the callable case might emit issues (about missing __invoke) if executed
-		// for a variable holding just a class instance.
 		try {
 			// Don't warn if it's the wrong type, for it might be a callable and not a class.
-			$classes = $cnode->getClassList( true, ContextNode::CLASS_LIST_ACCEPT_ANY, null, false );
+			$classes = $this->getCtxN( $node )->getClassList( true, ContextNode::CLASS_LIST_ACCEPT_ANY, null, false );
 		} catch ( CodeBaseException | IssueException ) {
 			$classes = [];
 		}
 		foreach ( $classes as $class ) {
-			if ( $class->getFQSEN()->__toString() === '\Closure' ) {
-				// This means callable case, done below.
-				continue;
-			}
 			try {
-				return $class->getMethodByName( $this->code_base, $defaultMethod );
+				return $class->getMethodByName( $this->code_base, $methodName );
 			} catch ( CodeBaseException ) {
-				return null;
+				continue;
 			}
 		}
 
-		return $this->getCallableFromNode( $node );
+		// @todo Should probably emit a non-security issue
+		$this->debug( __METHOD__, "Missing hook handler for node: " . Debug::nodeToString( $node ) );
+		return null;
 	}
 
 	/**

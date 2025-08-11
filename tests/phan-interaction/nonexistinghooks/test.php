@@ -27,5 +27,6 @@ class NonExistingHooks {
 		$wgHooks['InvalidFQSEN'][] = '--**/\\**--';
 		$wgHooks['InvalidType'][] = false;
 		$wgHooks['InvalidArray'][] = [];
+		$wgHooks['ExtraParenthesesInStringCallable'][] = 'strlen()';
 	}
 }

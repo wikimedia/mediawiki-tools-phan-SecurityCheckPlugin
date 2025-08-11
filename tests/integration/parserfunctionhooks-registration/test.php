@@ -38,21 +38,21 @@ class ParserFunctionHooksRegistration {
 			return [ $_GET['a'], 'isHTML' => true ]; // Unsafe
 		};
 		$parser->setFunctionHook( 'closure2', $indirectClosure );
-		$parser->setFunctionHook( 'closure3', fn ( Parser $parser, $arg ) => [ $_GET['a'], 'isHTML' => true ] ); // TODO: Unsafe
+		$parser->setFunctionHook( 'closure3', fn ( Parser $parser, $arg ) => [ $_GET['a'], 'isHTML' => true ] );
 	}
 
 	// All the handlers below should be equal, and all unsafe.
 
 	public static function staticMethodForStringClass( Parser $parser, $arg ) {
-		return [ $_GET['a'], 'isHTML' => true ]; // TODO: Unsafe
+		return [ $_GET['a'], 'isHTML' => true ];
 	}
 
 	public static function staticMethodForStringFull( Parser $parser, $arg ) {
-		return [ $_GET['a'], 'isHTML' => true ]; // TODO: Unsafe
+		return [ $_GET['a'], 'isHTML' => true ];
 	}
 
 	public static function staticMethodForStringSelf( Parser $parser, $arg ) {
-		return [ $_GET['a'], 'isHTML' => true ]; // TODO: Unsafe
+		return [ $_GET['a'], 'isHTML' => true ];
 	}
 
 	public static function staticMethodForStringLiteral( Parser $parser, $arg ) {

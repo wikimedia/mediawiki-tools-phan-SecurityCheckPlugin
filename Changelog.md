@@ -6,6 +6,7 @@
 
 ### New features
 * Added support for `array_first`, `array_last`, `array_find`, and `array_find_key`
+* (MW) Improved (parser) hook handler analysis to infer callables in more cases.
 
 ### Internal changes
 * Bumped phan/phan to ~6.0.5, allowing future patch versions to be automatically installed

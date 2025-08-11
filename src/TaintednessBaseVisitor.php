@@ -33,7 +33,6 @@ use Phan\Language\Element\TypedElementInterface;
 use Phan\Language\Element\Variable;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionLikeName;
-use Phan\Language\FQSEN\FullyQualifiedFunctionName;
 use Phan\Language\FQSEN\FullyQualifiedMethodName;
 use Phan\Language\Type\FunctionLikeDeclarationType;
 use Phan\Language\Type\GenericArrayType;
@@ -41,10 +40,6 @@ use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
 use RuntimeException;
 use SplObjectStorage;
-use const ast\AST_CALL;
-use const ast\AST_CALLABLE_CONVERT;
-use const ast\AST_METHOD_CALL;
-use const ast\AST_STATIC_CALL;
 
 /**
  * Trait for the Tainedness visitor subclasses. Mostly contains
@@ -1452,72 +1447,19 @@ trait TaintednessBaseVisitor {
 	}
 
 	/**
-	 * Given an AST node that's a callable, try and determine what it is
-	 *
+	 * Given an AST node that might be a callable, try and determine what function it is.
 	 * This is intended for functions that register callbacks.
 	 *
 	 * @param Node|mixed $node The thingy from AST expected to be a Callable
 	 */
 	protected function getCallableFromNode( mixed $node ): ?FunctionInterface {
-		if ( is_string( $node ) ) {
-			// Easy case, 'Foo::Bar'
-			// NOTE: ContextNode::getFunctionFromNode has a TODO about returning something here.
-			// And also NOTE: 'self::methodname()' is not valid PHP.
-			// TODO: We should probably emit a non-security issue in the missing case
-			if ( !str_contains( $node, '::' ) ) {
-				try {
-					$callback = FullyQualifiedFunctionName::fromFullyQualifiedString( $node );
-				} catch ( FQSENException ) {
-					// String wasn't actually a callable.
-					return null;
-				}
-				return $this->code_base->hasFunctionWithFQSEN( $callback )
-					? $this->code_base->getFunctionByFQSEN( $callback )
-					: null;
-			}
-
-			try {
-				$callback = FullyQualifiedMethodName::fromFullyQualifiedString( $node );
-			} catch ( FQSENException ) {
-				// String wasn't actually a callable.
-				return null;
-			}
-			return $this->code_base->hasMethodWithFQSEN( $callback )
-				? $this->code_base->getMethodByFQSEN( $callback )
-				: null;
-		}
-		if ( !$node instanceof Node ) {
-			return null;
-		}
-		if (
-			$node->kind === \ast\AST_CLOSURE ||
-			$node->kind === \ast\AST_VAR ||
-			( $node->kind === \ast\AST_ARRAY && count( $node->children ) === 2 ) ||
-			(
-				( $node->kind === AST_CALL || $node->kind === AST_METHOD_CALL || $node->kind === AST_STATIC_CALL ) &&
-				$node->children['args']->kind === AST_CALLABLE_CONVERT
-			)
-		) {
-			// Note: intentionally emitting any issues here.
-			$funcs = $this->getCtxN( $node )->getFunctionFromNode();
-			return self::getFirstElmFromArrayOrGenerator( $funcs );
-		}
-		return null;
-	}
-
-	/**
-	 * Utility function to get the first element from an iterable that can be either an array or a generator
-	 *
-	 * @template T
-	 * @param iterable<T> $iter
-	 * @return T|null Null if $iter is empty
-	 */
-	protected static function getFirstElmFromArrayOrGenerator( iterable $iter ) {
-		if ( is_array( $iter ) ) {
-			return $iter ? $iter[0] : null;
-		}
-		assert( $iter instanceof Generator );
-		return $iter->current() ?: null;
+		$funcs = UnionTypeVisitor::functionLikeListFromNodeAndContext(
+			$this->code_base,
+			$this->context,
+			$node,
+			false
+		);
+		return $funcs[0] ?? null;
 	}
 
 	/**
