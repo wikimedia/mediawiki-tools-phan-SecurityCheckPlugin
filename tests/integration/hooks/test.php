@@ -25,11 +25,11 @@ class Handlers {
 }
 
 $hookContainer = new HookContainer();
-$hookContainer->register( 'ReplaceRefArgWithUnsafe', '\\TestHooks\\Handlers::replaceRefArgWithUnsafe' );
-$hookContainer->register( 'ReplaceRefArgWithSafe', '\\TestHooks\\Handlers::replaceRefArgWithSafe' );
-$hookContainer->register( 'EchoArg', '\\TestHooks\\Handlers::echoArg' );
-$hookContainer->register( 'EscapeArg', '\\TestHooks\\Handlers::escapeArg' );
-$hookContainer->register( 'SwapArgs', '\\TestHooks\\Handlers::swapArgs' );
+$hookContainer->register( 'ReplaceRefArgWithUnsafe', Handlers::replaceRefArgWithUnsafe( ... ) );
+$hookContainer->register( 'ReplaceRefArgWithSafe', Handlers::replaceRefArgWithSafe( ... ) );
+$hookContainer->register( 'EchoArg', Handlers::echoArg( ... ) );
+$hookContainer->register( 'EscapeArg', Handlers::escapeArg( ... ) );
+$hookContainer->register( 'SwapArgs', Handlers::swapArgs( ... ) );
 
 function testReplaceRefArgWithUnsafe() {
 	$var = '';

@@ -8,9 +8,9 @@ use MediaWiki\HookContainer\HookContainer;
 
 $hookContainer = new HookContainer();
 
-$hookContainer->register( 'DoesNotClearPreviousTaint', 'HookOrder\FirstClass::handler1' );
-$hookContainer->register( 'DoesNotClearPreviousTaint', 'HookOrder\FirstClass::handler2' );
-$hookContainer->register( 'DoesNotClearPreviousTaint', 'HookOrder\FirstClass::handler3' );
+$hookContainer->register( 'DoesNotClearPreviousTaint', FirstClass::handler1( ... ) );
+$hookContainer->register( 'DoesNotClearPreviousTaint', FirstClass::handler2( ... ) );
+$hookContainer->register( 'DoesNotClearPreviousTaint', FirstClass::handler3( ... ) );
 
 $par1 = '';
 $par2 = '';
@@ -31,8 +31,8 @@ class FirstClass {
 	}
 }
 
-$hookContainer->register( 'AllTaintTypesAreMerged', 'HookOrder\SecondClass::handler1' );
-$hookContainer->register( 'AllTaintTypesAreMerged', 'HookOrder\SecondClass::handler2' );
+$hookContainer->register( 'AllTaintTypesAreMerged', SecondClass::handler1( ... ) );
+$hookContainer->register( 'AllTaintTypesAreMerged', SecondClass::handler2( ... ) );
 
 $tainted = $_GET['user'];
 $output = '';
