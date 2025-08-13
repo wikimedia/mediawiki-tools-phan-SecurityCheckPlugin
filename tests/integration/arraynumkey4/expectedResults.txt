@@ -1,0 +1,1 @@
+integration/arraynumkey4/test.php:18 SecurityCheck-SQLInjection Calling method \execNumkey() in \PropertyHolderForNumkey::doExec that outputs using tainted argument #1 (`$this->conds`). (Caused by: annotations in \execNumkey) (Caused by: integration/arraynumkey4/test.php +8; integration/arraynumkey4/test.php +4; integration/arraynumkey4/test.php +14)

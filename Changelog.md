@@ -12,6 +12,7 @@
 ### Bug fixes
 * (MW) Fix false positives in parser function hooks with `isHTML` set to false
 * (MW) Fixed edge case in analysis of hooks with names containing backslashes
+* Fixed caused-by lines including unrelated/redundant lines for issues involving SQL_NUMKEY taintedness
 
 ## v7.0.0
 ### Breaking changes

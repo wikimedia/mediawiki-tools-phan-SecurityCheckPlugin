@@ -1549,7 +1549,7 @@ trait TaintednessBaseVisitor {
 			$issues[] = [
 				'SecurityCheck-SQLInjection',
 				Issue::SEVERITY_CRITICAL,
-				$combinedTaint->withOnly( $allSQLTaints )->withSQLExecAddedToNumkeyExec()
+				$combinedTaint->withOnly( $allSQLTaints )
 			];
 		}
 		if ( $combinedTaintInt & SecurityCheckPlugin::SHELL_EXEC_TAINT ) {
@@ -1713,7 +1713,8 @@ trait TaintednessBaseVisitor {
 
 		/** @var Taintedness $relevantSinkTaint */
 		foreach ( $issues as [ $issueType, $severity, $relevantSinkTaint ] ) {
-			$relevantRHSTaint = $rhsTaint->withOnly( $relevantSinkTaint->asExecToYesTaint()->get() );
+			$relevantRHSTaint = $rhsTaint->withNumkeyAddedToSQL()
+				->withOnly( $relevantSinkTaint->asExecToYesTaint()->get() );
 			$curMsgParams = [];
 			foreach ( $msgParams as $i => $par ) {
 				if ( is_array( $par ) ) {

@@ -4,7 +4,7 @@ use Wikimedia\Rdbms\MysqlDatabase;
 
 $db = new MysqlDatabase;
 
-$rows = [// TODO Ideally this shouldn't be in caused-by, but normalizeTaintednessForCausedBy adds SQL for completeness
+$rows = [
 	'first' => 1,
 	'second' => 2,
 	'fifth' => $_GET['fifth']
@@ -23,7 +23,7 @@ $db->select( 'foo', '*', $rows + $rows2 ); // Safe
 
 $db->select( 'foo', '*', $unsafe ); // Unsafe
 
-$db->select( 'foo', '*', $rows + $rows2 + $unsafe ); // Unsafe
+$db->select( 'foo', '*', $rows + $rows2 + $unsafe ); // Unsafe, NOT caused by line 7
 
 // Safe
 $db->insert(
