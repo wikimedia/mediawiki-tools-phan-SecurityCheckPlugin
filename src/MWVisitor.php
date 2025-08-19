@@ -980,20 +980,28 @@ class MWVisitor extends TaintednessVisitor {
 				'usersmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLUsersMultiselectField' ),
 				'titlesmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLTitlesMultiselectField' ),
 				'namespacesmultiselect' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLNamespacesMultiselectField' ),
+				// NOTE: it isn't actually possible to create an HTMLButtonField using `type => button` for some reason.
+				// Here, pretending it to be possible is simpler than special-casing the exception.
+				'button' => $makeFQSEN( '\MediaWiki\HTMLForm\Field\HTMLButtonField' ),
 			];
 		}
-		static $propsToResolve = [
+		static $rawProps = [
+			'label-raw',
+			'help-raw',
+			'buttonlabel-raw',
+		];
+		static $propsToResolve = null;
+		$propsToResolve ??= [
 			'type',
 			'class',
 			'label',
 			'options',
 			'default',
-			'label-raw',
 			'raw',
 			'rawrow',
-			'help',
 			// TODO: remove help key case when back compat is no longer needed (T356971)
-			'help-raw',
+			'help',
+			...$rawProps,
 		];
 
 		$fieldProps = [];
@@ -1081,13 +1089,6 @@ class MWVisitor extends TaintednessVisitor {
 				'HTMLForm label key escapes its input'
 			);
 		}
-		if ( $fieldPropsToCheck['label-raw'] ?? null ) {
-			$this->maybeEmitIssueSimplified(
-				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$fieldPropsToCheck['label-raw'],
-				'HTMLForm label-raw needs to escape input'
-			);
-		}
 		if ( $fieldPropsToCheck['help'] ?? null ) {
 			$this->maybeEmitIssueSimplified(
 				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
@@ -1095,12 +1096,14 @@ class MWVisitor extends TaintednessVisitor {
 				'HTMLForm help needs to escape input'
 			);
 		}
-		if ( $fieldPropsToCheck['help-raw'] ?? null ) {
-			$this->maybeEmitIssueSimplified(
-				new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
-				$fieldPropsToCheck['help-raw'],
-				'HTMLForm help-raw needs to escape input'
-			);
+		foreach ( $rawProps as $prop ) {
+			if ( $fieldPropsToCheck[$prop] ?? null ) {
+				$this->maybeEmitIssueSimplified(
+					new Taintedness( SecurityCheckPlugin::HTML_EXEC_TAINT ),
+					$fieldPropsToCheck[$prop],
+					"HTMLForm $prop needs to escape input"
+				);
+			}
 		}
 
 		if ( $type === 'info' && ( $fieldPropsToCheck['default'] ?? null ) ) {

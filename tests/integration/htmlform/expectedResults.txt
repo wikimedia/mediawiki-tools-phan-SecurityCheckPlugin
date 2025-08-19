@@ -20,3 +20,4 @@ integration/htmlform/test.php:198 SecurityCheck-XSS HTMLForm option label needs 
 integration/htmlform/test.php:205 SecurityCheck-XSS HTMLForm option label needs escaping
 integration/htmlform/test.php:210 SecurityCheck-XSS HTMLForm help needs to escape input
 integration/htmlform/test.php:210 SecurityCheck-XSS HTMLForm help-raw needs to escape input
+integration/htmlform/test.php:217 SecurityCheck-XSS HTMLForm buttonlabel-raw needs to escape input

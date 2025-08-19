@@ -7,6 +7,7 @@
 ### New features
 * Add taintedness info for `mysqli_result` functions and methods
 * (MW) Added support for first-class callables and other modern styles in hook handlers.
+* (MW) Added support for `HTMLButtonField` and its `buttonlabel-raw` property
 
 ### Bug fixes
 * (MW) Fix false positives in parser function hooks with `isHTML` set to false

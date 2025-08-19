@@ -212,3 +212,8 @@ $unsafe14 = [
 	'help' => $_GET['x'], // Unsafe
 	'help-raw' => $_GET['x'] // Unsafe
 ];
+
+$unsafe15 = [
+	'class' => \MediaWiki\HTMLForm\Field\HTMLButtonField::class,
+	'buttonlabel-raw' => $_GET['x'] // Unsafe
+];
