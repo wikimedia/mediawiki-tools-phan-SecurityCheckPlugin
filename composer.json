@@ -58,9 +58,9 @@
 		],
 		"phpcs": "phpcs -p -s",
 		"minus-x": "minus-x check .",
-		"integration-tests": "./tests/runtests.sh",
-		"phan-for-plugin": "./tests/run-phan-on-plugin.sh",
-		"phan-tests": "./tests/run-phan-tests.sh",
+		"integration-tests": "bash ./tests/runtests.sh",
+		"phan-for-plugin": "bash ./tests/run-phan-on-plugin.sh",
+		"phan-tests": "bash ./tests/run-phan-tests.sh",
 		"fix": [
 			"minus-x fix .",
 			"phpcbf"
