@@ -1512,11 +1512,10 @@ trait TaintednessBaseVisitor {
 
 	/**
 	 * Utility function to get the first element from an iterable that can be either an array or a generator
-	 * @phan-template T
-	 * @param iterable $iter
-	 * @phan-param iterable<T> $iter
-	 * @return mixed|null Null if $iter is empty
-	 * @phan-return T|null
+	 *
+	 * @template T
+	 * @param iterable<T> $iter
+	 * @return T|null Null if $iter is empty
 	 */
 	protected static function getFirstElmFromArrayOrGenerator( iterable $iter ) {
 		if ( is_array( $iter ) ) {
