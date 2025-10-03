@@ -922,7 +922,13 @@ trait TaintednessBaseVisitor {
 		if ( !$value instanceof Node ) {
 			return $value;
 		}
-		return $this->getCtxN( $value )->getEquivalentPHPScalarValue();
+
+		try {
+			// Do not emit any issues here, see also upstream's 4629_define_global.php test.
+			return $this->getCtxN( $value )->getEquivalentPHPScalarValue( false );
+		} catch ( IssueException ) {
+			return $value;
+		}
 	}
 
 	/**

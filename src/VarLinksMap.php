@@ -1,8 +1,5 @@
 <?php declare( strict_types=1 );
 
-// @phan-file-suppress PhanParamSignatureMismatchInternal, PhanParamSignaturePHPDocMismatchParamType
-// @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
-
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\TypedElementInterface;
@@ -13,9 +10,8 @@ use SplObjectStorage;
  *
  * @extends SplObjectStorage<TypedElementInterface,PreservedTaintedness>
  * @method PreservedTaintedness offsetGet( TypedElementInterface $object )
- * @method offsetSet( TypedElementInterface $object, PreservedTaintedness $data )
- * @method void attach(TypedElementInterface $object, PreservedTaintedness $data)
  * @method TypedElementInterface current()
+ * XXX: the above `@method` annotations are needed for PHPStorm...
  */
 class VarLinksMap extends SplObjectStorage {
 	/**

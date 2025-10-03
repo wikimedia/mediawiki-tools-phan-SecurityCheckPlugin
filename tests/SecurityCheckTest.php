@@ -29,11 +29,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 * Maps test name to a human-readable description of the syntax used in that test
 	 * that is not supported by the polyfill.
 	 */
-	private const TESTS_SKIPPED_WITH_POLYFILL = [
-		'namedargs' => 'named arguments',
-		'hookregistration' => 'first-class callables',
-		'nonexistinghooks' => 'first-class callables',
-	];
+	private const TESTS_SKIPPED_WITH_POLYFILL = [];
 
 	/**
 	 * Copied from phan's {@see \Phan\Tests\CodeBaseAwareTest}

@@ -8,11 +8,6 @@ if ! php -m | grep -q "^ast$"; then
     exit 0
 fi
 
-# XXX: Temporary until the v6 upgrade
-if vendor/bin/phpunit --version | grep -q "PHPUnit 10"; then
-    composer require --dev "phpunit/phpunit: 9.6.33" -W
-fi
-
 if [[ ! -d vendor/phan/phan/tests ]]; then
     rm -rf vendor/phan
     composer update --prefer-source --quiet #Suppress composer output, rely on the exit below
@@ -26,10 +21,7 @@ function restoreEverything() {
     rm -rf $TESTDIR ./phan .phan phpunit.xml
     mv phpunit-OLD.xml phpunit.xml.dist
     mv composer-OLD.json composer.json
-    # XXX: Restore the next line and delete the rest when upgrading to v6
-    # composer dump-autoload
-    git checkout -- composer.json
-    composer update
+    composer dump-autoload
 }
 trap "restoreEverything" exit
 
@@ -39,8 +31,10 @@ cp vendor/phan/phan/{phan,phpunit.xml} .
 
 # Here comes the hack, doo da doo doo...
 # Exclude test for tools, fixer, and running phan on phan itself
-DISCARD_TESTS="(__FakeSelfTest|__FakeSelfFallbackTest|__FakeToolTest|__FakePhantasmTest|__FakeFixerTest)"
+DISCARD_TESTS="(__FakeSelfTest|__FakeSelfFallbackTest|__FakeToolTest|__FakePhantasmTest|__FakePhoundTest|__FakeFixerTest)"
 sed -r -i "s/.*$DISCARD_TESTS.*//" "$TESTDIR/run_all_tests"
+# And drop now-empty conditional
+sed -z -i "s/if type sqlite3 >\/dev\/null 2>\/dev\/null; then\n\nfi//" "$TESTDIR/run_all_tests"
 
 # Fix paths
 sed -r -i "s/tests\/run_test/$TESTDIR\/run_test/" "$TESTDIR/run_all_tests"
@@ -51,6 +45,8 @@ sed -r -i "s/.\/tests\//.\/$TESTDIR\//" "$TESTDIR/bootstrap.php"
 sed -r -i "s/\/src\/Phan/\/vendor\/phan\/phan\/src\/Phan/" "$TESTDIR/bootstrap.php"
 sed -r -i "s/'\/src/'\/vendor\/phan\/phan\/src/" $TESTDIR/Phan/Language/UnionTypeTest.php
 sed -r -i "s/tests\/.phan_for_test/$TESTDIR\/.phan_for_test/" "$TESTDIR/Phan/PHP82Test.php"
+sed -r -i "s/src\/codebase.php/vendor\/phan\/phan\/\0/" "$TESTDIR/Phan/CodeBaseAwareTestBase.php"
+fgrep -rl "=> 'internal/stubs" $TESTDIR | xargs sed -r -i "s/(=> ')(internal\/stubs)/\1vendor\/phan\/phan\/\2/"
 
 # Enable verbose output, e.g. to know what tests were skipped
 sed -i 's/verbose="false"/verbose="true"/' phpunit.xml
@@ -68,14 +64,6 @@ rm $TESTDIR/files/src/0545_require_testing.php $TESTDIR/Phan/Language/FileRefTes
 sed -r -i ':a;N;$!ba;s/src\/\S+41 PhanPluginNonBoolInLogicalArith[^\n]+\n//' $TESTDIR/plugin_test/expected/160_useless_return.php.expected
 # Taint-check analyses debug_trace_nonpure() earlier, and knows it returns a string
 sed -r -i 's/(src\/\S+:(30|37)) PhanPartialTypeMismatchReturn.+/&\n\1 PhanTypeInvalidLeftOperandOfNumericOp Invalid operator: left operand of * is string (expected number)/' $TESTDIR/plugin_test/expected/152_phan_pure_annotation.php.expected
-
-# We use PHPUnit 9, but phan is still on PHPUnit 8
-sed -r -i 's/backupStaticAttributesBlacklist/backupStaticAttributesExcludeList/' $TESTDIR/Phan/BaseTest.php
-grep -rl assertRegExp $TESTDIR | xargs sed -r -i "s/>assertRegExp\(/>assertMatchesRegularExpression\(/"
-grep -rl assertNotRegExp $TESTDIR | xargs sed -r -i "s/>assertNotRegExp\(/>assertDoesNotMatchRegularExpression\(/"
-
-# Workaround for short tags, remove after https://github.com/phan/phan/commit/8b8bbb23d39d0236effff1b99fc629e5d88782a2
-sed -r -i 's/<\?/<?php/' $TESTDIR/files/src/1006_generic_type_duplicate.php
 
 # Phan uses autoload-dev for test classes
 sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\/\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\/\"/" composer.json
@@ -113,7 +101,7 @@ sed -r -i "s/^return \[/\0 'plugins' => [ '.\/MediaWikiSecurityCheckPlugin.php' 
 sed -r -i "s/'suppress_issue_types' => \[/\0 $SECCHECK_ISSUES/" $TESTDIR/.phan_for_test/config.php
 
 # Some are different...
-BASE_TESTS='PHP70Test PHP72Test PHP73Test PHP74Test PHP80Test PHP81Test PHP82Test PHP83Test'
+BASE_TESTS='PHP82Test PHP83Test PHP84Test PHP85Test'
 for BASE_TEST in $BASE_TESTS ; do
     if grep -q "'plugins' =>" $TESTDIR/Phan/$BASE_TEST.php; then
         sed -r -i "s/'plugins' => \[/\0'.\/MediaWikiSecurityCheckPlugin.php',/" $TESTDIR/Phan/$BASE_TEST.php

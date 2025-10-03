@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### Internal changes
+* Bumped phan/phan to 6.0.1
+
 ## v8.0.0
 ### Breaking changes
 * (MW) Dropped support for legacy hook handler styles (T401532)

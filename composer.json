@@ -32,7 +32,7 @@
 		}
 	},
 	"require": {
-		"phan/phan": "5.5.2",
+		"phan/phan": "6.0.1",
 		"php": ">=8.1.0",
 		"ext-json": "*"
 	},

@@ -1,8 +1,5 @@
 <?php declare( strict_types=1 );
 
-// @phan-file-suppress PhanParamSignatureMismatchInternal, PhanParamSignaturePHPDocMismatchParamType
-// @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
-
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\FunctionInterface;
@@ -13,9 +10,8 @@ use SplObjectStorage;
  *
  * @extends SplObjectStorage<FunctionInterface,SingleMethodLinks>
  * @method SingleMethodLinks offsetGet( FunctionInterface $object )
- * @method offsetSet( FunctionInterface $object, SingleMethodLinks $data )
- * @method void attach(FunctionInterface $object, SingleMethodLinks $data)
  * @method FunctionInterface current()
+ * XXX: the above `@method` annotations are needed for PHPStorm...
  */
 class LinksMap extends SplObjectStorage {
 	public function mergeWith( self $other ): void {

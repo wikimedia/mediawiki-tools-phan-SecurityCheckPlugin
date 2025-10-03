@@ -1,2 +1,2 @@
-phan-interaction/loopvariables/test.php:7 PhanDebugAnnotation @phan-debug-var requested for variable $c - it has union type ?1|?2|?3=(real=?1|?2|?3=)
+phan-interaction/loopvariables/test.php:7 PhanDebugAnnotation @phan-debug-var requested for variable $c - it has union type 1|2|3=(real=1|2|3=)
 phan-interaction/loopvariables/test.php:11 PhanPossiblyUndeclaredVariable Variable $c is possibly undeclared

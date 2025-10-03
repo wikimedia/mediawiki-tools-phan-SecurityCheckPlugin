@@ -21,7 +21,9 @@ use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\GlobalVariable;
 use Phan\Language\FQSEN\FullyQualifiedClassName;
 use Phan\Language\FQSEN\FullyQualifiedFunctionName;
+use Phan\Language\Type;
 use Phan\Language\Type\FunctionLikeDeclarationType;
+use Phan\Language\Type\StdClassShapeType;
 use Phan\PluginV3\PluginAwarePostAnalysisVisitor;
 
 /**
@@ -351,6 +353,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 			$var = $this->getCtxN( $node->children['var'] )->getVariable();
 		} catch ( NodeException $e ) {
 			$this->debug( __METHOD__, "Can't figure out static variable: " . $this->getDebugInfo( $e ) );
+			return;
 		}
 		$this->ensureTaintednessIsSet( $var );
 	}
@@ -503,6 +506,8 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	/**
 	 * This is for exit() and die(). If they're passed an argument, they behave the
 	 * same as print.
+	 * @note This is no longer needed with php-ast 1.1.3, where `exit()` is parsed as a normal
+	 * function call (handled in `visitCall` thanks to hardcoded taintedness).
 	 */
 	public function visitExit( Node $node ): void {
 		$this->visitEcho( $node );
@@ -1043,11 +1048,18 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 		}
 
 		// If the LHS expr can potentially be a stdClass, merge in its taintedness as well.
-		// TODO Improve this (should similar to array offsets)
+		// TODO Improve this (see upstream StdClassShapeType)
 		$foundStdClass = false;
 		$exprType = $this->getNodeType( $nodeExpr );
-		$stdClassType = FullyQualifiedClassName::getStdClassFQSEN()->asType();
-		if ( $exprType && $exprType->hasType( $stdClassType ) ) {
+		$hasStdClassCallback = static function ( Type $t ): bool {
+			static $stdClassType;
+			if ( $t instanceof StdClassShapeType ) {
+				return true;
+			}
+			$stdClassType ??= FullyQualifiedClassName::getStdClassFQSEN()->asType();
+			return $t === $stdClassType;
+		};
+		if ( $exprType && $exprType->hasTypeMatchingCallback( $hasStdClassCallback ) ) {
 			$exprTaint = $this->getTaintedness( $nodeExpr );
 			$this->curTaintWithError = new TaintednessWithError(
 				$exprTaint->getTaintedness(),
