@@ -747,7 +747,6 @@ class MWVisitor extends TaintednessVisitor {
 
 		// NOTE: Cannot use `containsTrue` here, because it, huh, also returns true for `false`.
 		$containsTrue = $isHTMLElementType->hasRealTypeMatchingCallback(
-			// @phan-suppress-next-line PhanUnreferencedClosure WTF?
 			static fn ( Type $t ): bool => $t instanceof BoolType || $t instanceof TrueType
 		);
 		if ( !$containsTrue ) {

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-// @phan-file-suppress PhanParamSignatureMismatch,PhanParamSignaturePHPDocMismatchParamType
+// @phan-file-suppress PhanParamSignatureMismatch
 // @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
 
 namespace SecurityCheckPlugin;

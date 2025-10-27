@@ -14,6 +14,9 @@
 * (MW) Fixed edge case in analysis of hooks with names containing backslashes
 * Fixed caused-by lines including unrelated/redundant lines for issues involving SQL_NUMKEY taintedness
 
+### Internal changes
+* Bumped phan/phan to 5.5.2
+
 ## v7.0.0
 ### Breaking changes
 * Drop support for PHP < 8.1

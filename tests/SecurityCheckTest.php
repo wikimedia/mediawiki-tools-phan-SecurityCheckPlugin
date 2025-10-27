@@ -59,13 +59,9 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		],
 	];
 
-	private const TESTS_WITH_MINIMUM_PHP_VERSION = [
-		'exit-84' => 80400,
-	];
+	private const TESTS_WITH_MINIMUM_PHP_VERSION = [];
 
-	private const TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION = [
-		'exit-pre84' => 80400,
-	];
+	private const TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION = [];
 
 	/**
 	 * Maps test name to a human-readable description of the syntax used in that test
@@ -73,7 +69,6 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	private const TESTS_SKIPPED_WITH_POLYFILL = [
 		'namedargs' => 'named arguments',
-		'exit-84' => '`exit()` as a normal function',
 		'hookregistration' => 'first-class callables',
 		'nonexistinghooks' => 'first-class callables',
 	];

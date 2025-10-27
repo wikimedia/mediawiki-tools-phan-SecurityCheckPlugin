@@ -66,6 +66,9 @@ sed -r -i 's/backupStaticAttributesBlacklist/backupStaticAttributesExcludeList/'
 grep -rl assertRegExp $TESTDIR | xargs sed -r -i "s/>assertRegExp\(/>assertMatchesRegularExpression\(/"
 grep -rl assertNotRegExp $TESTDIR | xargs sed -r -i "s/>assertNotRegExp\(/>assertDoesNotMatchRegularExpression\(/"
 
+# Workaround for short tags, remove after https://github.com/phan/phan/commit/8b8bbb23d39d0236effff1b99fc629e5d88782a2
+sed -r -i 's/<\?/<?php/' $TESTDIR/files/src/1006_generic_type_duplicate.php
+
 # Phan uses autoload-dev for test classes
 sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\/\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\/\"/" composer.json
 composer dump-autoload
