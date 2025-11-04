@@ -76,7 +76,7 @@ trait TaintednessBaseVisitor {
 	/**
 	 * @var bool[] FQSENs of classes without __toString, map of [ (string)FQSEN => true ]
 	 */
-	protected static $fqsensWithoutToStringCache = [];
+	public static $fqsensWithoutToStringCache = [];
 
 	/**
 	 * @var array<string,bool> FQSENs of functions currently being analyzed by us, map of [ (string)FQSEN => true ]

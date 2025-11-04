@@ -4,10 +4,11 @@ use Phan\AST\Parser;
 use Phan\AST\Visitor\Element;
 use Phan\CLIBuilder;
 use Phan\CodeBase;
+use Phan\Config;
+use Phan\Language\Scope\GlobalScope;
 use Phan\Language\Type;
 use Phan\Output\Printer\PlainTextPrinter;
 use Phan\Phan;
-use Phan\Plugin\ConfigPluginSet;
 use SecurityCheckPlugin\MediaWikiHooksHelper;
 use SecurityCheckPlugin\SecurityCheckPlugin;
 use SecurityCheckPlugin\TaintednessVisitor;
@@ -19,45 +20,6 @@ use Symfony\Component\Console\Output\BufferedOutput;
  */
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	private ?CodeBase $codeBase = null;
-
-	/**
-	 * Taken from phan's BaseTest class
-	 * @inheritDoc
-	 */
-	protected $backupStaticAttributesExcludeList = [
-		'Phan\AST\PhanAnnotationAdder' => [
-			'closures_for_kind',
-		],
-		'Phan\AST\ASTReverter' => [
-			'closure_map',
-			'noop',
-		],
-		'Phan\Language\Type' => [
-			'canonical_object_map',
-			'internal_fn_cache',
-		],
-		'Phan\Language\Type\LiteralFloatType' => [
-			'nullable_float_type',
-			'non_nullable_float_type',
-		],
-		'Phan\Language\Type\LiteralIntType' => [
-			'nullable_int_type',
-			'non_nullable_int_type',
-		],
-		'Phan\Language\Type\LiteralStringType' => [
-			'nullable_string_type',
-			'non_nullable_string_type',
-		],
-		'Phan\Language\UnionType' => [
-			'empty_instance',
-		],
-		'SecurityCheckPlugin\SecurityCheckPlugin' => [
-			'pluginInstance'
-		],
-		ConfigPluginSet::class => [
-			'mergeVariableInfoClosure'
-		],
-	];
 
 	private const TESTS_WITH_MINIMUM_PHP_VERSION = [];
 
@@ -105,6 +67,16 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	 */
 	public function tearDown(): void {
 		MediaWikiHooksHelper::getInstance()->clearCache();
+		SecurityCheckPlugin::clearCaches();
+		Type::clearAllMemoizations();
+		// Make sure we don't keep using the polyfill parser after a single test used it.
+		Config::reset();
+
+		// FIXME: Replace with call to GlobalScope::reset() in phan v6
+		$globalScope = new GlobalScope();
+		$refGlobalScope = new ReflectionObject( $globalScope );
+		$refGlobalVarMap = $refGlobalScope->getProperty( 'global_variable_map' );
+		$refGlobalVarMap->setValue( null, [] );
 	}
 
 	/**

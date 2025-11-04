@@ -1057,4 +1057,13 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 	public static function getBeforeLoopBodyAnalysisVisitorClassName(): string {
 		return TaintednessLoopVisitor::class;
 	}
+
+	/**
+	 * Clear caches for testing.
+	 * @suppress PhanUnreferencedPublicMethod Used in tests (not analyzed by phan)
+	 */
+	public static function clearCaches(): void {
+		self::$docblockCache = [];
+		TaintednessVisitor::$fqsensWithoutToStringCache = [];
+	}
 }
