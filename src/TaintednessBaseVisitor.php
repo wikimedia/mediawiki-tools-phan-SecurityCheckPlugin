@@ -1229,7 +1229,7 @@ trait TaintednessBaseVisitor {
 		if ( $lhs instanceof Property || $lhs instanceof GlobalVariable ) {
 			foreach ( $newLinks->getMethodAndParamTuples() as [ $method, $index ] ) {
 				$varLinks = self::getVarLinks( $method, $index );
-				assert( $varLinks instanceof VarLinksSet );
+				assert( $varLinks instanceof VarLinksMap );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
 				$varLinks->attach( $lhs, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
 			}

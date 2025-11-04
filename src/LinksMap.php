@@ -1,23 +1,23 @@
 <?php declare( strict_types=1 );
 
-// @phan-file-suppress PhanParamSignatureMismatch
+// @phan-file-suppress PhanParamSignatureMismatchInternal, PhanParamSignaturePHPDocMismatchParamType
 // @phan-file-suppress PhanParamSignaturePHPDocMismatchTooManyRequiredParameters
 
 namespace SecurityCheckPlugin;
 
 use Phan\Language\Element\FunctionInterface;
-use Phan\Library\Set;
+use SplObjectStorage;
 
 /**
  * Convenience class for better type inference.
  *
- * @inherits Set<\Phan\Language\Element\FunctionInterface>
- * @method SingleMethodLinks offsetGet( \Phan\Language\Element\FunctionInterface $object )
- * @method offsetSet( \Phan\Language\Element\FunctionInterface $object, SingleMethodLinks $data )
+ * @extends SplObjectStorage<FunctionInterface,SingleMethodLinks>
+ * @method SingleMethodLinks offsetGet( FunctionInterface $object )
+ * @method offsetSet( FunctionInterface $object, SingleMethodLinks $data )
  * @method void attach(FunctionInterface $object, SingleMethodLinks $data)
  * @method FunctionInterface current()
  */
-class LinksSet extends Set {
+class LinksMap extends SplObjectStorage {
 	public function mergeWith( self $other ): void {
 		foreach ( $other as $method ) {
 			if ( $this->contains( $method ) ) {

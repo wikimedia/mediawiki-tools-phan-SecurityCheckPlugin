@@ -931,7 +931,7 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 
 		$totalLinkShape = [];
 		$totalLinksUnknownKeys = MethodLinks::emptySingleton();
-		$totalKeyLinks = new LinksSet();
+		$totalKeyLinks = new LinksMap();
 
 		$needsNumkeyTaint = false;
 		$foundUnknownKey = false;

@@ -10,7 +10,7 @@ use Phan\Language\Element\FunctionInterface;
  * @todo We might store links inside Taintedness, but the memory usage might skyrocket
  */
 class MethodLinks {
-	/** @var LinksSet */
+	/** @var LinksMap */
 	private $links;
 
 	/** @var self[] */
@@ -19,17 +19,17 @@ class MethodLinks {
 	/** @var self|null */
 	private $unknownDimLinks;
 
-	/** @var LinksSet|null */
+	/** @var LinksMap|null */
 	private $keysLinks;
 
-	public function __construct( ?LinksSet $links = null ) {
-		$this->links = $links ?? new LinksSet();
+	public function __construct( ?LinksMap $links = null ) {
+		$this->links = $links ?? new LinksMap();
 	}
 
 	public static function emptySingleton(): self {
 		static $singleton;
 		if ( !$singleton ) {
-			$singleton = new self( new LinksSet );
+			$singleton = new self( new LinksMap );
 		}
 		return $singleton;
 	}
@@ -37,12 +37,12 @@ class MethodLinks {
 	/**
 	 * @param self[] $dimLinks
 	 * @param self|null $unknownDimLinks Pass null for performance
-	 * @param LinksSet|null $keysLinks
+	 * @param LinksMap|null $keysLinks
 	 */
 	public static function newFromShape(
 		array $dimLinks,
 		?self $unknownDimLinks = null,
-		?LinksSet $keysLinks = null
+		?LinksMap $keysLinks = null
 	): self {
 		// Don't add empty link sets, for performance
 		if ( $keysLinks && !count( $keysLinks ) ) {
@@ -153,7 +153,7 @@ class MethodLinks {
 		return $ret;
 	}
 
-	public function withKeysLinks( LinksSet $links ): self {
+	public function withKeysLinks( LinksMap $links ): self {
 		if ( !count( $links ) ) {
 			return $this;
 		}
@@ -249,10 +249,10 @@ class MethodLinks {
 	 * Create a new object with $this at the given $offset (if scalar) or as unknown object.
 	 *
 	 * @param Node|string|int|bool|float|null $offset
-	 * @param LinksSet|null $keyLinks
+	 * @param LinksMap|null $keyLinks
 	 * @return self Always a copy
 	 */
-	public function asMaybeMovedAtOffset( mixed $offset, ?LinksSet $keyLinks = null ): self {
+	public function asMaybeMovedAtOffset( mixed $offset, ?LinksMap $keyLinks = null ): self {
 		$ret = new self;
 		if ( $offset instanceof Node || $offset === null ) {
 			$ret->unknownDimLinks = $this;
@@ -359,7 +359,7 @@ class MethodLinks {
 	 * Returns all the links stored in this object as a single LinkSet object, destroying the shape. This should only
 	 * be used when the shape is not relevant.
 	 */
-	public function getLinksCollapsing(): LinksSet {
+	public function getLinksCollapsing(): LinksMap {
 		$ret = clone $this->links;
 		foreach ( $this->dimLinks as $link ) {
 			$ret->mergeWith( $link->getLinksCollapsing() );
@@ -514,7 +514,7 @@ class MethodLinks {
 		if ( $this === self::emptySingleton() ) {
 			return $this;
 		}
-		$retLinks = new LinksSet();
+		$retLinks = new LinksMap();
 		if ( $this->links->contains( $func ) ) {
 			$retLinks->attach( $func, $this->links[$func] );
 		}
@@ -525,7 +525,7 @@ class MethodLinks {
 			$dimLinksShape[$dim] = $dimLinks->asFilteredForFuncAndParam( $func, $param );
 		}
 		$unknownDimLinks = $this->unknownDimLinks?->asFilteredForFuncAndParam( $func, $param );
-		$keysLinks = new LinksSet();
+		$keysLinks = new LinksMap();
 		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
 			$keysLinks->attach( $func, $this->keysLinks[$func] );
 		}

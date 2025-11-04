@@ -67,13 +67,13 @@ trait TaintednessAccessorsTrait {
 		return $element->taintedMethodLinksRef ?? null;
 	}
 
-	protected static function getVarLinks( FunctionInterface $func, int $index ): ?VarLinksSet {
+	protected static function getVarLinks( FunctionInterface $func, int $index ): ?VarLinksMap {
 		return $func->taintedVarLinks[$index] ?? null;
 	}
 
 	protected static function ensureVarLinksForArgExist( TypedElementInterface $element, int $arg ): void {
 		$element->taintedVarLinks ??= [];
-		$element->taintedVarLinks[$arg] ??= new VarLinksSet;
+		$element->taintedVarLinks[$arg] ??= new VarLinksMap;
 	}
 
 	protected static function getTaintednessRef( TypedElementInterface $element ): ?Taintedness {
