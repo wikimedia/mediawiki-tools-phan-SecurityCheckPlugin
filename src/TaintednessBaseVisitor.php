@@ -33,8 +33,8 @@ use Phan\Language\Type\FunctionLikeDeclarationType;
 use Phan\Language\Type\GenericArrayType;
 use Phan\Language\Type\LiteralTypeInterface;
 use Phan\Language\UnionType;
-use Phan\Library\Set;
 use RuntimeException;
+use SplObjectStorage;
 use const ast\AST_CALL;
 use const ast\AST_CALLABLE_CONVERT;
 use const ast\AST_METHOD_CALL;
@@ -1276,7 +1276,7 @@ trait TaintednessBaseVisitor {
 		$sinkError ??= CausedByLines::emptySingleton();
 
 		$methodParamTuples = $varLinks->getMethodAndParamTuples();
-		$linkedParameters = new Set();
+		$linkedParameters = new SplObjectStorage();
 		foreach ( $methodParamTuples as [ $method, $param ] ) {
 			$curData = $linkedParameters[$method] ?? [];
 			$curData[] = $param;
