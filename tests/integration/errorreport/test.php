@@ -1,5 +1,8 @@
 <?php
-function foo() {
+
+namespace TestErrorReport;
+
+( static function () {
 	$a = [ 'dog', 'cat' ];
 	$a[] = $_GET['goat'];
 
@@ -11,7 +14,7 @@ function foo() {
 	$b = getEvil();
 	echo $b;
 	echo implode( '!', $b );
-}
+} )();
 
 function getEvil() {
 	return [ $_GET['foo'] ];

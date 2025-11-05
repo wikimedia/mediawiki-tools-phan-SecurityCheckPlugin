@@ -3,26 +3,26 @@
 /**
  * @return-taint onlysafefor_html
  */
-function foo() {
+function returnOnlySafeForHTML() {
 	return "foo";
 }
 
 /**
  * @return-taint onlysafefor_htmlnoent
  */
-function bar() {
+function returnOnlySafeForHTMLNoent() {
 	return "foo2";
 }
 
 // Should be safe
-echo foo();
+echo returnOnlySafeForHTML();
 // Should give double escape warning.
-echo htmlspecialchars( foo() );
+echo htmlspecialchars( returnOnlySafeForHTML() );
 // Should give an other warning.
-require foo();
+require returnOnlySafeForHTML();
 
 // Should be safe
-echo bar();
-echo htmlspecialchars( bar() );
+echo returnOnlySafeForHTMLNoent();
+echo htmlspecialchars( returnOnlySafeForHTMLNoent() );
 // Should give an other warning.
-require bar();
+require returnOnlySafeForHTMLNoent();

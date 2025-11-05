@@ -1,23 +1,25 @@
 <?php
 
+namespace TestClassCrash;
+
 /**
  * @return ClassDoesNotExist|string
  */
-function foo() {
+function hasNonexistentClassInReturnComment() {
 	return $GLOBALS['foo'];
 }
 
 /**
  * @param ClassDoesNotExist $x
  */
-function doStuff( $x ) {
+function hasNonexistentClassInParamComment( $x ) {
 	var_dump( $x );
 }
 
-function main() {
-	$obj = foo();
+( static function () {
+	$obj = hasNonexistentClassInReturnComment();
 	if ( rand() ) {
 		$obj = htmlspecialchars( $obj );
 	}
-	doStuff( $obj ); // Avoid: Phan\Exception\CodeBaseException : Cannot find class \ClassDoesNotExist
-}
+	hasNonexistentClassInParamComment( $obj ); // Avoid: Phan\Exception\CodeBaseException : Cannot find class \ClassDoesNotExist
+} )();

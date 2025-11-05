@@ -1,3 +1,3 @@
-integration/forward/dummy.php:34 SecurityCheck-XSS Calling method \StaticDummy::someFunc() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: integration/forward/dummy.php +19; annotations in \StaticDummy::bar)
-integration/forward/dummy.php:35 SecurityCheck-XSS Calling method \StaticDummy::bar() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: annotations in \StaticDummy::bar)
-integration/forward/dummy.php:35 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: annotations in \StaticDummy::bar)
+integration/forward/dummy.php:36 SecurityCheck-XSS Calling method \TestForward\TestStatic::testStaticFuncOuter() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: integration/forward/dummy.php +21; annotations in \TestForward\TestStatic::testStaticFunc)
+integration/forward/dummy.php:37 SecurityCheck-XSS Calling method \TestForward\TestStatic::testStaticFunc() in [no method] that outputs using tainted argument #1 (`$_GET['evil']`). (Caused by: annotations in \TestForward\TestStatic::testStaticFunc)
+integration/forward/dummy.php:37 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: annotations in \TestForward\TestStatic::testStaticFunc)

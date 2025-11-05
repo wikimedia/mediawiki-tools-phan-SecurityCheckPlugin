@@ -1,10 +1,10 @@
 <?php
 
-function foo( $a ) {
+function testEarlyReturn( $a ) {
 	if ( $a ) {
 		return htmlspecialchars( 'something' );
 	}
 	return $_GET['evil'];
 }
 
-echo foo( false );
+echo testEarlyReturn( false );

@@ -1,19 +1,19 @@
 <?php
 
 class NestedCalls {
-	public function execute() {
-		$this->show();
+	public function first() {
+		$this->second();
 	}
 
-	public function show() {
-		echo $this->foo();
+	public function second() {
+		echo $this->third();
 	}
 
-	public function foo() {
-		return self::bar( $_GET['foo'] );
+	public function third() {
+		return self::fourth( $_GET['foo'] );
 	}
 
-	public static function bar( $text ) {
+	public static function fourth( $text ) {
 		return HardcodedSimpleTaint::escapesArgReturnsEscaped( $text );
 	}
 }

@@ -1,5 +1,7 @@
 <?php
 
+namespace TestForward;
+
 /**
  * Tests a bug where if a parameter is both marked exec
  * and (normal) taint, the normal taint gets back propagated
@@ -8,15 +10,15 @@
  * bug was first found.
  */
 
-class Dummy {
-	public function someFunc( $foo ) {
-		return StaticDummy::someFunc( $foo );
+class TestNonStatic {
+	public function testNonStaticFunc( $foo ) {
+		return TestStatic::testStaticFuncOuter( $foo );
 	}
 }
 
-class StaticDummy {
-	public static function someFunc( $foo ) {
-		return self::bar( $foo );
+class TestStatic {
+	public static function testStaticFuncOuter( $foo ) {
+		return self::testStaticFunc( $foo );
 	}
 
 	/**
@@ -25,11 +27,11 @@ class StaticDummy {
 	 * @return string
 	 * @return-taint escaped
 	 */
-	public static function bar( $foo2 ) {
+	public static function testStaticFunc( $foo2 ) {
 		return "<a>$foo2</a>";
 	}
 }
 
-echo StaticDummy::someFunc( "foo" );
-echo StaticDummy::someFunc( $_GET['evil'] ); // TODO The echo (not just the call) is unsafe, but we don't handle nested PRESERVE yet.
-echo StaticDummy::bar( $_GET['evil'] ); // Unsafe, with line 28 in caused-by
+echo TestStatic::testStaticFuncOuter( "foo" );
+echo TestStatic::testStaticFuncOuter( $_GET['evil'] ); // TODO The echo (not just the call) is unsafe, but we don't handle nested PRESERVE yet.
+echo TestStatic::testStaticFunc( $_GET['evil'] ); // Unsafe, caused by annotations

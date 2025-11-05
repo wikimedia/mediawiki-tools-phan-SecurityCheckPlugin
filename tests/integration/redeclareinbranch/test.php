@@ -1,14 +1,14 @@
 <?php
 
 class RedeclareInBranch {
-	public function show() {
-		echo $this->bar();
+	public function outerFunc() {
+		echo $this->innerFunc();
 	}
 
 	/**
 	 * @return string
 	 */
-	private function bar() {
+	private function innerFunc() {
 		if ( rand() ) {
 			// This is obviously safe due to reassigning, but we have to ensure
 			// that taintedness is overwritten in BranchScope.
@@ -19,7 +19,7 @@ class RedeclareInBranch {
 		return 'foo';
 	}
 
-	public function output() {
+	public function outputFunc() {
 		$form = '';
 		if ( rand() ) {
 			$form = $_GET['bar'];

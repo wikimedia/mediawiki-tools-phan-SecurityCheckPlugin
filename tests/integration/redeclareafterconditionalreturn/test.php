@@ -1,14 +1,14 @@
 <?php
 
 class RedeclareAfterConditionalReturn {
-	public function show() {
-		echo $this->bar();
+	public function outerFunc() {
+		echo $this->innerFunc();
 	}
 
 	/**
 	 * @return string
 	 */
-	private function bar() {
+	private function innerFunc() {
 		// Note that the boolean negation below is necessary.
 		if ( !rand() ) {
 			return 'foo';

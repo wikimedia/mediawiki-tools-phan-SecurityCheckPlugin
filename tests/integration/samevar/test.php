@@ -1,6 +1,8 @@
 <?php
 
-function foobar( $par ) {
+namespace TestSameVar;
+
+static function ( $par ) {
 	$value = $par;
 	if ( is_null( $value ) ) {
 		$value = '';
@@ -8,7 +10,7 @@ function foobar( $par ) {
 	$value = htmlspecialchars( $value ); // This is not double escaped
 
 	return $value;
-}
+};
 
 $y = $_GET['foo'];
 $y = getEscaped( $y );
@@ -16,8 +18,8 @@ echo $y;
 
 $z = $_GET['baz'];
 // These _are_ double escaped
-getEscaped( htmlspecialchars( $z ) );// Only line 25 must be in the caused-by lines
-getEscaped2( htmlspecialchars( $z ) );// Only line 30 must be in the caused-by lines
+getEscaped( htmlspecialchars( $z ) );// Only line 27 must be in the caused-by lines
+getEscaped2( htmlspecialchars( $z ) );// Only line 32 must be in the caused-by lines
 // This is safe because it doesn't use the arg
 getEscaped3( htmlspecialchars( $z ) );
 

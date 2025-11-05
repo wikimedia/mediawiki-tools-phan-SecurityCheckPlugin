@@ -1,16 +1,18 @@
 <?php
 
+namespace TestAllowOverride;
+
 /**
  * @return-taint none
  */
-function foo1() {
+function returnTaintNone() {
 	return $_GET['evil'];
 }
 
 /**
  * @return-taint none, allow_override
  */
-function foo2() {
+function returnTaintNone__AllowOverride() {
 	return $_GET['evil'];
 }
 
@@ -18,21 +20,21 @@ function foo2() {
  * Testing default value for return-taint
  * @param-taint $a none
  */
-function foo3( $a ) {
+function noReturnTaint( $a ) {
 	return $_GET['evil'];
 }
 
 /**
  * @param-taint $a none
  */
-function foo4( $a ) {
+function paramTaintNone( $a ) {
 	echo $a;
 }
 
 /**
  * @param-taint $a none, allow_override
  */
-function foo5( $a ) {
+function paramTaintNone__AllowOverride( $a ) {
 	echo $a;
 }
 
@@ -40,19 +42,19 @@ function foo5( $a ) {
  * Test unspecified parameters
  * @param-taint $a none
  */
-function foo6( $a, $b ) {
+function noParamTaint( $a, $b ) {
 	echo $b;
 }
 
 // safe
-echo foo1();
+echo returnTaintNone();
 // unsafe
-echo foo2();
+echo returnTaintNone__AllowOverride();
 // unsafe
-echo foo3( 'd' );
+echo noReturnTaint( 'd' );
 // safe
-foo4( $_GET[ 'evil'] );
+paramTaintNone( $_GET[ 'evil'] );
 // unsafe
-foo5( $_GET[ 'evil'] );
+paramTaintNone__AllowOverride( $_GET[ 'evil'] );
 // unsafe
-foo6( $_GET['evil1'], $_GET[ 'evil'] );
+noParamTaint( $_GET['evil1'], $_GET[ 'evil'] );

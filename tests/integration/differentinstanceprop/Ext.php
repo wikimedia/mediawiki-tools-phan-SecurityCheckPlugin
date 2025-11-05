@@ -1,7 +1,7 @@
 <?php
 
 class DifferentInstancePropExt {
-	public function foo() {
+	public function triggerDifferentInstanceProp() {
 		MainClass::fromId( $_GET['baz'] );
 	}
 }

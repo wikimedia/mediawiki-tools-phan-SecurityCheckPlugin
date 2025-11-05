@@ -1,5 +1,4 @@
 <?php
-use Wikimedia\Rdbms\MysqlDatabase;
 
 class MainClass {
 	/**
