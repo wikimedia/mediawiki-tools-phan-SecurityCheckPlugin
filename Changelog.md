@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v8.0.0
 ### Breaking changes
 * (MW) Dropped support for legacy hook handler styles (T401532)
 
