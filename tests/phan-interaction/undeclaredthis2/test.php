@@ -18,7 +18,7 @@ namespace MediaWiki\Shell {
 	class Result {
 		private $stderr;
 
-		public function getStderr(): ?string {
+		public function getStderr(): string {
 			return $this->stderr; // No "Variable $this is undeclared" here
 		}
 	}
