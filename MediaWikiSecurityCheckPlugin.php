@@ -98,12 +98,6 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				( self::YES_TAINT & ~self::SHELL_TAINT ) | self::VARIADIC_PARAM,
 				'overall' => self::NO_TAINT
 			],
-			'\MediaWiki\Shell\Command::unsafeParams' => [
-				self::SHELL_EXEC_TAINT | self::VARIADIC_PARAM,
-				'overall' => self::NO_TAINT
-			],
-			'\MediaWiki\Shell\Result::getStdout' => $shellCommandOutput,
-			'\MediaWiki\Shell\Result::getStderr' => $shellCommandOutput,
 			// Methods from wikimedia/Shellbox
 			'\Shellbox\Shellbox::escape' => [
 				( self::YES_TAINT & ~self::SHELL_TAINT ) | self::VARIADIC_PARAM,

@@ -1,25 +1,19 @@
 <?php
-/*
- * For T249519
- */
 
-namespace {
-	class TextSlotDiffRenderer {
-		protected function getTextDiffInternal() {
-			$result = new \MediaWiki\Shell\Result;
-			htmlspecialchars( $result->getStderr() );
-		}
-	}
+// For T249519
 
-}
-
-namespace MediaWiki\Shell {
-
-	class Result {
-		private $stderr;
-
-		public function getStderr(): string {
-			return $this->stderr; // No "Variable $this is undeclared" here
-		}
+class TestUndeclaredThis2 {
+	protected function mainFunc() {
+		$obj = new TestUndeclaredThis2Helper;
+		htmlspecialchars( $obj->getProp() );
 	}
 }
+
+class TestUndeclaredThis2Helper {
+	private $prop;
+
+	public function getProp(): string {
+		return $this->prop; // No "Variable $this is undeclared" here
+	}
+}
+
