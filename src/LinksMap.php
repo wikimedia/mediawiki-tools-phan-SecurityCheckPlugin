@@ -20,10 +20,10 @@ use SplObjectStorage;
 class LinksMap extends SplObjectStorage {
 	public function mergeWith( self $other ): void {
 		foreach ( $other as $method ) {
-			if ( $this->contains( $method ) ) {
+			if ( $this->offsetExists( $method ) ) {
 				$this[$method] = $this[$method]->asMergedWith( $other[$method] );
 			} else {
-				$this->attach( $method, $other[$method] );
+				$this->offsetSet( $method, $other[$method] );
 			}
 		}
 	}
@@ -37,7 +37,7 @@ class LinksMap extends SplObjectStorage {
 	public function withoutShape( self $other ): self {
 		$ret = clone $this;
 		foreach ( $other as $func ) {
-			if ( $ret->contains( $func ) ) {
+			if ( $ret->offsetExists( $func ) ) {
 				$newFuncData = $ret[$func]->withoutShape( $other[$func] );
 				if ( $newFuncData->getParams() ) {
 					$ret[$func] = $newFuncData;

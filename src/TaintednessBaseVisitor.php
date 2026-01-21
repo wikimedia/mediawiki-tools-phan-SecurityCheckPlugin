@@ -1220,7 +1220,7 @@ trait TaintednessBaseVisitor {
 				$varLinks = self::getVarLinks( $method, $index );
 				assert( $varLinks instanceof VarLinksMap );
 				// $this->debug( __METHOD__, "During assignment, we link $lhs to $method($index)" );
-				$varLinks->attach( $lhs, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
+				$varLinks->offsetSet( $lhs, $newLinks->asPreservedTaintednessForFuncParam( $method, $index ) );
 			}
 		}
 

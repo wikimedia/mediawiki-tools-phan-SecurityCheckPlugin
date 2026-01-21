@@ -308,7 +308,7 @@ class MethodLinks {
 		foreach ( $this->dimLinks as $k => $links ) {
 			$alreadyCloned = false;
 			foreach ( $links->links as $func ) {
-				if ( $this->links->contains( $func ) ) {
+				if ( $this->links->offsetExists( $func ) ) {
 					$dimParams = array_keys( $links->links[$func]->getParams() );
 					$thisParams = array_keys( $this->links[$func]->getParams() );
 					$keepParams = array_diff( $dimParams, $thisParams );
@@ -332,7 +332,7 @@ class MethodLinks {
 		if ( $this->unknownDimLinks ) {
 			$alreadyCloned = false;
 			foreach ( $this->unknownDimLinks->links as $func ) {
-				if ( $this->links->contains( $func ) ) {
+				if ( $this->links->offsetExists( $func ) ) {
 					$dimParams = array_keys( $this->unknownDimLinks->links[$func]->getParams() );
 					$thisParams = array_keys( $this->links[$func]->getParams() );
 					$keepParams = array_diff( $dimParams, $thisParams );
@@ -419,7 +419,7 @@ class MethodLinks {
 	}
 
 	public function hasDataForFuncAndParam( FunctionInterface $func, int $i ): bool {
-		if ( $this->links->contains( $func ) && $this->links[$func]->hasParam( $i ) ) {
+		if ( $this->links->offsetExists( $func ) && $this->links[$func]->hasParam( $i ) ) {
 			return true;
 		}
 		foreach ( $this->dimLinks as $dimLinks ) {
@@ -430,7 +430,7 @@ class MethodLinks {
 		if ( $this->unknownDimLinks && $this->unknownDimLinks->hasDataForFuncAndParam( $func, $i ) ) {
 			return true;
 		}
-		if ( $this->keysLinks && $this->keysLinks->contains( $func ) && $this->keysLinks[$func]->hasParam( $i ) ) {
+		if ( $this->keysLinks && $this->keysLinks->offsetExists( $func ) && $this->keysLinks[$func]->hasParam( $i ) ) {
 			return true;
 		}
 		return false;
@@ -451,7 +451,7 @@ class MethodLinks {
 		}
 
 		$ret->links = clone $ret->links;
-		if ( $ret->links->contains( $func ) ) {
+		if ( $ret->links->offsetExists( $func ) ) {
 			$ret->links[$func] = $ret->links[$func]->withParam( $i, $initialFlags );
 		} else {
 			$ret->links[$func] = SingleMethodLinks::instanceWithParam( $i, $initialFlags );
@@ -461,7 +461,7 @@ class MethodLinks {
 
 	public function asPreservedTaintednessForFuncParam( FunctionInterface $func, int $param ): PreservedTaintedness {
 		$ret = null;
-		if ( $this->links->contains( $func ) ) {
+		if ( $this->links->offsetExists( $func ) ) {
 			$ownInfo = $this->links[$func];
 			if ( $ownInfo->hasParam( $param ) ) {
 				$ret = new PreservedTaintedness( $ownInfo->getParamOffsets( $param ) );
@@ -479,7 +479,7 @@ class MethodLinks {
 				$this->unknownDimLinks->asPreservedTaintednessForFuncParam( $func, $param )
 			);
 		}
-		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
+		if ( $this->keysLinks && $this->keysLinks->offsetExists( $func ) ) {
 			$keyInfo = $this->keysLinks[$func];
 			if ( $keyInfo->hasParam( $param ) ) {
 				$ret = $ret->withKeysOffsets( $keyInfo->getParamOffsets( $param ) );
@@ -498,7 +498,7 @@ class MethodLinks {
 			return $ret;
 		}
 		$allLinks = $this->getLinksCollapsing();
-		if ( $allLinks->contains( $func ) ) {
+		if ( $allLinks->offsetExists( $func ) ) {
 			$paramInfo = $allLinks[$func];
 			if ( $paramInfo->hasParam( $param ) ) {
 				$paramOffsets = $paramInfo->getParamOffsets( $param );
@@ -515,8 +515,8 @@ class MethodLinks {
 			return $this;
 		}
 		$retLinks = new LinksMap();
-		if ( $this->links->contains( $func ) ) {
-			$retLinks->attach( $func, $this->links[$func] );
+		if ( $this->links->offsetExists( $func ) ) {
+			$retLinks->offsetSet( $func, $this->links[$func] );
 		}
 		$ret = new self( $retLinks );
 
@@ -526,8 +526,8 @@ class MethodLinks {
 		}
 		$unknownDimLinks = $this->unknownDimLinks?->asFilteredForFuncAndParam( $func, $param );
 		$keysLinks = new LinksMap();
-		if ( $this->keysLinks && $this->keysLinks->contains( $func ) ) {
-			$keysLinks->attach( $func, $this->keysLinks[$func] );
+		if ( $this->keysLinks && $this->keysLinks->offsetExists( $func ) ) {
+			$keysLinks->offsetSet( $func, $this->keysLinks[$func] );
 		}
 
 		return $ret->asMergedWith( self::newFromShape( $dimLinksShape, $unknownDimLinks, $keysLinks ) );
