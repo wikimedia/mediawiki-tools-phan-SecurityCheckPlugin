@@ -584,14 +584,13 @@ abstract class SecurityCheckPlugin extends PluginV3 implements
 
 		$filteredLine = preg_replace( "/((?:$taintExpr,? *)+)(?: .*)?$/", '$1', $line );
 		$taints = explode( ',', strtolower( $filteredLine ) );
-		$taints = array_map( 'trim', $taints );
 
 		$overallTaint = Taintedness::safeSingleton();
 		$overallFlags = self::NO_OVERRIDE;
 		$numberOfTaintsProcessed = 0;
 		foreach ( $taints as $taint ) {
 			$taintParts = [];
-			if ( !preg_match( "/^$taintExpr$/", $taint, $taintParts ) ) {
+			if ( !preg_match( "/^$taintExpr$/", trim( $taint ), $taintParts ) ) {
 				continue;
 			}
 			$numberOfTaintsProcessed++;
