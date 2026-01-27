@@ -10,7 +10,7 @@ fi
 
 # XXX: Temporary until the v6 upgrade
 if vendor/bin/phpunit --version | grep -q "PHPUnit 10"; then
-    composer require --dev "phpunit/phpunit: 9.6.21" -W
+    composer require --dev "phpunit/phpunit: 9.6.33" -W
 fi
 
 if [[ ! -d vendor/phan/phan/tests ]]; then
