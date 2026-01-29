@@ -386,10 +386,10 @@ class MethodLinks {
 			}
 		}
 		foreach ( $this->dimLinks as $link ) {
-			$ret = array_merge( $ret, $link->getMethodAndParamTuples() );
+			array_push( $ret, ...$link->getMethodAndParamTuples() );
 		}
 		if ( $this->unknownDimLinks ) {
-			$ret = array_merge( $ret, $this->unknownDimLinks->getMethodAndParamTuples() );
+			array_push( $ret, ...$this->unknownDimLinks->getMethodAndParamTuples() );
 		}
 		foreach ( $this->keysLinks ?? [] as $func ) {
 			$info = $this->keysLinks[$func];
