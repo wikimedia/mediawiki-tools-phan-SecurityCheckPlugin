@@ -1,8 +1,8 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
-### Internal changes
-* Bumped phan/phan to 6.0.1
+## v9.0.0
+### Breaking changes
+* Bumped phan/phan to 6.0.1. This is a new major version for phan.
 
 ## v8.0.0
 ### Breaking changes
