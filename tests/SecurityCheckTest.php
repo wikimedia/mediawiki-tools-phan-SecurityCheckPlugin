@@ -21,7 +21,10 @@ use Symfony\Component\Console\Output\BufferedOutput;
 class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 	private ?CodeBase $codeBase = null;
 
-	private const TESTS_WITH_MINIMUM_PHP_VERSION = [];
+	private const TESTS_WITH_MINIMUM_PHP_VERSION = [
+		'chainedpipe' => 80500,
+		'pipeoperator' => 80500,
+	];
 
 	private const TESTS_SKIPPED_WITH_MINIMUM_PHP_VERSION = [];
 

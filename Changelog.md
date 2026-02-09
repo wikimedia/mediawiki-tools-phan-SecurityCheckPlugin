@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### New features
+* Added support for PHP 8.5's pipe operator
+
 ## v9.0.0
 ### Breaking changes
 * Bumped phan/phan to 6.0.1. This is a new major version for phan.

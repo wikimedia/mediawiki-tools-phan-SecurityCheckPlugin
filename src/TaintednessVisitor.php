@@ -13,6 +13,7 @@ namespace SecurityCheckPlugin;
 use ast\Node;
 use Phan\Analysis\BlockExitStatusChecker;
 use Phan\AST\ContextNode;
+use Phan\AST\PipeExpression;
 use Phan\Debug;
 use Phan\Exception\CodeBaseException;
 use Phan\Exception\IssueException;
@@ -425,6 +426,16 @@ class TaintednessVisitor extends PluginAwarePostAnalysisVisitor {
 	}
 
 	public function visitBinaryOp( Node $node ): void {
+		if ( $node->flags === \ast\flags\BINARY_PIPE ) {
+			// Use phan's utility to special-case this and treat it as a call.
+			$callNode = PipeExpression::createSyntheticCall( $node );
+			if ( !$callNode ) {
+				$this->setCurTaintUnknown();
+				return;
+			}
+			$this( $callNode );
+			return;
+		}
 		$lhs = $node->children['left'];
 		$rhs = $node->children['right'];
 		$mask = $this->getBinOpTaintMask( $node, $lhs, $rhs );

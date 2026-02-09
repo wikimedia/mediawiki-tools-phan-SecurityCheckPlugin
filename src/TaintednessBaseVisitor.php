@@ -2789,6 +2789,8 @@ trait TaintednessBaseVisitor {
 			\ast\flags\BINARY_BITWISE_AND,
 			\ast\flags\BINARY_BITWISE_OR,
 			\ast\flags\BINARY_BITWISE_XOR,
+			// Note, the pipe operator is also special-cased in TaintednessVisitor
+			\ast\flags\BINARY_PIPE,
 		];
 
 		if ( in_array( $opNode->flags, $safeBinOps, true ) ) {

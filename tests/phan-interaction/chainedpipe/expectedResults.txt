@@ -1,0 +1,1 @@
+phan-interaction/chainedpipe/test.php:6 PhanDebugAnnotation @phan-debug-var requested for variable $arr - it has union type list<string>(real=array)

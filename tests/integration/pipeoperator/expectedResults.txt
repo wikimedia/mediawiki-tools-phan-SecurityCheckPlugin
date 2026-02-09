@@ -1,0 +1,3 @@
+integration/pipeoperator/test.php:5 SecurityCheck-DoubleEscaped Calling method \htmlspecialchars() in [no method] that outputs using tainted argument #1 (`$escaped`). (Caused by: integration/pipeoperator/test.php +3)
+integration/pipeoperator/test.php:7 SecurityCheck-ShellInjection Calling method \shell_exec() in [no method] that outputs using tainted argument #1 (`$_GET['cmd']`).
+integration/pipeoperator/test.php:8 SecurityCheck-XSS Echoing expression that was not html escaped (Caused by: integration/pipeoperator/test.php +7)

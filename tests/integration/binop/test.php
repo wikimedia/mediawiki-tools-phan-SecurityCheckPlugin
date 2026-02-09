@@ -1,6 +1,6 @@
 <?php
 
-// For binary addition (which is special-cased), see test 'addition'
+// For binary addition (which is special-cased), see test 'addition'; for the pipe operator, see 'pipeoperator'
 
 function arithmeticRemovesTaint() {
 	$unsafe = $_GET['x'];
