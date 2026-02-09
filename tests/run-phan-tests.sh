@@ -64,6 +64,8 @@ rm $TESTDIR/files/src/0545_require_testing.php $TESTDIR/Phan/Language/FileRefTes
 sed -r -i ':a;N;$!ba;s/src\/\S+41 PhanPluginNonBoolInLogicalArith[^\n]+\n//' $TESTDIR/plugin_test/expected/160_useless_return.php.expected
 # Taint-check analyses debug_trace_nonpure() earlier, and knows it returns a string
 sed -r -i 's/(src\/\S+:(30|37)) PhanPartialTypeMismatchReturn.+/&\n\1 PhanTypeInvalidLeftOperandOfNumericOp Invalid operator: left operand of * is string (expected number)/' $TESTDIR/plugin_test/expected/152_phan_pure_annotation.php.expected
+# XXX: upstream bug, different results depending on whether php-ldap is installed https://github.com/phan/phan/issues/5329
+sed -r -i 's/42 PhanTypeMismatchArgumentInternalReal/42 PhanTypeMismatchArgumentInternal%SReal/' $TESTDIR/php83_files/expected/002_new_functions.php.expected85
 
 # Phan uses autoload-dev for test classes
 sed -r -i "s/\"SecurityCheckPlugin\\\\\\\\\": \"src\/\"/\0, \"Phan\\\\\\\\Tests\\\\\\\\\": \"$TESTDIR\/Phan\/\"/" composer.json
