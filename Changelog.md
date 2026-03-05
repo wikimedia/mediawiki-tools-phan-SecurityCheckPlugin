@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v9.1.0
 ### New features
 * Added support for PHP 8.5's pipe operator
 
