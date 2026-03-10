@@ -70,12 +70,7 @@ class SecurityCheckTest extends \PHPUnit\Framework\TestCase {
 		Type::clearAllMemoizations();
 		// Make sure we don't keep using the polyfill parser after a single test used it.
 		Config::reset();
-
-		// FIXME: Replace with call to GlobalScope::reset() in phan v6
-		$globalScope = new GlobalScope();
-		$refGlobalScope = new ReflectionObject( $globalScope );
-		$refGlobalVarMap = $refGlobalScope->getProperty( 'global_variable_map' );
-		$refGlobalVarMap->setValue( null, [] );
+		GlobalScope::reset();
 	}
 
 	/**
