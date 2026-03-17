@@ -4,6 +4,9 @@
 ### Breaking changes
 * Dropped support for PHP < 8.3
 
+### New features
+* Added support for `array_first`, `array_last`, `array_find`, and `array_find_key`
+
 ### Internal changes
 * Bumped phan/phan to ~6.0.5, allowing future patch versions to be automatically installed
 

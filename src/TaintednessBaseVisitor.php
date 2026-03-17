@@ -2307,6 +2307,10 @@ trait TaintednessBaseVisitor {
 			case 'pos':
 			case 'prev':
 			case 'reset':
+			case 'array_first':
+			case 'array_last':
+			// array_find has an additional $callback parameter that we don't use
+			case 'array_find':
 				if ( !isset( $preserveArgumentsData[0] ) ) {
 					return TaintednessWithError::emptySingleton();
 				}
@@ -2330,6 +2334,8 @@ trait TaintednessBaseVisitor {
 			case 'key':
 			case 'array_key_first':
 			case 'array_key_last':
+			// array_find_key has an additional $callback parameter that we don't use
+			case 'array_find_key':
 			// array_keys returns all keys from the array (first param), and can also take two more parameters
 			// that don't contribute to the resulting taintedness.
 			case 'array_keys':
