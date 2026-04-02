@@ -1,6 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
 ## UNRELEASED
+### Breaking changes
+* Dropped support for PHP < 8.3
+
 ### Internal changes
 * Bumped phan/phan to ~6.0.5, allowing future patch versions to be automatically installed
 
