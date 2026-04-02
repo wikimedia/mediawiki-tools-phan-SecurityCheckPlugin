@@ -1,5 +1,9 @@
 # MediaWiki Security Check Plugin changelog
 
+## UNRELEASED
+### Internal changes
+* Bumped phan/phan to ~6.0.5, allowing future patch versions to be automatically installed
+
 ## v9.1.0
 ### New features
 * Added support for PHP 8.5's pipe operator
