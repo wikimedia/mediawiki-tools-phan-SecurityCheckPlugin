@@ -1,6 +1,6 @@
 # MediaWiki Security Check Plugin changelog
 
-## UNRELEASED
+## v10.0.0
 ### Breaking changes
 * Dropped support for PHP < 8.3
 
