@@ -1,4 +1,5 @@
 <?php
+declare( strict_types = 1 );
 
 // We need to load this class now, so that when PHPUnit takes a snapshot of static attributes
 // it also includes GlobalScope::global_variable_map. Failing to back up this property (or backing

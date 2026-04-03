@@ -1,4 +1,6 @@
 <?php
+declare( strict_types = 1 );
+
 /**
  * This is phan plugin to provide security static analysis checks for php
  *

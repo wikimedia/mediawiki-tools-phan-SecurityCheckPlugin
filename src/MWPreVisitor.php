@@ -1,4 +1,4 @@
-<?php
+<?php declare( strict_types = 1 );
 
 /**
  * Copyright (C) 2017  Brian Wolff <bawolff@gmail.com>

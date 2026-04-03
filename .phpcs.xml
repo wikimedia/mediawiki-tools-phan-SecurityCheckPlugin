@@ -4,6 +4,7 @@
 		<exclude name="MediaWiki.NamingConventions.ValidGlobalName.allowedPrefix" />
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.assert" />
 	</rule>
+	<rule ref="Generic.PHP.RequireStrictTypes" />
 	<file>.</file>
 	<arg name="extensions" value="php"/>
 	<arg name="encoding" value="UTF-8"/>

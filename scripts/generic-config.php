@@ -1,4 +1,5 @@
 <?php
+declare( strict_types = 1 );
 
 $baseCfg = require __DIR__ . '/base-config.php';
 
