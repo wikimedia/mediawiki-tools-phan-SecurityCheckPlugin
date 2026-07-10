@@ -121,6 +121,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
 			],
+			'\Wikimedia\StatusValue\StatusValue::newGood' => [
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
 			'\MediaWiki\Status\Status::newGood' => [
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
@@ -128,10 +132,18 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\StatusValue::getValue' => [
 				'overall' => self::NO_TAINT
 			],
+			'\Wikimedia\StatusValue\StatusValue::getValue' => [
+				'overall' => self::NO_TAINT
+			],
 			'\MediaWiki\Status\Status::getValue' => [
 				'overall' => self::NO_TAINT
 			],
 			'\StatusValue::setResult' => [
+				self::NO_TAINT,
+				self::NO_TAINT,
+				'overall' => self::NO_TAINT
+			],
+			'\Wikimedia\StatusValue\StatusValue::setResult' => [
 				self::NO_TAINT,
 				self::NO_TAINT,
 				'overall' => self::NO_TAINT
