@@ -279,7 +279,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				foreach ( $classes as $cl ) {
 					$classFQSEN = $cl->getFQSEN()->__toString();
 					// TODO: drop first check when the `\Message` alias is dropped from MW core.
-					if ( $classFQSEN === '\Message' || $classFQSEN === '\MediaWiki\Message\Message' ) {
+					if ( $classFQSEN === '\Message' || $classFQSEN === '\MediaWiki\Message\Message'
+						|| $classFQSEN === '\MediaWiki\Language\Message\Message'
+					) {
 						$argumentIsMaybeAMsg = true;
 						break;
 					}
@@ -299,7 +301,9 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 				foreach ( $classesParam as $cl ) {
 					$classFQSEN = $cl->getFQSEN()->__toString();
 					// TODO: drop first check when the `\Message` alias is dropped from MW core.
-					if ( $classFQSEN === '\Message' || $classFQSEN === '\MediaWiki\Message\Message' ) {
+					if ( $classFQSEN === '\Message' || $classFQSEN === '\MediaWiki\Message\Message'
+						|| $classFQSEN === '\MediaWiki\Language\Message\Message'
+					) {
 						// So we are here. Input is a Message, and func expects either a Message or string
 						// (or something else). So disable double escape check.
 						return $curArgTaintedness->without( self::ESCAPED_TAINT );
