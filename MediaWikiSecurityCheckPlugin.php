@@ -67,12 +67,12 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 		// options. They are not escaped
 		$insertTaint = $insertTaint->withParamSinkTaint( 3, $sqlExecTaint, self::NO_OVERRIDE );
 
-		$insertQBRowTaint = FunctionTaintedness::emptySingleton();
-		$insertQBRowTaint = $insertQBRowTaint->withParamSinkTaint( 0, clone $sqlExecKeysTaint, self::NO_OVERRIDE );
+		$queryBuilderRowTaint = FunctionTaintedness::emptySingleton()
+			->withParamSinkTaint( 0, clone $sqlExecKeysTaint, self::NO_OVERRIDE );
 
-		$insertQBRowsTaint = FunctionTaintedness::emptySingleton();
 		$multiRowsTaint = Taintedness::newFromShape( [], clone $sqlExecKeysTaint );
-		$insertQBRowsTaint = $insertQBRowsTaint->withParamSinkTaint( 0, $multiRowsTaint, self::NO_OVERRIDE );
+		$queryBuilderRowsTaint = FunctionTaintedness::emptySingleton()
+			->withParamSinkTaint( 0, $multiRowsTaint, self::NO_OVERRIDE );
 
 		return [
 			// Note, at the moment, this checks where the function
@@ -81,8 +81,10 @@ class MediaWikiSecurityCheckPlugin extends SecurityCheckPlugin {
 			'\Wikimedia\Rdbms\IMaintainableDatabase::insert' => $insertTaint,
 			'\Wikimedia\Rdbms\Database::insert' => $insertTaint,
 			'\Wikimedia\Rdbms\DBConnRef::insert' => $insertTaint,
-			'\Wikimedia\Rdbms\InsertQueryBuilder::row' => $insertQBRowTaint,
-			'\Wikimedia\Rdbms\InsertQueryBuilder::rows' => $insertQBRowsTaint,
+			'\Wikimedia\Rdbms\InsertQueryBuilder::row' => $queryBuilderRowTaint,
+			'\Wikimedia\Rdbms\InsertQueryBuilder::rows' => $queryBuilderRowsTaint,
+			'\Wikimedia\Rdbms\ReplaceQueryBuilder::row' => $queryBuilderRowTaint,
+			'\Wikimedia\Rdbms\ReplaceQueryBuilder::rows' => $queryBuilderRowsTaint,
 			// FIXME Doesn't handle array args right.
 			'\wfShellExec' => [
 				self::SHELL_EXEC_TAINT | self::ARRAY_OK,
